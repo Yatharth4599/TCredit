@@ -3,7 +3,7 @@
 ## Tech Stack
 - **Runtime**: Node.js (v18+) / Bun
 - **Framework**: Express.js
-- **Database**: PostgreSQL + Prisma ORM
+- **Database**: PostgreSQL
 - **Cache**: Redis
 - **Queue**: BullMQ
 - **API**: REST + WebSocket (for React frontend)
@@ -26,16 +26,14 @@ backend/
 │   │   ├── instructions/  # TX builders
 │   │   └── listeners/     # Event listeners
 │   ├── db/
-│   │   ├── prisma/        # Prisma schema
-│   │   └── migrations/
+│   │   ├── models/        # Database models
+│   │   └── migrations/    # SQL migrations
 │   ├── jobs/              # Background jobs
 │   │   ├── sync-vaults.ts
 │   │   └── process-events.ts
 │   ├── utils/
 │   └── types/
 ├── tests/
-├── prisma/
-│   └── schema.prisma
 └── package.json
 ```
 
