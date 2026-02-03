@@ -1,7 +1,7 @@
-# TigerPay Multi-Chain Protocol 🐯
+# TigerPayX Multi-Chain Protocol 🐯
 
 ## Overview
-TigerPay is a decentralized BNPL/Lending platform designed for UAE merchants, leveraging tokenized debt securities. The core protocol is implemented on **Solana** for high-performance, milestone-based financing, with the original **EVM** implementation preserved for reference.
+TigerPayX is a decentralized BNPL/Lending platform designed for UAE merchants, leveraging tokenized debt securities. The core protocol is implemented on **Solana** for high-performance, milestone-based financing, with the original **EVM** implementation preserved for reference.
 
 ## 🏗️ Project Structure
 ```text
@@ -58,4 +58,4 @@ To interact with the Solana programs:
 
 ---
 ## 👥 Team
-TigerPay Protocol - Blockchain Engineering
+TigerPayX Protocol - Blockchain Engineering
