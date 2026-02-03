@@ -1,12 +1,12 @@
 # TigerPay Backend
 
-## Tech Stack (Recommended)
-- **Runtime**: Node.js / Bun
-- **Framework**: Express.js or Fastify
+## Tech Stack
+- **Runtime**: Node.js (v18+) / Bun
+- **Framework**: Express.js
 - **Database**: PostgreSQL + Prisma ORM
 - **Cache**: Redis
 - **Queue**: BullMQ
-- **API**: REST + WebSocket
+- **API**: REST + WebSocket (for React frontend)
 
 ## Directory Structure
 ```
