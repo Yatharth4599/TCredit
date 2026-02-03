@@ -8,59 +8,42 @@ declare_id!("5xzKq3bRuxLh4WezvMRHz8nodp4W6gihUvjeB5VcWa8z");
 pub mod tigerpay {
     use super::*;
 
-    // ============ Admin Instructions ============
+    // ============ Platform Admin ============
     
     pub fn initialize_platform(
         ctx: Context<InitializePlatform>,
         default_fee_bps: u16,
         min_funding_target: u64,
         max_funding_target: u64,
-        min_interest_bps: u16,
-        max_interest_bps: u16,
-        max_duration_months: u8,
-        max_tranches: u8,
-        required_verifiers: u8,
     ) -> Result<()> {
         let config = &mut ctx.accounts.platform_config;
-        
         config.authority = ctx.accounts.authority.key();
         config.fee_recipient = ctx.accounts.fee_recipient.key();
         config.default_fee_bps = default_fee_bps;
         config.min_funding_target = min_funding_target;
         config.max_funding_target = max_funding_target;
-        config.min_interest_bps = min_interest_bps;
-        config.max_interest_bps = max_interest_bps;
-        config.max_duration_months = max_duration_months;
-        config.max_tranches = max_tranches;
-        config.required_verifiers = required_verifiers;
         config.paused = false;
         config.bump = ctx.bumps.platform_config;
-
-        msg!("Platform initialized with fee: {}bps", default_fee_bps);
+        emit!(PlatformInitialized { authority: config.authority, fee_recipient: config.fee_recipient, default_fee_bps });
         Ok(())
     }
 
     pub fn verify_merchant(ctx: Context<VerifyMerchant>, name_hash: [u8; 32]) -> Result<()> {
-        let merchant_profile = &mut ctx.accounts.merchant_profile;
+        let profile = &mut ctx.accounts.merchant_profile;
         let clock = Clock::get()?;
-
-        merchant_profile.merchant = ctx.accounts.merchant.key();
-        merchant_profile.authority = ctx.accounts.authority.key();
-        merchant_profile.verified = true;
-        merchant_profile.verified_at = clock.unix_timestamp;
-        merchant_profile.verified_by = ctx.accounts.authority.key();
-        merchant_profile.vault_count = 0;
-        merchant_profile.max_vaults = 10;
-        merchant_profile.total_raised = 0;
-        merchant_profile.total_repaid = 0;
-        merchant_profile.name_hash = name_hash;
-        merchant_profile.bump = ctx.bumps.merchant_profile;
-
-        msg!("Merchant {} verified", ctx.accounts.merchant.key());
+        profile.merchant = ctx.accounts.merchant.key();
+        profile.authority = ctx.accounts.authority.key();
+        profile.verified = true;
+        profile.verified_at = clock.unix_timestamp;
+        profile.vault_count = 0;
+        profile.max_vaults = 10;
+        profile.name_hash = name_hash;
+        profile.bump = ctx.bumps.merchant_profile;
+        emit!(MerchantVerified { merchant: profile.merchant, verified_by: profile.authority });
         Ok(())
     }
 
-    // ============ Vault Instructions ============
+    // ============ Debt Vault ============
 
     pub fn create_vault(
         ctx: Context<CreateVault>,
@@ -72,60 +55,48 @@ pub mod tigerpay {
         duration_months: u8,
         num_tranches: u8,
         fundraising_days: u8,
+        max_investors: u32,
+        late_fee_bps: u16,
+        grace_period_days: u8,
     ) -> Result<()> {
         let config = &ctx.accounts.platform_config;
-        let merchant_profile = &mut ctx.accounts.merchant_profile;
+        let profile = &mut ctx.accounts.merchant_profile;
         let vault = &mut ctx.accounts.vault;
         let clock = Clock::get()?;
 
         require!(!config.paused, TigerPayError::PlatformPaused);
-        require!(merchant_profile.can_create_vault(), TigerPayError::MerchantNotVerified);
-        require!(
-            target_amount >= config.min_funding_target && target_amount <= config.max_funding_target,
-            TigerPayError::InvalidFundingTarget
-        );
+        require!(profile.can_create_vault(), TigerPayError::MerchantNotVerified);
 
         vault.authority = ctx.accounts.authority.key();
         vault.merchant = ctx.accounts.merchant.key();
         vault.funding_token_mint = ctx.accounts.funding_token_mint.key();
         vault.debt_token_mint = ctx.accounts.debt_token_mint.key();
         vault.vault_token_account = ctx.accounts.vault_token_account.key();
-        
         vault.target_amount = target_amount;
         vault.min_investment = min_investment;
         vault.max_investment = max_investment;
-        vault.total_raised = 0;
-        vault.total_repaid = 0;
-        vault.total_to_repay = 0;
-        
         vault.interest_rate_bps = interest_rate_bps;
         vault.duration_months = duration_months;
         vault.num_tranches = num_tranches;
-        vault.tranches_released = 0;
-        
+        vault.max_investors = max_investors;
+        vault.late_fee_bps = late_fee_bps;
+        vault.grace_period_days = grace_period_days;
         vault.state = VaultState::Fundraising;
-        vault.fundraising_deadline = clock.unix_timestamp + (fundraising_days as i64 * 24 * 60 * 60);
+        vault.fundraising_deadline = clock.unix_timestamp + (fundraising_days as i64 * 86400);
         vault.created_at = clock.unix_timestamp;
-        
         vault.platform_fee_bps = config.default_fee_bps;
         vault.platform_fee_recipient = config.fee_recipient;
-        vault.platform_fees_collected = 0;
-        
-        vault.investor_count = 0;
         vault.vault_nonce = vault_nonce;
         vault.bump = ctx.bumps.vault;
 
-        merchant_profile.vault_count += 1;
-
-        msg!("Vault created for merchant: {}", vault.merchant);
+        profile.vault_count += 1;
+        emit!(VaultCreated { vault: vault.key(), merchant: vault.merchant, target_amount, interest_rate_bps, duration_months, num_tranches });
         Ok(())
     }
 
-    // ============ Investor Instructions ============
-
     pub fn invest(ctx: Context<Invest>, amount: u64) -> Result<()> {
         let vault = &mut ctx.accounts.vault;
-        let investor_account = &mut ctx.accounts.investor_account;
+        let investor = &mut ctx.accounts.investor_account;
         let clock = Clock::get()?;
 
         require!(vault.is_fundraising(), TigerPayError::InvalidVaultState);
@@ -135,316 +106,182 @@ pub mod tigerpay {
         let new_total = vault.total_raised.checked_add(amount).ok_or(TigerPayError::ArithmeticOverflow)?;
         require!(new_total <= vault.target_amount, TigerPayError::InvestmentExceedsTarget);
         
-        let investor_total = investor_account.amount_invested.checked_add(amount).ok_or(TigerPayError::ArithmeticOverflow)?;
-        require!(investor_total <= vault.max_investment, TigerPayError::InvestmentTooHigh);
+        if investor.amount_invested == 0 {
+            require!(vault.investor_count < vault.max_investors, TigerPayError::MaxInvestorsReached);
+        }
 
-        // Transfer funding tokens from investor to vault
-        token::transfer(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                Transfer {
-                    from: ctx.accounts.investor_token_account.to_account_info(),
-                    to: ctx.accounts.vault_token_account.to_account_info(),
-                    authority: ctx.accounts.investor.to_account_info(),
-                },
-            ),
-            amount,
-        )?;
+        token::transfer(CpiContext::new(ctx.accounts.token_program.to_account_info(), Transfer {
+            from: ctx.accounts.investor_token_account.to_account_info(),
+            to: ctx.accounts.vault_token_account.to_account_info(),
+            authority: ctx.accounts.investor.to_account_info(),
+        }), amount)?;
 
-        // Mint debt tokens to investor
         let seeds = &[b"vault", vault.merchant.as_ref(), &[vault.vault_nonce], &[vault.bump]];
-        let signer_seeds = &[&seeds[..]];
+        token::mint_to(CpiContext::new_with_signer(ctx.accounts.token_program.to_account_info(), MintTo {
+            mint: ctx.accounts.debt_token_mint.to_account_info(),
+            to: ctx.accounts.investor_debt_token_account.to_account_info(),
+            authority: vault.to_account_info(),
+        }, &[seeds]), amount)?;
 
-        token::mint_to(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                MintTo {
-                    mint: ctx.accounts.debt_token_mint.to_account_info(),
-                    to: ctx.accounts.investor_debt_token_account.to_account_info(),
-                    authority: vault.to_account_info(),
-                },
-                signer_seeds,
-            ),
-            amount,
-        )?;
-
-        // Update investor account
-        if investor_account.amount_invested == 0 {
-            investor_account.vault = vault.key();
-            investor_account.investor = ctx.accounts.investor.key();
-            investor_account.investor_token_account = ctx.accounts.investor_token_account.key();
-            investor_account.invested_at = clock.unix_timestamp;
-            investor_account.bump = ctx.bumps.investor_account;
+        if investor.amount_invested == 0 {
+            investor.vault = vault.key();
+            investor.investor = ctx.accounts.investor.key();
+            investor.invested_at = clock.unix_timestamp;
+            investor.bump = ctx.bumps.investor_account;
             vault.investor_count += 1;
         }
-        
-        investor_account.amount_invested = investor_total;
-        investor_account.debt_tokens_received = investor_account.debt_tokens_received.checked_add(amount).ok_or(TigerPayError::ArithmeticOverflow)?;
+        investor.amount_invested = investor.amount_invested.checked_add(amount).ok_or(TigerPayError::ArithmeticOverflow)?;
+        investor.debt_tokens_received = investor.debt_tokens_received.checked_add(amount).ok_or(TigerPayError::ArithmeticOverflow)?;
         vault.total_raised = new_total;
 
-        msg!("Investment received: {} from {}", amount, ctx.accounts.investor.key());
+        emit!(InvestmentReceived { vault: vault.key(), investor: ctx.accounts.investor.key(), amount, total_raised: new_total });
 
-        // Check if target reached
         if vault.total_raised >= vault.target_amount {
             vault.state = VaultState::Active;
-            let interest = (vault.total_raised as u128).checked_mul(vault.interest_rate_bps as u128).unwrap().checked_mul(vault.duration_months as u128).unwrap().checked_div(10000 * 12).unwrap() as u64;
+            let interest = (vault.total_raised as u128 * vault.interest_rate_bps as u128 * vault.duration_months as u128 / (10000 * 12)) as u64;
             vault.total_to_repay = vault.total_raised.checked_add(interest).unwrap();
-            msg!("Fundraising complete! Total to repay: {}", vault.total_to_repay);
+            vault.next_payment_due = clock.unix_timestamp + 30 * 86400;
         }
-
         Ok(())
     }
-
-    // ============ Merchant Instructions ============
 
     pub fn make_repayment(ctx: Context<MakeRepayment>, amount: u64) -> Result<()> {
         let vault = &mut ctx.accounts.vault;
-
+        let clock = Clock::get()?;
         require!(vault.is_active() || vault.is_repaying(), TigerPayError::InvalidVaultState);
         require!(amount > 0, TigerPayError::InvalidRepaymentAmount);
 
-        token::transfer(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                Transfer {
-                    from: ctx.accounts.merchant_token_account.to_account_info(),
-                    to: ctx.accounts.vault_token_account.to_account_info(),
-                    authority: ctx.accounts.merchant.to_account_info(),
-                },
-            ),
-            amount,
-        )?;
+        let late_fee = vault.calculate_late_fee(clock.unix_timestamp);
+        vault.total_late_fees = vault.total_late_fees.checked_add(late_fee).ok_or(TigerPayError::ArithmeticOverflow)?;
+
+        token::transfer(CpiContext::new(ctx.accounts.token_program.to_account_info(), Transfer {
+            from: ctx.accounts.merchant_token_account.to_account_info(),
+            to: ctx.accounts.vault_token_account.to_account_info(),
+            authority: ctx.accounts.merchant.to_account_info(),
+        }), amount)?;
 
         vault.total_repaid = vault.total_repaid.checked_add(amount).ok_or(TigerPayError::ArithmeticOverflow)?;
-        msg!("Repayment received: {} from merchant {}", amount, ctx.accounts.merchant.key());
+        vault.next_payment_due = clock.unix_timestamp + 30 * 86400;
 
-        if vault.total_repaid >= vault.total_to_repay {
+        emit!(RepaymentReceived { vault: vault.key(), merchant: vault.merchant, amount, late_fee, total_repaid: vault.total_repaid });
+
+        if vault.total_repaid >= vault.total_to_repay + vault.total_late_fees {
             vault.state = VaultState::Completed;
-            msg!("Vault fully repaid!");
         }
-
         Ok(())
     }
-
-    // ============ Claim Instructions ============
 
     pub fn claim_returns(ctx: Context<ClaimReturns>) -> Result<()> {
         let vault = &ctx.accounts.vault;
-        let investor_account = &mut ctx.accounts.investor_account;
-
+        let investor = &mut ctx.accounts.investor_account;
         require!(vault.is_repaying() || vault.state == VaultState::Completed, TigerPayError::InvalidVaultState);
 
-        let claimable = investor_account.calculate_claimable(vault.total_raised, vault.total_repaid);
+        let claimable = investor.calculate_claimable(vault.total_raised, vault.total_repaid);
         require!(claimable > 0, TigerPayError::NoReturnsAvailable);
 
         let seeds = &[b"vault", vault.merchant.as_ref(), &[vault.vault_nonce], &[vault.bump]];
-        let signer_seeds = &[&seeds[..]];
+        token::transfer(CpiContext::new_with_signer(ctx.accounts.token_program.to_account_info(), Transfer {
+            from: ctx.accounts.vault_token_account.to_account_info(),
+            to: ctx.accounts.investor_token_account.to_account_info(),
+            authority: vault.to_account_info(),
+        }, &[seeds]), claimable)?;
 
-        token::transfer(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                Transfer {
-                    from: ctx.accounts.vault_token_account.to_account_info(),
-                    to: ctx.accounts.investor_token_account.to_account_info(),
-                    authority: ctx.accounts.vault.to_account_info(),
-                },
-                signer_seeds,
-            ),
-            claimable,
-        )?;
-
-        investor_account.claimed_returns = investor_account.claimed_returns.checked_add(claimable).ok_or(TigerPayError::ArithmeticOverflow)?;
-        investor_account.last_claim_at = Clock::get()?.unix_timestamp;
-
-        msg!("Returns claimed: {} by investor {}", claimable, ctx.accounts.investor.key());
+        investor.claimed_returns = investor.claimed_returns.checked_add(claimable).ok_or(TigerPayError::ArithmeticOverflow)?;
+        investor.last_claim_at = Clock::get()?.unix_timestamp;
+        emit!(ReturnsClaimed { vault: vault.key(), investor: ctx.accounts.investor.key(), amount: claimable });
         Ok(())
     }
 
-    // ============ Tranche & Milestone Instructions ============
+    // ============ Default & Recovery ============
 
-    pub fn initialize_tranche(
-        ctx: Context<InitializeTranche>,
-        tranche_index: u8,
-    ) -> Result<()> {
-        let vault = &ctx.accounts.vault;
-        let tranche = &mut ctx.accounts.tranche;
-        let clock = Clock::get()?;
-
-        require!(tranche_index < vault.num_tranches, TigerPayError::InvalidTranches);
-
-        let tranche_interval = 30 * 24 * 60 * 60i64; // 30 days
-
-        tranche.vault = vault.key();
-        tranche.tranche_index = tranche_index;
-        tranche.amount = vault.target_amount / vault.num_tranches as u64;
-        tranche.release_time = clock.unix_timestamp + ((tranche_index as i64 + 1) * tranche_interval);
-        tranche.released = false;
-        tranche.released_at = 0;
-        tranche.milestone_id = tranche_index + 1;
-        tranche.bump = ctx.bumps.tranche;
-
-        msg!("Tranche {} initialized", tranche_index);
-        Ok(())
-    }
-
-    pub fn initialize_milestone(
-        ctx: Context<InitializeMilestone>,
-        milestone_id: u8,
-        description_hash: [u8; 32],
-    ) -> Result<()> {
-        let milestone = &mut ctx.accounts.milestone;
-        let config = &ctx.accounts.platform_config;
-
-        milestone.vault = ctx.accounts.vault.key();
-        milestone.milestone_id = milestone_id;
-        milestone.evidence_hash = [0u8; 32];
-        milestone.description_hash = description_hash;
-        milestone.status = MilestoneStatus::Pending;
-        milestone.submitted_at = 0;
-        milestone.approved_at = 0;
-        milestone.approval_count = 0;
-        milestone.rejection_count = 0;
-        milestone.required_approvals = config.required_verifiers;
-        milestone.bump = ctx.bumps.milestone;
-
-        msg!("Milestone {} initialized", milestone_id);
-        Ok(())
-    }
-
-    pub fn submit_milestone(
-        ctx: Context<SubmitMilestone>,
-        _milestone_id: u8,
-        evidence_hash: [u8; 32],
-    ) -> Result<()> {
-        let milestone = &mut ctx.accounts.milestone;
-        let clock = Clock::get()?;
-
-        require!(milestone.status == MilestoneStatus::Pending, TigerPayError::MilestoneAlreadySubmitted);
-
-        milestone.evidence_hash = evidence_hash;
-        milestone.status = MilestoneStatus::Submitted;
-        milestone.submitted_at = clock.unix_timestamp;
-
-        msg!("Milestone {} submitted", milestone.milestone_id);
-        Ok(())
-    }
-
-    pub fn vote_milestone(
-        ctx: Context<VoteMilestone>,
-        _milestone_id: u8,
-        approve: bool,
-        comment_hash: [u8; 32],
-    ) -> Result<()> {
-        let milestone = &mut ctx.accounts.milestone;
-        let vote = &mut ctx.accounts.verifier_vote;
-        let clock = Clock::get()?;
-
-        require!(milestone.status == MilestoneStatus::Submitted, TigerPayError::MilestoneNotSubmitted);
-
-        vote.milestone = milestone.key();
-        vote.verifier = ctx.accounts.verifier.key();
-        vote.approved = approve;
-        vote.comment_hash = comment_hash;
-        vote.voted_at = clock.unix_timestamp;
-        vote.bump = ctx.bumps.verifier_vote;
-
-        if approve {
-            milestone.approval_count += 1;
-            if milestone.approval_count >= milestone.required_approvals {
-                milestone.status = MilestoneStatus::Approved;
-                milestone.approved_at = clock.unix_timestamp;
-                msg!("Milestone {} approved!", milestone.milestone_id);
-            }
-        } else {
-            milestone.rejection_count += 1;
-            if milestone.rejection_count >= milestone.required_approvals {
-                milestone.status = MilestoneStatus::Rejected;
-            }
-        }
-
-        Ok(())
-    }
-
-    pub fn release_tranche(ctx: Context<ReleaseTranche>, tranche_index: u8) -> Result<()> {
+    pub fn mark_default(ctx: Context<MarkDefault>) -> Result<()> {
         let vault = &mut ctx.accounts.vault;
-        let tranche = &mut ctx.accounts.tranche;
-        let milestone = &ctx.accounts.milestone;
         let clock = Clock::get()?;
+        require!(vault.state == VaultState::Repaying, TigerPayError::InvalidVaultState);
+        require!(vault.should_default(clock.unix_timestamp), TigerPayError::GracePeriodNotExpired);
 
-        require!(vault.is_active() || vault.is_repaying(), TigerPayError::InvalidVaultState);
-        require!(!tranche.released, TigerPayError::TrancheAlreadyReleased);
-        require!(clock.unix_timestamp >= tranche.release_time, TigerPayError::TrancheNotReady);
-        require!(milestone.status == MilestoneStatus::Approved, TigerPayError::MilestoneNotApproved);
+        vault.state = VaultState::Defaulted;
+        vault.defaulted_at = clock.unix_timestamp;
+        emit!(VaultDefaulted { vault: vault.key(), merchant: vault.merchant, total_raised: vault.total_raised, total_repaid: vault.total_repaid, defaulted_at: clock.unix_timestamp });
+        Ok(())
+    }
 
-        let tranche_amount = vault.total_raised / vault.num_tranches as u64;
-        let platform_fee = tranche_amount * vault.platform_fee_bps as u64 / 10000;
-        let merchant_amount = tranche_amount - platform_fee;
+    pub fn recover_funds(ctx: Context<RecoverFunds>) -> Result<()> {
+        let vault = &mut ctx.accounts.vault;
+        let investor = &mut ctx.accounts.investor_account;
+        require!(vault.is_defaulted(), TigerPayError::InvalidVaultState);
+        require!(!investor.has_recovered, TigerPayError::AlreadyClaimed);
+
+        let balance = ctx.accounts.vault_token_account.amount;
+        let share = (investor.amount_invested as u128 * balance as u128 / vault.total_raised as u128) as u64;
+        require!(share > 0, TigerPayError::NoReturnsAvailable);
 
         let seeds = &[b"vault", vault.merchant.as_ref(), &[vault.vault_nonce], &[vault.bump]];
-        let signer_seeds = &[&seeds[..]];
+        token::transfer(CpiContext::new_with_signer(ctx.accounts.token_program.to_account_info(), Transfer {
+            from: ctx.accounts.vault_token_account.to_account_info(),
+            to: ctx.accounts.investor_token_account.to_account_info(),
+            authority: vault.to_account_info(),
+        }, &[seeds]), share)?;
 
-        // Transfer to merchant
-        token::transfer(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                Transfer {
-                    from: ctx.accounts.vault_token_account.to_account_info(),
-                    to: ctx.accounts.merchant_token_account.to_account_info(),
-                    authority: vault.to_account_info(),
-                },
-                signer_seeds,
-            ),
-            merchant_amount,
-        )?;
-
-        // Transfer platform fee
-        token::transfer(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                Transfer {
-                    from: ctx.accounts.vault_token_account.to_account_info(),
-                    to: ctx.accounts.platform_fee_account.to_account_info(),
-                    authority: vault.to_account_info(),
-                },
-                signer_seeds,
-            ),
-            platform_fee,
-        )?;
-
-        tranche.released = true;
-        tranche.released_at = clock.unix_timestamp;
-        tranche.amount = tranche_amount;
-
-        vault.tranches_released += 1;
-        vault.platform_fees_collected += platform_fee;
-
-        msg!("Tranche {} released: {} to merchant", tranche_index, merchant_amount);
-
-        if vault.tranches_released >= vault.num_tranches && vault.is_active() {
-            vault.state = VaultState::Repaying;
-            msg!("All tranches released, vault now REPAYING");
-        }
-
+        investor.has_recovered = true;
+        investor.recovered_amount = share;
+        vault.total_recovered = vault.total_recovered.checked_add(share).ok_or(TigerPayError::ArithmeticOverflow)?;
+        emit!(FundsRecovered { vault: vault.key(), investor: ctx.accounts.investor.key(), amount: share });
         Ok(())
     }
 
-    pub fn complete_fundraising_manual(ctx: Context<CompleteFundraisingManual>) -> Result<()> {
+    // ============ Cancellation & Refund ============
+
+    pub fn cancel_vault(ctx: Context<CancelVault>) -> Result<()> {
         let vault = &mut ctx.accounts.vault;
+        let clock = Clock::get()?;
+        require!(vault.state == VaultState::Fundraising, TigerPayError::InvalidVaultState);
 
-        require!(vault.is_fundraising(), TigerPayError::InvalidVaultState);
-        
-        let min_required = vault.target_amount * 80 / 100;
-        require!(vault.total_raised >= min_required, TigerPayError::FundraisingNotComplete);
-
-        vault.state = VaultState::Active;
-        let interest = (vault.total_raised as u128) * (vault.interest_rate_bps as u128) * (vault.duration_months as u128) / (10000 * 12);
-        vault.total_to_repay = vault.total_raised + interest as u64;
-
-        msg!("Fundraising completed, total to repay: {}", vault.total_to_repay);
+        vault.cancelled = true;
+        vault.cancelled_at = clock.unix_timestamp;
+        vault.state = VaultState::Cancelled;
+        emit!(VaultCancelled { vault: vault.key(), merchant: vault.merchant, total_raised: vault.total_raised, investor_count: vault.investor_count, cancelled_at: clock.unix_timestamp });
         Ok(())
     }
 
-    // ============ ICM (Equity) Instructions ============
+    pub fn claim_refund(ctx: Context<ClaimRefund>) -> Result<()> {
+        let vault = &mut ctx.accounts.vault;
+        let investor = &mut ctx.accounts.investor_account;
+        require!(vault.is_cancelled(), TigerPayError::VaultNotCancelled);
+        require!(!investor.has_refunded, TigerPayError::AlreadyClaimed);
+
+        let refund = investor.amount_invested;
+        let seeds = &[b"vault", vault.merchant.as_ref(), &[vault.vault_nonce], &[vault.bump]];
+        token::transfer(CpiContext::new_with_signer(ctx.accounts.token_program.to_account_info(), Transfer {
+            from: ctx.accounts.vault_token_account.to_account_info(),
+            to: ctx.accounts.investor_token_account.to_account_info(),
+            authority: vault.to_account_info(),
+        }, &[seeds]), refund)?;
+
+        investor.has_refunded = true;
+        emit!(RefundClaimed { vault: vault.key(), investor: ctx.accounts.investor.key(), amount: refund });
+        Ok(())
+    }
+
+    // ============ Pause Controls ============
+
+    pub fn pause_vault(ctx: Context<PauseVault>) -> Result<()> {
+        let vault = &mut ctx.accounts.vault;
+        require!(!vault.paused, TigerPayError::VaultAlreadyPaused);
+        vault.paused = true;
+        emit!(VaultPaused { vault: vault.key(), paused_by: ctx.accounts.authority.key() });
+        Ok(())
+    }
+
+    pub fn unpause_vault(ctx: Context<UnpauseVault>) -> Result<()> {
+        let vault = &mut ctx.accounts.vault;
+        require!(vault.paused, TigerPayError::VaultNotPaused);
+        vault.paused = false;
+        emit!(VaultUnpaused { vault: vault.key(), unpaused_by: ctx.accounts.authority.key() });
+        Ok(())
+    }
+
+    // ============ ICM (Equity) ============
 
     pub fn create_icm_vault(
         ctx: Context<CreateICMVault>,
@@ -455,231 +292,152 @@ pub mod tigerpay {
         max_buy: u64,
         offering_days: u8,
     ) -> Result<()> {
-        let icm_vault = &mut ctx.accounts.icm_vault;
-        let clock = Clock::get()?;
         let config = &ctx.accounts.platform_config;
-        let merchant_profile = &mut ctx.accounts.merchant_profile;
+        let profile = &mut ctx.accounts.merchant_profile;
+        let icm = &mut ctx.accounts.icm_vault;
+        let clock = Clock::get()?;
 
         require!(!config.paused, TigerPayError::PlatformPaused);
-        require!(merchant_profile.can_create_vault(), TigerPayError::MerchantNotVerified);
+        icm.authority = ctx.accounts.authority.key();
+        icm.business = ctx.accounts.business.key();
+        icm.funding_token_mint = ctx.accounts.funding_token_mint.key();
+        icm.stake_token_mint = ctx.accounts.stake_token_mint.key();
+        icm.vault_token_account = ctx.accounts.vault_token_account.key();
+        icm.total_shares = total_shares;
+        icm.price_per_share = price_per_share;
+        icm.min_buy = min_buy;
+        icm.max_buy = max_buy;
+        icm.target_raised = total_shares.checked_mul(price_per_share).ok_or(TigerPayError::ArithmeticOverflow)?;
+        icm.state = ICMState::Offered;
+        icm.offering_deadline = clock.unix_timestamp + (offering_days as i64 * 86400);
+        icm.created_at = clock.unix_timestamp;
+        icm.platform_fee_bps = config.default_fee_bps;
+        icm.platform_fee_recipient = config.fee_recipient;
+        icm.icm_nonce = icm_nonce;
+        icm.bump = ctx.bumps.icm_vault;
 
-        icm_vault.authority = ctx.accounts.authority.key();
-        icm_vault.business = ctx.accounts.business.key();
-        icm_vault.funding_token_mint = ctx.accounts.funding_token_mint.key();
-        icm_vault.stake_token_mint = ctx.accounts.stake_token_mint.key();
-        icm_vault.vault_token_account = ctx.accounts.vault_token_account.key();
-
-        icm_vault.total_shares = total_shares;
-        icm_vault.shares_sold = 0;
-        icm_vault.price_per_share = price_per_share;
-        icm_vault.min_buy = min_buy;
-        icm_vault.max_buy = max_buy;
-        
-        icm_vault.target_raised = total_shares.checked_mul(price_per_share).ok_or(TigerPayError::ArithmeticOverflow)?;
-        icm_vault.total_raised = 0;
-
-        icm_vault.state = ICMState::Offered;
-        icm_vault.offering_deadline = clock.unix_timestamp + (offering_days as i64 * 24 * 60 * 60);
-        icm_vault.created_at = clock.unix_timestamp;
-
-        icm_vault.platform_fee_bps = config.default_fee_bps;
-        icm_vault.platform_fee_recipient = config.fee_recipient;
-
-        icm_vault.investor_count = 0;
-        icm_vault.icm_nonce = icm_nonce;
-        icm_vault.bump = ctx.bumps.icm_vault;
-
-        merchant_profile.vault_count += 1;
-
-        msg!("ICM Vault created for business: {}", icm_vault.business);
+        profile.vault_count += 1;
+        emit!(ICMVaultCreated { icm_vault: icm.key(), business: icm.business, total_shares, price_per_share });
         Ok(())
     }
 
-    pub fn buy_stake(ctx: Context<BuyStake>, share_amount: u64) -> Result<()> {
-        let icm_vault = &mut ctx.accounts.icm_vault;
+    pub fn buy_stake(ctx: Context<BuyStake>, shares: u64) -> Result<()> {
+        let icm = &mut ctx.accounts.icm_vault;
         let clock = Clock::get()?;
 
-        require!(icm_vault.state == ICMState::Offered || icm_vault.state == ICMState::Active, TigerPayError::InvalidVaultState);
-        require!(clock.unix_timestamp <= icm_vault.offering_deadline, TigerPayError::FundraisingDeadlinePassed);
-        require!(share_amount >= icm_vault.min_buy, TigerPayError::InvestmentTooLow);
-        
-        let new_shares_sold = icm_vault.shares_sold.checked_add(share_amount).ok_or(TigerPayError::ArithmeticOverflow)?;
-        require!(new_shares_sold <= icm_vault.total_shares, TigerPayError::InvestmentExceedsTarget);
+        require!(icm.state == ICMState::Offered || icm.state == ICMState::Active, TigerPayError::InvalidVaultState);
+        require!(clock.unix_timestamp <= icm.offering_deadline, TigerPayError::FundraisingDeadlinePassed);
+        require!(shares >= icm.min_buy, TigerPayError::InvestmentTooLow);
 
-        let funding_amount = share_amount.checked_mul(icm_vault.price_per_share).ok_or(TigerPayError::ArithmeticOverflow)?;
+        let new_sold = icm.shares_sold.checked_add(shares).ok_or(TigerPayError::ArithmeticOverflow)?;
+        require!(new_sold <= icm.total_shares, TigerPayError::InvestmentExceedsTarget);
 
-        // Transfer funding tokens from investor to vault
-        token::transfer(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                Transfer {
-                    from: ctx.accounts.investor_token_account.to_account_info(),
-                    to: ctx.accounts.vault_token_account.to_account_info(),
-                    authority: ctx.accounts.investor.to_account_info(),
-                },
-            ),
-            funding_amount,
-        )?;
+        let cost = shares.checked_mul(icm.price_per_share).ok_or(TigerPayError::ArithmeticOverflow)?;
 
-        // Mint Stake Tokens to investor
-        let seeds = &[
-            b"icm_vault", 
-            icm_vault.business.as_ref(), 
-            &[icm_vault.icm_nonce], 
-            &[icm_vault.bump]
-        ];
-        let signer_seeds = &[&seeds[..]];
+        token::transfer(CpiContext::new(ctx.accounts.token_program.to_account_info(), Transfer {
+            from: ctx.accounts.investor_token_account.to_account_info(),
+            to: ctx.accounts.vault_token_account.to_account_info(),
+            authority: ctx.accounts.investor.to_account_info(),
+        }), cost)?;
 
-        token::mint_to(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                MintTo {
-                    mint: ctx.accounts.stake_token_mint.to_account_info(),
-                    to: ctx.accounts.investor_stake_token_account.to_account_info(),
-                    authority: icm_vault.to_account_info(),
-                },
-                signer_seeds,
-            ),
-            share_amount,
-        )?;
+        let seeds = &[b"icm_vault", icm.business.as_ref(), &[icm.icm_nonce], &[icm.bump]];
+        token::mint_to(CpiContext::new_with_signer(ctx.accounts.token_program.to_account_info(), MintTo {
+            mint: ctx.accounts.stake_token_mint.to_account_info(),
+            to: ctx.accounts.investor_stake_token_account.to_account_info(),
+            authority: icm.to_account_info(),
+        }, &[seeds]), shares)?;
 
-        icm_vault.shares_sold = new_shares_sold;
-        icm_vault.total_raised = icm_vault.total_raised.checked_add(funding_amount).ok_or(TigerPayError::ArithmeticOverflow)?;
+        icm.shares_sold = new_sold;
+        icm.total_raised = icm.total_raised.checked_add(cost).ok_or(TigerPayError::ArithmeticOverflow)?;
+        if icm.state == ICMState::Offered { icm.state = ICMState::Active; }
+        if icm.shares_sold == icm.total_shares { icm.state = ICMState::Closed; }
 
-        if icm_vault.state == ICMState::Offered {
-            icm_vault.state = ICMState::Active;
-        }
-
-        if icm_vault.shares_sold == icm_vault.total_shares {
-            icm_vault.state = ICMState::Closed;
-            msg!("ICM Completed! All shares sold.");
-        }
-
-        msg!("Bought {} stakes for {} tokens", share_amount, funding_amount);
+        emit!(StakePurchased { icm_vault: icm.key(), investor: ctx.accounts.investor.key(), shares, amount_paid: cost });
         Ok(())
     }
 
     pub fn distribute_dividends(ctx: Context<DistributeDividends>, amount: u64) -> Result<()> {
-        let icm_vault = &mut ctx.accounts.icm_vault;
+        let icm = &mut ctx.accounts.icm_vault;
+        let clock = Clock::get()?;
+        require!(icm.state == ICMState::Closed, TigerPayError::InvalidVaultState);
 
-        require!(icm_vault.state == ICMState::Closed, TigerPayError::InvalidVaultState);
-        require!(amount > 0, TigerPayError::InvalidRepaymentAmount);
+        token::transfer(CpiContext::new(ctx.accounts.token_program.to_account_info(), Transfer {
+            from: ctx.accounts.business_token_account.to_account_info(),
+            to: ctx.accounts.vault_token_account.to_account_info(),
+            authority: ctx.accounts.business.to_account_info(),
+        }), amount)?;
 
-        // Transfer dividend tokens from business to vault for distribution
-        token::transfer(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                Transfer {
-                    from: ctx.accounts.business_token_account.to_account_info(),
-                    to: ctx.accounts.vault_token_account.to_account_info(),
-                    authority: ctx.accounts.business.to_account_info(),
-                },
-            ),
-            amount,
-        )?;
+        icm.total_dividends_distributed = icm.total_dividends_distributed.checked_add(amount).ok_or(TigerPayError::ArithmeticOverflow)?;
+        icm.last_dividend_at = clock.unix_timestamp;
+        emit!(DividendsDistributed { icm_vault: icm.key(), business: icm.business, amount, total_distributed: icm.total_dividends_distributed });
+        Ok(())
+    }
 
-        msg!("Dividends of {} distributed for ICM vault {}", amount, icm_vault.key());
+    pub fn claim_dividends(ctx: Context<ClaimDividends>) -> Result<()> {
+        let icm = &mut ctx.accounts.icm_vault;
+        let investor = &mut ctx.accounts.investor_account;
+        require!(icm.is_closed(), TigerPayError::InvalidVaultState);
+
+        let claimable = investor.calculate_claimable_dividends(icm.shares_sold, icm.total_dividends_distributed);
+        require!(claimable > 0, TigerPayError::NoDividendsAvailable);
+
+        let seeds = &[b"icm_vault", icm.business.as_ref(), &[icm.icm_nonce], &[icm.bump]];
+        token::transfer(CpiContext::new_with_signer(ctx.accounts.token_program.to_account_info(), Transfer {
+            from: ctx.accounts.vault_token_account.to_account_info(),
+            to: ctx.accounts.investor_token_account.to_account_info(),
+            authority: icm.to_account_info(),
+        }, &[seeds]), claimable)?;
+
+        investor.dividends_claimed = investor.dividends_claimed.checked_add(claimable).ok_or(TigerPayError::ArithmeticOverflow)?;
+        investor.last_claim_at = Clock::get()?.unix_timestamp;
+        icm.total_dividends_claimed = icm.total_dividends_claimed.checked_add(claimable).ok_or(TigerPayError::ArithmeticOverflow)?;
+        emit!(DividendsClaimed { icm_vault: icm.key(), investor: ctx.accounts.investor.key(), amount: claimable });
         Ok(())
     }
 }
 
-// ============ Account Structs ============
+// ============ Accounts ============
 
 #[derive(Accounts)]
 pub struct InitializePlatform<'info> {
-    #[account(mut)]
-    pub authority: Signer<'info>,
-    
-    /// CHECK: Fee recipient account
+    #[account(mut)] pub authority: Signer<'info>,
+    /// CHECK: Fee recipient
     pub fee_recipient: UncheckedAccount<'info>,
-    
-    #[account(
-        init,
-        payer = authority,
-        space = PlatformConfig::LEN,
-        seeds = [b"config"],
-        bump,
-    )]
+    #[account(init, payer = authority, space = PlatformConfig::LEN, seeds = [b"config"], bump)]
     pub platform_config: Account<'info, PlatformConfig>,
-    
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 pub struct VerifyMerchant<'info> {
-    #[account(
-        mut,
-        constraint = authority.key() == platform_config.authority @ TigerPayError::Unauthorized,
-    )]
+    #[account(mut, constraint = authority.key() == platform_config.authority @ TigerPayError::Unauthorized)]
     pub authority: Signer<'info>,
-    
-    /// CHECK: Merchant wallet
+    /// CHECK: Merchant
     pub merchant: UncheckedAccount<'info>,
-    
     #[account(seeds = [b"config"], bump = platform_config.bump)]
     pub platform_config: Account<'info, PlatformConfig>,
-    
-    #[account(
-        init,
-        payer = authority,
-        space = MerchantProfile::LEN,
-        seeds = [b"merchant", merchant.key().as_ref()],
-        bump,
-    )]
+    #[account(init, payer = authority, space = MerchantProfile::LEN, seeds = [b"merchant", merchant.key().as_ref()], bump)]
     pub merchant_profile: Account<'info, MerchantProfile>,
-    
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 #[instruction(vault_nonce: u8)]
 pub struct CreateVault<'info> {
-    #[account(mut)]
-    pub authority: Signer<'info>,
-    
-    /// CHECK: Merchant wallet
+    #[account(mut)] pub authority: Signer<'info>,
+    /// CHECK: Merchant
     pub merchant: UncheckedAccount<'info>,
-    
-    #[account(
-        mut,
-        seeds = [b"merchant", merchant.key().as_ref()],
-        bump = merchant_profile.bump,
-        constraint = merchant_profile.verified @ TigerPayError::MerchantNotVerified,
-    )]
+    #[account(mut, seeds = [b"merchant", merchant.key().as_ref()], bump = merchant_profile.bump)]
     pub merchant_profile: Account<'info, MerchantProfile>,
-    
     #[account(seeds = [b"config"], bump = platform_config.bump)]
     pub platform_config: Account<'info, PlatformConfig>,
-    
-    #[account(
-        init,
-        payer = authority,
-        space = MerchantVault::LEN,
-        seeds = [b"vault", merchant.key().as_ref(), &[vault_nonce]],
-        bump,
-    )]
+    #[account(init, payer = authority, space = MerchantVault::LEN, seeds = [b"vault", merchant.key().as_ref(), &[vault_nonce]], bump)]
     pub vault: Account<'info, MerchantVault>,
-    
     pub funding_token_mint: Account<'info, Mint>,
-    
-    #[account(
-        init,
-        payer = authority,
-        mint::decimals = funding_token_mint.decimals,
-        mint::authority = vault,
-        seeds = [b"debt_mint", vault.key().as_ref()],
-        bump,
-    )]
+    #[account(init, payer = authority, mint::decimals = funding_token_mint.decimals, mint::authority = vault, seeds = [b"debt_mint", vault.key().as_ref()], bump)]
     pub debt_token_mint: Account<'info, Mint>,
-    
-    #[account(
-        init,
-        payer = authority,
-        associated_token::mint = funding_token_mint,
-        associated_token::authority = vault,
-    )]
+    #[account(init, payer = authority, associated_token::mint = funding_token_mint, associated_token::authority = vault)]
     pub vault_token_account: Account<'info, TokenAccount>,
-    
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -688,42 +446,18 @@ pub struct CreateVault<'info> {
 
 #[derive(Accounts)]
 pub struct Invest<'info> {
-    #[account(mut)]
-    pub investor: Signer<'info>,
-    
-    #[account(mut, constraint = vault.is_fundraising() @ TigerPayError::InvalidVaultState)]
-    pub vault: Account<'info, MerchantVault>,
-    
-    #[account(
-        init_if_needed,
-        payer = investor,
-        space = InvestorAccount::LEN,
-        seeds = [b"investor", vault.key().as_ref(), investor.key().as_ref()],
-        bump,
-    )]
+    #[account(mut)] pub investor: Signer<'info>,
+    #[account(mut)] pub vault: Account<'info, MerchantVault>,
+    #[account(init_if_needed, payer = investor, space = InvestorAccount::LEN, seeds = [b"investor", vault.key().as_ref(), investor.key().as_ref()], bump)]
     pub investor_account: Account<'info, InvestorAccount>,
-    
-    #[account(
-        mut,
-        constraint = investor_token_account.mint == vault.funding_token_mint @ TigerPayError::InvalidAccount,
-        constraint = investor_token_account.owner == investor.key() @ TigerPayError::InvalidAccount,
-    )]
+    #[account(mut, constraint = investor_token_account.mint == vault.funding_token_mint @ TigerPayError::InvalidAccount)]
     pub investor_token_account: Account<'info, TokenAccount>,
-    
     #[account(mut, constraint = vault_token_account.key() == vault.vault_token_account @ TigerPayError::InvalidAccount)]
     pub vault_token_account: Account<'info, TokenAccount>,
-    
     #[account(mut, constraint = debt_token_mint.key() == vault.debt_token_mint @ TigerPayError::InvalidAccount)]
     pub debt_token_mint: Account<'info, Mint>,
-    
-    #[account(
-        init_if_needed,
-        payer = investor,
-        associated_token::mint = debt_token_mint,
-        associated_token::authority = investor,
-    )]
+    #[account(init_if_needed, payer = investor, associated_token::mint = debt_token_mint, associated_token::authority = investor)]
     pub investor_debt_token_account: Account<'info, TokenAccount>,
-    
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -734,234 +468,100 @@ pub struct Invest<'info> {
 pub struct MakeRepayment<'info> {
     #[account(constraint = merchant.key() == vault.merchant @ TigerPayError::Unauthorized)]
     pub merchant: Signer<'info>,
-    
-    #[account(mut, constraint = vault.is_active() || vault.is_repaying() @ TigerPayError::InvalidVaultState)]
-    pub vault: Account<'info, MerchantVault>,
-    
-    #[account(
-        mut,
-        constraint = merchant_token_account.owner == merchant.key() @ TigerPayError::InvalidAccount,
-        constraint = merchant_token_account.mint == vault.funding_token_mint @ TigerPayError::InvalidAccount,
-    )]
+    #[account(mut)] pub vault: Account<'info, MerchantVault>,
+    #[account(mut, constraint = merchant_token_account.mint == vault.funding_token_mint @ TigerPayError::InvalidAccount)]
     pub merchant_token_account: Account<'info, TokenAccount>,
-    
     #[account(mut, constraint = vault_token_account.key() == vault.vault_token_account @ TigerPayError::InvalidAccount)]
     pub vault_token_account: Account<'info, TokenAccount>,
-    
     pub token_program: Program<'info, Token>,
 }
 
 #[derive(Accounts)]
 pub struct ClaimReturns<'info> {
     pub investor: Signer<'info>,
-    
-    #[account(constraint = vault.is_repaying() || vault.state == VaultState::Completed @ TigerPayError::InvalidVaultState)]
     pub vault: Account<'info, MerchantVault>,
-    
-    #[account(
-        mut,
-        seeds = [b"investor", vault.key().as_ref(), investor.key().as_ref()],
-        bump = investor_account.bump,
-        constraint = investor_account.investor == investor.key() @ TigerPayError::Unauthorized,
-    )]
+    #[account(mut, seeds = [b"investor", vault.key().as_ref(), investor.key().as_ref()], bump = investor_account.bump)]
     pub investor_account: Account<'info, InvestorAccount>,
-    
     #[account(mut, constraint = vault_token_account.key() == vault.vault_token_account @ TigerPayError::InvalidAccount)]
     pub vault_token_account: Account<'info, TokenAccount>,
-    
-    #[account(
-        mut,
-        constraint = investor_token_account.owner == investor.key() @ TigerPayError::InvalidAccount,
-        constraint = investor_token_account.mint == vault.funding_token_mint @ TigerPayError::InvalidAccount,
-    )]
+    #[account(mut, constraint = investor_token_account.mint == vault.funding_token_mint @ TigerPayError::InvalidAccount)]
     pub investor_token_account: Account<'info, TokenAccount>,
-    
     pub token_program: Program<'info, Token>,
 }
 
 #[derive(Accounts)]
-#[instruction(tranche_index: u8)]
-pub struct InitializeTranche<'info> {
-    #[account(mut)]
+pub struct MarkDefault<'info> {
+    #[account(constraint = authority.key() == platform_config.authority @ TigerPayError::Unauthorized)]
     pub authority: Signer<'info>,
-    
-    pub vault: Account<'info, MerchantVault>,
-    
-    #[account(
-        init,
-        payer = authority,
-        space = Tranche::LEN,
-        seeds = [b"tranche", vault.key().as_ref(), &[tranche_index]],
-        bump,
-    )]
-    pub tranche: Account<'info, Tranche>,
-    
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-#[instruction(milestone_id: u8)]
-pub struct InitializeMilestone<'info> {
-    #[account(mut)]
-    pub authority: Signer<'info>,
-    
-    pub vault: Account<'info, MerchantVault>,
-    
     #[account(seeds = [b"config"], bump = platform_config.bump)]
     pub platform_config: Account<'info, PlatformConfig>,
-    
-    #[account(
-        init,
-        payer = authority,
-        space = Milestone::LEN,
-        seeds = [b"milestone", vault.key().as_ref(), &[milestone_id]],
-        bump,
-    )]
-    pub milestone: Account<'info, Milestone>,
-    
-    pub system_program: Program<'info, System>,
+    #[account(mut)] pub vault: Account<'info, MerchantVault>,
 }
 
 #[derive(Accounts)]
-#[instruction(milestone_id: u8)]
-pub struct SubmitMilestone<'info> {
-    #[account(constraint = merchant.key() == vault.merchant @ TigerPayError::Unauthorized)]
-    pub merchant: Signer<'info>,
-    
-    #[account(constraint = vault.is_active() || vault.is_repaying() @ TigerPayError::InvalidVaultState)]
+pub struct RecoverFunds<'info> {
+    pub investor: Signer<'info>,
     pub vault: Account<'info, MerchantVault>,
-    
-    #[account(
-        mut,
-        seeds = [b"milestone", vault.key().as_ref(), &[milestone_id]],
-        bump = milestone.bump,
-        constraint = milestone.vault == vault.key() @ TigerPayError::InvalidAccount,
-    )]
-    pub milestone: Account<'info, Milestone>,
-}
-
-#[derive(Accounts)]
-#[instruction(milestone_id: u8)]
-pub struct VoteMilestone<'info> {
-    #[account(mut)]
-    pub verifier: Signer<'info>,
-    
-    pub vault: Account<'info, MerchantVault>,
-    
-    #[account(
-        mut,
-        seeds = [b"milestone", vault.key().as_ref(), &[milestone_id]],
-        bump = milestone.bump,
-    )]
-    pub milestone: Account<'info, Milestone>,
-    
-    #[account(
-        init,
-        payer = verifier,
-        space = VerifierVote::LEN,
-        seeds = [b"vote", milestone.key().as_ref(), verifier.key().as_ref()],
-        bump,
-    )]
-    pub verifier_vote: Account<'info, VerifierVote>,
-    
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-#[instruction(tranche_index: u8)]
-pub struct ReleaseTranche<'info> {
-    #[account(constraint = authority.key() == vault.authority @ TigerPayError::Unauthorized)]
-    pub authority: Signer<'info>,
-    
-    #[account(mut)]
-    pub vault: Account<'info, MerchantVault>,
-    
-    #[account(
-        mut,
-        seeds = [b"tranche", vault.key().as_ref(), &[tranche_index]],
-        bump = tranche.bump,
-        constraint = tranche.vault == vault.key() @ TigerPayError::InvalidAccount,
-        constraint = !tranche.released @ TigerPayError::TrancheAlreadyReleased,
-    )]
-    pub tranche: Account<'info, Tranche>,
-    
-    #[account(
-        seeds = [b"milestone", vault.key().as_ref(), &[tranche.milestone_id]],
-        bump = milestone.bump,
-        constraint = milestone.status == MilestoneStatus::Approved @ TigerPayError::MilestoneNotApproved,
-    )]
-    pub milestone: Account<'info, Milestone>,
-    
+    #[account(mut, seeds = [b"investor", vault.key().as_ref(), investor.key().as_ref()], bump = investor_account.bump)]
+    pub investor_account: Account<'info, InvestorAccount>,
     #[account(mut, constraint = vault_token_account.key() == vault.vault_token_account @ TigerPayError::InvalidAccount)]
     pub vault_token_account: Account<'info, TokenAccount>,
-    
-    #[account(mut, constraint = merchant_token_account.owner == vault.merchant @ TigerPayError::InvalidAccount)]
-    pub merchant_token_account: Account<'info, TokenAccount>,
-    
-    #[account(mut, constraint = platform_fee_account.owner == vault.platform_fee_recipient @ TigerPayError::InvalidAccount)]
-    pub platform_fee_account: Account<'info, TokenAccount>,
-    
+    #[account(mut, constraint = investor_token_account.mint == vault.funding_token_mint @ TigerPayError::InvalidAccount)]
+    pub investor_token_account: Account<'info, TokenAccount>,
     pub token_program: Program<'info, Token>,
 }
 
 #[derive(Accounts)]
-pub struct CompleteFundraisingManual<'info> {
+pub struct CancelVault<'info> {
     #[account(constraint = authority.key() == vault.authority @ TigerPayError::Unauthorized)]
     pub authority: Signer<'info>,
-    
-    #[account(mut, constraint = vault.is_fundraising() @ TigerPayError::InvalidVaultState)]
-    pub vault: Account<'info, MerchantVault>,
+    #[account(mut)] pub vault: Account<'info, MerchantVault>,
+}
+
+#[derive(Accounts)]
+pub struct ClaimRefund<'info> {
+    pub investor: Signer<'info>,
+    #[account(mut)] pub vault: Account<'info, MerchantVault>,
+    #[account(mut, seeds = [b"investor", vault.key().as_ref(), investor.key().as_ref()], bump = investor_account.bump)]
+    pub investor_account: Account<'info, InvestorAccount>,
+    #[account(mut, constraint = vault_token_account.key() == vault.vault_token_account @ TigerPayError::InvalidAccount)]
+    pub vault_token_account: Account<'info, TokenAccount>,
+    #[account(mut, constraint = investor_token_account.mint == vault.funding_token_mint @ TigerPayError::InvalidAccount)]
+    pub investor_token_account: Account<'info, TokenAccount>,
+    pub token_program: Program<'info, Token>,
+}
+
+#[derive(Accounts)]
+pub struct PauseVault<'info> {
+    #[account(constraint = authority.key() == vault.authority @ TigerPayError::Unauthorized)]
+    pub authority: Signer<'info>,
+    #[account(mut)] pub vault: Account<'info, MerchantVault>,
+}
+
+#[derive(Accounts)]
+pub struct UnpauseVault<'info> {
+    #[account(constraint = authority.key() == vault.authority @ TigerPayError::Unauthorized)]
+    pub authority: Signer<'info>,
+    #[account(mut)] pub vault: Account<'info, MerchantVault>,
 }
 
 #[derive(Accounts)]
 #[instruction(icm_nonce: u8)]
 pub struct CreateICMVault<'info> {
-    #[account(mut)]
-    pub authority: Signer<'info>,
-
-    /// CHECK: Business wallet
+    #[account(mut)] pub authority: Signer<'info>,
+    /// CHECK: Business
     pub business: UncheckedAccount<'info>,
-
-    #[account(
-        mut,
-        seeds = [b"merchant", business.key().as_ref()],
-        bump = merchant_profile.bump,
-        constraint = merchant_profile.verified @ TigerPayError::MerchantNotVerified,
-    )]
+    #[account(mut, seeds = [b"merchant", business.key().as_ref()], bump = merchant_profile.bump)]
     pub merchant_profile: Account<'info, MerchantProfile>,
-
     #[account(seeds = [b"config"], bump = platform_config.bump)]
     pub platform_config: Account<'info, PlatformConfig>,
-
-    #[account(
-        init,
-        payer = authority,
-        space = ICMVault::LEN,
-        seeds = [b"icm_vault", business.key().as_ref(), &[icm_nonce]],
-        bump,
-    )]
+    #[account(init, payer = authority, space = ICMVault::LEN, seeds = [b"icm_vault", business.key().as_ref(), &[icm_nonce]], bump)]
     pub icm_vault: Account<'info, ICMVault>,
-
     pub funding_token_mint: Account<'info, Mint>,
-
-    #[account(
-        init,
-        payer = authority,
-        mint::decimals = 6,
-        mint::authority = icm_vault,
-        seeds = [b"stake_mint", icm_vault.key().as_ref()],
-        bump,
-    )]
+    #[account(init, payer = authority, mint::decimals = 6, mint::authority = icm_vault, seeds = [b"stake_mint", icm_vault.key().as_ref()], bump)]
     pub stake_token_mint: Account<'info, Mint>,
-
-    #[account(
-        init,
-        payer = authority,
-        associated_token::mint = funding_token_mint,
-        associated_token::authority = icm_vault,
-    )]
+    #[account(init, payer = authority, associated_token::mint = funding_token_mint, associated_token::authority = icm_vault)]
     pub vault_token_account: Account<'info, TokenAccount>,
-
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -970,32 +570,16 @@ pub struct CreateICMVault<'info> {
 
 #[derive(Accounts)]
 pub struct BuyStake<'info> {
-    #[account(mut)]
-    pub investor: Signer<'info>,
-
-    #[account(mut)]
-    pub icm_vault: Account<'info, ICMVault>,
-
-    #[account(
-        mut,
-        constraint = investor_token_account.mint == icm_vault.funding_token_mint @ TigerPayError::InvalidAccount,
-    )]
+    #[account(mut)] pub investor: Signer<'info>,
+    #[account(mut)] pub icm_vault: Account<'info, ICMVault>,
+    #[account(mut, constraint = investor_token_account.mint == icm_vault.funding_token_mint @ TigerPayError::InvalidAccount)]
     pub investor_token_account: Account<'info, TokenAccount>,
-
     #[account(mut, constraint = vault_token_account.key() == icm_vault.vault_token_account @ TigerPayError::InvalidAccount)]
     pub vault_token_account: Account<'info, TokenAccount>,
-
     #[account(mut, constraint = stake_token_mint.key() == icm_vault.stake_token_mint @ TigerPayError::InvalidAccount)]
     pub stake_token_mint: Account<'info, Mint>,
-
-    #[account(
-        init_if_needed,
-        payer = investor,
-        associated_token::mint = stake_token_mint,
-        associated_token::authority = investor,
-    )]
+    #[account(init_if_needed, payer = investor, associated_token::mint = stake_token_mint, associated_token::authority = investor)]
     pub investor_stake_token_account: Account<'info, TokenAccount>,
-
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -1006,108 +590,28 @@ pub struct BuyStake<'info> {
 pub struct DistributeDividends<'info> {
     #[account(mut, constraint = business.key() == icm_vault.business @ TigerPayError::Unauthorized)]
     pub business: Signer<'info>,
-
-    #[account(mut)]
-    pub icm_vault: Account<'info, ICMVault>,
-
-    #[account(
-        mut,
-        constraint = business_token_account.owner == business.key() @ TigerPayError::InvalidAccount,
-        constraint = business_token_account.mint == icm_vault.funding_token_mint @ TigerPayError::InvalidAccount,
-    )]
+    #[account(mut)] pub icm_vault: Account<'info, ICMVault>,
+    #[account(mut, constraint = business_token_account.mint == icm_vault.funding_token_mint @ TigerPayError::InvalidAccount)]
     pub business_token_account: Account<'info, TokenAccount>,
-
     #[account(mut, constraint = vault_token_account.key() == icm_vault.vault_token_account @ TigerPayError::InvalidAccount)]
     pub vault_token_account: Account<'info, TokenAccount>,
-
     pub token_program: Program<'info, Token>,
 }
 
-// ============ State & Errors ============
-
-#[account]
-#[derive(Default)]
-pub struct MerchantVault {
-    pub authority: Pubkey,
-    pub merchant: Pubkey,
-    pub funding_token_mint: Pubkey,
-    pub debt_token_mint: Pubkey,
-    pub vault_token_account: Pubkey,
-    pub target_amount: u64,
-    pub min_investment: u64,
-    pub max_investment: u64,
-    pub total_raised: u64,
-    pub total_repaid: u64,
-    pub total_to_repay: u64,
-    pub interest_rate_bps: u16,
-    pub duration_months: u8,
-    pub num_tranches: u8,
-    pub tranches_released: u8,
-    pub state: VaultState,
-    pub fundraising_deadline: i64,
-    pub created_at: i64,
-    pub platform_fee_bps: u16,
-    pub platform_fee_recipient: Pubkey,
-    pub platform_fees_collected: u64,
-    pub investor_count: u32,
-    pub vault_nonce: u8,
-    pub bump: u8,
+#[derive(Accounts)]
+pub struct ClaimDividends<'info> {
+    pub investor: Signer<'info>,
+    #[account(mut)] pub icm_vault: Account<'info, ICMVault>,
+    #[account(mut, seeds = [b"icm_investor", icm_vault.key().as_ref(), investor.key().as_ref()], bump = investor_account.bump)]
+    pub investor_account: Account<'info, ICMInvestorAccount>,
+    #[account(mut, constraint = vault_token_account.key() == icm_vault.vault_token_account @ TigerPayError::InvalidAccount)]
+    pub vault_token_account: Account<'info, TokenAccount>,
+    #[account(mut, constraint = investor_token_account.mint == icm_vault.funding_token_mint @ TigerPayError::InvalidAccount)]
+    pub investor_token_account: Account<'info, TokenAccount>,
+    pub token_program: Program<'info, Token>,
 }
 
-impl MerchantVault {
-    pub const LEN: usize = 8 + 32 + 32 + 32 + 32 + 32 + 8 + 8 + 8 + 8 + 8 + 8 + 2 + 1 + 1 + 1 + 1 + 8 + 8 + 2 + 32 + 8 + 4 + 1 + 1;
-    pub fn is_fundraising(&self) -> bool { self.state == VaultState::Fundraising }
-    pub fn is_active(&self) -> bool { self.state == VaultState::Active }
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Default)]
-pub enum VaultState {
-    #[default] Fundraising, Active, Repaying, Completed, Defaulted,
-}
-
-#[account]
-#[derive(Default)]
-pub struct InvestorAccount {
-    pub vault: Pubkey,
-    pub investor: Pubkey,
-    pub amount_invested: u64,
-    pub debt_tokens_received: u64,
-    pub claimed_returns: u64,
-    pub investor_token_account: Pubkey,
-    pub invested_at: i64,
-    pub last_claim_at: i64,
-    pub bump: u8,
-}
-
-impl InvestorAccount {
-    pub const LEN: usize = 8 + 32 + 32 + 8 + 8 + 8 + 32 + 8 + 8 + 1;
-    pub fn calculate_claimable(&self, total_raised: u64, total_repaid: u64) -> u64 {
-        if total_raised == 0 || self.amount_invested == 0 { return 0; }
-        let share = (self.amount_invested as u128).checked_mul(total_repaid as u128).unwrap_or(0).checked_div(total_raised as u128).unwrap_or(0) as u64;
-        share.saturating_sub(self.claimed_returns)
-    }
-}
-
-#[account]
-#[derive(Default)]
-pub struct MerchantProfile {
-    pub merchant: Pubkey,
-    pub authority: Pubkey,
-    pub verified: bool,
-    pub verified_at: i64,
-    pub verified_by: Pubkey,
-    pub vault_count: u32,
-    pub max_vaults: u32,
-    pub total_raised: u64,
-    pub total_repaid: u64,
-    pub name_hash: [u8; 32],
-    pub bump: u8,
-}
-
-impl MerchantProfile {
-    pub const LEN: usize = 8 + 32 + 32 + 1 + 8 + 32 + 4 + 4 + 8 + 8 + 32 + 1;
-    pub fn can_create_vault(&self) -> bool { self.verified && self.vault_count < self.max_vaults }
-}
+// ============ State ============
 
 #[account]
 #[derive(Default)]
@@ -1117,132 +621,146 @@ pub struct PlatformConfig {
     pub default_fee_bps: u16,
     pub min_funding_target: u64,
     pub max_funding_target: u64,
-    pub min_interest_bps: u16,
-    pub max_interest_bps: u16,
-    pub max_duration_months: u8,
-    pub max_tranches: u8,
-    pub required_verifiers: u8,
     pub paused: bool,
     pub bump: u8,
 }
+impl PlatformConfig { pub const LEN: usize = 8 + 32 + 32 + 2 + 8 + 8 + 1 + 1; }
 
-impl PlatformConfig {
-    pub const LEN: usize = 8 + 32 + 32 + 2 + 8 + 8 + 2 + 2 + 1 + 1 + 1 + 1 + 1;
+#[account]
+#[derive(Default)]
+pub struct MerchantProfile {
+    pub merchant: Pubkey,
+    pub authority: Pubkey,
+    pub verified: bool,
+    pub verified_at: i64,
+    pub vault_count: u32,
+    pub max_vaults: u32,
+    pub name_hash: [u8; 32],
+    pub bump: u8,
+}
+impl MerchantProfile { 
+    pub const LEN: usize = 8 + 32 + 32 + 1 + 8 + 4 + 4 + 32 + 1; 
+    pub fn can_create_vault(&self) -> bool { self.verified && self.vault_count < self.max_vaults }
 }
 
 #[account]
 #[derive(Default)]
-pub struct Milestone {
-    pub vault: Pubkey,
-    pub milestone_id: u8,
-    pub evidence_hash: [u8; 32],
-    pub description_hash: [u8; 32],
-    pub status: MilestoneStatus,
-    pub submitted_at: i64,
-    pub approved_at: i64,
-    pub approval_count: u8,
-    pub rejection_count: u8,
-    pub required_approvals: u8,
-    pub bump: u8,
+pub struct MerchantVault {
+    pub authority: Pubkey, pub merchant: Pubkey, pub funding_token_mint: Pubkey, pub debt_token_mint: Pubkey, pub vault_token_account: Pubkey,
+    pub target_amount: u64, pub min_investment: u64, pub max_investment: u64, pub total_raised: u64, pub total_repaid: u64, pub total_to_repay: u64,
+    pub interest_rate_bps: u16, pub duration_months: u8, pub num_tranches: u8, pub tranches_released: u8,
+    pub state: VaultState, pub fundraising_deadline: i64, pub created_at: i64,
+    pub platform_fee_bps: u16, pub platform_fee_recipient: Pubkey, pub platform_fees_collected: u64,
+    pub investor_count: u32, pub max_investors: u32, pub vault_nonce: u8, pub bump: u8,
+    pub next_payment_due: i64, pub late_fee_bps: u16, pub total_late_fees: u64, pub grace_period_days: u8,
+    pub defaulted_at: i64, pub total_recovered: u64, pub paused: bool, pub cancelled: bool, pub cancelled_at: i64,
 }
-
-impl Milestone {
-    pub const LEN: usize = 8 + 32 + 1 + 32 + 32 + 1 + 8 + 8 + 1 + 1 + 1 + 1;
+impl MerchantVault {
+    pub const LEN: usize = 8 + 32*5 + 8*6 + 2 + 1*3 + 1 + 8*2 + 2 + 32 + 8 + 4*2 + 1*2 + 8 + 2 + 8 + 1 + 8*2 + 1*2 + 8;
+    pub fn is_fundraising(&self) -> bool { self.state == VaultState::Fundraising && !self.cancelled && !self.paused }
+    pub fn is_active(&self) -> bool { self.state == VaultState::Active && !self.paused }
+    pub fn is_repaying(&self) -> bool { self.state == VaultState::Repaying && !self.paused }
+    pub fn is_defaulted(&self) -> bool { self.state == VaultState::Defaulted }
+    pub fn is_cancelled(&self) -> bool { self.cancelled }
+    pub fn calculate_late_fee(&self, now: i64) -> u64 {
+        if now <= self.next_payment_due || self.next_payment_due == 0 { return 0; }
+        let days = ((now - self.next_payment_due) / 86400) as u64;
+        self.total_to_repay.saturating_sub(self.total_repaid).saturating_mul(self.late_fee_bps as u64).saturating_mul(days) / 10000
+    }
+    pub fn should_default(&self, now: i64) -> bool {
+        self.next_payment_due > 0 && self.state == VaultState::Repaying && now > self.next_payment_due + (self.grace_period_days as i64 * 86400)
+    }
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Default)]
-pub enum MilestoneStatus {
-    #[default] Pending, Submitted, Approved, Rejected, Disputed,
-}
+pub enum VaultState { #[default] Fundraising, Active, Repaying, Completed, Defaulted, Cancelled }
 
 #[account]
 #[derive(Default)]
-pub struct Tranche {
-    pub vault: Pubkey,
-    pub tranche_index: u8,
-    pub amount: u64,
-    pub release_time: i64,
-    pub released: bool,
-    pub released_at: i64,
-    pub milestone_id: u8,
-    pub bump: u8,
+pub struct InvestorAccount {
+    pub vault: Pubkey, pub investor: Pubkey, pub amount_invested: u64, pub debt_tokens_received: u64, pub claimed_returns: u64,
+    pub invested_at: i64, pub last_claim_at: i64, pub bump: u8,
+    pub has_refunded: bool, pub has_recovered: bool, pub recovered_amount: u64,
 }
-
-impl Tranche {
-    pub const LEN: usize = 8 + 32 + 1 + 8 + 8 + 1 + 8 + 1 + 1;
-}
-
-#[account]
-#[derive(Default)]
-pub struct VerifierVote {
-    pub milestone: Pubkey,
-    pub verifier: Pubkey,
-    pub approved: bool,
-    pub comment_hash: [u8; 32],
-    pub voted_at: i64,
-    pub bump: u8,
-}
-
-impl VerifierVote {
-    pub const LEN: usize = 8 + 32 + 32 + 1 + 32 + 8 + 1;
+impl InvestorAccount {
+    pub const LEN: usize = 8 + 32*2 + 8*3 + 8*2 + 1 + 1*2 + 8;
+    pub fn calculate_claimable(&self, raised: u64, repaid: u64) -> u64 {
+        if raised == 0 { return 0; }
+        ((self.amount_invested as u128 * repaid as u128 / raised as u128) as u64).saturating_sub(self.claimed_returns)
+    }
 }
 
 #[account]
 #[derive(Default)]
 pub struct ICMVault {
-    pub authority: Pubkey,
-    pub business: Pubkey,
-    pub funding_token_mint: Pubkey,
-    pub stake_token_mint: Pubkey,
-    pub vault_token_account: Pubkey,
-    pub total_shares: u64,
-    pub shares_sold: u64,
-    pub price_per_share: u64,
-    pub min_buy: u64,
-    pub max_buy: u64,
-    pub target_raised: u64,
-    pub total_raised: u64,
-    pub state: ICMState,
-    pub offering_deadline: i64,
-    pub created_at: i64,
-    pub platform_fee_bps: u16,
-    pub platform_fee_recipient: Pubkey,
-    pub investor_count: u32,
-    pub icm_nonce: u8,
-    pub bump: u8,
+    pub authority: Pubkey, pub business: Pubkey, pub funding_token_mint: Pubkey, pub stake_token_mint: Pubkey, pub vault_token_account: Pubkey,
+    pub total_shares: u64, pub shares_sold: u64, pub price_per_share: u64, pub min_buy: u64, pub max_buy: u64,
+    pub target_raised: u64, pub total_raised: u64, pub state: ICMState, pub offering_deadline: i64, pub created_at: i64,
+    pub platform_fee_bps: u16, pub platform_fee_recipient: Pubkey, pub investor_count: u32, pub icm_nonce: u8, pub bump: u8,
+    pub total_dividends_distributed: u64, pub total_dividends_claimed: u64, pub last_dividend_at: i64, pub paused: bool,
 }
-
-impl ICMVault {
-    pub const LEN: usize = 8 + 32 + 32 + 32 + 32 + 32 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 1 + 8 + 8 + 2 + 32 + 4 + 1 + 1;
+impl ICMVault { 
+    pub const LEN: usize = 8 + 32*5 + 8*5 + 8*2 + 1 + 8*2 + 2 + 32 + 4 + 1*2 + 8*3 + 1;
+    pub fn is_closed(&self) -> bool { self.state == ICMState::Closed }
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Default)]
-pub enum ICMState {
-    #[default] Offered, Active, Closed, Cancelled,
+pub enum ICMState { #[default] Offered, Active, Closed, Cancelled }
+
+#[account]
+#[derive(Default)]
+pub struct ICMInvestorAccount {
+    pub icm_vault: Pubkey, pub investor: Pubkey, pub shares_owned: u64, pub total_invested: u64,
+    pub dividends_claimed: u64, pub last_claim_at: i64, pub bump: u8,
+}
+impl ICMInvestorAccount {
+    pub const LEN: usize = 8 + 32*2 + 8*4 + 1;
+    pub fn calculate_claimable_dividends(&self, total_shares: u64, total_dividends: u64) -> u64 {
+        if total_shares == 0 { return 0; }
+        ((self.shares_owned as u128 * total_dividends as u128 / total_shares as u128) as u64).saturating_sub(self.dividends_claimed)
+    }
 }
 
+// ============ Events ============
+#[event] pub struct PlatformInitialized { pub authority: Pubkey, pub fee_recipient: Pubkey, pub default_fee_bps: u16 }
+#[event] pub struct MerchantVerified { pub merchant: Pubkey, pub verified_by: Pubkey }
+#[event] pub struct VaultCreated { pub vault: Pubkey, pub merchant: Pubkey, pub target_amount: u64, pub interest_rate_bps: u16, pub duration_months: u8, pub num_tranches: u8 }
+#[event] pub struct InvestmentReceived { pub vault: Pubkey, pub investor: Pubkey, pub amount: u64, pub total_raised: u64 }
+#[event] pub struct RepaymentReceived { pub vault: Pubkey, pub merchant: Pubkey, pub amount: u64, pub late_fee: u64, pub total_repaid: u64 }
+#[event] pub struct ReturnsClaimed { pub vault: Pubkey, pub investor: Pubkey, pub amount: u64 }
+#[event] pub struct VaultDefaulted { pub vault: Pubkey, pub merchant: Pubkey, pub total_raised: u64, pub total_repaid: u64, pub defaulted_at: i64 }
+#[event] pub struct FundsRecovered { pub vault: Pubkey, pub investor: Pubkey, pub amount: u64 }
+#[event] pub struct VaultCancelled { pub vault: Pubkey, pub merchant: Pubkey, pub total_raised: u64, pub investor_count: u32, pub cancelled_at: i64 }
+#[event] pub struct RefundClaimed { pub vault: Pubkey, pub investor: Pubkey, pub amount: u64 }
+#[event] pub struct VaultPaused { pub vault: Pubkey, pub paused_by: Pubkey }
+#[event] pub struct VaultUnpaused { pub vault: Pubkey, pub unpaused_by: Pubkey }
+#[event] pub struct ICMVaultCreated { pub icm_vault: Pubkey, pub business: Pubkey, pub total_shares: u64, pub price_per_share: u64 }
+#[event] pub struct StakePurchased { pub icm_vault: Pubkey, pub investor: Pubkey, pub shares: u64, pub amount_paid: u64 }
+#[event] pub struct DividendsDistributed { pub icm_vault: Pubkey, pub business: Pubkey, pub amount: u64, pub total_distributed: u64 }
+#[event] pub struct DividendsClaimed { pub icm_vault: Pubkey, pub investor: Pubkey, pub amount: u64 }
+
+// ============ Errors ============
 #[error_code]
 pub enum TigerPayError {
-    #[msg("Platform is paused")] PlatformPaused,
+    #[msg("Platform paused")] PlatformPaused,
     #[msg("Merchant not verified")] MerchantNotVerified,
-    #[msg("Maximum vaults exceeded for merchant")] MaxVaultsExceeded,
     #[msg("Invalid funding target")] InvalidFundingTarget,
-    #[msg("Investment amount too low")] InvestmentTooLow,
-    #[msg("Investment amount too high")] InvestmentTooHigh,
-    #[msg("Investment would exceed target")] InvestmentExceedsTarget,
+    #[msg("Investment too low")] InvestmentTooLow,
+    #[msg("Investment too high")] InvestmentTooHigh,
+    #[msg("Investment exceeds target")] InvestmentExceedsTarget,
     #[msg("Fundraising deadline passed")] FundraisingDeadlinePassed,
-    #[msg("Fundraising not complete")] FundraisingNotComplete,
     #[msg("Invalid vault state")] InvalidVaultState,
-    #[msg("Milestone not approved")] MilestoneNotApproved,
-    #[msg("Milestone already submitted")] MilestoneAlreadySubmitted,
-    #[msg("Milestone not submitted")] MilestoneNotSubmitted,
-    #[msg("Already voted on this milestone")] AlreadyVoted,
-    #[msg("Tranche not ready for release")] TrancheNotReady,
-    #[msg("Tranche already released")] TrancheAlreadyReleased,
     #[msg("Invalid repayment amount")] InvalidRepaymentAmount,
-    #[msg("No returns available to claim")] NoReturnsAvailable,
+    #[msg("No returns available")] NoReturnsAvailable,
     #[msg("Unauthorized")] Unauthorized,
     #[msg("Invalid account")] InvalidAccount,
     #[msg("Arithmetic overflow")] ArithmeticOverflow,
-    #[msg("Insufficient funds")] InsufficientFunds,
+    #[msg("Vault paused")] VaultPaused,
+    #[msg("Vault not paused")] VaultNotPaused,
+    #[msg("Vault already paused")] VaultAlreadyPaused,
+    #[msg("Vault not cancelled")] VaultNotCancelled,
+    #[msg("Grace period not expired")] GracePeriodNotExpired,
+    #[msg("Already claimed")] AlreadyClaimed,
+    #[msg("No dividends available")] NoDividendsAvailable,
+    #[msg("Max investors reached")] MaxInvestorsReached,
 }
