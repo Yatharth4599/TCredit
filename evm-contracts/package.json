@@ -1,0 +1,12 @@
+{
+    "name": "tigerpay-evm-contracts",
+    "version": "1.0.0",
+    "description": "TigerPay EVM Smart Contracts (Legacy)",
+    "scripts": {
+        "compile": "hardhat compile",
+        "test": "hardhat test",
+        "deploy": "hardhat run scripts/deploy.js"
+    },
+    "devDependencies": {},
+    "dependencies": {}
+}
