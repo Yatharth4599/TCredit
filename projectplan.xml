@@ -1,0 +1,1905 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+    <metadata>
+        <name>TigerPay Tokenized Debt Protocol</name>
+        <version>1.0</version>
+        <description>Blockchain-based BNPL/Lending platform with tokenized debt, merchant-focused fundraising with installment-based capital deployment and repayment</description>
+        <location>UAE</location>
+        <focus>Technical Implementation Only</focus>
+    </metadata>
+
+    <architecture_overview>
+        <core_concept>
+            <description>Merchants raise capital (e.g., 100K AED) through tokenized debt vaults. TigerPay creates credit scores. Investors fund based on risk appetite. Capital released in tranches (airdrops). Merchants repay in installments (e.g., 115K for 15% return). Returns distributed to token holders proportionally.</description>
+        </core_concept>
+        
+        <key_components>
+            <component id="1" name="Credit Scoring Engine" priority="critical"/>
+            <component id="2" name="Smart Contract Vault System" priority="critical"/>
+            <component id="3" name="Token Issuance & Management" priority="critical"/>
+            <component id="4" name="Tranche Distribution Logic" priority="high"/>
+            <component id="5" name="Repayment Processing" priority="high"/>
+            <component id="6" name="Investor Dashboard" priority="medium"/>
+            <component id="7" name="Merchant Dashboard" priority="medium"/>
+            <component id="8" name="Risk Assessment API" priority="high"/>
+            <component id="9" name="Compliance & KYC Layer" priority="critical"/>
+            <component id="10" name="Oracle Network" priority="high"/>
+        </key_components>
+
+        <technology_stack>
+            <blockchain>
+                <layer1>Ethereum L2 (Polygon/Arbitrum) or Base</layer1>
+                <rationale>Lower gas fees, faster transactions, EVM compatibility</rationale>
+                <alternative>StarkNet (Cairo) for better scalability</alternative>
+            </blockchain>
+            <smart_contracts>
+                <language>Solidity 0.8.20+</language>
+                <framework>Hardhat with OpenZeppelin contracts</framework>
+                <security>Slither, MythX for auditing</security>
+            </smart_contracts>
+            <backend>
+                <runtime>Node.js 20+ with TypeScript</runtime>
+                <framework>NestJS for microservices architecture</framework>
+                <database>PostgreSQL 15+ for structured data</database>
+                <cache>Redis for session and rate limiting</cache>
+                <queue>BullMQ for job processing</queue>
+            </backend>
+            <ai_ml>
+                <credit_scoring>Python 3.11+ with scikit-learn, XGBoost</credit_scoring>
+                <risk_models>TensorFlow/PyTorch for advanced models</risk_models>
+                <api>FastAPI for ML service endpoints</api>
+            </ai_ml>
+            <frontend>
+                <framework>Next.js 14+ with TypeScript</framework>
+                <web3>wagmi + viem for blockchain interactions</web3>
+                <ui>Tailwind CSS + shadcn/ui components</ui>
+                <state>Zustand for state management</state>
+            </frontend>
+            <oracles>
+                <primary>Chainlink for price feeds and external data</primary>
+                <secondary>Custom oracle for TigerPay transaction data</secondary>
+            </oracles>
+            <storage>
+                <documents>IPFS/Arweave for legal documents and agreements</documents>
+                <metadata>On-chain for critical token metadata</metadata>
+            </storage>
+            <monitoring>
+                <apm>Datadog or New Relic</apm>
+                <errors>Sentry</errors>
+                <blockchain>Tenderly for smart contract monitoring</blockchain>
+            </monitoring>
+        </technology_stack>
+    </architecture_overview>
+
+    <phases>
+        <!-- PHASE 0: FOUNDATION -->
+        <phase id="0" name="Foundation & Research" duration="4 weeks">
+            <objectives>
+                <objective>Set up development environment and infrastructure</objective>
+                <objective>Research regulatory requirements for tokenized securities in UAE</objective>
+                <objective>Define technical architecture and data models</objective>
+                <objective>Establish development workflows and CI/CD</objective>
+            </objectives>
+            
+            <tasks>
+                <task id="0.1" priority="critical">
+                    <name>Infrastructure Setup</name>
+                    <duration>1 week</duration>
+                    <deliverables>
+                        <deliverable>AWS/GCP account with VPC, subnets, and security groups</deliverable>
+                        <deliverable>Kubernetes cluster (EKS/GKE) for microservices</deliverable>
+                        <deliverable>PostgreSQL RDS instance with replication</deliverable>
+                        <deliverable>Redis cluster for caching</deliverable>
+                        <deliverable>GitHub repository with branch protection</deliverable>
+                        <deliverable>CI/CD pipeline (GitHub Actions or GitLab CI)</deliverable>
+                    </deliverables>
+                    <team_required>DevOps Engineer, Backend Lead</team_required>
+                </task>
+
+                <task id="0.2" priority="critical">
+                    <name>Blockchain Infrastructure Setup</name>
+                    <duration>1 week</duration>
+                    <deliverables>
+                        <deliverable>Testnet deployment environment (Polygon Mumbai/Sepolia)</deliverable>
+                        <deliverable>Hardhat project with testing framework</deliverable>
+                        <deliverable>Multi-signature wallet for contract ownership</deliverable>
+                        <deliverable>Tenderly account for contract monitoring</deliverable>
+                        <deliverable>Alchemy/Infura RPC endpoints configured</deliverable>
+                        <deliverable>Block explorer integration (Polygonscan API)</deliverable>
+                    </deliverables>
+                    <team_required>Blockchain Developer, DevOps Engineer</team_required>
+                </task>
+
+                <task id="0.3" priority="high">
+                    <name>Regulatory & Compliance Research</name>
+                    <duration>2 weeks</duration>
+                    <deliverables>
+                        <deliverable>Document UAE securities laws (DFSA/ADGM/SCA regulations)</deliverable>
+                        <deliverable>KYC/AML requirements specification</deliverable>
+                        <deliverable>Token classification (security vs utility) analysis</deliverable>
+                        <deliverable>Data residency and privacy requirements (GDPR, UAE DPA)</deliverable>
+                        <deliverable>Financial license requirements assessment</deliverable>
+                    </deliverables>
+                    <team_required>Legal Advisor, Compliance Officer, Product Manager</team_required>
+                </task>
+
+                <task id="0.4" priority="high">
+                    <name>System Architecture Design</name>
+                    <duration>2 weeks</duration>
+                    <deliverables>
+                        <deliverable>High-level system architecture diagram</deliverable>
+                        <deliverable>Database schema design (ERD)</deliverable>
+                        <deliverable>Smart contract architecture and interaction flows</deliverable>
+                        <deliverable>API design and endpoint specification (OpenAPI)</deliverable>
+                        <deliverable>Security architecture and threat model</deliverable>
+                        <deliverable>Data flow diagrams for key processes</deliverable>
+                    </deliverables>
+                    <team_required>Solutions Architect, Backend Lead, Blockchain Lead</team_required>
+                </task>
+
+                <task id="0.5" priority="medium">
+                    <name>Development Environment & Tools</name>
+                    <duration>1 week</duration>
+                    <deliverables>
+                        <deliverable>Docker compose for local development</deliverable>
+                        <deliverable>ESLint and Prettier configurations</deliverable>
+                        <deliverable>Testing framework setup (Jest, Mocha/Chai)</deliverable>
+                        <deliverable>Code quality gates (SonarQube)</deliverable>
+                        <deliverable>API documentation tool (Swagger/Postman)</deliverable>
+                    </deliverables>
+                    <team_required>All Engineers</team_required>
+                </task>
+            </tasks>
+
+            <milestones>
+                <milestone>Infrastructure provisioned and accessible</milestone>
+                <milestone>Regulatory requirements documented</milestone>
+                <milestone>Architecture approved by technical team</milestone>
+                <milestone>Development environment ready for Phase 1</milestone>
+            </milestones>
+        </phase>
+
+        <!-- PHASE 1: CORE SMART CONTRACTS -->
+        <phase id="1" name="Core Smart Contracts Development" duration="8 weeks">
+            <objectives>
+                <objective>Develop and test core smart contracts for vault, tokens, and payments</objective>
+                <objective>Implement multi-signature controls and access management</objective>
+                <objective>Create comprehensive test suite with 95%+ coverage</objective>
+                <objective>Complete internal security audit</objective>
+            </objectives>
+
+            <tasks>
+                <task id="1.1" priority="critical">
+                    <name>Debt Token Contract (ERC-20 Variant)</name>
+                    <duration>2 weeks</duration>
+                    <description>
+                        Create custom ERC-20 token representing fractional ownership of merchant debt.
+                        Each vault issues unique tokens. Include transfer restrictions and investor whitelisting.
+                    </description>
+                    <deliverables>
+                        <deliverable>DebtToken.sol contract with ERC-20 compliance</deliverable>
+                        <deliverable>Whitelist functionality for accredited investors</deliverable>
+                        <deliverable>Transfer restrictions (lockup periods, vesting)</deliverable>
+                        <deliverable>Pausable functionality for emergency stops</deliverable>
+                        <deliverable>Burnable tokens for repayment scenarios</deliverable>
+                        <deliverable>Unit tests with 95%+ coverage</deliverable>
+                        <deliverable>Gas optimization report</deliverable>
+                    </deliverables>
+                    <technical_specs>
+                        <spec>Implement ERC-20 standard with OpenZeppelin base</spec>
+                        <spec>Add snapshot capability for dividend distribution</spec>
+                        <spec>Role-based access: MINTER, PAUSER, ADMIN</spec>
+                        <spec>Events: TokensMinted, TokensBurned, InvestorWhitelisted</spec>
+                    </technical_specs>
+                    <team_required>Senior Blockchain Developer, Smart Contract Auditor</team_required>
+                </task>
+
+                <task id="1.2" priority="critical">
+                    <name>Merchant Vault Contract</name>
+                    <duration>3 weeks</duration>
+                    <description>
+                        Core vault contract that holds investor funds, manages tranche releases,
+                        processes merchant repayments, and distributes returns to token holders.
+                    </description>
+                    <deliverables>
+                        <deliverable>MerchantVault.sol with multi-phase lifecycle</deliverable>
+                        <deliverable>Investment acceptance logic with minimum/maximum limits</deliverable>
+                        <deliverable>Tranche release mechanism with milestone verification</deliverable>
+                        <deliverable>Repayment processing with automatic distribution</deliverable>
+                        <deliverable>Emergency withdrawal functions</deliverable>
+                        <deliverable>Integration with DebtToken contract</deliverable>
+                        <deliverable>Comprehensive test suite including edge cases</deliverable>
+                    </deliverables>
+                    <technical_specs>
+                        <spec>States: FUNDRAISING, ACTIVE, REPAYING, COMPLETED, DEFAULTED</spec>
+                        <spec>Functions: invest(), releaseTranche(), makeRepayment(), claimReturns()</spec>
+                        <spec>Time-locks for each phase transition</spec>
+                        <spec>Oracle integration for milestone verification</spec>
+                        <spec>Proportional distribution calculation for returns</spec>
+                        <spec>ReentrancyGuard for all fund movement functions</spec>
+                    </technical_specs>
+                    <vault_states>
+                        <state name="FUNDRAISING">Accepting investor deposits until target met or deadline reached</state>
+                        <state name="ACTIVE">Tranches being released based on milestones</state>
+                        <state name="REPAYING">Merchant making installment payments</state>
+                        <state name="COMPLETED">All repayments made, investors can claim returns</state>
+                        <state name="DEFAULTED">Merchant missed payments, liquidation process triggered</state>
+                    </vault_states>
+                    <team_required>Senior Blockchain Developer, Financial Engineer</team_required>
+                </task>
+
+                <task id="1.3" priority="critical">
+                    <name>Vault Factory Contract</name>
+                    <duration>2 weeks</duration>
+                    <description>
+                        Factory pattern contract to create new vaults for each merchant fundraising campaign.
+                        Maintains registry of all vaults and their statuses.
+                    </description>
+                    <deliverables>
+                        <deliverable>VaultFactory.sol with minimal proxy pattern</deliverable>
+                        <deliverable>Vault creation with customizable parameters</deliverable>
+                        <deliverable>Registry of all deployed vaults</deliverable>
+                        <deliverable>Vault template upgradability mechanism</deliverable>
+                        <deliverable>Access control for vault creation</deliverable>
+                        <deliverable>Query functions for vault discovery</deliverable>
+                    </deliverables>
+                    <technical_specs>
+                        <spec>Use EIP-1167 minimal proxy for gas-efficient deployment</spec>
+                        <spec>Store vault metadata on-chain (merchant ID, target amount, terms)</spec>
+                        <spec>Emit VaultCreated event with all parameters</spec>
+                        <spec>Admin functions to pause factory or blacklist merchants</spec>
+                    </technical_specs>
+                    <team_required>Senior Blockchain Developer</team_required>
+                </task>
+
+                <task id="1.4" priority="high">
+                    <name>Milestone Oracle Contract</name>
+                    <duration>2 weeks</duration>
+                    <description>
+                        Oracle contract for verifying merchant milestones before tranche releases.
+                        Integrates with off-chain verification system.
+                    </description>
+                    <deliverables>
+                        <deliverable>MilestoneOracle.sol with multi-signature verification</deliverable>
+                        <deliverable>Trusted verifier management</deliverable>
+                        <deliverable>Milestone submission and approval workflow</deliverable>
+                        <deliverable>Integration with Chainlink (optional backup)</deliverable>
+                        <deliverable>Dispute resolution mechanism</deliverable>
+                    </deliverables>
+                    <technical_specs>
+                        <spec>Require M-of-N signatures from trusted verifiers</spec>
+                        <spec>Milestone types: REVENUE_TARGET, INVENTORY_VERIFICATION, AUDIT_COMPLETION</spec>
+                        <spec>Timelock before milestone becomes finalized</spec>
+                        <spec>Challenge period for disputes</spec>
+                    </technical_specs>
+                    <team_required>Blockchain Developer, Backend Developer</team_required>
+                </task>
+
+                <task id="1.5" priority="high">
+                    <name>Payment Processor Contract</name>
+                    <duration>2 weeks</duration>
+                    <description>
+                        Handles merchant repayment flows, calculates distributions, and manages payment schedules.
+                    </description>
+                    <deliverables>
+                        <deliverable>PaymentProcessor.sol with installment tracking</deliverable>
+                        <deliverable>Late payment penalty calculations</deliverable>
+                        <deliverable>Early repayment bonus mechanism</deliverable>
+                        <deliverable>Automatic distribution to token holders</deliverable>
+                        <deliverable>Grace period management</deliverable>
+                    </deliverables>
+                    <technical_specs>
+                        <spec>Track payment schedule: amount, due date, status</spec>
+                        <spec>Calculate penalties: late_fee = principal * penalty_rate * days_late</spec>
+                        <spec>Handle partial payments and payment allocation</spec>
+                        <spec>Integration with vault contract for fund distribution</spec>
+                    </technical_specs>
+                    <team_required>Blockchain Developer, Financial Engineer</team_required>
+                </task>
+
+                <task id="1.6" priority="critical">
+                    <name>Smart Contract Testing & Auditing</name>
+                    <duration>2 weeks</duration>
+                    <description>
+                        Comprehensive testing including unit, integration, and security tests.
+                        Internal security audit before external audit.
+                    </description>
+                    <deliverables>
+                        <deliverable>Unit tests for all contracts (95%+ coverage)</deliverable>
+                        <deliverable>Integration tests for contract interactions</deliverable>
+                        <deliverable>Fuzzing tests with Echidna</deliverable>
+                        <deliverable>Gas optimization report</deliverable>
+                        <deliverable>Slither security analysis report</deliverable>
+                        <deliverable>Manual code review findings</deliverable>
+                        <deliverable>Test deployment on testnet</deliverable>
+                    </deliverables>
+                    <test_scenarios>
+                        <scenario>Full lifecycle: fundraise → tranche releases → repayments → completion</scenario>
+                        <scenario>Partial funding and refund scenario</scenario>
+                        <scenario>Missed payments and default handling</scenario>
+                        <scenario>Emergency pause and recovery</scenario>
+                        <scenario>Concurrent operations (multiple investors, reentrancy attempts)</scenario>
+                        <scenario>Edge cases: zero amounts, maximum values, dust amounts</scenario>
+                    </test_scenarios>
+                    <team_required>All Blockchain Developers, QA Engineer</team_required>
+                </task>
+
+                <task id="1.7" priority="high">
+                    <name>Contract Documentation & Deployment Scripts</name>
+                    <duration>1 week</duration>
+                    <deliverables>
+                        <deliverable>NatSpec documentation for all contracts</deliverable>
+                        <deliverable>Architecture documentation with diagrams</deliverable>
+                        <deliverable>Deployment scripts for testnet and mainnet</deliverable>
+                        <deliverable>Contract verification scripts</deliverable>
+                        <deliverable>Upgrade procedures documentation</deliverable>
+                    </deliverables>
+                    <team_required>Blockchain Developer, Technical Writer</team_required>
+                </task>
+            </tasks>
+
+            <milestones>
+                <milestone>All core contracts deployed to testnet</milestone>
+                <milestone>Test coverage exceeds 95%</milestone>
+                <milestone>Internal security audit completed with no critical issues</milestone>
+                <milestone>Contracts ready for external audit</milestone>
+            </milestones>
+
+            <risks>
+                <risk severity="high">Smart contract vulnerabilities leading to fund loss</risk>
+                <risk severity="medium">Gas costs too high for merchant repayments</risk>
+                <risk severity="medium">Oracle failure or manipulation</risk>
+            </risks>
+        </phase>
+
+        <!-- PHASE 2: CREDIT SCORING & RISK ENGINE -->
+        <phase id="2" name="Credit Scoring & Risk Assessment System" duration="6 weeks">
+            <objectives>
+                <objective>Build ML-powered credit scoring engine for merchants</objective>
+                <objective>Create risk assessment models for investment opportunities</objective>
+                <objective>Integrate with TigerPay transaction history</objective>
+                <objective>Develop real-time monitoring and alert system</objective>
+            </objectives>
+
+            <tasks>
+                <task id="2.1" priority="critical">
+                    <name>Data Pipeline & Feature Engineering</name>
+                    <duration>2 weeks</duration>
+                    <description>
+                        Build data pipeline to collect, clean, and transform merchant data for credit scoring.
+                    </description>
+                    <deliverables>
+                        <deliverable>ETL pipeline from TigerPay transaction database</deliverable>
+                        <deliverable>Feature extraction module (180+ features)</deliverable>
+                        <deliverable>Data warehouse schema for analytics</deliverable>
+                        <deliverable>Real-time data streaming with Kafka/RabbitMQ</deliverable>
+                        <deliverable>Data quality monitoring and validation</deliverable>
+                    </deliverables>
+                    <data_sources>
+                        <source>TigerPay transaction history (volume, frequency, recency)</source>
+                        <source>Merchant business profile (industry, age, legal structure)</source>
+                        <source>Bank account data (balance trends, overdrafts)</source>
+                        <source>UAE credit bureau data (if available)</source>
+                        <source>Trade license verification</source>
+                        <source>Public records (lawsuits, bankruptcies)</source>
+                    </data_sources>
+                    <features>
+                        <category name="Transaction Metrics">
+                            <feature>Average monthly revenue (3, 6, 12 months)</feature>
+                            <feature>Revenue growth rate</feature>
+                            <feature>Revenue volatility (std deviation)</feature>
+                            <feature>Transaction frequency</feature>
+                            <feature>Average transaction value</feature>
+                            <feature>Customer retention rate</feature>
+                            <feature>Refund/chargeback rate</feature>
+                        </category>
+                        <category name="Business Health">
+                            <feature>Account age in months</feature>
+                            <feature>Industry risk score</feature>
+                            <feature>Seasonal revenue patterns</feature>
+                            <feature>Days with zero transactions</feature>
+                            <feature>Peak vs off-peak revenue ratio</feature>
+                        </category>
+                        <category name="Financial Behavior">
+                            <feature>Average daily balance</feature>
+                            <feature>Cash flow consistency score</feature>
+                            <feature>Late payment history (if any existing loans)</feature>
+                            <feature>Debt-to-revenue ratio</feature>
+                        </category>
+                        <category name="External Signals">
+                            <feature>Online reviews sentiment score</feature>
+                            <feature>Social media presence metrics</feature>
+                            <feature>Website traffic (if integrated)</feature>
+                        </category>
+                    </features>
+                    <team_required>Data Engineer, ML Engineer, Backend Developer</team_required>
+                </task>
+
+                <task id="2.2" priority="critical">
+                    <name>Credit Scoring Model Development</name>
+                    <duration>3 weeks</duration>
+                    <description>
+                        Develop and train ML models to generate credit scores (300-850 scale similar to FICO).
+                    </description>
+                    <deliverables>
+                        <deliverable>Training dataset with labeled examples</deliverable>
+                        <deliverable>Multiple model implementations (XGBoost, Random Forest, Neural Network)</deliverable>
+                        <deliverable>Model comparison and selection report</deliverable>
+                        <deliverable>Explainability module (SHAP values)</deliverable>
+                        <deliverable>Model versioning and deployment pipeline</deliverable>
+                        <deliverable>API endpoint for score generation</deliverable>
+                    </deliverables>
+                    <models>
+                        <model name="Primary: XGBoost Classifier">
+                            <rationale>Excellent for tabular data, handles missing values well, fast training</rationale>
+                            <output>Credit score (300-850) and probability of default</output>
+                        </model>
+                        <model name="Secondary: LightGBM">
+                            <rationale>Faster inference, good for real-time scoring</rationale>
+                            <output>Alternative score for validation</output>
+                        </model>
+                        <model name="Deep Learning: TabNet">
+                            <rationale>Captures complex non-linear relationships</rationale>
+                            <output>Used for ensemble</output>
+                        </model>
+                    </models>
+                    <score_categories>
+                        <category range="750-850" label="Excellent" risk="Very Low" color="green"/>
+                        <category range="700-749" label="Good" risk="Low" color="lightgreen"/>
+                        <category range="650-699" label="Fair" risk="Medium" color="yellow"/>
+                        <category range="600-649" label="Below Average" risk="Medium-High" color="orange"/>
+                        <category range="300-599" label="Poor" risk="High" color="red"/>
+                    </score_categories>
+                    <training_approach>
+                        <step>Collect historical merchant data (need 6-12 months for initial training)</step>
+                        <step>Label data based on payment performance (good payer = 1, defaulter = 0)</step>
+                        <step>Train-test split (80-20) with time-based validation</step>
+                        <step>Hyperparameter tuning with cross-validation</step>
+                        <step>Evaluate with AUC-ROC, precision-recall, calibration curve</step>
+                        <step>A/B testing in production with shadow scoring</step>
+                    </training_approach>
+                    <team_required>Senior ML Engineer, Data Scientist, Backend Developer</team_required>
+                </task>
+
+                <task id="2.3" priority="high">
+                    <name>Risk Tier Classification System</name>
+                    <duration>2 weeks</duration>
+                    <description>
+                        Classify merchants into risk tiers affecting interest rates, funding amounts, and terms.
+                    </description>
+                    <deliverables>
+                        <deliverable>Risk tier calculation engine</deliverable>
+                        <deliverable>Interest rate pricing model based on risk</deliverable>
+                        <deliverable>Maximum funding limits per tier</deliverable>
+                        <deliverable>Collateral requirements per tier</deliverable>
+                        <deliverable>Admin dashboard for tier management</deliverable>
+                    </deliverables>
+                    <risk_tiers>
+                        <tier name="Tier A - Premium" score_range="750-850">
+                            <max_funding>500,000 AED</max_funding>
+                            <interest_rate>8-12%</interest_rate>
+                            <collateral>Minimal (10-20%)</collateral>
+                            <approval>Automated</approval>
+                            <tranche_schedule>Aggressive (3-4 tranches)</tranche_schedule>
+                        </tier>
+                        <tier name="Tier B - Standard" score_range="650-749">
+                            <max_funding>250,000 AED</max_funding>
+                            <interest_rate>12-18%</interest_rate>
+                            <collateral>Moderate (30-40%)</collateral>
+                            <approval>Automated with review</approval>
+                            <tranche_schedule>Standard (4-6 tranches)</tranche_schedule>
+                        </tier>
+                        <tier name="Tier C - Subprime" score_range="600-649">
+                            <max_funding>100,000 AED</max_funding>
+                            <interest_rate>18-25%</interest_rate>
+                            <collateral>High (50-60%)</collateral>
+                            <approval>Manual review required</approval>
+                            <tranche_schedule>Conservative (6-8 tranches)</tranche_schedule>
+                        </tier>
+                        <tier name="Tier D - High Risk" score_range="300-599">
+                            <max_funding>50,000 AED</max_funding>
+                            <interest_rate>25-35%</interest_rate>
+                            <collateral>Very High (70-80%)</collateral>
+                            <approval>Manual review + guarantor required</approval>
+                            <tranche_schedule>Very Conservative (8-12 tranches)</tranche_schedule>
+                        </tier>
+                    </risk_tiers>
+                    <team_required>ML Engineer, Financial Engineer, Product Manager</team_required>
+                </task>
+
+                <task id="2.4" priority="high">
+                    <name>Real-Time Monitoring & Alert System</name>
+                    <duration>2 weeks</duration>
+                    <description>
+                        Monitor merchant health in real-time and alert on concerning patterns.
+                    </description>
+                    <deliverables>
+                        <deliverable>Real-time transaction monitoring service</deliverable>
+                        <deliverable>Anomaly detection models</deliverable>
+                        <deliverable>Alert routing and escalation system</deliverable>
+                        <deliverable>Dashboard for risk team</deliverable>
+                        <deliverable>Automated actions (e.g., pause next tranche)</deliverable>
+                    </deliverables>
+                    <monitoring_signals>
+                        <signal type="critical">Revenue drop >30% for 2 consecutive weeks</signal>
+                        <signal type="critical">Zero transactions for 5+ consecutive days</signal>
+                        <signal type="critical">Chargeback rate >5%</signal>
+                        <signal type="warning">Revenue drop >20% in single week</signal>
+                        <signal type="warning">New negative online reviews cluster</signal>
+                        <signal type="warning">Transaction pattern deviation from baseline</signal>
+                        <signal type="info">Seasonal revenue fluctuation detected</signal>
+                    </monitoring_signals>
+                    <automated_actions>
+                        <action trigger="critical_signal">Pause upcoming tranche release</action>
+                        <action trigger="multiple_warnings">Request updated financials</action>
+                        <action trigger="default_risk_high">Initiate collection process</action>
+                    </automated_actions>
+                    <team_required>ML Engineer, Backend Developer, DevOps</team_required>
+                </task>
+
+                <task id="2.5" priority="medium">
+                    <name>Credit Scoring API & Documentation</name>
+                    <duration>1 week</duration>
+                    <deliverables>
+                        <deliverable>RESTful API for credit score retrieval</deliverable>
+                        <deliverable>API documentation (OpenAPI spec)</deliverable>
+                        <deliverable>Rate limiting and authentication</deliverable>
+                        <deliverable>Caching layer for frequent requests</deliverable>
+                        <deliverable>Audit logging for all score requests</deliverable>
+                    </deliverables>
+                    <api_endpoints>
+                        <endpoint method="POST" path="/api/v1/credit-score/calculate">
+                            <description>Calculate credit score for merchant</description>
+                            <input>merchant_id, force_refresh (optional)</input>
+                            <output>score, tier, confidence, contributing_factors, timestamp</output>
+                        </endpoint>
+                        <endpoint method="GET" path="/api/v1/credit-score/{merchant_id}">
+                            <description>Retrieve cached credit score</description>
+                            <output>score, tier, last_updated</output>
+                        </endpoint>
+                        <endpoint method="GET" path="/api/v1/credit-score/{merchant_id}/history">
+                            <description>Get historical score evolution</description>
+                            <output>Array of scores with timestamps</output>
+                        </endpoint>
+                    </api_endpoints>
+                    <team_required>Backend Developer, Technical Writer</team_required>
+                </task>
+            </tasks>
+
+            <milestones>
+                <milestone>Credit scoring model achieves AUC >0.80 on test set</milestone>
+                <milestone>API integrated with main backend services</milestone>
+                <milestone>Real-time monitoring operational</milestone>
+                <milestone>Risk tier system validated with historical data</milestone>
+            </milestones>
+
+            <data_requirements>
+                <requirement>Minimum 500 merchant transaction histories for training</requirement>
+                <requirement>At least 50 examples of defaults/late payments for labeling</requirement>
+                <requirement>6-12 months of historical data per merchant</requirement>
+            </data_requirements>
+        </phase>
+
+        <!-- PHASE 3: BACKEND SERVICES -->
+        <phase id="3" name="Backend Services & APIs" duration="8 weeks">
+            <objectives>
+                <objective>Build microservices architecture for core business logic</objective>
+                <objective>Develop RESTful and GraphQL APIs</objective>
+                <objective>Implement authentication, authorization, and KYC flows</objective>
+                <objective>Create job queues for async processing</objective>
+            </objectives>
+
+            <tasks>
+                <task id="3.1" priority="critical">
+                    <name>Authentication & User Management Service</name>
+                    <duration>2 weeks</duration>
+                    <deliverables>
+                        <deliverable>User registration and login (email/password, OAuth)</deliverable>
+                        <deliverable>JWT token generation and validation</deliverable>
+                        <deliverable>Role-based access control (RBAC)</deliverable>
+                        <deliverable>Multi-factor authentication (2FA)</deliverable>
+                        <deliverable>Password reset and email verification</deliverable>
+                        <deliverable>Session management with Redis</deliverable>
+                    </deliverables>
+                    <user_roles>
+                        <role name="MERCHANT">Can create fundraising campaigns, view analytics, make repayments</role>
+                        <role name="INVESTOR">Can browse vaults, invest, view portfolio, claim returns</role>
+                        <role name="ADMIN">Full platform access, approve merchants, manage disputes</role>
+                        <role name="VERIFIER">Approve milestones, validate documents</role>
+                        <role name="AUDITOR">Read-only access for compliance</role>
+                    </user_roles>
+                    <team_required>Senior Backend Developer, Security Engineer</team_required>
+                </task>
+
+                <task id="3.2" priority="critical">
+                    <name>KYC/AML Compliance Service</name>
+                    <duration>3 weeks</duration>
+                    <description>
+                        Integrate with third-party KYC providers for identity verification and compliance screening.
+                    </description>
+                    <deliverables>
+                        <deliverable>Integration with KYC provider (Onfido, Jumio, or local UAE provider)</deliverable>
+                        <deliverable>Document upload and verification flow</deliverable>
+                        <deliverable>AML screening against sanctions lists</deliverable>
+                        <deliverable>Accredited investor verification (for high-value investments)</deliverable>
+                        <deliverable>Admin dashboard for manual review</deliverable>
+                        <deliverable>Automated re-verification workflows</deliverable>
+                    </deliverables>
+                    <kyc_requirements>
+                        <merchant_kyc>
+                            <document>Emirates ID / Passport</document>
+                            <document>Trade License</document>
+                            <document>Proof of business address</document>
+                            <document>Bank account details</document>
+                            <document>Financial statements (last 6-12 months)</document>
+                            <document>Authorized signatory documents</document>
+                        </merchant_kyc>
+                        <investor_kyc>
+                            <document>Emirates ID / Passport</document>
+                            <document>Proof of address</document>
+                            <document>Bank account verification</document>
+                            <document>Accredited investor certification (for large investments)</document>
+                            <document>Source of funds declaration</document>
+                        </investor_kyc>
+                    </kyc_requirements>
+                    <verification_levels>
+                        <level name="Basic" max_investment="10,000 AED">Email + phone verification</level>
+                        <level name="Standard" max_investment="100,000 AED">ID verification + address</level>
+                        <level name="Advanced" max_investment="Unlimited">Full KYC + accredited investor status</level>
+                    </verification_levels>
+                    <team_required>Backend Developer, Compliance Officer</team_required>
+                </task>
+
+                <task id="3.3" priority="critical">
+                    <name>Merchant Vault Management Service</name>
+                    <duration>3 weeks</duration>
+                    <description>
+                        Core service managing merchant fundraising campaigns, vault creation, and lifecycle management.
+                    </description>
+                    <deliverables>
+                        <deliverable>Campaign creation and approval workflow</deliverable>
+                        <deliverable>Smart contract vault deployment automation</deliverable>
+                        <deliverable>Fundraising progress tracking</deliverable>
+                        <deliverable>Milestone definition and verification</deliverable>
+                        <deliverable>Tranche release logic and approval</deliverable>
+                        <deliverable>Repayment schedule management</deliverable>
+                    </deliverables>
+                    <api_endpoints>
+                        <endpoint method="POST" path="/api/v1/campaigns">
+                            <description>Create new fundraising campaign</description>
+                            <authentication>Required (Merchant role)</authentication>
+                            <input>
+                                {
+                                  "amount_requested": 100000,
+                                  "currency": "AED",
+                                  "use_of_funds": "Inventory expansion",
+                                  "interest_rate": 15,
+                                  "duration_months": 12,
+                                  "milestones": [
+                                    {"description": "Inventory purchased", "tranche_percentage": 40},
+                                    {"description": "First sales achieved", "tranche_percentage": 30},
+                                    {"description": "Revenue target met", "tranche_percentage": 30}
+                                  ]
+                                }
+                            </input>
+                            <workflow>
+                                1. Validate merchant credit score
+                                2. Calculate risk tier and max funding
+                                3. Create pending campaign in database
+                                4. Submit for admin approval
+                                5. Deploy smart contract vault (upon approval)
+                                6. Notify merchant of campaign URL
+                            </workflow>
+                        </endpoint>
+                        <endpoint method="GET" path="/api/v1/campaigns/{id}">
+                            <description>Get campaign details</description>
+                            <output>
+                                {
+                                  "id": "uuid",
+                                  "merchant": {...},
+                                  "amount_requested": 100000,
+                                  "amount_raised": 75000,
+                                  "investor_count": 42,
+                                  "status": "FUNDRAISING",
+                                  "credit_score": 720,
+                                  "risk_tier": "B",
+                                  "expected_return": 15,
+                                  "deadline": "2026-03-15T23:59:59Z",
+                                  "vault_address": "0x...",
+                                  "milestones": [...]
+                                }
+                            </output>
+                        </endpoint>
+                        <endpoint method="POST" path="/api/v1/campaigns/{id}/milestones/{milestone_id}/submit">
+                            <description>Submit milestone for verification</description>
+                            <authentication>Required (Merchant)</authentication>
+                            <input>proof_documents (files), notes</input>
+                        </endpoint>
+                        <endpoint method="POST" path="/api/v1/campaigns/{id}/tranches/{tranche_id}/release">
+                            <description>Release tranche to merchant (after milestone approval)</description>
+                            <authentication>Required (Admin/Verifier)</authentication>
+                            <workflow>
+                                1. Verify milestone approved
+                                2. Trigger smart contract tranche release
+                                3. Transfer funds to merchant wallet
+                                4. Log transaction
+                                5. Notify merchant and investors
+                            </workflow>
+                        </endpoint>
+                    </api_endpoints>
+                    <team_required>Senior Backend Developer, Blockchain Developer</team_required>
+                </task>
+
+                <task id="3.4" priority="high">
+                    <name>Investment Service</name>
+                    <duration>2 weeks</duration>
+                    <description>
+                        Handle investor deposits, portfolio management, and return distributions.
+                    </description>
+                    <deliverables>
+                        <deliverable>Investment flow (wallet connection, deposit, token minting)</deliverable>
+                        <deliverable>Portfolio dashboard API</deliverable>
+                        <deliverable>Return calculation and distribution</deliverable>
+                        <deliverable>Secondary market listing (future enhancement)</deliverable>
+                        <deliverable>Tax document generation (for returns)</deliverable>
+                    </deliverables>
+                    <api_endpoints>
+                        <endpoint method="POST" path="/api/v1/investments">
+                            <description>Make investment in vault</description>
+                            <authentication>Required (Investor, KYC verified)</authentication>
+                            <input>
+                                {
+                                  "vault_id": "uuid",
+                                  "amount": 5000,
+                                  "currency": "AED",
+                                  "payment_method": "wallet" // or "bank_transfer"
+                                }
+                            </input>
+                            <workflow>
+                                1. Verify KYC status and investment limits
+                                2. Check vault still accepting investments
+                                3. Generate payment intent / wallet transaction
+                                4. Wait for payment confirmation (on-chain or bank)
+                                5. Call smart contract invest() function
+                                6. Mint debt tokens to investor
+                                7. Update portfolio
+                                8. Send confirmation email
+                            </workflow>
+                        </endpoint>
+                        <endpoint method="GET" path="/api/v1/portfolio">
+                            <description>Get investor portfolio</description>
+                            <output>
+                                {
+                                  "total_invested": 50000,
+                                  "current_value": 52500,
+                                  "total_returns": 2500,
+                                  "active_investments": 7,
+                                  "investments": [
+                                    {
+                                      "vault_id": "...",
+                                      "merchant_name": "...",
+                                      "amount_invested": 5000,
+                                      "tokens_held": 5000,
+                                      "expected_return": 750,
+                                      "status": "ACTIVE",
+                                      "next_payment_date": "2026-04-01"
+                                    },
+                                    ...
+                                  ]
+                                }
+                            </output>
+                        </endpoint>
+                        <endpoint method="POST" path="/api/v1/investments/{id}/claim-returns">
+                            <description>Claim distributed returns</description>
+                            <workflow>
+                                1. Check claimable amount from smart contract
+                                2. Execute claimReturns() transaction
+                                3. Transfer funds to investor wallet
+                                4. Update portfolio
+                                5. Generate tax document
+                            </workflow>
+                        </endpoint>
+                    </api_endpoints>
+                    <team_required>Backend Developer, Frontend Developer</team_required>
+                </task>
+
+                <task id="3.5" priority="high">
+                    <name>Repayment Processing Service</name>
+                    <duration>2 weeks</duration>
+                    <description>
+                        Automate merchant repayment collection and distribution to investors.
+                    </description>
+                    <deliverables>
+                        <deliverable>Scheduled repayment reminders (email/SMS)</deliverable>
+                        <deliverable>Auto-debit from merchant TigerPay balance</deliverable>
+                        <deliverable>Manual payment processing</deliverable>
+                        <deliverable>Late payment tracking and penalties</deliverable>
+                        <deliverable>Default detection and collection workflows</deliverable>
+                    </deliverables>
+                    <repayment_flow>
+                        <step>3 days before due date: Send reminder to merchant</step>
+                        <step>On due date: Attempt auto-debit from TigerPay merchant balance</step>
+                        <step>If insufficient balance: Send urgent notification</step>
+                        <step>1 day after due date: Grace period, send warning</step>
+                        <step>3 days after due date: Apply late fee, escalate to collections team</step>
+                        <step>7 days after due date: Initiate default process, pause future tranches</step>
+                        <step>14 days after due date: Legal action, liquidation of collateral</step>
+                    </repayment_flow>
+                    <auto_debit_logic>
+                        <rule>Check merchant TigerPay balance at 2 AM on due date</rule>
+                        <rule>If balance >= repayment amount: auto-deduct and process</rule>
+                        <rule>If balance insufficient but >= 50%: partial payment option</rule>
+                        <rule>If balance &lt; 50%: wait for manual payment, send alerts</rule>
+                    </auto_debit_logic>
+                    <team_required>Backend Developer, Financial Engineer</team_required>
+                </task>
+
+                <task id="3.6" priority="medium">
+                    <name>Notification & Communication Service</name>
+                    <duration>1 week</duration>
+                    <deliverables>
+                        <deliverable>Email service (SendGrid/AWS SES)</deliverable>
+                        <deliverable>SMS service (Twilio)</deliverable>
+                        <deliverable>Push notifications (Firebase)</deliverable>
+                        <deliverable>Template management system</deliverable>
+                        <deliverable>Notification preferences per user</deliverable>
+                    </deliverables>
+                    <notification_events>
+                        <event>Campaign approved/rejected</event>
+                        <event>Investment received</event>
+                        <event>Milestone submitted/approved</event>
+                        <event>Tranche released</event>
+                        <event>Repayment due (3 days, 1 day before)</event>
+                        <event>Repayment received</event>
+                        <event>Returns available for claim</event>
+                        <event>Late payment detected</event>
+                        <event>Default declared</event>
+                    </notification_events>
+                    <team_required>Backend Developer</team_required>
+                </task>
+
+                <task id="3.7" priority="medium">
+                    <name>Analytics & Reporting Service</name>
+                    <duration>2 weeks</duration>
+                    <deliverables>
+                        <deliverable>Real-time analytics dashboard data API</deliverable>
+                        <deliverable>Historical performance metrics</deliverable>
+                        <deliverable>Merchant performance reports</deliverable>
+                        <deliverable>Investor return reports</deliverable>
+                        <deliverable>Platform-wide statistics</deliverable>
+                    </deliverables>
+                    <metrics>
+                        <merchant_metrics>
+                            <metric>Total raised</metric>
+                            <metric>Repayment history</metric>
+                            <metric>Credit score evolution</metric>
+                            <metric>Current outstanding debt</metric>
+                        </merchant_metrics>
+                        <investor_metrics>
+                            <metric>Total invested</metric>
+                            <metric>Realized returns</metric>
+                            <metric>Portfolio diversification</metric>
+                            <metric>Average return rate</metric>
+                        </investor_metrics>
+                        <platform_metrics>
+                            <metric>Total volume funded</metric>
+                            <metric>Active vaults</metric>
+                            <metric>Average default rate</metric>
+                            <metric>Platform utilization</metric>
+                        </platform_metrics>
+                    </metrics>
+                    <team_required>Backend Developer, Data Engineer</team_required>
+                </task>
+
+                <task id="3.8" priority="high">
+                    <name>Job Queue & Background Processing</name>
+                    <duration>1 week</duration>
+                    <deliverables>
+                        <deliverable>BullMQ setup with Redis</deliverable>
+                        <deliverable>Scheduled jobs (cron-like)</deliverable>
+                        <deliverable>Job monitoring dashboard</deliverable>
+                        <deliverable>Retry logic and error handling</deliverable>
+                    </deliverables>
+                    <background_jobs>
+                        <job name="credit_score_refresh" schedule="daily">Recalculate merchant credit scores</job>
+                        <job name="repayment_reminders" schedule="daily">Send upcoming payment reminders</job>
+                        <job name="auto_debit_process" schedule="daily 2am">Process automatic repayments</job>
+                        <job name="late_payment_check" schedule="hourly">Check for late payments and apply penalties</job>
+                        <job name="milestone_deadline_check" schedule="daily">Alert merchants of approaching milestone deadlines</job>
+                        <job name="investor_tax_docs" schedule="monthly">Generate monthly statements</job>
+                        <job name="data_backup" schedule="daily 3am">Backup critical database tables</job>
+                    </background_jobs>
+                    <team_required>Backend Developer, DevOps</team_required>
+                </task>
+            </tasks>
+
+            <milestones>
+                <milestone>All core APIs documented and tested</milestone>
+                <milestone>KYC flow fully integrated and tested</milestone>
+                <milestone>Background jobs running reliably</milestone>
+                <milestone>End-to-end flow tested (merchant onboarding → investment → repayment)</milestone>
+            </milestones>
+
+            <architecture_patterns>
+                <pattern>Microservices with domain-driven design</pattern>
+                <pattern>Event-driven architecture with message queues</pattern>
+                <pattern>CQRS for read-heavy operations (analytics)</pattern>
+                <pattern>API Gateway for unified entry point</pattern>
+                <pattern>Circuit breakers for external service calls</pattern>
+            </architecture_patterns>
+        </phase>
+
+        <!-- PHASE 4: FRONTEND APPLICATIONS -->
+        <phase id="4" name="Frontend Applications" duration="8 weeks">
+            <objectives>
+                <objective>Build responsive web applications for merchants and investors</objective>
+                <objective>Implement wallet integration and blockchain interactions</objective>
+                <objective>Create intuitive UX for complex financial operations</objective>
+                <objective>Ensure mobile-first design for UAE market</objective>
+            </objectives>
+
+            <tasks>
+                <task id="4.1" priority="critical">
+                    <name>Design System & Component Library</name>
+                    <duration>2 weeks</duration>
+                    <deliverables>
+                        <deliverable>Figma design system with brand guidelines</deliverable>
+                        <deliverable>Reusable React components with Storybook</deliverable>
+                        <deliverable>Typography, color palette, spacing scale</deliverable>
+                        <deliverable>Form components with validation</deliverable>
+                        <deliverable>Loading states and error handling patterns</deliverable>
+                        <deliverable>Mobile-responsive components</deliverable>
+                    </deliverables>
+                    <design_principles>
+                        <principle>Middle East aesthetic (RTL support, cultural sensitivity)</principle>
+                        <principle>Trust signals (security badges, licenses, testimonials)</principle>
+                        <principle>Clarity in financial data (clear numbers, progress bars)</principle>
+                        <principle>Mobile-first (60%+ UAE users on mobile)</principle>
+                    </design_principles>
+                    <team_required>UI/UX Designer, Frontend Developer</team_required>
+                </task>
+
+                <task id="4.2" priority="critical">
+                    <name>Wallet Integration & Web3 Setup</name>
+                    <duration>2 weeks</duration>
+                    <deliverables>
+                        <deliverable>Wallet connection (MetaMask, WalletConnect, Coinbase Wallet)</deliverable>
+                        <deliverable>Network switching to correct chain</deliverable>
+                        <deliverable>Transaction signing flow</deliverable>
+                        <deliverable>Balance checking and token display</deliverable>
+                        <deliverable>Error handling for failed transactions</deliverable>
+                    </deliverables>
+                    <web3_libraries>
+                        <library>wagmi: React hooks for Ethereum</library>
+                        <library>viem: Low-level Ethereum interactions</library>
+                        <library>RainbowKit: Beautiful wallet connection UI</library>
+                    </web3_libraries>
+                    <team_required>Frontend Developer, Blockchain Developer</team_required>
+                </task>
+
+                <task id="4.3" priority="critical">
+                    <name>Investor Portal</name>
+                    <duration>4 weeks</duration>
+                    <description>
+                        Complete web application for investors to browse opportunities, invest, and manage portfolio.
+                    </description>
+                    <deliverables>
+                        <deliverable>Landing page with opportunity marketplace</deliverable>
+                        <deliverable>Vault detail pages with merchant information</deliverable>
+                        <deliverable>Investment flow (amount selection → wallet → confirmation)</deliverable>
+                        <deliverable>Portfolio dashboard with performance metrics</deliverable>
+                        <deliverable>Transaction history and tax documents</deliverable>
+                        <deliverable>Return claiming interface</deliverable>
+                        <deliverable>KYC onboarding flow</deliverable>
+                    </deliverables>
+                    <key_pages>
+                        <page name="Marketplace">
+                            <features>
+                                <feature>Filter by risk tier, industry, return rate, funding progress</feature>
+                                <feature>Sort by newest, most funded, highest return</feature>
+                                <feature>Search by merchant name</feature>
+                                <feature>Vault cards showing key metrics</feature>
+                            </features>
+                        </page>
+                        <page name="Vault Detail">
+                            <features>
+                                <feature>Merchant profile and credit score</feature>
+                                <feature>Use of funds breakdown</feature>
+                                <feature>Milestone timeline with progress</feature>
+                                <feature>Repayment schedule</feature>
+                                <feature>Investor distribution (anonymized)</feature>
+                                <feature>Expected returns calculator</feature>
+                                <feature>"Invest Now" button</feature>
+                            </features>
+                        </page>
+                        <page name="Portfolio Dashboard">
+                            <features>
+                                <feature>Total invested, current value, total returns</feature>
+                                <feature>Active investments table</feature>
+                                <feature>Upcoming payment schedule</feature>
+                                <feature>Performance charts (returns over time)</feature>
+                                <feature>Diversification breakdown (by risk tier, industry)</feature>
+                            </features>
+                        </page>
+                    </key_pages>
+                    <investment_flow>
+                        <step>User clicks "Invest" on vault page</step>
+                        <step>Modal opens: Enter investment amount</step>
+                        <step>System checks: KYC status, investment limits, wallet balance</step>
+                        <step>Show investment summary and terms acceptance</step>
+                        <step>Connect wallet (if not connected)</step>
+                        <step>Approve token spending (if using ERC-20)</step>
+                        <step>Call smart contract invest() function</step>
+                        <step>Show transaction pending state</step>
+                        <step>Wait for confirmation (show block explorer link)</step>
+                        <step>Success screen with debt tokens received</step>
+                        <step>Redirect to portfolio</step>
+                    </investment_flow>
+                    <team_required>2x Frontend Developers, UI/UX Designer</team_required>
+                </task>
+
+                <task id="4.4" priority="critical">
+                    <name>Merchant Portal</name>
+                    <duration>4 weeks</duration>
+                    <description>
+                        Dashboard for merchants to create campaigns, track funding, and manage repayments.
+                    </description>
+                    <deliverables>
+                        <deliverable>Merchant onboarding and KYC flow</deliverable>
+                        <deliverable>Campaign creation wizard</deliverable>
+                        <deliverable>Funding progress dashboard</deliverable>
+                        <deliverable>Milestone submission interface</deliverable>
+                        <deliverable>Repayment management page</deliverable>
+                        <deliverable>Analytics and performance metrics</deliverable>
+                    </deliverables>
+                    <key_pages>
+                        <page name="Dashboard">
+                            <features>
+                                <feature>Active campaign status</feature>
+                                <feature>Amount raised vs target</feature>
+                                <feature>Credit score and risk tier</feature>
+                                <feature>Upcoming repayments</feature>
+                                <feature>Outstanding debt balance</feature>
+                            </features>
+                        </page>
+                        <page name="Create Campaign">
+                            <wizard_steps>
+                                <step>Business Information (name, industry, description)</step>
+                                <step>Funding Request (amount, use of funds, duration)</step>
+                                <step>Milestones (define release conditions)</step>
+                                <step>Documents (upload supporting files)</step>
+                                <step>Review and Submit</step>
+                            </wizard_steps>
+                        </page>
+                        <page name="Repayment Center">
+                            <features>
+                                <feature>Payment schedule with status indicators</feature>
+                                <feature>Auto-debit toggle and settings</feature>
+                                <feature>Manual payment interface</feature>
+                                <feature>Payment history</feature>
+                                <feature>Early repayment calculator</feature>
+                            </features>
+                        </page>
+                    </key_pages>
+                    <team_required>2x Frontend Developers, UI/UX Designer</team_required>
+                </task>
+
+                <task id="4.5" priority="high">
+                    <name>Admin Dashboard</name>
+                    <duration>2 weeks</duration>
+                    <deliverables>
+                        <deliverable>Campaign approval workflow</deliverable>
+                        <deliverable>KYC review interface</deliverable>
+                        <deliverable>Milestone verification tools</deliverable>
+                        <deliverable>Dispute management</deliverable>
+                        <deliverable>Platform analytics and monitoring</deliverable>
+                        <deliverable>User management (block, refund, etc.)</deliverable>
+                    </deliverables>
+                    <team_required>Frontend Developer</team_required>
+                </task>
+
+                <task id="4.6" priority="medium">
+                    <name>Mobile Responsive Optimization</name>
+                    <duration>1 week</duration>
+                    <deliverables>
+                        <deliverable>Mobile-optimized layouts for all pages</deliverable>
+                        <deliverable>Touch-friendly interactions</deliverable>
+                        <deliverable>Mobile wallet integration (WalletConnect)</deliverable>
+                        <deliverable>Progressive Web App (PWA) setup</deliverable>
+                        <deliverable>Performance optimization (lazy loading, code splitting)</deliverable>
+                    </deliverables>
+                    <team_required>Frontend Developer</team_required>
+                </task>
+
+                <task id="4.7" priority="medium">
+                    <name>Testing & QA</name>
+                    <duration>2 weeks (ongoing)</duration>
+                    <deliverables>
+                        <deliverable>Unit tests for components (Jest, React Testing Library)</deliverable>
+                        <deliverable>Integration tests for critical flows</deliverable>
+                        <deliverable>E2E tests (Playwright or Cypress)</deliverable>
+                        <deliverable>Accessibility testing (WCAG 2.1 AA)</deliverable>
+                        <deliverable>Cross-browser testing (Chrome, Safari, Firefox)</deliverable>
+                        <deliverable>Mobile device testing (iOS, Android)</deliverable>
+                    </deliverables>
+                    <team_required>QA Engineer, Frontend Developers</team_required>
+                </task>
+            </tasks>
+
+            <milestones>
+                <milestone>Design system approved and components built</milestone>
+                <milestone>Investor and Merchant portals feature-complete</milestone>
+                <milestone>End-to-end user flows tested and working</milestone>
+                <milestone>Mobile experience optimized</milestone>
+            </milestones>
+
+            <ux_principles>
+                <principle>Progressive disclosure (don't overwhelm with info)</principle>
+                <principle>Clear CTAs with visual hierarchy</principle>
+                <principle>Instant feedback for all actions</principle>
+                <principle>Graceful error handling with recovery options</principle>
+                <principle>Loading states for all async operations</principle>
+                <principle>Optimistic UI updates where appropriate</principle>
+            </ux_principles>
+        </phase>
+
+        <!-- PHASE 5: INTEGRATION & TESTING -->
+        <phase id="5" name="System Integration & Testing" duration="4 weeks">
+            <objectives>
+                <objective>Integrate all components into cohesive system</objective>
+                <objective>Conduct comprehensive end-to-end testing</objective>
+                <objective>Perform security audit and penetration testing</objective>
+                <objective>Load testing and performance optimization</objective>
+            </objectives>
+
+            <tasks>
+                <task id="5.1" priority="critical">
+                    <name>System Integration</name>
+                    <duration>2 weeks</duration>
+                    <deliverables>
+                        <deliverable>Connect frontend to backend APIs</deliverable>
+                        <deliverable>Integrate smart contracts with backend services</deliverable>
+                        <deliverable>Set up event listeners for blockchain events</deliverable>
+                        <deliverable>Configure payment gateways (if needed)</deliverable>
+                        <deliverable>Integrate third-party services (KYC, notifications, analytics)</deliverable>
+                    </deliverables>
+                    <integration_points>
+                        <point>Frontend ↔ Backend APIs (REST + GraphQL)</point>
+                        <point>Backend ↔ Smart Contracts (ethers.js/web3.js)</point>
+                        <point>Backend ↔ ML Service (credit scoring)</point>
+                        <point>Backend ↔ KYC Provider</point>
+                        <point>Backend ↔ Email/SMS services</point>
+                        <point>Smart Contracts ↔ Oracles (Chainlink + custom)</point>
+                    </integration_points>
+                    <team_required>Full team</team_required>
+                </task>
+
+                <task id="5.2" priority="critical">
+                    <name>End-to-End Testing</name>
+                    <duration>2 weeks</duration>
+                    <deliverables>
+                        <deliverable>Complete user journey tests (merchant and investor)</deliverable>
+                        <deliverable>Smart contract integration tests on testnet</deliverable>
+                        <deliverable>Payment flow testing</deliverable>
+                        <deliverable>Error scenario testing</deliverable>
+                        <deliverable>Regression test suite</deliverable>
+                    </deliverables>
+                    <test_scenarios>
+                        <scenario name="Happy Path - Merchant">
+                            <steps>
+                                1. Register and complete KYC
+                                2. Create campaign (100K AED, 12 months, 15% return)
+                                3. Campaign approved by admin
+                                4. Vault deployed on-chain
+                                5. Investors fund the vault
+                                6. Submit milestone 1 proof
+                                7. Receive tranche 1 (40K AED)
+                                8. Submit milestone 2 proof
+                                9. Receive tranche 2 (30K AED)
+                                10. Submit milestone 3 proof
+                                11. Receive tranche 3 (30K AED)
+                                12. Make monthly repayments (115K total over 12 months)
+                                13. Campaign marked as COMPLETED
+                            </steps>
+                        </scenario>
+                        <scenario name="Happy Path - Investor">
+                            <steps>
+                                1. Register and complete KYC
+                                2. Browse marketplace
+                                3. View vault details
+                                4. Invest 5000 AED
+                                5. Receive debt tokens
+                                6. Track progress in portfolio
+                                7. Receive proportional returns as merchant repays
+                                8. Claim accumulated returns
+                                9. View tax documents
+                            </steps>
+                        </scenario>
+                        <scenario name="Late Payment">
+                            <steps>
+                                1. Merchant misses payment due date
+                                2. Grace period begins (1 day)
+                                3. Automated reminders sent
+                                4. Late fee applied after 3 days
+                                5. Risk score updated
+                                6. Next tranche paused
+                                7. Collections process initiated at 7 days
+                                8. Merchant makes payment with penalties
+                                9. System updates and resumes normal operations
+                            </steps>
+                        </scenario>
+                        <scenario name="Default Scenario">
+                            <steps>
+                                1. Merchant fails to make payment for 14+ days
+                                2. Vault status changes to DEFAULTED
+                                3. Future tranches permanently blocked
+                                4. Collateral liquidation initiated
+                                5. Legal proceedings started
+                                6. Recovered funds distributed to investors
+                                7. Loss recorded, credit score destroyed
+                            </steps>
+                        </scenario>
+                        <scenario name="Partial Funding">
+                            <steps>
+                                1. Campaign fundraising deadline reached
+                                2. Only 60K raised (target was 100K)
+                                3. System checks minimum threshold (e.g., 70%)
+                                4. Threshold not met
+                                5. Refund process triggered
+                                6. Funds returned to all investors
+                                7. Campaign marked as FAILED
+                            </steps>
+                        </scenario>
+                    </test_scenarios>
+                    <team_required>QA Engineers, All Developers</team_required>
+                </task>
+
+                <task id="5.3" priority="critical">
+                    <name>Security Audit & Penetration Testing</name>
+                    <duration>2 weeks</duration>
+                    <deliverables>
+                        <deliverable>External smart contract audit (OpenZeppelin, CertiK, or Trail of Bits)</deliverable>
+                        <deliverable>Backend API security testing</deliverable>
+                        <deliverable>Penetration testing report</deliverable>
+                        <deliverable>Vulnerability remediation</deliverable>
+                        <deliverable>Security best practices documentation</deliverable>
+                    </deliverables>
+                    <security_checks>
+                        <check>Smart contract vulnerabilities (reentrancy, overflow, etc.)</check>
+                        <check>API authentication bypass attempts</check>
+                        <check>SQL injection and XSS testing</check>
+                        <check>Rate limiting effectiveness</check>
+                        <check>Wallet security and private key management</check>
+                        <check>CSRF protection</check>
+                        <check>Data encryption at rest and in transit</check>
+                        <check>KYC data protection compliance</check>
+                    </security_checks>
+                    <team_required>External Security Firm, Internal DevSecOps</team_required>
+                </task>
+
+                <task id="5.4" priority="high">
+                    <name>Load & Performance Testing</name>
+                    <duration>1 week</duration>
+                    <deliverables>
+                        <deliverable>Load testing with k6 or JMeter</deliverable>
+                        <deliverable>Database query optimization</deliverable>
+                        <deliverable>API response time optimization</deliverable>
+                        <deliverable>Smart contract gas optimization</deliverable>
+                        <deliverable>CDN setup for static assets</deliverable>
+                        <deliverable>Caching strategy implementation</deliverable>
+                    </deliverables>
+                    <performance_targets>
+                        <target>API response time: p95 &lt; 500ms, p99 &lt; 1s</target>
+                        <target>Page load time: &lt; 2s on 4G network</target>
+                        <target>Support 1000+ concurrent users</target>
+                        <target>Smart contract gas costs: &lt; $5 per transaction</target>
+                        <target>Database queries: &lt; 100ms for 95% of queries</target>
+                    </performance_targets>
+                    <team_required>DevOps, Backend Developers, Blockchain Developer</team_required>
+                </task>
+
+                <task id="5.5" priority="medium">
+                    <name>User Acceptance Testing (UAT)</name>
+                    <duration>1 week</duration>
+                    <deliverables>
+                        <deliverable>Beta testing with select merchants and investors</deliverable>
+                        <deliverable>Feedback collection and analysis</deliverable>
+                        <deliverable>UI/UX improvements based on feedback</deliverable>
+                        <deliverable>Bug fixes and refinements</deliverable>
+                    </deliverables>
+                    <team_required>Product Manager, All teams</team_required>
+                </task>
+            </tasks>
+
+            <milestones>
+                <milestone>All systems integrated and communicating correctly</milestone>
+                <milestone>Security audit passed with no critical issues</milestone>
+                <milestone>Performance targets met</milestone>
+                <milestone>UAT completed with positive feedback</milestone>
+            </milestones>
+        </phase>
+
+        <!-- PHASE 6: TESTNET DEPLOYMENT -->
+        <phase id="6" name="Testnet Deployment & Beta Launch" duration="4 weeks">
+            <objectives>
+                <objective>Deploy complete system to testnet environment</objective>
+                <objective>Run beta program with real users (test tokens)</objective>
+                <objective>Monitor system behavior and collect metrics</objective>
+                <objective>Prepare for mainnet launch</objective>
+            </objectives>
+
+            <tasks>
+                <task id="6.1" priority="critical">
+                    <name>Testnet Deployment</name>
+                    <duration>1 week</duration>
+                    <deliverables>
+                        <deliverable>Smart contracts deployed to Polygon Mumbai or Sepolia</deliverable>
+                        <deliverable>Backend services deployed to staging environment</deliverable>
+                        <deliverable>Frontend deployed to staging URL</deliverable>
+                        <deliverable>Database migrations run</deliverable>
+                        <deliverable>Monitoring and alerting configured</deliverable>
+                        <deliverable>Testnet faucet for test tokens</deliverable>
+                    </deliverables>
+                    <team_required>DevOps, All Developers</team_required>
+                </task>
+
+                <task id="6.2" priority="high">
+                    <name>Beta Program Execution</name>
+                    <duration>3 weeks</duration>
+                    <deliverables>
+                        <deliverable>Recruit 10-20 beta merchants and 50-100 beta investors</deliverable>
+                        <deliverable>Onboarding support and documentation</deliverable>
+                        <deliverable>Daily monitoring of platform usage</deliverable>
+                        <deliverable>Regular feedback sessions</deliverable>
+                        <deliverable>Bug tracking and resolution</deliverable>
+                    </deliverables>
+                    <beta_goals>
+                        <goal>At least 5 campaigns created and fully funded</goal>
+                        <goal>Complete 2+ full repayment cycles</goal>
+                        <goal>Process 100+ investment transactions</goal>
+                        <goal>Validate all milestone and tranche release flows</goal>
+                        <goal>Test late payment and default scenarios (controlled)</goal>
+                    </beta_goals>
+                    <team_required>Product Manager, Support Team, All Engineers on call</team_required>
+                </task>
+
+                <task id="6.3" priority="high">
+                    <name>Monitoring & Analytics</name>
+                    <duration>Ongoing</duration>
+                    <deliverables>
+                        <deliverable>Real-time dashboard for system health</deliverable>
+                        <deliverable>User behavior analytics (Mixpanel or Amplitude)</deliverable>
+                        <deliverable>Smart contract event tracking</deliverable>
+                        <deliverable>Error tracking and alerting</deliverable>
+                        <deliverable>Performance metrics collection</deliverable>
+                    </deliverables>
+                    <key_metrics>
+                        <metric>Campaign creation rate</metric>
+                        <metric>Funding success rate</metric>
+                        <metric>Average time to full funding</metric>
+                        <metric>Repayment on-time rate</metric>
+                        <metric>Default rate</metric>
+                        <metric>User drop-off points in funnels</metric>
+                        <metric>API error rates</metric>
+                        <metric>Transaction success rates</metric>
+                    </key_metrics>
+                    <team_required>DevOps, Data Analyst</team_required>
+                </task>
+
+                <task id="6.4" priority="medium">
+                    <name>Documentation & Training Materials</name>
+                    <duration>2 weeks</duration>
+                    <deliverables>
+                        <deliverable>User guides (merchant and investor)</deliverable>
+                        <deliverable>FAQ and knowledge base</deliverable>
+                        <deliverable>Video tutorials</deliverable>
+                        <deliverable>API documentation</deliverable>
+                        <deliverable>Admin operation manual</deliverable>
+                        <deliverable>Incident response playbook</deliverable>
+                    </deliverables>
+                    <team_required>Technical Writer, Product Manager</team_required>
+                </task>
+
+                <task id="6.5" priority="high">
+                    <name>Mainnet Preparation</name>
+                    <duration>2 weeks</duration>
+                    <deliverables>
+                        <deliverable>Mainnet deployment checklist</deliverable>
+                        <deliverable>Contract ownership transfer procedures</deliverable>
+                        <deliverable>Initial liquidity planning</deliverable>
+                        <deliverable>Emergency pause procedures</deliverable>
+                        <deliverable>Rollback plan</deliverable>
+                        <deliverable>Launch day runbook</deliverable>
+                    </deliverables>
+                    <team_required>All teams</team_required>
+                </task>
+            </tasks>
+
+            <milestones>
+                <milestone>Testnet deployment stable for 2+ weeks</milestone>
+                <milestone>Beta program completed with success criteria met</milestone>
+                <milestone>All critical bugs resolved</milestone>
+                <milestone>Mainnet launch approved by stakeholders</milestone>
+            </milestones>
+
+            <success_criteria>
+                <criterion>Zero critical bugs in production</criterion>
+                <criterion>95%+ uptime during beta</criterion>
+                <criterion>Positive feedback from 80%+ of beta users</criterion>
+                <criterion>All test scenarios passed successfully</criterion>
+            </success_criteria>
+        </phase>
+
+        <!-- PHASE 7: MAINNET LAUNCH -->
+        <phase id="7" name="Mainnet Launch & Production" duration="2 weeks + ongoing">
+            <objectives>
+                <objective>Deploy to mainnet with real funds</objective>
+                <objective>Execute phased rollout to minimize risk</objective>
+                <objective>Monitor closely and respond to issues immediately</objective>
+                <objective>Gather feedback and plan iterative improvements</objective>
+            </objectives>
+
+            <tasks>
+                <task id="7.1" priority="critical">
+                    <name>Mainnet Deployment</name>
+                    <duration>3 days</duration>
+                    <deliverables>
+                        <deliverable>Smart contracts deployed to mainnet (Polygon or chosen L2)</deliverable>
+                        <deliverable>Contract verification on block explorer</deliverable>
+                        <deliverable>Production backend deployment</deliverable>
+                        <deliverable>Production frontend deployment</deliverable>
+                        <deliverable>Database migrations</deliverable>
+                        <deliverable>DNS cutover to production</deliverable>
+                    </deliverables>
+                    <deployment_checklist>
+                        <check>All environment variables configured</check>
+                        <check>SSL certificates installed</check>
+                        <check>Monitoring and alerting active</check>
+                        <check>Backup systems tested</check>
+                        <check>Multi-sig wallet configured for contract ownership</check>
+                        <check>Emergency pause mechanism tested</check>
+                        <check>Team on standby 24/7 for first week</check>
+                    </deployment_checklist>
+                    <team_required>All teams on call</team_required>
+                </task>
+
+                <task id="7.2" priority="critical">
+                    <name>Phased Rollout</name>
+                    <duration>2 weeks</duration>
+                    <description>
+                        Gradually open platform to more users to ensure stability.
+                    </description>
+                    <rollout_phases>
+                        <phase name="Week 1: Limited Access">
+                            <limits>
+                                <limit>Whitelist only: 5 merchants, 50 investors</limit>
+                                <limit>Max campaign size: 50K AED</limit>
+                                <limit>Max investment per user: 5K AED</limit>
+                            </limits>
+                            <monitoring>Intensive monitoring, daily team check-ins</monitoring>
+                        </phase>
+                        <phase name="Week 2: Controlled Expansion">
+                            <limits>
+                                <limit>Open registration with approval: 20 merchants, 200 investors</limit>
+                                <limit>Max campaign size: 100K AED</limit>
+                                <limit>Max investment per user: 10K AED</limit>
+                            </limits>
+                            <monitoring>Continued close monitoring</monitoring>
+                        </phase>
+                        <phase name="Week 3+: General Availability">
+                            <limits>
+                                <limit>Open to all KYC-verified users</limit>
+                                <limit>Standard limits apply (based on risk tiers)</limit>
+                            </limits>
+                            <monitoring>Standard operational monitoring</monitoring>
+                        </phase>
+                    </rollout_phases>
+                    <team_required>Product Manager, Support Team, Engineers on call</team_required>
+                </task>
+
+                <task id="7.3" priority="critical">
+                    <name>24/7 Monitoring & Support</name>
+                    <duration>Ongoing</duration>
+                    <deliverables>
+                        <deliverable>On-call rotation for engineering team</deliverable>
+                        <deliverable>Customer support team (email, chat)</deliverable>
+                        <deliverable>Incident response procedures</deliverable>
+                        <deliverable>Daily health check reports</deliverable>
+                        <deliverable>Weekly performance reviews</deliverable>
+                    </deliverables>
+                    <monitoring_tools>
+                        <tool>Datadog for application monitoring</tool>
+                        <tool>Tenderly for smart contract monitoring</tool>
+                        <tool>Sentry for error tracking</tool>
+                        <tool>PagerDuty for incident management</tool>
+                    </monitoring_tools>
+                    <team_required>DevOps, Support Team, On-call Engineers</team_required>
+                </task>
+
+                <task id="7.4" priority="high">
+                    <name>Post-Launch Optimization</name>
+                    <duration>Ongoing</duration>
+                    <deliverables>
+                        <deliverable>Performance tuning based on real usage</deliverable>
+                        <deliverable>UX improvements from user feedback</deliverable>
+                        <deliverable>Bug fixes and minor enhancements</deliverable>
+                        <deliverable>Database optimization</deliverable>
+                        <deliverable>Cost optimization (infrastructure, gas)</deliverable>
+                    </deliverables>
+                    <team_required>All teams</team_required>
+                </task>
+
+                <task id="7.5" priority="medium">
+                    <name>Compliance & Reporting Setup</name>
+                    <duration>1 week</duration>
+                    <deliverables>
+                        <deliverable>Regulatory reporting automation (if required)</deliverable>
+                        <deliverable>Audit trail systems</deliverable>
+                        <deliverable>Tax document generation</deliverable>
+                        <deliverable>AML transaction monitoring</deliverable>
+                    </deliverables>
+                    <team_required>Backend Developer, Compliance Officer</team_required>
+                </task>
+            </tasks>
+
+            <milestones>
+                <milestone>Mainnet launch successful with zero critical incidents</milestone>
+                <milestone>First campaign fully funded on mainnet</milestone>
+                <milestone>First successful repayment cycle completed</milestone>
+                <milestone>100+ users onboarded</milestone>
+                <milestone>Platform operating stably for 30 days</milestone>
+            </milestones>
+
+            <launch_day_checklist>
+                <item>All systems green in monitoring dashboards</item>
+                <item>Smart contracts deployed and verified</item>
+                <item>Announcement published on website and social media</item>
+                <item>Press release distributed (if applicable)</item>
+                <item>Customer support team briefed and ready</item>
+                <item>Engineering team on standby</item>
+                <item>Emergency contacts list confirmed</item>
+                <item>Rollback procedures documented and tested</item>
+            </launch_day_checklist>
+        </phase>
+
+        <!-- PHASE 8: POST-LAUNCH ENHANCEMENTS -->
+        <phase id="8" name="Post-Launch Features & Scaling" duration="Ongoing">
+            <objectives>
+                <objective>Implement advanced features based on user feedback</objective>
+                <objective>Scale platform to handle growing user base</objective>
+                <objective>Expand to additional use cases and markets</objective>
+            </objectives>
+
+            <future_features>
+                <feature priority="high" timeline="Month 2-3">
+                    <name>Secondary Market</name>
+                    <description>Allow investors to trade debt tokens with each other before maturity</description>
+                    <components>
+                        <component>Order book or AMM for token trading</component>
+                        <component>Price discovery mechanism</component>
+                        <component>Liquidity pools</component>
+                        <component>Trading UI</component>
+                    </components>
+                </feature>
+
+                <feature priority="high" timeline="Month 3-4">
+                    <name>Auto-Invest Feature</name>
+                    <description>Investors set criteria, system automatically invests in matching vaults</description>
+                    <components>
+                        <component>Portfolio strategy builder</component>
+                        <component>Automated investment engine</component>
+                        <component>Rebalancing logic</component>
+                    </components>
+                </feature>
+
+                <feature priority="medium" timeline="Month 4-5">
+                    <name>Insurance Pool</name>
+                    <description>Investors can insure investments against default</description>
+                    <components>
+                        <component>Insurance premium calculation</component>
+                        <component>Claims processing</component>
+                        <component>Underwriting model</component>
+                    </components>
+                </feature>
+
+                <feature priority="medium" timeline="Month 5-6">
+                    <name>Merchant Credit Line</name>
+                    <description>Pre-approved revolving credit for high-tier merchants</description>
+                    <components>
+                        <component>Credit line management</component>
+                        <component>Draw-down mechanism</component>
+                        <component>Variable interest rates</component>
+                    </components>
+                </feature>
+
+                <feature priority="medium" timeline="Month 6-7">
+                    <name>Multi-Currency Support</name>
+                    <description>Support for USD, EUR, and other currencies beyond AED</description>
+                    <components>
+                        <component>Multi-currency vaults</component>
+                        <component>FX rate integration</component>
+                        <component>Hedging mechanisms</component>
+                    </components>
+                </feature>
+
+                <feature priority="low" timeline="Month 8+">
+                    <name>Referral & Rewards Program</name>
+                    <description>Incentivize user growth through referrals</description>
+                    <components>
+                        <component>Referral tracking</component>
+                        <component>Reward distribution (tokens or cashback)</component>
+                        <component>Gamification elements</component>
+                    </components>
+                </feature>
+
+                <feature priority="low" timeline="Month 8+">
+                    <name>Mobile Native Apps</name>
+                    <description>iOS and Android apps for better mobile experience</description>
+                    <components>
+                        <component>React Native or Flutter app</component>
+                        <component>In-app wallet</component>
+                        <component>Push notifications</component>
+                        <component>Biometric authentication</component>
+                    </components>
+                </feature>
+            </future_features>
+
+            <scaling_considerations>
+                <consideration>Database sharding for large transaction volumes</consideration>
+                <consideration>Microservices optimization and scaling</consideration>
+                <consideration>CDN expansion to more regions</consideration>
+                <consideration>Additional blockchain networks (multichain)</consideration>
+                <consideration>Team expansion hiring roadmap</consideration>
+            </scaling_considerations>
+        </phase>
+    </phases>
+
+    <team_structure>
+        <role name="Technical Lead / Architect" count="1">
+            <responsibilities>
+                <responsibility>Overall technical vision and architecture</responsibility>
+                <responsibility>Technology stack decisions</responsibility>
+                <responsibility>Code review and quality oversight</responsibility>
+                <responsibility>Technical debt management</responsibility>
+            </responsibilities>
+        </role>
+
+        <role name="Senior Blockchain Developer" count="1-2">
+            <responsibilities>
+                <responsibility>Smart contract development</responsibility>
+                <responsibility>Web3 integration</responsibility>
+                <responsibility>Security best practices</responsibility>
+                <responsibility>Gas optimization</responsibility>
+            </responsibilities>
+            <skills>Solidity, Hardhat, ethers.js, Security auditing</skills>
+        </role>
+
+        <role name="Senior Backend Developer" count="2-3">
+            <responsibilities>
+                <responsibility>API development</responsibility>
+                <responsibility>Business logic implementation</responsibility>
+                <responsibility>Database design</responsibility>
+                <responsibility>Integration with external services</responsibility>
+            </responsibilities>
+            <skills>Node.js/TypeScript, NestJS, PostgreSQL, Redis, Docker</skills>
+        </role>
+
+        <role name="ML Engineer" count="1-2">
+            <responsibilities>
+                <responsibility>Credit scoring model development</responsibility>
+                <responsibility>Risk assessment algorithms</responsibility>
+                <responsibility>Data pipeline engineering</responsibility>
+                <responsibility>Model deployment and monitoring</responsibility>
+            </responsibilities>
+            <skills>Python, scikit-learn, XGBoost, TensorFlow, FastAPI</skills>
+        </role>
+
+        <role name="Frontend Developer" count="2-3">
+            <responsibilities>
+                <responsibility>Web application development</responsibility>
+                <responsibility>Wallet integration</responsibility>
+                <responsibility>Responsive design implementation</responsibility>
+                <responsibility>Performance optimization</responsibility>
+            </responsibilities>
+            <skills>React, Next.js, TypeScript, Tailwind CSS, wagmi, viem</skills>
+        </role>
+
+        <role name="UI/UX Designer" count="1">
+            <responsibilities>
+                <responsibility>User interface design</responsibility>
+                <responsibility>User experience optimization</responsibility>
+                <responsibility>Design system creation</responsibility>
+                <responsibility>User research and testing</responsibility>
+            </responsibilities>
+            <skills>Figma, User research, Prototyping, Visual design</skills>
+        </role>
+
+        <role name="DevOps Engineer" count="1">
+            <responsibilities>
+                <responsibility>Infrastructure management</responsibility>
+                <responsibility>CI/CD pipeline</responsibility>
+                <responsibility>Monitoring and alerting</responsibility>
+                <responsibility>Security and compliance</responsibility>
+            </responsibilities>
+            <skills>AWS/GCP, Kubernetes, Docker, Terraform, GitHub Actions</skills>
+        </role>
+
+        <role name="QA Engineer" count="1-2">
+            <responsibilities>
+                <responsibility>Test plan creation</responsibility>
+                <responsibility>Automated testing</responsibility>
+                <responsibility>Bug tracking</responsibility>
+                <responsibility>Quality assurance</responsibility>
+            </responsibilities>
+            <skills>Jest, Playwright/Cypress, Postman, Test automation</skills>
+        </role>
+
+        <role name="Product Manager" count="1">
+            <responsibilities>
+                <responsibility>Product roadmap</responsibility>
+                <responsibility>Feature prioritization</responsibility>
+                <responsibility>Stakeholder communication</responsibility>
+                <responsibility>User feedback synthesis</responsibility>
+            </responsibilities>
+        </role>
+
+        <role name="Compliance Officer" count="1">
+            <responsibilities>
+                <responsibility>Regulatory compliance</responsibility>
+                <responsibility>KYC/AML policies</responsibility>
+                <responsibility>Legal coordination</responsibility>
+                <responsibility>Audit preparation</responsibility>
+            </responsibilities>
+        </role>
+    </team_structure>
+
+    <infrastructure_requirements>
+        <cloud_provider>AWS or Google Cloud Platform</cloud_provider>
+        <estimated_monthly_cost currency="USD">
+            <phase name="Development/Testing">2,000 - 3,000</phase>
+            <phase name="Beta Launch">3,000 - 5,000</phase>
+            <phase name="Production (Year 1)">5,000 - 10,000</phase>
+            <phase name="Production (Scale)">10,000 - 20,000+</phase>
+        </estimated_monthly_cost>
+
+        <services>
+            <service>Compute: EC2/GCE for backend services (auto-scaling)</service>
+            <service>Container Orchestration: EKS/GKE (Kubernetes)</service>
+            <service>Database: RDS PostgreSQL (multi-AZ)</service>
+            <service>Cache: ElastiCache Redis</service>
+            <service>Storage: S3/Cloud Storage for documents</service>
+            <service>CDN: CloudFront/Cloud CDN</service>
+            <service>Blockchain RPC: Alchemy or Infura (paid tier)</service>
+            <service>Monitoring: Datadog or New Relic</service>
+            <service>Logging: CloudWatch/Cloud Logging</service>
+        </services>
+    </infrastructure_requirements>
+
+    <risk_management>
+        <risk category="Technical" severity="critical">
+            <description>Smart contract vulnerability leading to fund loss</description>
+            <mitigation>Multiple audits, bug bounty program, timelock on contract upgrades</mitigation>
+        </risk>
+
+        <risk category="Technical" severity="high">
+            <description>Oracle manipulation or failure</description>
+            <mitigation>Use multiple oracle sources, implement delays and thresholds</mitigation>
+        </risk>
+
+        <risk category="Financial" severity="high">
+            <description>High merchant default rate</description>
+            <mitigation>Conservative credit scoring, diversification requirements, insurance pool</mitigation>
+        </risk>
+
+        <risk category="Operational" severity="medium">
+            <description>Insufficient investor liquidity</description>
+            <mitigation>Build investor base, implement secondary market, marketing</mitigation>
+        </risk>
+
+        <risk category="Regulatory" severity="high">
+            <description>Changes in UAE financial regulations</description>
+            <mitigation>Ongoing legal monitoring, flexible architecture, compliance buffer</mitigation>
+        </risk>
+
+        <risk category="Technical" severity="medium">
+            <description>Blockchain network congestion or high gas fees</description>
+            <mitigation>Use L2 solution, implement gas relayer for users, batch transactions</mitigation>
+        </risk>
+    </risk_management>
+
+    <success_metrics>
+        <metric_category name="Platform Health">
+            <metric>Total Value Locked (TVL) in vaults</metric>
+            <metric>Number of active campaigns</metric>
+            <metric>Funding success rate (% of campaigns reaching target)</metric>
+            <metric>On-time repayment rate</metric>
+            <metric>Default rate (&lt; 5% target)</metric>
+            <metric>Platform uptime (>99.5% target)</metric>
+        </metric_category>
+
+        <metric_category name="User Growth">
+            <metric>Registered merchants</metric>
+            <metric>Registered investors</metric>
+            <metric>Monthly Active Users (MAU)</metric>
+            <metric>User retention rate</metric>
+            <metric>Average investment per investor</metric>
+        </metric_category>
+
+        <metric_category name="Financial">
+            <metric>Total capital deployed</metric>
+            <metric>Average return rate for investors</metric>
+            <metric>Platform fees collected</metric>
+            <metric>Customer Acquisition Cost (CAC)</metric>
+            <metric>Lifetime Value (LTV)</metric>
+        </metric_category>
+
+        <metric_category name="Technical">
+            <metric>API response time (p95, p99)</metric>
+            <metric>Transaction success rate</metric>
+            <metric>Smart contract gas costs</metric>
+            <metric>Bug count and severity</metric>
+            <metric>Code coverage (%)</metric>
+        </metric_category>
+    </success_metrics>
+
+    <timeline_summary>
+        <phase_timeline>
+            <phase id="0" name="Foundation" weeks="4"/>
+            <phase id="1" name="Smart Contracts" weeks="8"/>
+            <phase id="2" name="Credit Scoring" weeks="6"/>
+            <phase id="3" name="Backend Services" weeks="8"/>
+            <phase id="4" name="Frontend" weeks="8"/>
+            <phase id="5" name="Integration & Testing" weeks="4"/>
+            <phase id="6" name="Testnet & Beta" weeks="4"/>
+            <phase id="7" name="Mainnet Launch" weeks="2"/>
+        </phase_timeline>
+
+        <total_duration>
+            <minimum_viable_product weeks="44" months="~11"/>
+            <note>Some phases can run in parallel, actual timeline may be 8-10 months with adequate team size</note>
+        </total_duration>
+
+        <parallel_execution>
+            <parallel_phases>
+                <group>Phase 1 (Smart Contracts) can partially overlap with Phase 2 (Credit Scoring)</group>
+                <group>Phase 3 (Backend) and Phase 4 (Frontend) can run mostly in parallel</group>
+                <group>Phase 0 must complete before others begin</group>
+                <group>Phase 5-7 must be sequential</group>
+            </parallel_phases>
+            <optimized_timeline months="8-9">With efficient parallel execution and full team</optimized_timeline>
+        </parallel_execution>
+    </timeline_summary>
+
+    <dependencies>
+        <dependency>
+            <from>Phase 1 (Smart Contracts)</from>
+            <to>Phase 3 (Backend Services)</to>
+            <description>Backend needs contract ABIs and addresses</description>
+        </dependency>
+        <dependency>
+            <from>Phase 2 (Credit Scoring)</from>
+            <to>Phase 3 (Backend Services)</to>
+            <description>Backend integrates credit scoring API</description>
+        </dependency>
+        <dependency>
+            <from>Phase 3 (Backend)</from>
+            <to>Phase 4 (Frontend)</to>
+            <description>Frontend consumes backend APIs</description>
+        </dependency>
+        <dependency>
+            <from>Phases 1-4</from>
+            <to>Phase 5 (Integration)</to>
+            <description>All core components must be complete</description>
+        </dependency>
+        <dependency>
+            <from>Phase 5</from>
+            <to>Phase 6 (Testnet)</to>
+            <description>Integration tested before testnet deployment</description>
+        </dependency>
+        <dependency>
+            <from>Phase 6</from>
+            <to>Phase 7 (Mainnet)</to>
+            <description>Testnet success required before mainnet</description>
+        </dependency>
+    </dependencies>
+</project>
