@@ -30,8 +30,24 @@ pub struct MerchantVault {
     pub platform_fees_collected: u64,
     
     pub investor_count: u32,
+    pub max_investors: u32,
     pub vault_nonce: u8,
     pub bump: u8,
+
+    // Production fields: Late Fees
+    pub next_payment_due: i64,
+    pub late_fee_bps: u16,
+    pub total_late_fees: u64,
+    pub grace_period_days: u8,
+
+    // Production fields: Default & Recovery
+    pub defaulted_at: i64,
+    pub total_recovered: u64,
+
+    // Production fields: Pause & Cancellation
+    pub paused: bool,
+    pub cancelled: bool,
+    pub cancelled_at: i64,
 }
 
 impl MerchantVault {
@@ -58,19 +74,37 @@ impl MerchantVault {
         32 +  // platform_fee_recipient
         8 +   // platform_fees_collected
         4 +   // investor_count
+        4 +   // max_investors
         1 +   // vault_nonce
-        1;    // bump
+        1 +   // bump
+        8 +   // next_payment_due
+        2 +   // late_fee_bps
+        8 +   // total_late_fees
+        1 +   // grace_period_days
+        8 +   // defaulted_at
+        8 +   // total_recovered
+        1 +   // paused
+        1 +   // cancelled
+        8;    // cancelled_at
 
     pub fn is_fundraising(&self) -> bool {
-        self.state == VaultState::Fundraising
+        self.state == VaultState::Fundraising && !self.cancelled && !self.paused
     }
 
     pub fn is_active(&self) -> bool {
-        self.state == VaultState::Active
+        self.state == VaultState::Active && !self.paused
     }
 
     pub fn is_repaying(&self) -> bool {
-        self.state == VaultState::Repaying
+        self.state == VaultState::Repaying && !self.paused
+    }
+
+    pub fn is_defaulted(&self) -> bool {
+        self.state == VaultState::Defaulted
+    }
+
+    pub fn is_cancelled(&self) -> bool {
+        self.cancelled
     }
 
     pub fn can_invest(&self, amount: u64, current_time: i64) -> bool {
@@ -78,6 +112,25 @@ impl MerchantVault {
             && current_time <= self.fundraising_deadline
             && amount >= self.min_investment
             && self.total_raised + amount <= self.target_amount
+            && self.investor_count < self.max_investors
+    }
+
+    pub fn calculate_late_fee(&self, current_time: i64) -> u64 {
+        if current_time <= self.next_payment_due || self.next_payment_due == 0 {
+            return 0;
+        }
+        let days_late = ((current_time - self.next_payment_due) / 86400) as u64;
+        let remaining = self.total_to_repay.saturating_sub(self.total_repaid);
+        // Late fee = remaining * late_fee_bps * days_late / 10000
+        remaining.saturating_mul(self.late_fee_bps as u64).saturating_mul(days_late) / 10000
+    }
+
+    pub fn should_default(&self, current_time: i64) -> bool {
+        if self.next_payment_due == 0 || self.state != VaultState::Repaying {
+            return false;
+        }
+        let grace_seconds = self.grace_period_days as i64 * 86400;
+        current_time > self.next_payment_due + grace_seconds
     }
 }
 
@@ -89,4 +142,5 @@ pub enum VaultState {
     Repaying,
     Completed,
     Defaulted,
+    Cancelled,
 }

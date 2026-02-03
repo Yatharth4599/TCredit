@@ -28,6 +28,14 @@ pub struct ICMVault {
     pub investor_count: u32,
     pub icm_nonce: u8,
     pub bump: u8,
+
+    // Dividend tracking
+    pub total_dividends_distributed: u64,
+    pub total_dividends_claimed: u64,
+    pub last_dividend_at: i64,
+    
+    // Controls
+    pub paused: bool,
 }
 
 impl ICMVault {
@@ -51,7 +59,15 @@ impl ICMVault {
         32 +  // platform_fee_recipient
         4 +   // investor_count
         1 +   // icm_nonce
-        1;    // bump
+        1 +   // bump
+        8 +   // total_dividends_distributed
+        8 +   // total_dividends_claimed
+        8 +   // last_dividend_at
+        1;    // paused
+
+    pub fn is_closed(&self) -> bool {
+        self.state == ICMState::Closed
+    }
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Default)]
@@ -61,4 +77,42 @@ pub enum ICMState {
     Active,
     Closed,
     Cancelled,
+}
+
+// ICM Investor Account (for tracking dividend claims)
+#[account]
+#[derive(Default)]
+pub struct ICMInvestorAccount {
+    pub icm_vault: Pubkey,
+    pub investor: Pubkey,
+    pub shares_owned: u64,
+    pub total_invested: u64,
+    pub dividends_claimed: u64,
+    pub last_claim_at: i64,
+    pub bump: u8,
+}
+
+impl ICMInvestorAccount {
+    pub const LEN: usize = 8 +  // discriminator
+        32 +  // icm_vault
+        32 +  // investor
+        8 +   // shares_owned
+        8 +   // total_invested
+        8 +   // dividends_claimed
+        8 +   // last_claim_at
+        1;    // bump
+
+    pub fn calculate_claimable_dividends(&self, total_shares: u64, total_dividends: u64) -> u64 {
+        if total_shares == 0 || self.shares_owned == 0 {
+            return 0;
+        }
+        
+        let share = (self.shares_owned as u128)
+            .checked_mul(total_dividends as u128)
+            .unwrap_or(0)
+            .checked_div(total_shares as u128)
+            .unwrap_or(0) as u64;
+        
+        share.saturating_sub(self.dividends_claimed)
+    }
 }

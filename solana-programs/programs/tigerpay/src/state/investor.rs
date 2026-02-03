@@ -12,6 +12,11 @@ pub struct InvestorAccount {
     pub invested_at: i64,
     pub last_claim_at: i64,
     pub bump: u8,
+    
+    // Production fields
+    pub has_refunded: bool,
+    pub has_recovered: bool,
+    pub recovered_amount: u64,
 }
 
 impl InvestorAccount {
@@ -24,7 +29,10 @@ impl InvestorAccount {
         32 +  // investor_token_account
         8 +   // invested_at
         8 +   // last_claim_at
-        1;    // bump
+        1 +   // bump
+        1 +   // has_refunded
+        1 +   // has_recovered
+        8;    // recovered_amount
 
     pub fn calculate_claimable(&self, total_raised: u64, total_repaid: u64) -> u64 {
         if total_raised == 0 || self.amount_invested == 0 {

@@ -2,13 +2,16 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer, MintTo};
 use anchor_spl::associated_token::AssociatedToken;
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("5xzKq3bRuxLh4WezvMRHz8nodp4W6gihUvjeB5VcWa8z");
 
 pub mod state;
 pub mod errors;
+pub mod events;
+pub mod instructions;
 
 pub use state::*;
 pub use errors::*;
+pub use events::*;
 
 #[program]
 pub mod tigerpay {

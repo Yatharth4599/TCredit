@@ -76,4 +76,38 @@ pub enum TigerPayError {
     
     #[msg("Insufficient funds")]
     InsufficientFunds,
+
+    // Production error codes
+    #[msg("Vault is paused")]
+    VaultPaused,
+
+    #[msg("Vault is not paused")]
+    VaultNotPaused,
+
+    #[msg("Vault already paused")]
+    VaultAlreadyPaused,
+
+    #[msg("Vault is cancelled")]
+    VaultCancelled,
+
+    #[msg("Vault is not cancelled")]
+    VaultNotCancelled,
+
+    #[msg("Vault already cancelled")]
+    VaultAlreadyCancelled,
+
+    #[msg("Grace period has not expired")]
+    GracePeriodNotExpired,
+
+    #[msg("Already claimed or refunded")]
+    AlreadyClaimed,
+
+    #[msg("No dividends available")]
+    NoDividendsAvailable,
+
+    #[msg("Maximum investors reached")]
+    MaxInvestorsReached,
+
+    #[msg("Late payment - fees applied")]
+    LatePayment,
 }

@@ -7,6 +7,10 @@ pub mod milestone;
 pub mod admin;
 pub mod initialize;
 pub mod icm;
+pub mod default;
+pub mod cancel;
+pub mod claim_dividends;
+pub mod pause;
 
 pub use create_vault::*;
 pub use invest::*;
@@ -17,3 +21,7 @@ pub use milestone::*;
 pub use admin::*;
 pub use initialize::*;
 pub use icm::*;
+pub use default::*;
+pub use cancel::*;
+pub use claim_dividends::*;
+pub use pause::*;
