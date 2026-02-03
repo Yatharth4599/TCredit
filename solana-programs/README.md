@@ -9,6 +9,28 @@ Due to some local dependency conflicts with the latest Solana SDK and Anchor, we
 - **Network**: Devnet
 - **Status**: Verified and Tested
 
+## 🛠️ Technology Stack
+- **Rust**: Language for high-performance smart contract logic.
+- **Anchor Framework (v0.29.0)**: Simplified Solana development with IDL and account management.
+- **Solana CLI (v1.18.26)**: Command line tools for deployment and testing.
+- **TypeScript**: Used for robust client-side testing and integration.
+- **SPL Token**: Standard protocol for tokenizing debt and handling USDC funding.
+- **Solana Playground**: Used as the primary deployment and build environment.
+
+## 🏗️ Project Structure
+```text
+solana-programs/
+├── programs/tigerpay/      # Main Rust program folder
+│   └── src/
+│       ├── lib.rs          # Program entry point & instruction routing
+│       ├── state/          # Account structure definitions (PDAs)
+│       ├── instructions/   # Modular instruction logic
+│       └── errors.rs       # Custom error code mapping
+├── tests/                  # TypeScript integration tests
+├── Anchor.toml             # Workspace configuration
+└── Cargo.toml              # Rust dependency management
+```
+
 ## 🏗️ Architecture Overview
 
 The Solana implementation mirrors our Solidity logic but utilizes Solana's account-based model for maximum parallelization.
