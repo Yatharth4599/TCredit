@@ -6,6 +6,7 @@ pub mod claim_returns;
 pub mod milestone;
 pub mod admin;
 pub mod initialize;
+pub mod icm;
 
 pub use create_vault::*;
 pub use invest::*;
@@ -15,3 +16,4 @@ pub use claim_returns::*;
 pub use milestone::*;
 pub use admin::*;
 pub use initialize::*;
+pub use icm::*;
