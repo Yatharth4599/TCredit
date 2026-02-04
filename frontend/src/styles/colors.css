@@ -1,4 +1,9 @@
 :root {
+  /* TigerPay Brand Colors */
+  --color-orange: #FF6B35;
+  --color-orange-light: #FF8C5A;
+  --color-orange-dark: #E85A28;
+
   /* Main theme colors */
   --color-black: #000000;
   --color-dark-gray: #121212;
@@ -14,15 +19,16 @@
   --gradient-gray-3: #C0C0C0;
   --gradient-gray-4: #A0A0A0;
   --gradient-gray-5: #808080;
-  
-  /* Enhanced UI gradients */
-  --gradient-primary: linear-gradient(135deg, #1a1a1a 0%, #333333 100%);
-  --gradient-secondary: linear-gradient(135deg, #222222 0%, #444444 100%);
-  --gradient-accent: linear-gradient(135deg, #888888 0%, #CCCCCC 100%);
-  --gradient-dark: linear-gradient(135deg, #000000 0%, #222222 100%);
-  --gradient-card: linear-gradient(to bottom, rgba(30, 30, 30, 0.9), rgba(15, 15, 15, 0.8));
-  --gradient-glass: linear-gradient(135deg, rgba(50, 50, 50, 0.2) 0%, rgba(30, 30, 30, 0.1) 100%);
-  
+
+  /* Enhanced UI gradients with TigerPay orange - Balanced */
+  --gradient-primary: linear-gradient(135deg, #FF6B35 0%, #FF8C5A 100%);
+  --gradient-secondary: linear-gradient(135deg, #E85A28 0%, #FF6B35 100%);
+  --gradient-accent: linear-gradient(135deg, #FF6B35 0%, #FFFFFF 100%);
+  /* Orange fade to white */
+  --gradient-dark: linear-gradient(135deg, #050505 0%, #151515 100%);
+  --gradient-card: linear-gradient(180deg, rgba(20, 20, 20, 0.6) 0%, rgba(10, 10, 10, 0.4) 100%);
+  --gradient-glass: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+
   /* Status colors with enhanced visibility */
   --color-success: #DDDDDD;
   --color-error: #777777;
@@ -38,25 +44,28 @@
   --surface-glass: rgba(30, 30, 30, 0.5);
   --surface-card: rgba(40, 40, 40, 0.7);
   --surface-overlay: rgba(0, 0, 0, 0.8);
-  
-  /* Text colors */
+
+  /* Text colors - Restored balance */
   --text-primary: var(--color-white);
-  --text-secondary: rgba(255, 255, 255, 0.8);
-  --text-tertiary: rgba(255, 255, 255, 0.6);
-  --text-disabled: rgba(255, 255, 255, 0.4);
-  --text-highlight: #FFFFFF;
-  
-  /* Border colors */
-  --border-light: rgba(255, 255, 255, 0.1);
-  --border-medium: rgba(255, 255, 255, 0.15);
-  --border-highlight: rgba(255, 255, 255, 0.25);
-  --border-glow: rgba(255, 255, 255, 0.3);
-  
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-tertiary: rgba(255, 255, 255, 0.5);
+  --text-disabled: rgba(255, 255, 255, 0.3);
+  --text-highlight: var(--color-orange);
+
+  /* Border colors - Sleeker and more subtle */
+  --border-light: rgba(255, 255, 255, 0.08);
+  /* Thinner/lighter */
+  --border-medium: rgba(255, 255, 255, 0.12);
+  --border-highlight: var(--color-orange-dark);
+  /* Subtle orange usage */
+  --border-glow: rgba(255, 107, 53, 0.4);
+
   /* Glass effect properties */
-  --glass-blur: 10px;
-  --glass-opacity: 0.7;
-  --glass-border: 1px solid rgba(255, 255, 255, 0.1);
-  
+  --glass-blur: 20px;
+  /* Increased blur for premium feel */
+  --glass-opacity: 0.6;
+  --glass-border: 1px solid var(--border-light);
+
   /* Shadow colors */
   --shadow-color: rgba(0, 0, 0, 0.5);
   --shadow-light: rgba(0, 0, 0, 0.2);
@@ -64,18 +73,20 @@
   --glow-light: 0 0 15px rgba(255, 255, 255, 0.05);
   --glow-medium: 0 0 20px rgba(255, 255, 255, 0.1);
   --glow-strong: 0 0 25px rgba(255, 255, 255, 0.15);
-  
+
   /* Button colors */
-  --button-primary-bg: var(--gradient-accent);
+  --button-primary-bg: var(--gradient-primary);
   --button-primary-text: var(--color-black);
-  --button-primary-hover: linear-gradient(135deg, #999999 0%, #DDDDDD 100%);
-  
-  --button-secondary-bg: transparent;
+  --button-primary-hover: linear-gradient(135deg, #FF8C5A 0%, #FFAA80 100%);
+
+  --button-secondary-bg: rgba(255, 255, 255, 0.03);
   --button-secondary-text: var(--color-white);
-  --button-secondary-border: var(--border-highlight);
-  --button-secondary-hover: var(--surface-glass);
-  
-  /* Card and panel effects */
-  --card-border-radius: 12px;
-  --panel-border-radius: 16px;
+  --button-secondary-border: var(--border-medium);
+  --button-secondary-hover: rgba(255, 255, 255, 0.1);
+
+  /* Card and panel effects - Sleeker Rounding */
+  --card-border-radius: 20px;
+  /* Increased from 12px */
+  --panel-border-radius: 24px;
+  /* Increased from 16px */
 }

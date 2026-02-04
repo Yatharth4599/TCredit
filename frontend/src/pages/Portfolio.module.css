@@ -1,0 +1,187 @@
+.portfolio {
+    min-height: 100vh;
+    padding: 100px 0;
+}
+
+.header {
+    margin-bottom: 60px;
+}
+
+.header h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 40px;
+    background: var(--gradient-accent);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-align: center;
+}
+
+.summaryGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+}
+
+.summaryCard {
+    padding: 30px;
+    background: var(--surface-glass);
+    border: 1px solid var(--border-light);
+    border-radius: var(--card-border-radius);
+    backdrop-filter: blur(var(--glass-blur));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.label {
+    font-size: 0.9rem;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.subtext {
+    color: #81C784;
+    font-weight: 600;
+}
+
+.claimButton {
+    margin-top: 10px;
+    padding: 8px 24px;
+    background: var(--gradient-primary);
+    color: var(--color-black);
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.claimButton:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--glow-medium);
+}
+
+.investments h2 {
+    font-size: 1.5rem;
+    margin-bottom: 24px;
+    color: var(--text-primary);
+}
+
+.tableWrapper {
+    background: var(--surface-glass);
+    border: 1px solid var(--border-light);
+    border-radius: var(--card-border-radius);
+    backdrop-filter: blur(var(--glass-blur));
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+.table th {
+    text-align: left;
+    padding: 20px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    font-size: 0.9rem;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.table td {
+    padding: 24px 20px;
+    border-bottom: 1px solid var(--border-light);
+    color: var(--text-secondary);
+}
+
+.table tr:last-child td {
+    border-bottom: none;
+}
+
+.merchantCell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.merchantName {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.date {
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+}
+
+.statusBadge {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.active {
+    background: rgba(76, 175, 80, 0.2);
+    color: #81C784;
+}
+
+.repaying {
+    background: rgba(33, 150, 243, 0.2);
+    color: #64B5F6;
+}
+
+.completed {
+    background: rgba(156, 156, 156, 0.2);
+    color: #BDBDBD;
+}
+
+.returnsCell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.claimed {
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+}
+
+.actionButton {
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid var(--border-highlight);
+    color: var(--color-orange);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.actionButton:hover {
+    background: rgba(255, 107, 53, 0.1);
+    border-color: var(--color-orange);
+}
+
+.noAction {
+    color: var(--text-tertiary);
+    padding-left: 12px;
+}
+
+@media (max-width: 768px) {
+    .summaryGrid {
+        grid-template-columns: 1fr;
+    }
+}
