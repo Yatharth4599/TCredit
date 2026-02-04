@@ -1,0 +1,31 @@
+.vaults {
+    min-height: 100vh;
+    padding: 100px 0;
+}
+
+.vaults h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+}
+
+.subtitle {
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+    margin-bottom: 48px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 24px;
+}
+
+.placeholder {
+    padding: 100px;
+    background: var(--surface-glass);
+    border: 1px solid var(--border-light);
+    border-radius: var(--card-border-radius);
+    text-align: center;
+    color: var(--text-tertiary);
+}
