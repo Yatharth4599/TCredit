@@ -35,15 +35,20 @@
   --color-warning: #AAAAAA;
   --color-info: #BBBBBB;
 
-  /* Background and surface variations */
-  --bg-black: var(--color-black);
-  --bg-dark: var(--color-dark-gray);
-  --surface-1: #0a0a0a;
+  /* Background and surface variations - Anvil Style */
+  --bg-black: #000000;
+  --bg-dark: #020202;
+  /* Deepest black */
+  --surface-1: #0A0A0A;
   --surface-2: #141414;
-  --surface-3: #1a1a1a;
-  --surface-glass: rgba(30, 30, 30, 0.5);
-  --surface-card: rgba(40, 40, 40, 0.7);
-  --surface-overlay: rgba(0, 0, 0, 0.8);
+  --surface-3: #1A1A1A;
+  --surface-glass: rgba(10, 10, 10, 0.6);
+  /* Darker glass */
+  --surface-card: rgba(15, 15, 15, 0.8);
+  --surface-overlay: rgba(0, 0, 0, 0.9);
+
+  /* Aurora Glows (TigerPay Orange) */
+  --glow-aurora-primary: radial-gradient(50% 50% at 50% 100%, rgba(255, 107, 53, 0.15) 0%, rgba(255, 107, 53, 0) 100%);
 
   /* Text colors - Restored balance */
   --text-primary: var(--color-white);

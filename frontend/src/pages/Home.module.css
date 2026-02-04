@@ -1,5 +1,12 @@
 .home {
     min-height: 100vh;
+    background-color: var(--bg-dark);
+    background-image: var(--glow-aurora-primary);
+    background-attachment: fixed;
+    background-position: center bottom;
+    background-repeat: no-repeat;
+    background-size: 100% 60%;
+    /* Bottom glow */
 }
 
 .hero {
