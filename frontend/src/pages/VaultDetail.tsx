@@ -74,10 +74,6 @@ export default function VaultDetail() {
                                 <span className={styles.statValue}>{vault.duration} months</span>
                             </div>
                             <div className={styles.statCard}>
-                                <span className={styles.statLabel}>Tranches</span>
-                                <span className={styles.statValue}>{vault.numTranches}</span>
-                            </div>
-                            <div className={styles.statCard}>
                                 <span className={styles.statLabel}>Investors</span>
                                 <span className={styles.statValue}>{vault.investorCount}</span>
                             </div>
@@ -90,16 +86,8 @@ export default function VaultDetail() {
                                 <span className={styles.statusBadge}>{vault.status}</span>
                             </div>
                             <div className={styles.detailItem}>
-                                <span>Minimum Investment</span>
-                                <span>$100</span>
-                            </div>
-                            <div className={styles.detailItem}>
-                                <span>Maximum Investment</span>
-                                <span>$10,000</span>
-                            </div>
-                            <div className={styles.detailItem}>
-                                <span>Repayment Schedule</span>
-                                <span>Monthly</span>
+                                <span>Investment Range</span>
+                                <span>$100 - $10,000</span>
                             </div>
                         </div>
                     </div>

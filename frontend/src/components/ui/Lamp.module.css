@@ -1,0 +1,291 @@
+/* Aceternity-style Lamp Effect with Spotlight Transition */
+
+.lampContainer {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* Lamp wrapper - positions the lamp effect */
+.lampWrapper {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 150px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 1;
+    pointer-events: none;
+
+    /* Idle: above center */
+    top: 20%;
+}
+
+.lamp {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 20px;
+}
+
+/* Central glow orb */
+.lampGlow {
+    position: absolute;
+    top: 0;
+    width: 300px;
+    height: 200px;
+    background: radial-gradient(
+        ellipse at center top,
+        rgba(255, 107, 53, 0.5) 0%,
+        rgba(255, 107, 53, 0.2) 30%,
+        rgba(255, 107, 53, 0.05) 60%,
+        transparent 80%
+    );
+    filter: blur(40px);
+    animation: glowPulse 4s ease-in-out infinite;
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Inner core */
+.lampCore {
+    position: absolute;
+    top: 20px;
+    width: 12px;
+    height: 12px;
+    background: #ff6b35;
+    border-radius: 50%;
+    box-shadow:
+        0 0 20px rgba(255, 107, 53, 1),
+        0 0 40px rgba(255, 107, 53, 0.8),
+        0 0 60px rgba(255, 107, 53, 0.5),
+        0 0 80px rgba(255, 107, 53, 0.3);
+    animation: corePulse 2s ease-in-out infinite;
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Left beam */
+.lampBeamLeft {
+    position: absolute;
+    top: 25px;
+    left: 50%;
+    width: 300px;
+    height: 500px;
+    background: linear-gradient(
+        to bottom,
+        rgba(255, 107, 53, 0.25) 0%,
+        rgba(255, 107, 53, 0.08) 30%,
+        rgba(255, 107, 53, 0.02) 60%,
+        transparent 100%
+    );
+    transform-origin: top center;
+    transform: translateX(-50%) rotate(-18deg);
+    clip-path: polygon(50% 0%, 10% 100%, 90% 100%);
+    animation: beamSway 8s ease-in-out infinite;
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Right beam */
+.lampBeamRight {
+    position: absolute;
+    top: 25px;
+    left: 50%;
+    width: 300px;
+    height: 500px;
+    background: linear-gradient(
+        to bottom,
+        rgba(255, 107, 53, 0.25) 0%,
+        rgba(255, 107, 53, 0.08) 30%,
+        rgba(255, 107, 53, 0.02) 60%,
+        transparent 100%
+    );
+    transform-origin: top center;
+    transform: translateX(-50%) rotate(18deg);
+    clip-path: polygon(50% 0%, 10% 100%, 90% 100%);
+    animation: beamSwayReverse 8s ease-in-out infinite;
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Top line accent */
+.lampLine {
+    position: absolute;
+    top: 18px;
+    width: 100px;
+    height: 2px;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 107, 53, 1) 50%,
+        transparent 100%
+    );
+    box-shadow:
+        0 0 10px rgba(255, 107, 53, 0.9),
+        0 0 20px rgba(255, 107, 53, 0.6),
+        0 0 30px rgba(255, 107, 53, 0.4);
+    animation: lineGlow 3s ease-in-out infinite;
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Spotlight cone for active state */
+.spotlight {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+        ellipse 300px 500px at center 20%,
+        rgba(255, 107, 53, 0.06) 0%,
+        rgba(255, 107, 53, 0.02) 40%,
+        transparent 60%
+    );
+    opacity: 0;
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+}
+
+/* Content area - ALWAYS CENTERED */
+.lampContent {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ============================================
+   ACTIVE STATE (Vault selected)
+   ============================================ */
+
+.lampActive .lampWrapper {
+    top: 5%;
+}
+
+.lampActive .lampGlow {
+    width: 300px;
+    height: 150px;
+    filter: blur(40px);
+    opacity: 1;
+}
+
+.lampActive .lampCore {
+    box-shadow:
+        0 0 30px rgba(255, 107, 53, 1),
+        0 0 60px rgba(255, 107, 53, 0.8),
+        0 0 90px rgba(255, 107, 53, 0.5),
+        0 0 120px rgba(255, 107, 53, 0.3);
+}
+
+.lampActive .lampBeamLeft {
+    height: 900px;
+    width: 550px;
+    transform: translateX(-50%) rotate(-10deg);
+    animation: beamSwayActive 10s ease-in-out infinite;
+}
+
+.lampActive .lampBeamRight {
+    height: 900px;
+    width: 550px;
+    transform: translateX(-50%) rotate(10deg);
+    animation: beamSwayActiveReverse 10s ease-in-out infinite;
+}
+
+.lampActive .lampLine {
+    width: 200px;
+}
+
+.lampActive .spotlight {
+    opacity: 1;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes glowPulse {
+    0%, 100% {
+        opacity: 0.8;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+}
+
+@keyframes corePulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+}
+
+@keyframes beamSway {
+    0%, 100% {
+        transform: translateX(-50%) rotate(-18deg);
+        opacity: 0.7;
+    }
+    50% {
+        transform: translateX(-50%) rotate(-14deg);
+        opacity: 0.9;
+    }
+}
+
+@keyframes beamSwayReverse {
+    0%, 100% {
+        transform: translateX(-50%) rotate(18deg);
+        opacity: 0.7;
+    }
+    50% {
+        transform: translateX(-50%) rotate(14deg);
+        opacity: 0.9;
+    }
+}
+
+@keyframes beamSwayActive {
+    0%, 100% {
+        transform: translateX(-50%) rotate(-10deg);
+        opacity: 0.4;
+    }
+    50% {
+        transform: translateX(-50%) rotate(-7deg);
+        opacity: 0.55;
+    }
+}
+
+@keyframes beamSwayActiveReverse {
+    0%, 100% {
+        transform: translateX(-50%) rotate(10deg);
+        opacity: 0.4;
+    }
+    50% {
+        transform: translateX(-50%) rotate(7deg);
+        opacity: 0.55;
+    }
+}
+
+@keyframes lineGlow {
+    0%, 100% {
+        opacity: 0.8;
+        width: 120px;
+    }
+    50% {
+        opacity: 1;
+        width: 160px;
+    }
+}

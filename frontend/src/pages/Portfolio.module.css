@@ -1,187 +1,776 @@
+/* ============================================
+   PORTFOLIO PAGE - Minimalist Dashboard
+   ============================================ */
+
 .portfolio {
     min-height: 100vh;
-    padding: 100px 0;
+    background: #050505;
+    padding: 100px 24px 60px;
+    position: relative;
 }
+
+/* Ambient Background */
+.ambientGlow {
+    position: fixed;
+    top: -20%;
+    right: -10%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(255, 107, 53, 0.06) 0%,
+        transparent 60%
+    );
+    filter: blur(80px);
+    pointer-events: none;
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
 
 .header {
-    margin-bottom: 60px;
+    max-width: 1200px;
+    margin: 0 auto 40px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.header h1 {
-    font-size: 3rem;
-    font-weight: 700;
-    margin-bottom: 40px;
-    background: var(--gradient-accent);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-align: center;
+.header.visible {
+    opacity: 1;
+    transform: translateY(0);
 }
 
-.summaryGrid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 30px;
-}
-
-.summaryCard {
-    padding: 30px;
-    background: var(--surface-glass);
-    border: 1px solid var(--border-light);
-    border-radius: var(--card-border-radius);
-    backdrop-filter: blur(var(--glass-blur));
+.headerContent {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
-.label {
-    font-size: 0.9rem;
-    color: var(--text-tertiary);
+.overline {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255, 107, 53, 0.8);
+}
+
+.title {
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 700;
+    color: #fff;
+}
+
+/* ============================================
+   MAIN CONTENT LAYOUT
+   ============================================ */
+
+.content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 24px;
+}
+
+.leftColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.rightColumn {
+    min-width: 0;
+}
+
+/* ============================================
+   OVERVIEW CARD
+   ============================================ */
+
+.overviewCard {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 24px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.overviewCard.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.overviewHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.liveBadge {
+    padding: 4px 10px;
+    background: rgba(255, 107, 53, 0.15);
+    color: #ff6b35;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border-radius: 100px;
+}
+
+.overviewValue {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.currency {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.amount {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.overviewChange {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.profit {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #34d399;
+}
+
+.percent {
+    padding: 4px 8px;
+    background: rgba(52, 211, 153, 0.15);
+    color: #34d399;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 4px;
+}
+
+.overviewStats {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.overviewStat {
+    text-align: center;
+    flex: 1;
+}
+
+.overviewStatValue {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.overviewStatLabel {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.4);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
-.value {
-    font-size: 2.5rem;
+.overviewStatDivider {
+    width: 1px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.claimSection {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 20px;
+    padding: 16px;
+    background: rgba(255, 107, 53, 0.08);
+    border: 1px solid rgba(255, 107, 53, 0.2);
+    border-radius: 12px;
+}
+
+.claimInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.claimLabel {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.claimValue {
+    font-size: 1.25rem;
     font-weight: 700;
-    color: var(--text-primary);
+    color: #ff6b35;
 }
 
-.subtext {
-    color: #81C784;
+.claimBtn {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #ff6b35, #ff8f6b);
+    color: #000;
+    font-size: 0.85rem;
     font-weight: 600;
-}
-
-.claimButton {
-    margin-top: 10px;
-    padding: 8px 24px;
-    background: var(--gradient-primary);
-    color: var(--color-black);
-    border-radius: 6px;
-    font-weight: 600;
-    font-size: 0.9rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
     transition: all 0.3s ease;
 }
 
-.claimButton:hover {
+.claimBtn:hover {
     transform: translateY(-2px);
-    box-shadow: var(--glow-medium);
+    box-shadow: 0 8px 24px rgba(255, 107, 53, 0.3);
 }
 
-.investments h2 {
-    font-size: 1.5rem;
-    margin-bottom: 24px;
-    color: var(--text-primary);
-}
+/* ============================================
+   ALLOCATION CARD
+   ============================================ */
 
-.tableWrapper {
-    background: var(--surface-glass);
-    border: 1px solid var(--border-light);
-    border-radius: var(--card-border-radius);
-    backdrop-filter: blur(var(--glass-blur));
-    overflow-x: auto;
-}
-
-.table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 800px;
-}
-
-.table th {
-    text-align: left;
+.allocationCard,
+.activityCard {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
     padding: 20px;
-    color: var(--text-tertiary);
-    font-weight: 500;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.allocationCard.visible,
+.activityCard.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.cardTitle {
     font-size: 0.9rem;
-    border-bottom: 1px solid var(--border-light);
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 16px;
 }
 
-.table td {
-    padding: 24px 20px;
-    border-bottom: 1px solid var(--border-light);
-    color: var(--text-secondary);
+.allocationList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
 }
 
-.table tr:last-child td {
+.allocationItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.allocationInfo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.allocationDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.dotActive {
+    background: #34d399;
+}
+
+.dotRepaying {
+    background: #60a5fa;
+}
+
+.dotCompleted {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.allocationName {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.allocationRight {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.allocationAmount {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.allocationPercent {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+    min-width: 32px;
+    text-align: right;
+}
+
+.allocationBar {
+    display: flex;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.allocationBarSegment {
+    height: 100%;
+    transition: width 0.8s ease;
+}
+
+.barActive {
+    background: #34d399;
+}
+
+.barRepaying {
+    background: #60a5fa;
+}
+
+.barCompleted {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================
+   ACTIVITY CARD
+   ============================================ */
+
+.activityList {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.activityItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.activityItem:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.activityItem:first-child {
+    padding-top: 0;
+}
+
+.activityIcon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.activityInfo {
+    flex: 1;
+    min-width: 0;
+}
+
+.activityTitle {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #fff;
+    margin-bottom: 2px;
+}
+
+.activityDesc {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.activityRight {
+    text-align: right;
+}
+
+.activityAmount {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #ff6b35;
+    margin-bottom: 2px;
+}
+
+.activityAmountGreen {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #34d399;
+    margin-bottom: 2px;
+}
+
+.activityTime {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* ============================================
+   INVESTMENTS CARD
+   ============================================ */
+
+.investmentsCard {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.investmentsCard.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.investmentsHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.investmentsHeader h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.tabs {
+    display: flex;
+    gap: 4px;
+}
+
+.tab {
+    padding: 8px 16px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.tab:hover {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.tabActive {
+    background: rgba(255, 107, 53, 0.15);
+    color: #ff6b35;
+}
+
+.investmentsList {
+    padding: 0;
+}
+
+.investmentItem {
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    transition: background 0.3s ease;
+}
+
+.investmentItem:last-child {
     border-bottom: none;
 }
 
-.merchantCell {
+.investmentItem:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.investmentMain {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 16px;
 }
 
-.merchantName {
+.investmentInfo h4 {
+    font-size: 1rem;
     font-weight: 600;
-    color: var(--text-primary);
+    color: #fff;
+    margin-bottom: 8px;
 }
 
-.date {
-    font-size: 0.8rem;
-    color: var(--text-tertiary);
+.investmentMeta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
-.statusBadge {
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 0.8rem;
+.statusActive,
+.statusRepaying,
+.statusCompleted {
+    padding: 4px 10px;
+    font-size: 0.7rem;
     font-weight: 600;
+    border-radius: 4px;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.active {
-    background: rgba(76, 175, 80, 0.2);
-    color: #81C784;
+.statusActive {
+    background: rgba(52, 211, 153, 0.15);
+    color: #34d399;
 }
 
-.repaying {
-    background: rgba(33, 150, 243, 0.2);
-    color: #64B5F6;
+.statusRepaying {
+    background: rgba(96, 165, 250, 0.15);
+    color: #60a5fa;
 }
 
-.completed {
-    background: rgba(156, 156, 156, 0.2);
-    color: #BDBDBD;
+.statusCompleted {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.5);
 }
 
-.returnsCell {
+.investmentCategory {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.investmentDate {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.investmentStats {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    gap: 32px;
 }
 
-.claimed {
-    font-size: 0.8rem;
-    color: var(--text-tertiary);
+.investmentStat {
+    text-align: right;
 }
 
-.actionButton {
-    padding: 8px 16px;
-    background: transparent;
-    border: 1px solid var(--border-highlight);
-    color: var(--color-orange);
-    border-radius: 6px;
-    font-size: 0.85rem;
+.investmentStatValue {
+    display: block;
+    font-size: 1rem;
     font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.investmentStatLabel {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.profitValue {
+    color: #34d399;
+}
+
+.investmentProgress {
+    margin-bottom: 16px;
+}
+
+.progressInfo {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.progressBar {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progressFill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff6b35, #ff8f6b);
+    border-radius: 2px;
+    transition: width 0.8s ease;
+}
+
+.investmentActions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.claimSmallBtn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #ff6b35, #ff8f6b);
+    color: #000;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
     transition: all 0.3s ease;
 }
 
-.actionButton:hover {
-    background: rgba(255, 107, 53, 0.1);
-    border-color: var(--color-orange);
+.claimSmallBtn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(255, 107, 53, 0.3);
 }
 
-.noAction {
-    color: var(--text-tertiary);
-    padding-left: 12px;
+.detailsBtn {
+    padding: 8px 16px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.detailsBtn:hover {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.completedBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.8rem;
+    border-radius: 6px;
+}
+
+.emptyState {
+    padding: 60px 24px;
+    text-align: center;
+}
+
+.emptyState p {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 1024px) {
+    .content {
+        grid-template-columns: 1fr;
+    }
+
+    .leftColumn {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .overviewCard {
+        grid-column: span 2;
+    }
 }
 
 @media (max-width: 768px) {
-    .summaryGrid {
+    .portfolio {
+        padding: 80px 16px 40px;
+    }
+
+    .leftColumn {
         grid-template-columns: 1fr;
+    }
+
+    .overviewCard {
+        grid-column: span 1;
+    }
+
+    .investmentMain {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .investmentStats {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .investmentStat {
+        text-align: center;
+    }
+
+    .investmentsHeader {
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start;
+    }
+
+    .tabs {
+        width: 100%;
+    }
+
+    .tab {
+        flex: 1;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .overviewStats {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .overviewStatDivider {
+        width: 60px;
+        height: 1px;
+    }
+
+    .investmentStats {
+        gap: 16px;
+    }
+
+    .investmentActions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .claimSmallBtn,
+    .detailsBtn {
+        width: 100%;
+        justify-content: center;
     }
 }

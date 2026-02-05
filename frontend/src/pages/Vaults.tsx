@@ -1,25 +1,37 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { mockVaults } from '../lib/mockData'
+import { Lamp } from '../components/ui/Lamp'
 import styles from './Vaults.module.css'
 
+type Vault = typeof mockVaults[0]
+
 export default function Vaults() {
-    const navigate = useNavigate()
     const [filter, setFilter] = useState('all')
+    const [search, setSearch] = useState('')
+    const [selectedVault, setSelectedVault] = useState<Vault | null>(null)
+    const [investAmount, setInvestAmount] = useState('')
+
+    const filters = [
+        { id: 'all', label: 'All' },
+        { id: 'fundraising', label: 'Fundraising' },
+        { id: 'active', label: 'Active' },
+    ]
 
     const filteredVaults = mockVaults.filter(vault => {
-        if (filter === 'all') return true
-        return vault.status === filter
+        const matchesFilter = filter === 'all' || vault.status === filter
+        const matchesSearch = vault.merchant.toLowerCase().includes(search.toLowerCase()) ||
+            vault.category.toLowerCase().includes(search.toLowerCase())
+        return matchesFilter && matchesSearch
     })
 
     const getStatusBadge = (status: string) => {
-        const badges = {
-            fundraising: { label: 'Fundraising', class: styles.statusFundraising },
-            active: { label: 'Active', class: styles.statusActive },
-            repaying: { label: 'Repaying', class: styles.statusRepaying },
-            completed: { label: 'Completed', class: styles.statusCompleted },
+        const badges: Record<string, { label: string; class: string }> = {
+            fundraising: { label: 'Fundraising', class: styles.tagFundraising },
+            active: { label: 'Active', class: styles.tagActive },
+            repaying: { label: 'Repaying', class: styles.tagRepaying },
+            completed: { label: 'Completed', class: styles.tagCompleted },
         }
-        return badges[status as keyof typeof badges] || badges.fundraising
+        return badges[status] || badges.fundraising
     }
 
     const formatCurrency = (amount: number) => {
@@ -34,135 +46,203 @@ export default function Vaults() {
         return Math.min((raised / target) * 100, 100)
     }
 
-    const getDaysRemaining = (deadline: number) => {
-        const days = Math.ceil((deadline - Date.now()) / (1000 * 60 * 60 * 24))
-        return days > 0 ? `${days} days left` : 'Ended'
+    const handleInvest = () => {
+        if (!selectedVault || !investAmount) return
+        alert(`Investment of $${investAmount} in ${selectedVault.merchant} successful!`)
+        setInvestAmount('')
     }
 
-    const getRiskColor = (score: string) => {
-        if (score.includes('A')) return styles.riskA
-        if (score.includes('B')) return styles.riskB
-        if (score.includes('C')) return styles.riskC
-        return styles.riskDefault
-    }
+    // Vaults sorted by APY for comparison
+    const vaultsByAPY = [...mockVaults].sort((a, b) => b.interestRate - a.interestRate)
 
     return (
-        <div className={styles.vaults}>
-            <div className="container">
-                <header className={styles.header}>
-                    <h1 className="animate-fade-in">Active Vaults</h1>
-                    <p className={`${styles.subtitle} animate-slide-up delay-100`}>
-                        Browse and invest in merchant funding vaults
-                    </p>
-                </header>
-
-                <div className={`${styles.filters} animate-slide-up delay-200`}>
-                    <button
-                        className={filter === 'all' ? styles.filterActive : ''}
-                        onClick={() => setFilter('all')}
-                    >
-                        All Vaults
-                    </button>
-                    <button
-                        className={filter === 'fundraising' ? styles.filterActive : ''}
-                        onClick={() => setFilter('fundraising')}
-                    >
-                        Fundraising
-                    </button>
-                    <button
-                        className={filter === 'active' ? styles.filterActive : ''}
-                        onClick={() => setFilter('active')}
-                    >
-                        Active
-                    </button>
-                    <button
-                        className={filter === 'repaying' ? styles.filterActive : ''}
-                        onClick={() => setFilter('repaying')}
-                    >
-                        Repaying
-                    </button>
-                    <button
-                        className={filter === 'completed' ? styles.filterActive : ''}
-                        onClick={() => setFilter('completed')}
-                    >
-                        Completed
-                    </button>
+        <div className={styles.dashboard}>
+            {/* Left Sidebar - Vault List */}
+            <aside className={styles.sidebar}>
+                <div className={styles.searchBox}>
+                    <input
+                        type="text"
+                        placeholder="Search vaults..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
                 </div>
 
-                <div className={styles.grid}>
-                    {filteredVaults.map((vault, index) => {
+                <div className={styles.filters}>
+                    {filters.map((f) => (
+                        <button
+                            key={f.id}
+                            className={`${styles.filterTag} ${filter === f.id ? styles.filterActive : ''}`}
+                            onClick={() => setFilter(f.id)}
+                        >
+                            {f.label}
+                        </button>
+                    ))}
+                </div>
+
+                <div className={styles.vaultList}>
+                    {filteredVaults.map((vault) => {
                         const badge = getStatusBadge(vault.status)
-                        const progress = calculateProgress(vault.totalRaised, vault.targetAmount)
-                        const riskClass = getRiskColor(vault.riskScore)
+                        const isSelected = selectedVault?.id === vault.id
 
                         return (
                             <div
                                 key={vault.id}
-                                className={`${styles.vaultCard} animate-slide-up`}
-                                style={{ animationDelay: `${(index % 6) * 100}ms` }}
-                                onClick={() => navigate(`/vaults/${vault.id}`)}
+                                className={`${styles.vaultItem} ${isSelected ? styles.vaultItemSelected : ''}`}
+                                onClick={() => setSelectedVault(vault)}
                             >
-                                <div className={`${styles.riskBadge} ${riskClass}`}>
-                                    <span>{vault.riskScore}</span>
-                                </div>
-                                <div className={styles.cardHeader}>
-                                    <div>
-                                        <h3>{vault.merchant}</h3>
-                                        <span className={styles.category}>{vault.category}</span>
-                                    </div>
+                                <div className={styles.vaultHeader}>
+                                    <h3>{vault.merchant}</h3>
                                     <span className={badge.class}>{badge.label}</span>
                                 </div>
+                                <p className={styles.vaultDesc}>{vault.description}</p>
+                                <span className={styles.vaultMeta}>
+                                    {vault.category} · {vault.interestRate}% APY
+                                </span>
+                            </div>
+                        )
+                    })}
 
-                                <p className={styles.description}>{vault.description}</p>
+                    {filteredVaults.length === 0 && (
+                        <div className={styles.emptyList}>
+                            <p>No vaults found</p>
+                        </div>
+                    )}
+                </div>
+            </aside>
 
-                                <div className={styles.stats}>
-                                    <div className={styles.stat}>
-                                        <span className={styles.statLabel}>Raised</span>
-                                        <span className={styles.statValue}>
-                                            {formatCurrency(vault.totalRaised)}
-                                        </span>
-                                    </div>
-                                    <div className={styles.stat}>
-                                        <span className={styles.statLabel}>Target</span>
-                                        <span className={styles.statValue}>
-                                            {formatCurrency(vault.targetAmount)}
-                                        </span>
-                                    </div>
-                                    <div className={styles.stat}>
-                                        <span className={styles.statLabel}>APY</span>
-                                        <span className={styles.statValue}>{vault.interestRate}%</span>
-                                    </div>
+            {/* Center - Vault Details with Lamp */}
+            <main className={styles.detailPanel}>
+                <Lamp active={!!selectedVault}>
+                    {selectedVault ? (
+                        <div className={styles.detailContent}>
+                            <div className={styles.detailHeader}>
+                                <div>
+                                    <h1>{selectedVault.merchant}</h1>
+                                    <p className={styles.detailCategory}>{selectedVault.category}</p>
                                 </div>
+                                <div className={styles.riskBadge}>
+                                    <span className={styles.riskLabel}>Risk</span>
+                                    <span className={styles.riskValue}>{selectedVault.riskScore}</span>
+                                </div>
+                            </div>
 
+                            <p className={styles.detailDescription}>{selectedVault.description}</p>
+
+                            <div className={styles.statsRow}>
+                                <div className={styles.statItem}>
+                                    <span className={styles.statValue}>{selectedVault.interestRate}%</span>
+                                    <span className={styles.statLabel}>APY</span>
+                                </div>
+                                <div className={styles.statItem}>
+                                    <span className={styles.statValue}>{selectedVault.duration}</span>
+                                    <span className={styles.statLabel}>Months</span>
+                                </div>
+                                <div className={styles.statItem}>
+                                    <span className={styles.statValue}>{selectedVault.investorCount}</span>
+                                    <span className={styles.statLabel}>Investors</span>
+                                </div>
+                            </div>
+
+                            <div className={styles.fundingSection}>
+                                <div className={styles.fundingHeader}>
+                                    <span className={styles.fundingRaised}>{formatCurrency(selectedVault.totalRaised)}</span>
+                                    <span className={styles.fundingTarget}>of {formatCurrency(selectedVault.targetAmount)}</span>
+                                </div>
                                 <div className={styles.progressBar}>
                                     <div
                                         className={styles.progressFill}
-                                        style={{ width: `${progress}%` }}
+                                        style={{ width: `${calculateProgress(selectedVault.totalRaised, selectedVault.targetAmount)}%` }}
                                     />
                                 </div>
+                                <span className={styles.fundingPercent}>
+                                    {calculateProgress(selectedVault.totalRaised, selectedVault.targetAmount).toFixed(0)}% funded
+                                </span>
+                            </div>
 
-                                <div className={styles.cardFooter}>
-                                    <div className={styles.footerInfo}>
-                                        <span>👥 {vault.investorCount} investors</span>
-                                        <span>⏱ {vault.duration} months</span>
+                            <div className={styles.investCard}>
+                                <h3>Invest in this Vault</h3>
+                                <div className={styles.investInput}>
+                                    <span className={styles.inputPrefix}>$</span>
+                                    <input
+                                        type="number"
+                                        placeholder="Enter amount"
+                                        value={investAmount}
+                                        onChange={(e) => setInvestAmount(e.target.value)}
+                                        min="100"
+                                    />
+                                    <span className={styles.inputSuffix}>USDC</span>
+                                </div>
+
+                                {investAmount && parseFloat(investAmount) >= 100 && (
+                                    <div className={styles.returnPreview}>
+                                        <div className={styles.returnRow}>
+                                            <span>Expected Return</span>
+                                            <span>${(parseFloat(investAmount) * (1 + selectedVault.interestRate / 100)).toFixed(2)}</span>
+                                        </div>
+                                        <div className={styles.returnRow}>
+                                            <span>Profit</span>
+                                            <span className={styles.profit}>+${(parseFloat(investAmount) * selectedVault.interestRate / 100).toFixed(2)}</span>
+                                        </div>
                                     </div>
-                                    {vault.status === 'fundraising' && (
-                                        <span className={styles.deadline}>
-                                            {getDaysRemaining(vault.deadline)}
-                                        </span>
-                                    )}
+                                )}
+
+                                <button
+                                    className={styles.investBtn}
+                                    disabled={!investAmount || parseFloat(investAmount) < 100}
+                                    onClick={handleInvest}
+                                >
+                                    Invest Now
+                                </button>
+                                <p className={styles.minInvest}>Min. $100 · Max. $10,000</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className={styles.emptyState}>
+                            <h2>Select a Vault</h2>
+                            <p>Choose a vault to view details and invest</p>
+                        </div>
+                    )}
+                </Lamp>
+            </main>
+
+            {/* Right Sidebar - APY Comparison */}
+            <aside className={styles.comparePanel}>
+                <div className={styles.compareHeader}>
+                    <h2>APY Ranking</h2>
+                </div>
+                <div className={styles.compareList}>
+                    {vaultsByAPY.map((vault, index) => {
+                        const progress = calculateProgress(vault.totalRaised, vault.targetAmount)
+                        const isSelected = selectedVault?.id === vault.id
+
+                        return (
+                            <div
+                                key={vault.id}
+                                className={`${styles.compareRow} ${isSelected ? styles.compareRowActive : ''}`}
+                                onClick={() => setSelectedVault(vault)}
+                            >
+                                <span className={`${styles.rank} ${index < 3 ? styles[`rank${index + 1}`] : ''}`}>
+                                    {index + 1}
+                                </span>
+                                <div className={styles.compareInfo}>
+                                    <span className={styles.compareName}>{vault.merchant}</span>
+                                    <div className={styles.compareMeta}>
+                                        <span className={styles.compareRisk}>{vault.riskScore}</span>
+                                        <span className={styles.compareDuration}>{vault.duration}mo</span>
+                                    </div>
+                                </div>
+                                <div className={styles.compareRight}>
+                                    <span className={styles.compareApy}>{vault.interestRate}%</span>
+                                    <div className={styles.miniBar}>
+                                        <div className={styles.miniBarFill} style={{ width: `${progress}%` }} />
+                                    </div>
                                 </div>
                             </div>
                         )
                     })}
                 </div>
-
-                {filteredVaults.length === 0 && (
-                    <div className={styles.empty}>
-                        <p>No vaults found for this filter.</p>
-                    </div>
-                )}
-            </div>
+            </aside>
         </div>
     )
 }
