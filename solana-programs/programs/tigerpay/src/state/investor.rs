@@ -63,6 +63,11 @@ pub struct MerchantProfile {
     pub total_repaid: u64,
     pub name_hash: [u8; 32],
     pub bump: u8,
+
+    // Programmable Credit fields
+    pub credit_score: u16,       // FairScale score (0-1000)
+    pub credit_tier: u8,         // 0=D(restricted), 1=C, 2=B, 3=A
+    pub credit_updated_at: i64,  // Last score refresh timestamp
 }
 
 impl MerchantProfile {
@@ -77,7 +82,10 @@ impl MerchantProfile {
         8 +   // total_raised
         8 +   // total_repaid
         32 +  // name_hash
-        1;    // bump
+        1 +   // bump
+        2 +   // credit_score
+        1 +   // credit_tier
+        8;    // credit_updated_at
 
     pub fn can_create_vault(&self) -> bool {
         self.verified && self.vault_count < self.max_vaults

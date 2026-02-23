@@ -168,3 +168,109 @@ pub struct PlatformPaused {
 pub struct PlatformUnpaused {
     pub unpaused_by: Pubkey,
 }
+
+// ============ Programmable Credit Events ============
+
+#[event]
+pub struct RepaymentRouted {
+    pub vault: Pubkey,
+    pub amount: u64,
+    pub source: u8,        // 0=manual, 1=x402
+    pub total_repaid: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct SettlementCreated {
+    pub vault: Pubkey,
+    pub oracle_authority: Pubkey,
+    pub repayment_rate_bps: u16,
+}
+
+#[event]
+pub struct PoolRegistered {
+    pub pool: Pubkey,
+    pub authority: Pubkey,
+    pub is_alpha: bool,
+}
+
+#[event]
+pub struct PoolDeposited {
+    pub pool: Pubkey,
+    pub depositor: Pubkey,
+    pub amount: u64,
+}
+
+#[event]
+pub struct PoolAllocatedToVault {
+    pub pool: Pubkey,
+    pub vault: Pubkey,
+    pub amount: u64,
+    pub remaining_shortfall: u64,
+}
+
+#[event]
+pub struct PoolWithdrawn {
+    pub pool: Pubkey,
+    pub withdrawer: Pubkey,
+    pub amount: u64,
+}
+
+#[event]
+pub struct CreditScoreUpdated {
+    pub merchant: Pubkey,
+    pub score: u16,
+    pub tier: u8,
+}
+
+// ============ Phase A: Critical Operations Events ============
+
+#[event]
+pub struct VaultDefaulted {
+    pub vault: Pubkey,
+    pub total_repaid: u64,
+    pub total_to_repay: u64,
+    pub defaulted_at: i64,
+}
+
+#[event]
+pub struct FundsRecovered {
+    pub vault: Pubkey,
+    pub amount: u64,
+    pub recovered_to: Pubkey,
+}
+
+#[event]
+pub struct VaultCancelled {
+    pub vault: Pubkey,
+    pub total_raised: u64,
+    pub cancelled_at: i64,
+}
+
+#[event]
+pub struct RefundClaimed {
+    pub vault: Pubkey,
+    pub investor: Pubkey,
+    pub amount: u64,
+}
+
+#[event]
+pub struct VaultPaused {
+    pub vault: Pubkey,
+    pub paused_by: Pubkey,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct VaultUnpaused {
+    pub vault: Pubkey,
+    pub unpaused_by: Pubkey,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct DividendsClaimed {
+    pub icm_vault: Pubkey,
+    pub investor: Pubkey,
+    pub amount: u64,
+}

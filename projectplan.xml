@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project>
     <metadata>
-        <name>TigerPay Tokenized Debt Protocol</name>
-        <version>1.0</version>
-        <description>Blockchain-based BNPL/Lending platform with tokenized debt, merchant-focused fundraising with installment-based capital deployment and repayment</description>
-        <location>UAE</location>
-        <focus>Technical Implementation Only</focus>
+        <name>TigerPayX — Programmable Credit Network</name>
+        <version>2.0</version>
+        <description>Programmable credit network that lends against enforceable payment flow rather than assets or reputation. Businesses bill via TigerPayX x402 endpoints; repayment is automatic, structural, and continuous. Replaces NBFC funding with Jupiter DeFi loans and on-chain liquidity pools. Global scope — not limited to UAE.</description>
+        <location>Global (UAE-first launch)</location>
+        <focus>Technical Implementation — Solana Primary, EVM Legacy Reference</focus>
+        <vision>Credit risk becomes activity risk. Capital flows toward productivity automatically.</vision>
     </metadata>
 
     <architecture_overview>
@@ -28,45 +29,53 @@
 
         <technology_stack>
             <blockchain>
-                <layer1>Ethereum L2 (Polygon/Arbitrum) or Base</layer1>
-                <rationale>Lower gas fees, faster transactions, EVM compatibility</rationale>
-                <alternative>StarkNet (Cairo) for better scalability</alternative>
+                <primary>Solana (Anchor framework, Rust programs)</primary>
+                <rationale>High throughput, low fees, native SPL tokens, Solana Pay / x402 compatibility, Jupiter ecosystem access</rationale>
+                <devnet>Program ID: 5xzKq3bRuxLh4WezvMRHz8nodp4W6gihUvjeB5VcWa8z</devnet>
+                <legacy_reference>EVM contracts preserved in evm-contracts/ for reference only</legacy_reference>
             </blockchain>
-            <smart_contracts>
-                <language>Solidity 0.8.20+</language>
-                <framework>Hardhat with OpenZeppelin contracts</framework>
-                <security>Slither, MythX for auditing</security>
-            </smart_contracts>
+            <solana_programs>
+                <language>Rust 1.93+</language>
+                <framework>Anchor 0.29.0</framework>
+                <tokens>SPL Token (debt tokens, stablecoin USDC)</tokens>
+                <key_instructions>create_vault, invest, route_repayment, release_tranche, claim_returns, allocate_to_vault, mark_default</key_instructions>
+            </solana_programs>
+            <payment_routing>
+                <protocol>x402 programmable payment requests</protocol>
+                <settlement>Controlled settlement accounts — intercept inflow, split repayment first</settlement>
+                <oracle>Settlement crank triggers route_repayment on-chain</oracle>
+                <decision_pending>Custodial vs fully on-chain settlement model — awaiting boss decision</decision_pending>
+            </payment_routing>
+            <credit_scoring>
+                <provider>FairScale API (on-chain Solana wallet scoring)</provider>
+                <metrics>15 on-chain behavioral metrics (revenue consistency, volume, tempo, etc.)</metrics>
+                <integration>Backend service wrapping FairScale API; result gates vault creation and sets interest rate</integration>
+            </credit_scoring>
+            <liquidity>
+                <pools>On-chain LiquidityPool PDAs — TigerPay alpha vault + co-owned partner pools</pools>
+                <senior_tranche>Jupiter DeFi loans collateralized against TigerPay treasury</senior_tranche>
+                <fill_priority>To be decided — see SCOPE_TPAYX_FOR_DEVELOPERS.md Section 7 Q1</fill_priority>
+            </liquidity>
             <backend>
                 <runtime>Node.js 20+ with TypeScript</runtime>
-                <framework>NestJS for microservices architecture</framework>
-                <database>PostgreSQL 15+ for structured data</database>
+                <database>PostgreSQL 15+ via Prisma ORM</database>
                 <cache>Redis for session and rate limiting</cache>
-                <queue>BullMQ for job processing</queue>
+                <queue>BullMQ for background jobs (credit refresh, repayment reminders, settlement crank)</queue>
             </backend>
-            <ai_ml>
-                <credit_scoring>Python 3.11+ with scikit-learn, XGBoost</credit_scoring>
-                <risk_models>TensorFlow/PyTorch for advanced models</risk_models>
-                <api>FastAPI for ML service endpoints</api>
-            </ai_ml>
             <frontend>
-                <framework>Next.js 14+ with TypeScript</framework>
-                <web3>wagmi + viem for blockchain interactions</web3>
-                <ui>Tailwind CSS + shadcn/ui components</ui>
-                <state>Zustand for state management</state>
+                <framework>Vite + React 18 (deployed on Vercel)</framework>
+                <web3>@solana/wallet-adapter-react</web3>
+                <styling>CSS Modules, glassmorphism design system</styling>
+                <state>Zustand for wallet and app state</state>
             </frontend>
             <oracles>
-                <primary>Chainlink for price feeds and external data</primary>
-                <secondary>Custom oracle for TigerPay transaction data</secondary>
+                <settlement>Custom settlement crank (backend service watches x402 events, triggers route_repayment)</settlement>
+                <milestone>Multi-sig verifier committee for tranche release approval</milestone>
             </oracles>
-            <storage>
-                <documents>IPFS/Arweave for legal documents and agreements</documents>
-                <metadata>On-chain for critical token metadata</metadata>
-            </storage>
             <monitoring>
                 <apm>Datadog or New Relic</apm>
                 <errors>Sentry</errors>
-                <blockchain>Tenderly for smart contract monitoring</blockchain>
+                <blockchain>Solana Explorer + custom indexer for vault events</blockchain>
             </monitoring>
         </technology_stack>
     </architecture_overview>
@@ -1901,5 +1910,225 @@
             <to>Phase 7 (Mainnet)</to>
             <description>Testnet success required before mainnet</description>
         </dependency>
+        <dependency>
+            <from>Boss decisions (open questions)</from>
+            <to>Phase 9 (x402 + Credit Scoring)</to>
+            <description>Settlement model (Q4) must be decided before x402 routing can be built</description>
+        </dependency>
+        <dependency>
+            <from>Boss decisions (open questions)</from>
+            <to>Phase 10 (Liquidity Pools + Jupiter)</to>
+            <description>Fill priority (Q1) and Jupiter model (Q3) are blocking</description>
+        </dependency>
     </dependencies>
+
+    <!-- PHASE 9: PROGRAMMABLE CREDIT LAYER (NEW - Feb 2026) -->
+    <phase id="9" name="Programmable Credit Layer — x402 Payment Routing + Credit Scoring" duration="8 weeks">
+        <vision>This phase turns repayment from a merchant behaviour into a structural protocol guarantee. Repayment happens automatically from incoming revenue before funds reach the borrower.</vision>
+        <objectives>
+            <objective>Build x402 payment endpoint layer that merchants integrate into their billing</objective>
+            <objective>Implement controlled settlement accounts that intercept and split incoming revenue</objective>
+            <objective>Add route_repayment Solana instruction triggered by settlement oracle/crank</objective>
+            <objective>Integrate FairScale credit scoring API for automated merchant underwriting</objective>
+            <objective>Gate vault creation on credit score and dynamically set interest rates by tier</objective>
+        </objectives>
+
+        <open_decisions_required>
+            <decision id="Q4" status="BLOCKING">Settlement account model: custodial wallet (TigerPay controls) vs fully on-chain smart contract escrow? What happens if a merchant bypasses TigerPayX for billing?</decision>
+            <decision id="Q6" status="BLOCKING">What minimum credit score gates vault creation? Who has admin override? Do pool partners also need credit checks?</decision>
+        </open_decisions_required>
+
+        <tasks>
+            <task id="9.1" priority="critical">
+                <name>x402 Payment Endpoint Design</name>
+                <duration>2 weeks</duration>
+                <description>Define the x402 payment request spec that merchants integrate into their billing systems.</description>
+                <deliverables>
+                    <deliverable>x402 endpoint spec (payment request format, currency support, callback hooks)</deliverable>
+                    <deliverable>Merchant SDK or integration guide</deliverable>
+                    <deliverable>Settlement account provisioning per merchant per vault</deliverable>
+                    <deliverable>Webhook system for payment events (received, split, routed)</deliverable>
+                </deliverables>
+                <technical_specs>
+                    <spec>Settlement account receives all merchant inflows while vault is active</spec>
+                    <spec>On each payment event: calculate repayment_split = outstanding_balance * repayment_rate_bps</spec>
+                    <spec>Emit PaymentReceived and RepaymentRouted events for on-chain indexer</spec>
+                </technical_specs>
+                <team_required>Backend Developer, Blockchain Developer, Product Manager</team_required>
+            </task>
+
+            <task id="9.2" priority="critical">
+                <name>route_repayment Solana Instruction</name>
+                <duration>2 weeks</duration>
+                <description>New primary repayment instruction — called by the settlement crank, not the merchant. Replaces make_repayment as the primary path.</description>
+                <deliverables>
+                    <deliverable>route_repayment instruction in Anchor program</deliverable>
+                    <deliverable>Settlement oracle/crank backend service (watches x402 events, submits instruction)</deliverable>
+                    <deliverable>Pro-rata distribution to vault investors on each route_repayment call</deliverable>
+                    <deliverable>make_repayment preserved as manual fallback path</deliverable>
+                    <deliverable>Anchor test cases for route_repayment</deliverable>
+                </deliverables>
+                <technical_specs>
+                    <spec>Signer: settlement oracle authority (not merchant)</spec>
+                    <spec>Accounts: vault, investor_accounts[], platform_config</spec>
+                    <spec>Emit: RepaymentRouted { vault, amount, timestamp, source: x402 }</spec>
+                    <spec>Late fee still applies if routed amount falls below schedule threshold</spec>
+                </technical_specs>
+                <team_required>Senior Blockchain Developer (Rust/Anchor)</team_required>
+            </task>
+
+            <task id="9.3" priority="critical">
+                <name>Credit Scoring Service (FairScale Integration)</name>
+                <duration>2 weeks</duration>
+                <description>Backend service that wraps the FairScale API to score merchant wallets and determine credit tier, interest rate, and max loan amount.</description>
+                <deliverables>
+                    <deliverable>fairscale.service.ts in backend/src/services/</deliverable>
+                    <deliverable>getCreditScore(walletAddress) → score, tier, confidence</deliverable>
+                    <deliverable>getDynamicInterestRate(walletAddress) → interest_rate_bps</deliverable>
+                    <deliverable>Credit tier thresholds and rate table (subject to boss approval)</deliverable>
+                    <deliverable>Caching layer (score valid for 24h)</deliverable>
+                    <deliverable>Audit log for all score requests</deliverable>
+                </deliverables>
+                <credit_tiers>
+                    <tier name="A - Excellent" score="800+" rate="1.5%/month" max_loan="500k"/>
+                    <tier name="B - Good" score="650-799" rate="1.75%/month" max_loan="300k"/>
+                    <tier name="C - Standard" score="500-649" rate="2.0%/month" max_loan="150k"/>
+                    <tier name="D - Restricted" score="below 500" rate="Not eligible" max_loan="0"/>
+                </credit_tiers>
+                <note>Exact thresholds require boss sign-off on Q6</note>
+                <team_required>Backend Developer</team_required>
+            </task>
+
+            <task id="9.4" priority="high">
+                <name>Credit Gate on Vault Creation</name>
+                <duration>1 week</duration>
+                <description>Integrate credit score check into the vault creation flow. Credit tier determines interest_rate_bps embedded in the vault on-chain.</description>
+                <deliverables>
+                    <deliverable>Credit check middleware on POST /api/v1/campaigns</deliverable>
+                    <deliverable>interest_rate_bps calculated from credit tier at vault creation</deliverable>
+                    <deliverable>Admin whitelist override mechanism</deliverable>
+                    <deliverable>Credit score displayed on vault cards in frontend (A/B/C/D badge)</deliverable>
+                </deliverables>
+                <team_required>Backend Developer, Frontend Developer</team_required>
+            </task>
+
+            <task id="9.5" priority="medium">
+                <name>Financial Identity Dashboard</name>
+                <duration>1 week</duration>
+                <description>Merchant-facing dashboard showing their credit profile, score history, and how to improve.</description>
+                <deliverables>
+                    <deliverable>Credit score display with tier badge and trend chart</deliverable>
+                    <deliverable>15 FairScale metric breakdown (what's contributing to score)</deliverable>
+                    <deliverable>Tips to improve score (increase transaction volume, consistency)</deliverable>
+                    <deliverable>Score recalculation trigger (manual refresh)</deliverable>
+                </deliverables>
+                <team_required>Frontend Developer</team_required>
+            </task>
+        </tasks>
+
+        <milestones>
+            <milestone>x402 endpoint spec finalised and pilot merchant integrated</milestone>
+            <milestone>route_repayment instruction deployed to devnet and tested</milestone>
+            <milestone>FairScale service live and gating vault creation</milestone>
+            <milestone>End-to-end gym example: payment received → auto-split → investor yield updated</milestone>
+        </milestones>
+
+        <canonical_test>
+            <scenario>Gym 500k example — gym bills member via x402 → payment hits settlement account → crank fires route_repayment → vault repayment balance increases → investors can claim proportional yield</scenario>
+        </canonical_test>
+    </phase>
+
+    <!-- PHASE 10: LIQUIDITY POOLS + JUPITER (NEW - Feb 2026) -->
+    <phase id="10" name="Liquidity Pools + Jupiter Senior Tranche" duration="6 weeks">
+        <vision>Complete the capital structure. When user investment in a merchant vault falls short of the target, liquidity pools fill the gap. Jupiter loans replace the NBFC senior tranche.</vision>
+        <objectives>
+            <objective>Build on-chain LiquidityPool PDAs for TigerPay alpha vault and co-owned partner pools</objective>
+            <objective>Implement allocate_to_vault instruction for shortfall filling</objective>
+            <objective>Implement fill priority logic once Q1 decision is made</objective>
+            <objective>Integrate Jupiter lending for senior tranche (method TBD on Q3 decision)</objective>
+        </objectives>
+
+        <open_decisions_required>
+            <decision id="Q1" status="BLOCKING">Fill priority: TigerPay vault first? Pro-rata? Co-owned pools first?</decision>
+            <decision id="Q2" status="BLOCKING">Fee and revenue splits — who earns what on user-invested, pool-filled, and Jupiter-funded portions?</decision>
+            <decision id="Q3" status="BLOCKING">Jupiter model — on-chain DeFi loan vs off-chain treasury credit line? Who monitors collateral?</decision>
+            <decision id="Q5" status="HIGH">Co-owned pool caps — max partners, min partner capital, min investor amount?</decision>
+        </open_decisions_required>
+
+        <tasks>
+            <task id="10.1" priority="critical">
+                <name>LiquidityPool Account and Instructions</name>
+                <duration>2 weeks</duration>
+                <description>On-chain account representing a liquidity pool (TigerPay or co-owned). Stores balance, partner authority, caps, and allocation history.</description>
+                <deliverables>
+                    <deliverable>LiquidityPool PDA account struct (partner_authority, balance, max_cap, min_investor, allocated_total)</deliverable>
+                    <deliverable>register_pool instruction (admin only)</deliverable>
+                    <deliverable>deposit_to_pool instruction (pool partners)</deliverable>
+                    <deliverable>allocate_to_vault instruction (fills vault shortfall)</deliverable>
+                    <deliverable>withdraw_from_pool instruction (after vault repays)</deliverable>
+                    <deliverable>Anchor tests for full pool lifecycle</deliverable>
+                </deliverables>
+                <technical_specs>
+                    <spec>PDA seeds: [b"liquidity_pool", partner_authority.key()]</spec>
+                    <spec>allocate_to_vault checks: vault_state == Fundraising, shortfall > 0, pool_balance sufficient</spec>
+                    <spec>Emit: PoolAllocated { pool, vault, amount, remaining_shortfall }</spec>
+                </technical_specs>
+                <team_required>Senior Blockchain Developer (Rust/Anchor)</team_required>
+            </task>
+
+            <task id="10.2" priority="critical">
+                <name>Fill Logic Engine</name>
+                <duration>2 weeks</duration>
+                <description>Backend service that determines when and how to fill a vault shortfall from available pools. Priority order implements Q1 decision.</description>
+                <deliverables>
+                    <deliverable>fill_vault_shortfall service: assess shortfall, select pools, call allocate_to_vault in priority order</deliverable>
+                    <deliverable>Priority engine: configurable order (TigerPay first / pro-rata / partner first)</deliverable>
+                    <deliverable>Pool balance monitoring and alerting</deliverable>
+                    <deliverable>Fill event log for investor transparency</deliverable>
+                </deliverables>
+                <note>Implementation blocked until Q1 answer is finalised</note>
+                <team_required>Backend Developer, Blockchain Developer</team_required>
+            </task>
+
+            <task id="10.3" priority="high">
+                <name>Jupiter Senior Tranche Integration</name>
+                <duration>2 weeks</duration>
+                <description>Integrate Jupiter to fund the senior tranche of merchant vaults, replacing the NBFC 400k relationship.</description>
+                <deliverables>
+                    <deliverable>Jupiter integration service (on-chain CPI or off-chain treasury ops — TBD)</deliverable>
+                    <deliverable>Collateral lock mechanism (TigerPay treasury SOL/USDC)</deliverable>
+                    <deliverable>Borrow trigger: when vault is fully underwritten by users + pools, Jupiter tops up senior tranche</deliverable>
+                    <deliverable>Repayment stream to Jupiter: route_repayment distributes senior tranche first</deliverable>
+                    <deliverable>Collateral health monitoring and alert service</deliverable>
+                </deliverables>
+                <note>Technical approach (on-chain vs off-chain) blocked on Q3 answer</note>
+                <team_required>Senior Blockchain Developer, Backend Developer</team_required>
+            </task>
+
+            <task id="10.4" priority="medium">
+                <name>Pool Partner Dashboard</name>
+                <duration>1 week</duration>
+                <description>Frontend dashboard for co-owned pool partners to view balance, allocations, and returns.</description>
+                <deliverables>
+                    <deliverable>Pool overview: balance, deployed, available, APY earned</deliverable>
+                    <deliverable>Allocation history: which vaults received pool funds</deliverable>
+                    <deliverable>Return accrual from repayment stream</deliverable>
+                    <deliverable>Deposit and withdraw interface</deliverable>
+                </deliverables>
+                <team_required>Frontend Developer</team_required>
+            </task>
+        </tasks>
+
+        <milestones>
+            <milestone>LiquidityPool PDAs deployed and tested on devnet</milestone>
+            <milestone>Fill logic running against gym 500k example: user 20k + pools 80k = 100k filled</milestone>
+            <milestone>Jupiter senior tranche integration live (method TBD)</milestone>
+            <milestone>Full 500k gym example end-to-end: invest → pool fill → Jupiter → x402 repayment → investor claims</milestone>
+        </milestones>
+
+        <canonical_test>
+            <scenario>Gym 500k: 20k from retail investors + 80k from pools (fill logic applied per Q1 answer) + 400k from Jupiter = 500k to gym. Gym bills via x402. Auto-repayment flows back: Jupiter first, then pools, then retail investors. All yields claimable on-chain.</scenario>
+        </canonical_test>
+    </phase>
+
 </project>

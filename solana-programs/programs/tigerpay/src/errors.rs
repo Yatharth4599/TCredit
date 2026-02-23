@@ -110,4 +110,26 @@ pub enum TigerPayError {
 
     #[msg("Late payment - fees applied")]
     LatePayment,
+
+    // Programmable Credit error codes
+    #[msg("Invalid oracle authority")]
+    InvalidOracleAuthority,
+
+    #[msg("Settlement account not active")]
+    SettlementNotActive,
+
+    #[msg("Liquidity pool is paused")]
+    PoolPaused,
+
+    #[msg("Insufficient pool balance")]
+    PoolInsufficientBalance,
+
+    #[msg("Allocation exceeds per-vault cap")]
+    AllocationExceedsCap,
+
+    #[msg("Merchant credit score too low")]
+    CreditScoreTooLow,
+
+    #[msg("Credit score expired - refresh required")]
+    CreditScoreExpired,
 }

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import styles from './Home.module.css'
 
 export default function Home() {
@@ -62,7 +62,7 @@ export default function Home() {
                         <button className={styles.primaryBtn} onClick={() => navigate('/vaults')}>
                             <span>Launch App</span>
                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         </button>
                         <button className={styles.secondaryBtn}>
@@ -368,7 +368,7 @@ export default function Home() {
                             <button className={styles.primaryBtn} onClick={() => navigate('/vaults')}>
                                 <span>Launch App</span>
                                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                             </button>
                             <button className={styles.secondaryBtn}>

@@ -48,6 +48,11 @@ pub struct MerchantVault {
     pub paused: bool,
     pub cancelled: bool,
     pub cancelled_at: i64,
+
+    // Programmable Credit fields
+    pub pool_funded: u64,       // Amount filled from liquidity pools
+    pub user_funded: u64,       // Amount from retail investors
+    pub repayment_source: u8,   // 0=manual, 1=x402_routed
 }
 
 impl MerchantVault {
@@ -85,7 +90,10 @@ impl MerchantVault {
         8 +   // total_recovered
         1 +   // paused
         1 +   // cancelled
-        8;    // cancelled_at
+        8 +   // cancelled_at
+        8 +   // pool_funded
+        8 +   // user_funded
+        1;    // repayment_source
 
     pub fn is_fundraising(&self) -> bool {
         self.state == VaultState::Fundraising && !self.cancelled && !self.paused

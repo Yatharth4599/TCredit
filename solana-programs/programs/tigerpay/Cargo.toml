@@ -19,6 +19,8 @@ default = []
 anchor-lang = { version = "0.29.0", features = ["init-if-needed"] }
 anchor-spl = "0.29.0"
 
-[dev-dependencies]
-solana-program-test = "1.18"
-solana-sdk = "1.18"
+# [dev-dependencies]
+# Commented out: these pull rayon/blake3 versions incompatible with Rust 1.75
+# Re-enable when upgrading to Rust 1.80+ for testing
+# solana-program-test = "1.18"
+# solana-sdk = "1.18"

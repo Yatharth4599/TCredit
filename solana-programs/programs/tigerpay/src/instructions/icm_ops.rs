@@ -4,6 +4,7 @@ use anchor_spl::associated_token::AssociatedToken;
 
 use crate::state::*;
 use crate::errors::TigerPayError;
+use crate::{CreateICMVault, BuyStake, DistributeDividends};
 
 pub fn create_icm_vault(
     ctx: Context<CreateICMVault>,
@@ -124,7 +125,6 @@ pub fn distribute_dividends(ctx: Context<DistributeDividends>, amount: u64) -> R
     require!(icm_vault.state == ICMState::Closed, TigerPayError::InvalidVaultState);
     require!(amount > 0, TigerPayError::InvalidRepaymentAmount);
 
-    // Transfer dividend tokens from business to vault for distribution
     token::transfer(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
@@ -137,120 +137,6 @@ pub fn distribute_dividends(ctx: Context<DistributeDividends>, amount: u64) -> R
         amount,
     )?;
 
-    // Note: In a real implementation, we would track claimable dividends per user 
-    // similar to how claim_returns works for debt. For simplicity, we'll message the event.
-    // In production, users would call a 'claim_dividends' function.
-
     msg!("Dividends of {} distributed for ICM vault {}", amount, icm_vault.key());
     Ok(())
-}
-
-#[derive(Accounts)]
-#[instruction(icm_nonce: u8)]
-pub struct CreateICMVault<'info> {
-    #[account(mut)]
-    pub authority: Signer<'info>,
-
-    /// CHECK: Business wallet
-    pub business: UncheckedAccount<'info>,
-
-    #[account(
-        mut,
-        seeds = [b"merchant", business.key().as_ref()],
-        bump = merchant_profile.bump,
-        constraint = merchant_profile.verified @ TigerPayError::MerchantNotVerified,
-    )]
-    pub merchant_profile: Account<'info, MerchantProfile>,
-
-    #[account(seeds = [b"config"], bump = platform_config.bump)]
-    pub platform_config: Account<'info, PlatformConfig>,
-
-    #[account(
-        init,
-        payer = authority,
-        space = ICMVault::LEN,
-        seeds = [b"icm_vault", business.key().as_ref(), &[icm_nonce]],
-        bump,
-    )]
-    pub icm_vault: Account<'info, ICMVault>,
-
-    pub funding_token_mint: Account<'info, Mint>,
-
-    #[account(
-        init,
-        payer = authority,
-        mint::decimals = 6, // Equity usually has fewer decimals or match funding
-        mint::authority = icm_vault,
-        seeds = [b"stake_mint", icm_vault.key().as_ref()],
-        bump,
-    )]
-    pub stake_token_mint: Account<'info, Mint>,
-
-    #[account(
-        init,
-        payer = authority,
-        associated_token::mint = funding_token_mint,
-        associated_token::authority = icm_vault,
-    )]
-    pub vault_token_account: Account<'info, TokenAccount>,
-
-    pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    pub rent: Sysvar<'info, Rent>,
-}
-
-#[derive(Accounts)]
-pub struct BuyStake<'info> {
-    #[account(mut)]
-    pub investor: Signer<'info>,
-
-    #[account(mut)]
-    pub icm_vault: Account<'info, ICMVault>,
-
-    #[account(
-        mut,
-        constraint = investor_token_account.mint == icm_vault.funding_token_mint @ TigerPayError::InvalidAccount,
-    )]
-    pub investor_token_account: Account<'info, TokenAccount>,
-
-    #[account(mut, constraint = vault_token_account.key() == icm_vault.vault_token_account @ TigerPayError::InvalidAccount)]
-    pub vault_token_account: Account<'info, TokenAccount>,
-
-    #[account(mut, constraint = stake_token_mint.key() == icm_vault.stake_token_mint @ TigerPayError::InvalidAccount)]
-    pub stake_token_mint: Account<'info, Mint>,
-
-    #[account(
-        init_if_needed,
-        payer = investor,
-        associated_token::mint = stake_token_mint,
-        associated_token::authority = investor,
-    )]
-    pub investor_stake_token_account: Account<'info, TokenAccount>,
-
-    pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    pub rent: Sysvar<'info, Rent>,
-}
-
-#[derive(Accounts)]
-pub struct DistributeDividends<'info> {
-    #[account(mut, constraint = business.key() == icm_vault.business @ TigerPayError::Unauthorized)]
-    pub business: Signer<'info>,
-
-    #[account(mut)]
-    pub icm_vault: Account<'info, ICMVault>,
-
-    #[account(
-        mut,
-        constraint = business_token_account.owner == business.key() @ TigerPayError::InvalidAccount,
-        constraint = business_token_account.mint == icm_vault.funding_token_mint @ TigerPayError::InvalidAccount,
-    )]
-    pub business_token_account: Account<'info, TokenAccount>,
-
-    #[account(mut, constraint = vault_token_account.key() == icm_vault.vault_token_account @ TigerPayError::InvalidAccount)]
-    pub vault_token_account: Account<'info, TokenAccount>,
-
-    pub token_program: Program<'info, Token>,
 }
