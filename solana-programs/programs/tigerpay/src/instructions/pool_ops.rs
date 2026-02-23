@@ -101,15 +101,24 @@ pub fn allocate_to_vault(ctx: Context<AllocateToVault>, amount: u64) -> Result<(
         TigerPayError::AllocationExceedsCap
     );
 
-    // Transfer from pool to vault
+    // Transfer from pool to vault — pool PDA is the token account authority
+    let pool_key = ctx.accounts.pool_authority.key();
+    let pool_seeds = &[
+        b"liquidity_pool",
+        pool_key.as_ref(),
+        &[pool.bump],
+    ];
+    let signer_seeds = &[&pool_seeds[..]];
+
     token::transfer(
-        CpiContext::new(
+        CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
             Transfer {
                 from: ctx.accounts.pool_token_account.to_account_info(),
                 to: ctx.accounts.vault_token_account.to_account_info(),
-                authority: ctx.accounts.admin.to_account_info(),
+                authority: ctx.accounts.pool.to_account_info(),
             },
+            signer_seeds,
         ),
         alloc_amount,
     )?;
@@ -159,18 +168,30 @@ pub fn withdraw_from_pool(ctx: Context<WithdrawFromPool>, amount: u64) -> Result
     let available = pool.available_balance();
     require!(amount > 0 && amount <= available, TigerPayError::PoolInsufficientBalance);
 
-    // Transfer from pool back to partner
+    // Transfer from pool back to partner — pool PDA signs
+    let pool_key = ctx.accounts.pool.key();
+    let pool_authority_key = ctx.accounts.pool.authority;
+    let pool_seeds = &[
+        b"liquidity_pool",
+        pool_authority_key.as_ref(),
+        &[pool.bump],
+    ];
+    let signer_seeds = &[&pool_seeds[..]];
+
     token::transfer(
-        CpiContext::new(
+        CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
             Transfer {
                 from: ctx.accounts.pool_token_account.to_account_info(),
                 to: ctx.accounts.withdrawer_token_account.to_account_info(),
-                authority: ctx.accounts.withdrawer.to_account_info(),
+                authority: ctx.accounts.pool.to_account_info(),
             },
+            signer_seeds,
         ),
         amount,
     )?;
+
+    let _ = pool_key; // suppress unused warning
 
     // Reduce total deposited by withdrawal amount
     pool.total_deposited = pool.total_deposited

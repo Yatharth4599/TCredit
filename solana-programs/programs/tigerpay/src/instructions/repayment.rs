@@ -10,9 +10,22 @@ use crate::ClaimReturns;
 /// This is the FALLBACK path; route_repayment (x402) is the primary path.
 pub fn make_repayment(ctx: Context<MakeRepayment>, amount: u64) -> Result<()> {
     let vault = &mut ctx.accounts.vault;
+    let clock = Clock::get()?;
 
     require!(vault.is_active() || vault.is_repaying(), TigerPayError::InvalidVaultState);
     require!(amount > 0, TigerPayError::InvalidRepaymentAmount);
+
+    // Calculate and apply late fees if overdue
+    let late_fee = vault.calculate_late_fee(clock.unix_timestamp);
+    if late_fee > 0 {
+        vault.total_late_fees = vault.total_late_fees
+            .checked_add(late_fee)
+            .ok_or(TigerPayError::ArithmeticOverflow)?;
+        vault.total_to_repay = vault.total_to_repay
+            .checked_add(late_fee)
+            .ok_or(TigerPayError::ArithmeticOverflow)?;
+        msg!("Late fee applied: {}", late_fee);
+    }
 
     token::transfer(
         CpiContext::new(
@@ -29,13 +42,23 @@ pub fn make_repayment(ctx: Context<MakeRepayment>, amount: u64) -> Result<()> {
     vault.total_repaid = vault.total_repaid.checked_add(amount).ok_or(TigerPayError::ArithmeticOverflow)?;
     vault.repayment_source = 0; // manual
 
+    // Advance payment schedule (30-day intervals)
+    if vault.next_payment_due > 0 && clock.unix_timestamp >= vault.next_payment_due {
+        vault.next_payment_due = clock.unix_timestamp + (30 * 24 * 60 * 60);
+    }
+
     msg!("Manual repayment received: {} from merchant {}", amount, ctx.accounts.merchant.key());
 
     if vault.total_repaid >= vault.total_to_repay {
         vault.state = VaultState::Completed;
+        vault.next_payment_due = 0;
         msg!("Vault fully repaid!");
     } else if vault.state == VaultState::Active {
         vault.state = VaultState::Repaying;
+        // Set first payment due 30 days from now if not already set
+        if vault.next_payment_due == 0 {
+            vault.next_payment_due = clock.unix_timestamp + (30 * 24 * 60 * 60);
+        }
     }
 
     Ok(())

@@ -26,6 +26,15 @@ pub fn create_vault(
 
     require!(!config.paused, TigerPayError::PlatformPaused);
     require!(merchant_profile.can_create_vault(), TigerPayError::MerchantNotVerified);
+
+    // Credit score gating — block tier D merchants (except unscored new merchants)
+    if merchant_profile.credit_score > 0 {
+        require!(merchant_profile.credit_tier > 0, TigerPayError::CreditScoreTooLow);
+        // Ensure score was refreshed within last 90 days
+        let score_age = clock.unix_timestamp - merchant_profile.credit_updated_at;
+        require!(score_age < 90 * 24 * 60 * 60, TigerPayError::CreditScoreExpired);
+    }
+
     require!(
         target_amount >= config.min_funding_target && target_amount <= config.max_funding_target,
         TigerPayError::InvalidFundingTarget

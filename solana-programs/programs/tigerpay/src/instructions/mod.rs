@@ -12,6 +12,7 @@ pub mod default_ops;
 pub mod cancel_ops;
 pub mod pause_ops;
 pub mod dividend_ops;
+pub mod credit_ops;
 
 pub use admin::*;
 pub use create_vault::*;
@@ -27,3 +28,4 @@ pub use default_ops::*;
 pub use cancel_ops::*;
 pub use pause_ops::*;
 pub use dividend_ops::*;
+pub use credit_ops::*;

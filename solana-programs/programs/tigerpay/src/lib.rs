@@ -211,6 +211,12 @@ pub mod tigerpay {
     pub fn claim_dividends(ctx: Context<ClaimDividends>) -> Result<()> {
         instructions::dividend_ops::claim_dividends(ctx)
     }
+
+    // ============ Credit Score ============
+
+    pub fn update_credit_score(ctx: Context<UpdateCreditScore>, new_score: u16) -> Result<()> {
+        instructions::credit_ops::update_credit_score(ctx, new_score)
+    }
 }
 
 // ============================================================================
@@ -695,6 +701,9 @@ pub struct AllocateToVault<'info> {
     #[account(mut)]
     pub pool: Account<'info, LiquidityPool>,
 
+    /// CHECK: Pool authority — needed for PDA seed derivation
+    pub pool_authority: UncheckedAccount<'info>,
+
     #[account(
         mut,
         constraint = vault.is_fundraising() @ TigerPayError::InvalidVaultState,
@@ -904,4 +913,27 @@ pub struct ClaimDividends<'info> {
     pub investor_token_account: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
+}
+
+// --- Credit Score ---
+
+#[derive(Accounts)]
+pub struct UpdateCreditScore<'info> {
+    #[account(
+        constraint = authority.key() == platform_config.authority @ TigerPayError::Unauthorized,
+    )]
+    pub authority: Signer<'info>,
+
+    /// CHECK: Merchant wallet — used to derive merchant_profile PDA
+    pub merchant: UncheckedAccount<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"merchant", merchant.key().as_ref()],
+        bump = merchant_profile.bump,
+    )]
+    pub merchant_profile: Account<'info, MerchantProfile>,
+
+    #[account(seeds = [b"config"], bump = platform_config.bump)]
+    pub platform_config: Account<'info, PlatformConfig>,
 }
