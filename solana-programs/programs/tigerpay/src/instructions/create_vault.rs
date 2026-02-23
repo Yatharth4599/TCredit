@@ -4,6 +4,7 @@ use crate::state::*;
 use crate::errors::TigerPayError;
 use crate::CreateVault;
 use crate::CompleteFundraisingManual;
+use crate::{SECONDS_PER_DAY, CREDIT_SCORE_MAX_AGE_SECS, MIN_FUNDRAISE_PCT};
 
 pub fn create_vault(
     ctx: Context<CreateVault>,
@@ -32,7 +33,7 @@ pub fn create_vault(
         require!(merchant_profile.credit_tier > 0, TigerPayError::CreditScoreTooLow);
         // Ensure score was refreshed within last 90 days
         let score_age = clock.unix_timestamp - merchant_profile.credit_updated_at;
-        require!(score_age < 90 * 24 * 60 * 60, TigerPayError::CreditScoreExpired);
+        require!(score_age < CREDIT_SCORE_MAX_AGE_SECS, TigerPayError::CreditScoreExpired);
     }
 
     require!(
@@ -59,7 +60,7 @@ pub fn create_vault(
     vault.tranches_released = 0;
     
     vault.state = VaultState::Fundraising;
-    vault.fundraising_deadline = clock.unix_timestamp + (fundraising_days as i64 * 24 * 60 * 60);
+    vault.fundraising_deadline = clock.unix_timestamp + (fundraising_days as i64 * SECONDS_PER_DAY);
     vault.created_at = clock.unix_timestamp;
     
     vault.platform_fee_bps = config.default_fee_bps;
@@ -72,7 +73,7 @@ pub fn create_vault(
     vault.bump = ctx.bumps.vault;
 
     // Production fields: Late fees & recovery
-    vault.next_payment_due = 0; // set when vault goes Active
+    vault.next_payment_due = 0;
     vault.late_fee_bps = late_fee_bps;
     vault.total_late_fees = 0;
     vault.grace_period_days = if grace_period_days == 0 { 7 } else { grace_period_days };
@@ -98,7 +99,7 @@ pub fn complete_fundraising_manual(ctx: Context<CompleteFundraisingManual>) -> R
 
     require!(vault.is_fundraising(), TigerPayError::InvalidVaultState);
     
-    let min_required = vault.target_amount * 80 / 100;
+    let min_required = vault.target_amount * MIN_FUNDRAISE_PCT / 100;
     require!(vault.total_raised >= min_required, TigerPayError::FundraisingNotComplete);
 
     vault.state = VaultState::Active;

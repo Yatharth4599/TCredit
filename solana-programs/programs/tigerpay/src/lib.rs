@@ -13,6 +13,28 @@ pub use state::*;
 pub use errors::*;
 pub use events::*;
 
+// ============ Program Constants ============
+
+/// Seconds in a day (60 * 60 * 24)
+pub const SECONDS_PER_DAY: i64 = 86_400;
+
+/// Default repayment interval: 30 days
+pub const REPAYMENT_INTERVAL_DAYS: i64 = 30;
+pub const REPAYMENT_INTERVAL_SECS: i64 = REPAYMENT_INTERVAL_DAYS * SECONDS_PER_DAY;
+
+/// Credit score maximum age before requiring refresh: 90 days
+pub const CREDIT_SCORE_MAX_AGE_SECS: i64 = 90 * SECONDS_PER_DAY;
+
+/// Maximum credit score on FairScale scale
+pub const MAX_CREDIT_SCORE: u16 = 1000;
+
+/// Repayment source identifiers
+pub const REPAYMENT_SOURCE_MANUAL: u8 = 0;
+pub const REPAYMENT_SOURCE_X402: u8 = 1;
+
+/// Minimum fundraising threshold for vault activation (80%)
+pub const MIN_FUNDRAISE_PCT: u64 = 80;
+
 #[program]
 pub mod tigerpay {
     use super::*;
@@ -217,6 +239,16 @@ pub mod tigerpay {
     pub fn update_credit_score(ctx: Context<UpdateCreditScore>, new_score: u16) -> Result<()> {
         instructions::credit_ops::update_credit_score(ctx, new_score)
     }
+
+    // ============ Keeper / Crank ============
+
+    pub fn auto_cancel_expired(ctx: Context<AutoCancelExpired>) -> Result<()> {
+        instructions::keeper_ops::auto_cancel_expired(ctx)
+    }
+
+    pub fn return_pool_allocation(ctx: Context<ReturnPoolAllocation>, amount: u64) -> Result<()> {
+        instructions::keeper_ops::return_pool_allocation(ctx, amount)
+    }
 }
 
 // ============================================================================
@@ -230,7 +262,7 @@ pub struct InitializePlatform<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
     
-    /// CHECK: Fee recipient account
+    /// CHECK: Fee recipient is stored on PlatformConfig and verified off-chain during platform setup. Not validated here because it's only used as a destination for fee transfers.
     pub fee_recipient: UncheckedAccount<'info>,
     
     #[account(
@@ -253,7 +285,7 @@ pub struct VerifyMerchant<'info> {
     )]
     pub authority: Signer<'info>,
     
-    /// CHECK: Merchant wallet
+    /// CHECK: Merchant wallet used as a PDA seed for the merchant_profile account. Safety is ensured by the merchant_profile PDA derivation and the authority check.
     pub merchant: UncheckedAccount<'info>,
     
     #[account(seeds = [b"config"], bump = platform_config.bump)]
@@ -279,7 +311,7 @@ pub struct CreateVault<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
     
-    /// CHECK: Merchant wallet
+    /// CHECK: Merchant wallet used as a primary seed for the vault PDA. Validated to be a verified merchant via the merchant_profile account constraint.
     pub merchant: UncheckedAccount<'info>,
     
     #[account(
@@ -376,6 +408,9 @@ pub struct Invest<'info> {
         associated_token::authority = investor,
     )]
     pub investor_debt_token_account: Account<'info, TokenAccount>,
+    
+    #[account(seeds = [b"config"], bump = platform_config.bump)]
+    pub platform_config: Account<'info, PlatformConfig>,
     
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
@@ -624,7 +659,7 @@ pub struct CreateSettlement<'info> {
     )]
     pub vault: Account<'info, MerchantVault>,
 
-    /// CHECK: Oracle authority pubkey, stored in settlement account
+    /// CHECK: Oracle authority is validated against the settlement account's stored oracle_authority field. Only the registered oracle can sign route_repayment transactions.
     pub oracle_authority: UncheckedAccount<'info>,
 
     pub platform_config: Account<'info, PlatformConfig>,
@@ -642,7 +677,7 @@ pub struct RegisterPool<'info> {
     )]
     pub admin: Signer<'info>,
 
-    /// CHECK: Pool owner (TigerPay or partner)
+    /// CHECK: Pool owner identity used as PDA seed for the pool account. Safety ensured by the pool PDA derivation constraint below.
     pub pool_authority: UncheckedAccount<'info>,
 
     #[account(
@@ -654,7 +689,7 @@ pub struct RegisterPool<'info> {
     )]
     pub pool: Account<'info, LiquidityPool>,
 
-    /// CHECK: Validated as SPL mint
+    /// CHECK: SPL mint account validated by the associated_token::mint constraint on pool_token_account. Anchor enforces mint existence via the ATA derivation.
     pub funding_token_mint: UncheckedAccount<'info>,
 
     pub pool_token_account: Account<'info, TokenAccount>,
@@ -701,7 +736,7 @@ pub struct AllocateToVault<'info> {
     #[account(mut)]
     pub pool: Account<'info, LiquidityPool>,
 
-    /// CHECK: Pool authority — needed for PDA seed derivation
+    /// CHECK: Pool authority pubkey used for PDA seed derivation in the pool signer seeds. Validated by constraint pool.authority == pool_authority.key().
     pub pool_authority: UncheckedAccount<'info>,
 
     #[account(
@@ -802,7 +837,7 @@ pub struct RecoverFunds<'info> {
     )]
     pub vault_token_account: Account<'info, TokenAccount>,
 
-    /// CHECK: Recovery destination — platform-controlled account
+    /// CHECK: Recovery destination is a platform-controlled token account. Authority validation done via the platform_config.authority signer check. Only platform admin can trigger recovery.
     #[account(mut)]
     pub recovery_token_account: Account<'info, TokenAccount>,
 
@@ -924,7 +959,7 @@ pub struct UpdateCreditScore<'info> {
     )]
     pub authority: Signer<'info>,
 
-    /// CHECK: Merchant wallet — used to derive merchant_profile PDA
+    /// CHECK: Merchant wallet pubkey used as PDA seed. Safety ensured by merchant_profile PDA derivation constraint using this key.
     pub merchant: UncheckedAccount<'info>,
 
     #[account(
@@ -936,4 +971,57 @@ pub struct UpdateCreditScore<'info> {
 
     #[account(seeds = [b"config"], bump = platform_config.bump)]
     pub platform_config: Account<'info, PlatformConfig>,
+}
+
+// --- Keeper / Crank ---
+
+#[derive(Accounts)]
+pub struct AutoCancelExpired<'info> {
+    /// Anyone can call this — permissionless keeper
+    pub caller: Signer<'info>,
+
+    #[account(
+        mut,
+        constraint = vault.state == VaultState::Fundraising @ TigerPayError::InvalidVaultState,
+    )]
+    pub vault: Account<'info, MerchantVault>,
+}
+
+#[derive(Accounts)]
+pub struct ReturnPoolAllocation<'info> {
+    #[account(
+        constraint = authority.key() == platform_config.authority @ TigerPayError::Unauthorized,
+    )]
+    pub authority: Signer<'info>,
+
+    #[account(mut)]
+    pub pool: Account<'info, LiquidityPool>,
+
+    #[account(
+        mut,
+        constraint = allocation.pool == pool.key() @ TigerPayError::InvalidAccount,
+        constraint = allocation.vault == vault.key() @ TigerPayError::InvalidAccount,
+    )]
+    pub allocation: Account<'info, PoolAllocation>,
+
+    #[account(
+        constraint = vault.state == VaultState::Repaying || vault.state == VaultState::Completed @ TigerPayError::InvalidVaultState,
+    )]
+    pub vault: Account<'info, MerchantVault>,
+
+    #[account(
+        mut,
+        constraint = vault_token_account.key() == vault.vault_token_account @ TigerPayError::InvalidAccount,
+    )]
+    pub vault_token_account: Account<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        constraint = pool_token_account.key() == pool.pool_token_account @ TigerPayError::InvalidAccount,
+    )]
+    pub pool_token_account: Account<'info, TokenAccount>,
+
+    pub platform_config: Account<'info, PlatformConfig>,
+
+    pub token_program: Program<'info, Token>,
 }

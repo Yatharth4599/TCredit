@@ -16,7 +16,7 @@ pub fn initialize_tranche(
 
     require!(tranche_index < vault.num_tranches, TigerPayError::InvalidTranches);
 
-    let tranche_interval = 30 * 24 * 60 * 60i64; // 30 days
+    let tranche_interval = crate::REPAYMENT_INTERVAL_SECS;
 
     tranche.vault = vault.key();
     tranche.tranche_index = tranche_index;

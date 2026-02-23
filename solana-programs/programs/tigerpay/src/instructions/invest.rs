@@ -11,6 +11,7 @@ pub fn invest(ctx: Context<Invest>, amount: u64) -> Result<()> {
     let clock = Clock::get()?;
 
     require!(vault.is_fundraising(), TigerPayError::InvalidVaultState);
+    require!(!ctx.accounts.platform_config.paused, TigerPayError::PlatformPaused);
     require!(clock.unix_timestamp <= vault.fundraising_deadline, TigerPayError::FundraisingDeadlinePassed);
     require!(amount >= vault.min_investment, TigerPayError::InvestmentTooLow);
     require!(

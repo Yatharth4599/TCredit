@@ -52,6 +52,8 @@ pub struct MerchantVault {
     // Programmable Credit fields
     pub pool_funded: u64,       // Amount filled from liquidity pools
     pub user_funded: u64,       // Amount from retail investors
+    pub total_senior_repaid: u64, // Amount repaid to senior tranche
+    pub total_pool_repaid: u64,   // Amount repaid to pools
     pub repayment_source: u8,   // 0=manual, 1=x402_routed
 }
 
@@ -93,6 +95,8 @@ impl MerchantVault {
         8 +   // cancelled_at
         8 +   // pool_funded
         8 +   // user_funded
+        8 +   // total_senior_repaid
+        8 +   // total_pool_repaid
         1;    // repayment_source
 
     pub fn is_fundraising(&self) -> bool {
@@ -127,7 +131,7 @@ impl MerchantVault {
         if current_time <= self.next_payment_due || self.next_payment_due == 0 {
             return 0;
         }
-        let days_late = ((current_time - self.next_payment_due) / 86400) as u64;
+        let days_late = ((current_time - self.next_payment_due) / crate::SECONDS_PER_DAY) as u64;
         let remaining = self.total_to_repay.saturating_sub(self.total_repaid);
         // Late fee = remaining * late_fee_bps * days_late / 10000
         remaining.saturating_mul(self.late_fee_bps as u64).saturating_mul(days_late) / 10000
@@ -137,7 +141,7 @@ impl MerchantVault {
         if self.next_payment_due == 0 || self.state != VaultState::Repaying {
             return false;
         }
-        let grace_seconds = self.grace_period_days as i64 * 86400;
+        let grace_seconds = self.grace_period_days as i64 * crate::SECONDS_PER_DAY;
         current_time > self.next_payment_due + grace_seconds
     }
 }

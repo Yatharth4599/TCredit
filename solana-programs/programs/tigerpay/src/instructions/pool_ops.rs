@@ -191,8 +191,6 @@ pub fn withdraw_from_pool(ctx: Context<WithdrawFromPool>, amount: u64) -> Result
         amount,
     )?;
 
-    let _ = pool_key; // suppress unused warning
-
     // Reduce total deposited by withdrawal amount
     pool.total_deposited = pool.total_deposited
         .saturating_sub(amount);

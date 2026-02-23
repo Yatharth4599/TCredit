@@ -132,4 +132,7 @@ pub enum TigerPayError {
 
     #[msg("Credit score expired - refresh required")]
     CreditScoreExpired,
+
+    #[msg("Credit score must be 0-1000")]
+    InvalidCreditScore,
 }

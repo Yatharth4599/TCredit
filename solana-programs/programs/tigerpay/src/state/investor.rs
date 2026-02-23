@@ -11,6 +11,7 @@ pub struct InvestorAccount {
     pub investor_token_account: Pubkey,
     pub invested_at: i64,
     pub last_claim_at: i64,
+    pub total_user_repaid_at_last_claim: u64, // Waterfall: retail repaid amount when investor last claimed
     pub bump: u8,
     
     // Production fields
@@ -32,20 +33,26 @@ impl InvestorAccount {
         1 +   // bump
         1 +   // has_refunded
         1 +   // has_recovered
-        8;    // recovered_amount
+        8 +   // recovered_amount
+        8;    // total_user_repaid_at_last_claim
 
-    pub fn calculate_claimable(&self, total_raised: u64, total_repaid: u64) -> u64 {
-        if total_raised == 0 || self.amount_invested == 0 {
+    pub fn calculate_claimable(&self, user_funded: u64, total_user_repaid: u64) -> u64 {
+        if user_funded == 0 || self.amount_invested == 0 {
             return 0;
         }
         
-        let share = (self.amount_invested as u128)
-            .checked_mul(total_repaid as u128)
+        // Waterfall check: total_user_repaid is the amount that trickled down to retail
+        if total_user_repaid <= self.total_user_repaid_at_last_claim {
+            return 0;
+        }
+
+        let total_share_ever = (self.amount_invested as u128)
+            .checked_mul(total_user_repaid as u128)
             .unwrap_or(0)
-            .checked_div(total_raised as u128)
+            .checked_div(user_funded as u128)
             .unwrap_or(0) as u64;
         
-        share.saturating_sub(self.claimed_returns)
+        total_share_ever.saturating_sub(self.claimed_returns)
     }
 }
 

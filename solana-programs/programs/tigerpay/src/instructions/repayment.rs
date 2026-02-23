@@ -5,6 +5,7 @@ use crate::state::*;
 use crate::errors::TigerPayError;
 use crate::MakeRepayment;
 use crate::ClaimReturns;
+use crate::{REPAYMENT_SOURCE_MANUAL, REPAYMENT_INTERVAL_SECS};
 
 /// Manual repayment — merchant signs and sends payment.
 /// This is the FALLBACK path; route_repayment (x402) is the primary path.
@@ -40,11 +41,11 @@ pub fn make_repayment(ctx: Context<MakeRepayment>, amount: u64) -> Result<()> {
     )?;
 
     vault.total_repaid = vault.total_repaid.checked_add(amount).ok_or(TigerPayError::ArithmeticOverflow)?;
-    vault.repayment_source = 0; // manual
+    vault.repayment_source = REPAYMENT_SOURCE_MANUAL;
 
     // Advance payment schedule (30-day intervals)
     if vault.next_payment_due > 0 && clock.unix_timestamp >= vault.next_payment_due {
-        vault.next_payment_due = clock.unix_timestamp + (30 * 24 * 60 * 60);
+        vault.next_payment_due = clock.unix_timestamp + REPAYMENT_INTERVAL_SECS;
     }
 
     msg!("Manual repayment received: {} from merchant {}", amount, ctx.accounts.merchant.key());
@@ -57,7 +58,7 @@ pub fn make_repayment(ctx: Context<MakeRepayment>, amount: u64) -> Result<()> {
         vault.state = VaultState::Repaying;
         // Set first payment due 30 days from now if not already set
         if vault.next_payment_due == 0 {
-            vault.next_payment_due = clock.unix_timestamp + (30 * 24 * 60 * 60);
+            vault.next_payment_due = clock.unix_timestamp + REPAYMENT_INTERVAL_SECS;
         }
     }
 
@@ -70,8 +71,14 @@ pub fn claim_returns(ctx: Context<ClaimReturns>) -> Result<()> {
     let investor_account = &mut ctx.accounts.investor_account;
 
     require!(vault.is_repaying() || vault.state == VaultState::Completed, TigerPayError::InvalidVaultState);
+    let clock = Clock::get()?;
 
-    let claimable = investor_account.calculate_claimable(vault.total_raised, vault.total_repaid);
+    // Waterfall derived available pool for retail
+    let total_user_repaid = vault.total_repaid
+        .saturating_sub(vault.total_senior_repaid)
+        .saturating_sub(vault.total_pool_repaid);
+
+    let claimable = investor_account.calculate_claimable(vault.user_funded, total_user_repaid);
     require!(claimable > 0, TigerPayError::NoReturnsAvailable);
 
     let seeds = &[b"vault", vault.merchant.as_ref(), &[vault.vault_nonce], &[vault.bump]];
@@ -91,7 +98,8 @@ pub fn claim_returns(ctx: Context<ClaimReturns>) -> Result<()> {
     )?;
 
     investor_account.claimed_returns = investor_account.claimed_returns.checked_add(claimable).ok_or(TigerPayError::ArithmeticOverflow)?;
-    investor_account.last_claim_at = Clock::get()?.unix_timestamp;
+    investor_account.last_claim_at = clock.unix_timestamp;
+    investor_account.total_user_repaid_at_last_claim = total_user_repaid;
 
     msg!("Returns claimed: {} by investor {}", claimable, ctx.accounts.investor.key());
     Ok(())

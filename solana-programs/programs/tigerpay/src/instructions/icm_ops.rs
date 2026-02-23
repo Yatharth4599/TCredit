@@ -39,7 +39,7 @@ pub fn create_icm_vault(
     icm_vault.total_raised = 0;
 
     icm_vault.state = ICMState::Offered;
-    icm_vault.offering_deadline = clock.unix_timestamp + (offering_days as i64 * 24 * 60 * 60);
+    icm_vault.offering_deadline = clock.unix_timestamp + (offering_days as i64 * crate::SECONDS_PER_DAY);
     icm_vault.created_at = clock.unix_timestamp;
 
     icm_vault.platform_fee_bps = config.default_fee_bps;

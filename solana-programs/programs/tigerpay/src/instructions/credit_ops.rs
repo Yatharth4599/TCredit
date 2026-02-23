@@ -3,22 +3,23 @@ use anchor_lang::prelude::*;
 use crate::state::*;
 use crate::errors::TigerPayError;
 use crate::events::*;
-use crate::UpdateCreditScore;
+use crate::{UpdateCreditScore, MAX_CREDIT_SCORE};
 
-// Credit tier thresholds (FairScale 0-1000 scale)
-pub const TIER_A_MIN: u16 = 750;  // A: 750-1000 — full access
-pub const TIER_B_MIN: u16 = 600;  // B: 600-749  — standard access
-pub const TIER_C_MIN: u16 = 450;  // C: 450-599  — restricted (lower max vault target)
-pub const TIER_D_MAX: u16 = 449;  // D: 0-449    — blocked from new vaults
+/// Credit tier thresholds (FairScale 0-1000 scale).
+/// These determine access level for vault creation and pool eligibility.
+pub const TIER_A_MIN: u16 = 750;  // Full access, best rates
+pub const TIER_B_MIN: u16 = 600;  // Standard access
+pub const TIER_C_MIN: u16 = 450;  // Restricted (lower max vault target)
+// Below 450 = Tier D: blocked from new vault creation
 
-/// Updates a merchant's credit score from the FairScale oracle.
-/// Only the platform authority (acting as oracle relay) can call this.
-/// Score is on a 0-1000 scale. Tier is automatically derived.
+/// Updates a merchant's on-chain credit score from the FairScale oracle relay.
+/// Only callable by platform authority. Score is on a 0-1000 scale.
+/// Tier is automatically derived from score thresholds.
 pub fn update_credit_score(
     ctx: Context<UpdateCreditScore>,
     new_score: u16,
 ) -> Result<()> {
-    require!(new_score <= 1000, TigerPayError::InvalidInterestRate); // reusing range error
+    require!(new_score <= MAX_CREDIT_SCORE, TigerPayError::InvalidCreditScore);
     
     let merchant_profile = &mut ctx.accounts.merchant_profile;
     let clock = Clock::get()?;
@@ -43,8 +44,11 @@ pub fn update_credit_score(
     Ok(())
 }
 
-/// Derives tier from score:
-/// 3=A (750+), 2=B (600+), 1=C (450+), 0=D (below 450)
+/// Derives credit tier from raw score:
+///   3 = A (750+): full access, best rates
+///   2 = B (600-749): standard access
+///   1 = C (450-599): restricted, lower limits
+///   0 = D (0-449): blocked from new vaults
 fn derive_tier(score: u16) -> u8 {
     if score >= TIER_A_MIN { 3 }
     else if score >= TIER_B_MIN { 2 }

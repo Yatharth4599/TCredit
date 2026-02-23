@@ -5,6 +5,7 @@ use crate::state::*;
 use crate::errors::TigerPayError;
 use crate::events::*;
 use crate::RouteRepayment;
+use crate::{REPAYMENT_SOURCE_X402, REPAYMENT_INTERVAL_SECS};
 
 /// Primary automated repayment path.
 /// Called by the settlement oracle/crank — NOT the merchant.
@@ -38,7 +39,7 @@ pub fn route_repayment(ctx: Context<RouteRepayment>, amount: u64) -> Result<()> 
     vault.total_repaid = vault.total_repaid
         .checked_add(amount)
         .ok_or(TigerPayError::ArithmeticOverflow)?;
-    vault.repayment_source = 1; // x402 routed
+    vault.repayment_source = REPAYMENT_SOURCE_X402;
 
     // Update settlement tracking
     settlement.total_routed = settlement.total_routed
@@ -48,12 +49,21 @@ pub fn route_repayment(ctx: Context<RouteRepayment>, amount: u64) -> Result<()> 
         .checked_add(1)
         .ok_or(TigerPayError::ArithmeticOverflow)?;
 
-    // Late fee calculation
+    // Late fee calculation — add to total owed
     let late_fee = vault.calculate_late_fee(clock.unix_timestamp);
     if late_fee > 0 {
         vault.total_late_fees = vault.total_late_fees
             .checked_add(late_fee)
             .ok_or(TigerPayError::ArithmeticOverflow)?;
+        vault.total_to_repay = vault.total_to_repay
+            .checked_add(late_fee)
+            .ok_or(TigerPayError::ArithmeticOverflow)?;
+        msg!("Late fee applied: {}", late_fee);
+    }
+
+    // Advance payment schedule (30-day intervals)
+    if vault.next_payment_due > 0 && clock.unix_timestamp >= vault.next_payment_due {
+        vault.next_payment_due = clock.unix_timestamp + REPAYMENT_INTERVAL_SECS;
     }
 
     msg!("Route repayment: {} via x402 oracle for vault {}", amount, vault.key());
@@ -62,9 +72,13 @@ pub fn route_repayment(ctx: Context<RouteRepayment>, amount: u64) -> Result<()> 
     // Check if fully repaid
     if vault.total_repaid >= vault.total_to_repay {
         vault.state = VaultState::Completed;
+        vault.next_payment_due = 0;
         msg!("Vault fully repaid via x402 routing, now COMPLETED");
     } else if vault.state == VaultState::Active {
         vault.state = VaultState::Repaying;
+        if vault.next_payment_due == 0 {
+            vault.next_payment_due = clock.unix_timestamp + REPAYMENT_INTERVAL_SECS;
+        }
     }
 
     emit!(RepaymentRouted {
