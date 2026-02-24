@@ -2,13 +2,17 @@
 
 **Document purpose:** Define the scope of the TigerPayX platform for development teams. Use this as the single source of truth for what we are building and how money flows.
 
-**Vision:** TigerPayX is a **programmable credit network** — a decentralized lending platform where repayment is enforced automatically through payment routing rather than relying on borrower behaviour.
+**Vision:** TigerPayX is **The Programmable Credit Network** — a decentralized lending platform in the category of **Programmable Credit (Cash-Flow Backed Capital Markets)**, where repayment is enforced automatically through payment routing rather than relying on borrower behaviour.
 
 ---
 
 ## 1. Product overview
 
-TigerPayX connects real-world business revenue to on-chain liquidity.
+TigerPayX is **The Programmable Credit Network** — a platform in the category of **Programmable Credit (Cash-Flow Backed Capital Markets)**.
+
+Global businesses operate online, but capital does not. Small and mid-sized companies generate verifiable digital revenue every day — subscriptions, trade payments, API usage, recurring invoices — yet access to financing still depends on geography, collateral, and manual approvals.
+
+TigerPayX introduces a new primitive: **programmable credit**. Instead of lending against assets or reputation, the protocol lends against enforceable payment flow. When revenue is programmable, repayment becomes automatic — and capital can be allocated globally.
 
 Businesses bill customers through TigerPayX payment endpoints. Incoming payments are automatically split — a portion services the loan, the remainder reaches the merchant. There is no manual repayment step. **Repayment is structural, not behavioural.**
 
@@ -16,7 +20,7 @@ This replaces:
 - Traditional finance: geography, collateral, manual enforcement
 - DeFi: overcollateralization, no real-world evaluation
 
-TigerPayX lends against **enforceable payment flow**, not assets.
+TigerPayX lends against **enforceable payment flow**, not assets. Revenue becomes lendable only when it becomes enforceable. Credit risk becomes activity risk.
 
 ---
 
@@ -149,7 +153,23 @@ Use this example to validate all flows and for QA.
 
 ---
 
-## 7. Open decisions — for boss to resolve before dev starts
+## 7. Loan types & economics
+
+| Type | Typical cost | Max duration |
+|---|---|---|
+| Working capital lines | ~2% monthly | 12 months |
+| Invoice financing | ~2% monthly | 12 months |
+| Trade finance | ~2% monthly | 12 months |
+
+Capital scales with business performance rather than approvals.
+
+### The economic flywheel
+
+Payments generate data → Data unlocks credit → Credit grows business → Growth generates more payments → Liquidity flows toward productivity automatically.
+
+---
+
+## 8. Open decisions — for boss to resolve before dev starts
 
 > ⚠️ The following questions are **blocking** for development teams.
 

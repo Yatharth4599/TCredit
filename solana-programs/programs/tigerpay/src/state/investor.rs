@@ -47,8 +47,7 @@ impl InvestorAccount {
         }
 
         let total_share_ever = (self.amount_invested as u128)
-            .checked_mul(total_user_repaid as u128)
-            .unwrap_or(0)
+            .saturating_mul(total_user_repaid as u128)
             .checked_div(user_funded as u128)
             .unwrap_or(0) as u64;
         

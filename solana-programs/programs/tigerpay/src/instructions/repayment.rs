@@ -3,6 +3,7 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 use crate::state::*;
 use crate::errors::TigerPayError;
+use crate::events::*;
 use crate::MakeRepayment;
 use crate::ClaimReturns;
 use crate::{REPAYMENT_SOURCE_MANUAL, REPAYMENT_INTERVAL_SECS};
@@ -28,6 +29,19 @@ pub fn make_repayment(ctx: Context<MakeRepayment>, amount: u64) -> Result<()> {
         msg!("Late fee applied: {}", late_fee);
     }
 
+    // State updates BEFORE CPI (checks-effects-interactions pattern)
+    vault.total_repaid = vault.total_repaid.checked_add(amount).ok_or(TigerPayError::ArithmeticOverflow)?;
+    vault.repayment_source = REPAYMENT_SOURCE_MANUAL;
+
+    // Sequential waterfall: Senior → Pools → Retail
+    let (senior_payment, pool_payment, user_payment) = vault.distribute_waterfall(amount);
+
+    // Advance payment schedule (30-day intervals)
+    if vault.next_payment_due > 0 && clock.unix_timestamp >= vault.next_payment_due {
+        vault.next_payment_due = clock.unix_timestamp + REPAYMENT_INTERVAL_SECS;
+    }
+
+    // CPI transfer AFTER state updates
     token::transfer(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
@@ -40,14 +54,6 @@ pub fn make_repayment(ctx: Context<MakeRepayment>, amount: u64) -> Result<()> {
         amount,
     )?;
 
-    vault.total_repaid = vault.total_repaid.checked_add(amount).ok_or(TigerPayError::ArithmeticOverflow)?;
-    vault.repayment_source = REPAYMENT_SOURCE_MANUAL;
-
-    // Advance payment schedule (30-day intervals)
-    if vault.next_payment_due > 0 && clock.unix_timestamp >= vault.next_payment_due {
-        vault.next_payment_due = clock.unix_timestamp + REPAYMENT_INTERVAL_SECS;
-    }
-
     msg!("Manual repayment received: {} from merchant {}", amount, ctx.accounts.merchant.key());
 
     if vault.total_repaid >= vault.total_to_repay {
@@ -56,11 +62,29 @@ pub fn make_repayment(ctx: Context<MakeRepayment>, amount: u64) -> Result<()> {
         msg!("Vault fully repaid!");
     } else if vault.state == VaultState::Active {
         vault.state = VaultState::Repaying;
-        // Set first payment due 30 days from now if not already set
         if vault.next_payment_due == 0 {
             vault.next_payment_due = clock.unix_timestamp + REPAYMENT_INTERVAL_SECS;
         }
     }
+
+    emit!(RepaymentReceived {
+        vault: vault.key(),
+        merchant: ctx.accounts.merchant.key(),
+        amount,
+        late_fee,
+        total_repaid: vault.total_repaid,
+    });
+
+    emit!(WaterfallDistributed {
+        vault: vault.key(),
+        amount,
+        senior_payment,
+        pool_payment,
+        user_payment,
+        total_senior_repaid: vault.total_senior_repaid,
+        total_pool_repaid: vault.total_pool_repaid,
+        timestamp: clock.unix_timestamp,
+    });
 
     Ok(())
 }

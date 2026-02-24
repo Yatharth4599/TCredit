@@ -47,18 +47,15 @@ pub struct ReturnsClaimed {
 #[event]
 pub struct VaultDefaulted {
     pub vault: Pubkey,
-    pub merchant: Pubkey,
-    pub total_raised: u64,
     pub total_repaid: u64,
+    pub total_to_repay: u64,
     pub defaulted_at: i64,
 }
 
 #[event]
 pub struct VaultCancelled {
     pub vault: Pubkey,
-    pub merchant: Pubkey,
     pub total_raised: u64,
-    pub investor_count: u32,
     pub cancelled_at: i64,
 }
 
@@ -73,19 +70,21 @@ pub struct RefundClaimed {
 pub struct VaultPaused {
     pub vault: Pubkey,
     pub paused_by: Pubkey,
+    pub timestamp: i64,
 }
 
 #[event]
 pub struct VaultUnpaused {
     pub vault: Pubkey,
     pub unpaused_by: Pubkey,
+    pub timestamp: i64,
 }
 
 #[event]
 pub struct FundsRecovered {
     pub vault: Pubkey,
-    pub investor: Pubkey,
     pub amount: u64,
+    pub recovered_to: Pubkey,
 }
 
 // ============ ICM Events ============
@@ -223,54 +222,16 @@ pub struct CreditScoreUpdated {
     pub tier: u8,
 }
 
-// ============ Phase A: Critical Operations Events ============
-
 #[event]
-pub struct VaultDefaulted {
-    pub vault: Pubkey,
-    pub total_repaid: u64,
-    pub total_to_repay: u64,
-    pub defaulted_at: i64,
-}
-
-#[event]
-pub struct FundsRecovered {
+pub struct WaterfallDistributed {
     pub vault: Pubkey,
     pub amount: u64,
-    pub recovered_to: Pubkey,
-}
-
-#[event]
-pub struct VaultCancelled {
-    pub vault: Pubkey,
-    pub total_raised: u64,
-    pub cancelled_at: i64,
-}
-
-#[event]
-pub struct RefundClaimed {
-    pub vault: Pubkey,
-    pub investor: Pubkey,
-    pub amount: u64,
-}
-
-#[event]
-pub struct VaultPaused {
-    pub vault: Pubkey,
-    pub paused_by: Pubkey,
+    pub senior_payment: u64,
+    pub pool_payment: u64,
+    pub user_payment: u64,
+    pub total_senior_repaid: u64,
+    pub total_pool_repaid: u64,
     pub timestamp: i64,
 }
 
-#[event]
-pub struct VaultUnpaused {
-    pub vault: Pubkey,
-    pub unpaused_by: Pubkey,
-    pub timestamp: i64,
-}
 
-#[event]
-pub struct DividendsClaimed {
-    pub icm_vault: Pubkey,
-    pub investor: Pubkey,
-    pub amount: u64,
-}

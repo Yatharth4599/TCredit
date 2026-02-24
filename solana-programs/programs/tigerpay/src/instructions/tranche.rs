@@ -3,6 +3,7 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 use crate::state::*;
 use crate::errors::TigerPayError;
+use crate::events::*;
 use crate::InitializeTranche;
 use crate::ReleaseTranche;
 
@@ -46,10 +47,23 @@ pub fn release_tranche(ctx: Context<ReleaseTranche>, tranche_index: u8) -> Resul
     let platform_fee = tranche_amount * vault.platform_fee_bps as u64 / 10000;
     let merchant_amount = tranche_amount - platform_fee;
 
+    // State updates BEFORE CPI (checks-effects-interactions pattern)
+    tranche.released = true;
+    tranche.released_at = clock.unix_timestamp;
+    tranche.amount = tranche_amount;
+
+    vault.tranches_released += 1;
+    vault.platform_fees_collected += platform_fee;
+
+    if vault.tranches_released >= vault.num_tranches && vault.is_active() {
+        vault.state = VaultState::Repaying;
+        msg!("All tranches released, vault now REPAYING");
+    }
+
     let seeds = &[b"vault", vault.merchant.as_ref(), &[vault.vault_nonce], &[vault.bump]];
     let signer_seeds = &[&seeds[..]];
 
-    // Transfer to merchant
+    // CPI transfers AFTER state updates
     token::transfer(
         CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
@@ -63,7 +77,6 @@ pub fn release_tranche(ctx: Context<ReleaseTranche>, tranche_index: u8) -> Resul
         merchant_amount,
     )?;
 
-    // Transfer platform fee
     token::transfer(
         CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
@@ -77,19 +90,14 @@ pub fn release_tranche(ctx: Context<ReleaseTranche>, tranche_index: u8) -> Resul
         platform_fee,
     )?;
 
-    tranche.released = true;
-    tranche.released_at = clock.unix_timestamp;
-    tranche.amount = tranche_amount;
-
-    vault.tranches_released += 1;
-    vault.platform_fees_collected += platform_fee;
-
     msg!("Tranche {} released: {} to merchant", tranche_index, merchant_amount);
 
-    if vault.tranches_released >= vault.num_tranches && vault.is_active() {
-        vault.state = VaultState::Repaying;
-        msg!("All tranches released, vault now REPAYING");
-    }
+    emit!(TrancheReleased {
+        vault: vault.key(),
+        tranche_index,
+        merchant_amount,
+        platform_fee,
+    });
 
     Ok(())
 }

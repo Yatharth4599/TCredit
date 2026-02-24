@@ -8,6 +8,7 @@ pub mod state;
 pub mod errors;
 pub mod events;
 pub mod instructions;
+pub mod security;
 
 pub use state::*;
 pub use errors::*;
@@ -179,8 +180,15 @@ pub mod tigerpay {
         instructions::route_repayment::route_repayment(ctx, amount, proof)
     }
 
-    pub fn create_settlement(ctx: Context<CreateSettlement>, repayment_rate_bps: u16) -> Result<()> {
-        instructions::settlement_ops::create_settlement(ctx, repayment_rate_bps)
+    pub fn create_settlement(
+        ctx: Context<CreateSettlement>,
+        repayment_rate_bps: u16,
+        min_payment_interval_secs: Option<i64>,
+        max_single_payment: Option<u64>,
+    ) -> Result<()> {
+        instructions::settlement_ops::create_settlement(
+            ctx, repayment_rate_bps, min_payment_interval_secs, max_single_payment,
+        )
     }
 
     // ============ Programmable Credit: Liquidity Pools ============
@@ -640,6 +648,10 @@ pub struct RouteRepayment<'info> {
         constraint = vault_token_account.key() == vault.vault_token_account @ TigerPayError::InvalidAccount,
     )]
     pub vault_token_account: Account<'info, TokenAccount>,
+
+    /// CHECK: Instructions sysvar used for Ed25519 signature introspection. Validated by address constraint against the known sysvar ID.
+    #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
+    pub instructions_sysvar: AccountInfo<'info>,
 
     pub token_program: Program<'info, Token>,
 }

@@ -5,6 +5,9 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use crate::state::*;
 use crate::errors::TigerPayError;
 use crate::events::*;
+use crate::security::signature::{
+    X402PaymentMessage, verify_oracle_signature, validate_message_params,
+};
 use crate::RouteRepayment;
 use crate::{REPAYMENT_SOURCE_X402, REPAYMENT_INTERVAL_SECS, MAX_MESSAGE_AGE_SECS};
 
@@ -14,6 +17,7 @@ pub struct X402PaymentProof {
     pub amount: u64,
     pub timestamp: i64,
     pub payment_source: [u8; 32],
+    pub repayment_rate_bps: u16,
     pub signature: [u8; 64],
 }
 
@@ -52,6 +56,30 @@ pub fn route_repayment(
             settlement.check_replay(payment_id),
             TigerPayError::NonceAlreadyUsed
         );
+
+        // Construct the signed message and verify oracle signature
+        let message = X402PaymentMessage {
+            nonce: p.nonce,
+            vault: vault.key(),
+            amount: p.amount,
+            payment_source: p.payment_source,
+            timestamp: p.timestamp,
+            repayment_rate_bps: p.repayment_rate_bps,
+        };
+
+        verify_oracle_signature(
+            &message,
+            &p.signature,
+            &settlement.oracle_authority,
+            &ctx.accounts.instructions_sysvar,
+        )?;
+
+        validate_message_params(
+            &message,
+            &vault.key(),
+            amount,
+            clock.unix_timestamp,
+        )?;
     }
 
     require!(
@@ -59,22 +87,14 @@ pub fn route_repayment(
         TigerPayError::RateLimitExceeded
     );
 
-    token::transfer(
-        CpiContext::new(
-            ctx.accounts.token_program.to_account_info(),
-            Transfer {
-                from: ctx.accounts.oracle_token_account.to_account_info(),
-                to: ctx.accounts.vault_token_account.to_account_info(),
-                authority: ctx.accounts.oracle_authority.to_account_info(),
-            },
-        ),
-        amount,
-    )?;
-
+    // State updates BEFORE CPI (checks-effects-interactions pattern)
     vault.total_repaid = vault.total_repaid
         .checked_add(amount)
         .ok_or(TigerPayError::ArithmeticOverflow)?;
     vault.repayment_source = REPAYMENT_SOURCE_X402;
+
+    // Sequential waterfall: Senior → Pools → Retail
+    let (senior_payment, pool_payment, user_payment) = vault.distribute_waterfall(amount);
 
     settlement.total_routed = settlement.total_routed
         .checked_add(amount)
@@ -103,8 +123,6 @@ pub fn route_repayment(
         vault.next_payment_due = clock.unix_timestamp + REPAYMENT_INTERVAL_SECS;
     }
 
-    msg!("Route repayment: {} via x402 for vault {}", amount, vault.key());
-
     if vault.total_repaid >= vault.total_to_repay {
         vault.state = VaultState::Completed;
         vault.next_payment_due = 0;
@@ -116,11 +134,37 @@ pub fn route_repayment(
         }
     }
 
+    // CPI transfer AFTER state updates
+    token::transfer(
+        CpiContext::new(
+            ctx.accounts.token_program.to_account_info(),
+            Transfer {
+                from: ctx.accounts.oracle_token_account.to_account_info(),
+                to: ctx.accounts.vault_token_account.to_account_info(),
+                authority: ctx.accounts.oracle_authority.to_account_info(),
+            },
+        ),
+        amount,
+    )?;
+
+    msg!("Route repayment: {} via x402 for vault {}", amount, vault.key());
+
     emit!(RepaymentRouted {
         vault: vault.key(),
         amount,
         source: 1,
         total_repaid: vault.total_repaid,
+        timestamp: clock.unix_timestamp,
+    });
+
+    emit!(WaterfallDistributed {
+        vault: vault.key(),
+        amount,
+        senior_payment,
+        pool_payment,
+        user_payment,
+        total_senior_repaid: vault.total_senior_repaid,
+        total_pool_repaid: vault.total_pool_repaid,
         timestamp: clock.unix_timestamp,
     });
 

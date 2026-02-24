@@ -75,8 +75,16 @@ pub fn invest(ctx: Context<Invest>, amount: u64) -> Result<()> {
     // Check if target reached
     if vault.total_raised >= vault.target_amount {
         vault.state = VaultState::Active;
-        let interest = (vault.total_raised as u128).checked_mul(vault.interest_rate_bps as u128).unwrap().checked_mul(vault.duration_months as u128).unwrap().checked_div(10000 * 12).unwrap() as u64;
-        vault.total_to_repay = vault.total_raised.checked_add(interest).unwrap();
+        let interest = (vault.total_raised as u128)
+            .checked_mul(vault.interest_rate_bps as u128)
+            .ok_or(TigerPayError::ArithmeticOverflow)?
+            .checked_mul(vault.duration_months as u128)
+            .ok_or(TigerPayError::ArithmeticOverflow)?
+            .checked_div(10000 * 12)
+            .ok_or(TigerPayError::ArithmeticOverflow)? as u64;
+        vault.total_to_repay = vault.total_raised
+            .checked_add(interest)
+            .ok_or(TigerPayError::ArithmeticOverflow)?;
         msg!("Fundraising complete! Total to repay: {}", vault.total_to_repay);
     }
 

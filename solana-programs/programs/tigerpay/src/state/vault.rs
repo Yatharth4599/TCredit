@@ -133,8 +133,39 @@ impl MerchantVault {
         }
         let days_late = ((current_time - self.next_payment_due) / crate::SECONDS_PER_DAY) as u64;
         let remaining = self.total_to_repay.saturating_sub(self.total_repaid);
-        // Late fee = remaining * late_fee_bps * days_late / 10000
-        remaining.saturating_mul(self.late_fee_bps as u64).saturating_mul(days_late) / 10000
+        remaining.saturating_mul(self.late_fee_bps as u64)
+            .saturating_mul(days_late)
+            .checked_div(10000)
+            .unwrap_or(0)
+    }
+
+    /// Distributes a repayment amount through the sequential waterfall:
+    ///   1. Senior Tranche (Jupiter/Treasury) — platform capital returned first
+    ///   2. Liquidity Pools — partner pool allocations returned second
+    ///   3. Community (Retail) — investor principal + interest last
+    /// Returns (senior_payment, pool_payment, user_payment).
+    pub fn distribute_waterfall(&mut self, amount: u64) -> (u64, u64, u64) {
+        // Senior = any funding not from pools or retail investors
+        let senior_funded = self.total_raised
+            .saturating_sub(self.pool_funded)
+            .saturating_sub(self.user_funded);
+
+        let mut remaining = amount;
+
+        // 1. Senior tranche gets repaid first
+        let senior_owed = senior_funded.saturating_sub(self.total_senior_repaid);
+        let senior_payment = remaining.min(senior_owed);
+        self.total_senior_repaid = self.total_senior_repaid.saturating_add(senior_payment);
+        remaining = remaining.saturating_sub(senior_payment);
+
+        // 2. Liquidity pools get repaid second
+        let pool_owed = self.pool_funded.saturating_sub(self.total_pool_repaid);
+        let pool_payment = remaining.min(pool_owed);
+        self.total_pool_repaid = self.total_pool_repaid.saturating_add(pool_payment);
+        remaining = remaining.saturating_sub(pool_payment);
+
+        // 3. Remainder flows to community/retail investors (derived, not stored)
+        (senior_payment, pool_payment, remaining)
     }
 
     pub fn should_default(&self, current_time: i64) -> bool {

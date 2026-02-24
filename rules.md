@@ -1,5 +1,8 @@
 # TigerPayX — AI Agent Development Rules
 
+## 0. Rule Zero: Git Protocol
+- **NEVER COMMIT OR PUSH TO GIT WITHOUT EXPLICIT USER CONSENT.** Even if a task is "complete," you must wait for the user to verify the changes and give the "go ahead" to commit.
+
 These rules are mandatory for all AI agents working on the TigerPayX codebase. They ensure professional grade, audit-ready code and prevent "vibecoding" (lazy patterns/placeholders).
 
 ## 1. Project Architecture

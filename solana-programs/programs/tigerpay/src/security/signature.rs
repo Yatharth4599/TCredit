@@ -1,4 +1,7 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::ed25519_program;
+use anchor_lang::solana_program::instruction::Instruction;
+use anchor_lang::solana_program::sysvar::instructions as ixs_sysvar;
 
 /// Message structure for x402 payment proof signed by oracle
 /// This ensures the oracle cannot be bypassed and provides replay protection
@@ -37,44 +40,88 @@ pub enum SignatureError {
     VaultMismatch,
     #[msg("Amount mismatch in signed message")]
     AmountMismatch,
+    #[msg("Ed25519 program not found in transaction")]
+    Ed25519ProgramNotFound,
+    #[msg("Invalid Ed25519 instruction data")]
+    InvalidEd25519InstructionData,
 }
 
 /// Maximum age for a signed message (5 minutes)
 pub const MAX_MESSAGE_AGE_SECS: i64 = 300;
 
-/// Verify an Ed25519 signature against a message
-/// Returns the message if signature is valid
+/// Verify an Ed25519 signature by introspecting the transaction's instruction list.
+/// The caller must include an Ed25519SigVerify instruction in the same transaction
+/// prior to this instruction. This function verifies that the Ed25519 program
+/// validated the oracle's signature over the serialized message.
 pub fn verify_oracle_signature(
     message: &X402PaymentMessage,
     signature: &[u8],
     oracle_pubkey: &Pubkey,
+    instructions_sysvar: &AccountInfo,
 ) -> Result<()> {
-    // Signature must be 64 bytes for Ed25519
     require!(
         signature.len() == 64,
         SignatureError::InvalidSignatureLength
     );
 
-    // Serialize the message for hashing
     let message_bytes = message.try_to_vec()
         .map_err(|_| SignatureError::MessageHashFailed)?;
 
-    // Use Solana's built-in Ed25519 signature verification
-    // This is done via a sysvar instruction that gets verified by the runtime
-    // For now, we'll use a placeholder that will be replaced with actual verification
+    // Scan preceding instructions for a matching Ed25519SigVerify instruction
+    let current_ix_index = ixs_sysvar::load_current_index_checked(instructions_sysvar)
+        .map_err(|_| SignatureError::Ed25519ProgramNotFound)?;
 
-    // Note: In production, this would use `solana_program::ed25519::verify`
-    // which requires the Ed25519SigVerify1111111111111111111111111111 program
+    let mut found = false;
+    for i in 0..current_ix_index {
+        let ix: Instruction = ixs_sysvar::load_instruction_at_checked(i as usize, instructions_sysvar)
+            .map_err(|_| SignatureError::Ed25519ProgramNotFound)?;
 
-    // Placeholder: In actual implementation, call the Ed25519 verification program
-    // For development/testing, we log the verification attempt
-    msg!("Oracle signature verification for vault: {}", message.vault);
-    msg!("Nonce: {}, Amount: {}", message.nonce, message.amount);
+        if ix.program_id != ed25519_program::ID {
+            continue;
+        }
 
-    // TODO: Replace with actual Ed25519 verification
-    // This requires including the Ed25519 program in the instruction
-    // and passing the signature through CPI
+        // Ed25519 instruction data layout (per Solana docs):
+        // [0..2]   num_signatures (u16 LE)
+        // [2..4]   padding
+        // For each signature:
+        // [4..6]   signature_offset (u16 LE)
+        // [6..8]   signature_ix_index (u16 LE)
+        // [8..10]  pubkey_offset (u16 LE)
+        // [10..12] pubkey_ix_index (u16 LE)
+        // [12..14] message_data_offset (u16 LE)
+        // [14..16] message_data_size (u16 LE)
+        // [16..18] message_ix_index (u16 LE)
+        // Then: signature (64 bytes), pubkey (32 bytes), message (variable)
+        if ix.data.len() < 16 + 64 + 32 {
+            continue;
+        }
 
+        let sig_offset = u16::from_le_bytes([ix.data[4], ix.data[5]]) as usize;
+        let pk_offset = u16::from_le_bytes([ix.data[8], ix.data[9]]) as usize;
+        let msg_offset = u16::from_le_bytes([ix.data[12], ix.data[13]]) as usize;
+        let msg_size = u16::from_le_bytes([ix.data[14], ix.data[15]]) as usize;
+
+        if sig_offset + 64 > ix.data.len()
+            || pk_offset + 32 > ix.data.len()
+            || msg_offset + msg_size > ix.data.len()
+        {
+            continue;
+        }
+
+        let ix_sig = &ix.data[sig_offset..sig_offset + 64];
+        let ix_pk = &ix.data[pk_offset..pk_offset + 32];
+        let ix_msg = &ix.data[msg_offset..msg_offset + msg_size];
+
+        if ix_pk == oracle_pubkey.to_bytes()
+            && ix_sig == signature
+            && ix_msg == message_bytes.as_slice()
+        {
+            found = true;
+            break;
+        }
+    }
+
+    require!(found, SignatureError::SignatureVerificationFailed);
     Ok(())
 }
 
@@ -85,19 +132,16 @@ pub fn validate_message_params(
     expected_amount: u64,
     current_time: i64,
 ) -> Result<()> {
-    // Verify vault matches
     require!(
         message.vault == *expected_vault,
         SignatureError::VaultMismatch
     );
 
-    // Verify amount (allow any amount up to expected for flexibility)
     require!(
         message.amount > 0 && message.amount <= expected_amount,
         SignatureError::AmountMismatch
     );
 
-    // Verify timestamp is within acceptable range
     let age = current_time - message.timestamp;
     require!(
         age >= 0,
