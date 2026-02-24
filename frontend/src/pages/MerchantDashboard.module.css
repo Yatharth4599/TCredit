@@ -1,936 +1,355 @@
-/* ============================================
-   MERCHANT DASHBOARD - Minimalist Design
-   ============================================ */
-
-.merchant {
-    min-height: 100vh;
-    background: #050505;
-    padding: 100px 24px 60px;
-    position: relative;
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-/* Ambient Background */
-.ambientGlow {
-    position: fixed;
-    top: -20%;
-    left: -10%;
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(
-        ellipse at center,
-        rgba(52, 211, 153, 0.06) 0%,
-        transparent 60%
-    );
-    filter: blur(80px);
-    pointer-events: none;
+/* Stats Row */
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
 }
 
-/* ============================================
-   HEADER
-   ============================================ */
-
-.header {
-    max-width: 1200px;
-    margin: 0 auto 40px;
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+/* Main layout */
+.main {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 16px;
+  align-items: flex-start;
 }
 
-.header.visible {
-    opacity: 1;
-    transform: translateY(0);
+.leftCol, .rightCol {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.headerContent {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+/* Section header */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
 }
 
-.overline {
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: rgba(52, 211, 153, 0.8);
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
-.title {
-    font-size: clamp(1.75rem, 4vw, 2.5rem);
-    font-weight: 700;
-    color: #fff;
+.sectionIcon { color: var(--color-orange); }
+
+.liveBadge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #22c55e;
+  padding: 3px 8px;
+  background: rgba(34,197,94,0.1);
+  border: 1px solid rgba(34,197,94,0.2);
+  border-radius: 20px;
 }
 
-.createBtn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 24px;
-    background: linear-gradient(135deg, #ff6b35, #ff8f6b);
-    color: #000;
-    font-size: 0.9rem;
-    font-weight: 600;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
+.liveDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: pulse 1.5s infinite;
 }
 
-.createBtn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(255, 107, 53, 0.3);
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
-/* ============================================
-   MAIN CONTENT LAYOUT
-   ============================================ */
-
-.content {
-    max-width: 1200px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 360px 1fr;
-    gap: 24px;
+/* Payment list */
+.paymentList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.leftColumn {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+.paymentRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+  border: 1px solid transparent;
 }
 
-.rightColumn {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    min-width: 0;
+.paymentRow:hover {
+  background: rgba(255,255,255,0.03);
 }
 
-/* ============================================
-   CREDIT SCORE CARD
-   ============================================ */
-
-.creditCard {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 16px;
-    padding: 24px;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+.paymentRowActive {
+  background: rgba(255,107,53,0.06) !important;
+  border-color: rgba(255,107,53,0.15);
 }
 
-.creditCard.visible {
-    opacity: 1;
-    transform: translateY(0);
+.paymentLeft { flex: 1; }
+.paymentSource {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: monospace;
 }
+.paymentVault { font-size: 0.7rem; color: var(--text-tertiary); }
 
-.creditHeader {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 24px;
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.5);
-}
+.paymentRight { text-align: right; }
+.paymentAmount { display: block; font-size: 0.88rem; font-weight: 700; color: var(--color-orange); }
+.paymentTime { font-size: 0.68rem; color: var(--text-tertiary); }
 
-.ratingBadge {
-    padding: 4px 12px;
-    background: rgba(52, 211, 153, 0.15);
-    color: #34d399;
-    font-size: 0.75rem;
-    font-weight: 600;
-    border-radius: 100px;
-}
+.paymentChevron { color: var(--text-tertiary); flex-shrink: 0; }
 
-.creditScoreContainer {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 24px;
-}
-
-.creditScoreRing {
-    position: relative;
-    width: 160px;
-    height: 160px;
-}
-
-.creditScoreRing svg {
-    width: 100%;
-    height: 100%;
-}
-
-.creditScoreValue {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-.scoreNumber {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #fff;
-    line-height: 1;
-}
-
-.scoreMax {
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.4);
-    margin-top: 4px;
-}
-
-.creditDetails {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding-top: 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.creditDetailRow {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.85rem;
-}
-
-.creditDetailRow span:first-child {
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.creditDetailValue {
-    color: #fff;
-    font-weight: 500;
-}
-
-/* ============================================
-   STATS GRID
-   ============================================ */
-
-.statsGrid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
-}
-
-.statCard {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
-    padding: 16px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.statCard.visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.statLabel {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.statValue {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #fff;
-}
-
-/* ============================================
-   SCHEDULE CARD
-   ============================================ */
-
-.scheduleCard,
-.actionsCard {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 16px;
-    padding: 20px;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.scheduleCard.visible,
-.actionsCard.visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.cardTitle {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #fff;
-    margin-bottom: 16px;
-}
-
-.scheduleList {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-}
-
-.scheduleItem {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.scheduleItem:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-}
-
-.scheduleItem:first-child {
-    padding-top: 0;
-}
-
-.scheduleInfo {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.scheduleDate {
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: #fff;
-}
-
-.scheduleVault {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
-}
-
-.scheduleRight {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.scheduleAmount {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #fff;
-}
-
-.payNowBtn {
-    padding: 6px 12px;
-    background: rgba(255, 107, 53, 0.15);
-    color: #ff6b35;
-    font-size: 0.75rem;
-    font-weight: 600;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.payNowBtn:hover {
-    background: rgba(255, 107, 53, 0.25);
-}
-
-/* ============================================
-   VAULTS CARD
-   ============================================ */
-
-.vaultsCard {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 16px;
-    overflow: hidden;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.vaultsCard.visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.vaultsHeader {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 20px 24px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.vaultsHeader h2 {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #fff;
-}
-
-.vaultCount {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.4);
-}
-
-.vaultsList {
-    padding: 0;
+/* Vault cards */
+.vaultList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .vaultItem {
-    padding: 24px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    transition: background 0.3s ease;
+  padding: 14px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
 }
 
-.vaultItem:last-child {
-    border-bottom: none;
+.vaultTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
 }
 
-.vaultItem:hover {
-    background: rgba(255, 255, 255, 0.02);
+.vaultName {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 3px;
 }
 
-.vaultHeader {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 16px;
+.vaultMeta {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
 }
 
-.vaultInfo h4 {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #fff;
-    margin-bottom: 4px;
+.vaultStatus {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 20px;
+  border: 1px solid;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.vaultPurpose {
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.4);
+.vaultAmounts {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 10px;
 }
 
-.statusActive,
-.statusFundraising,
-.statusCompleted {
-    padding: 4px 10px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    border-radius: 4px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+.vaultAmt {}
+.vaultAmtVal { font-size: 1rem; font-weight: 700; color: var(--text-primary); display: block; }
+.vaultAmtLbl { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary); }
+
+.vaultProgressBar {
+  height: 4px;
+  background: var(--border-light);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 4px;
 }
 
-.statusActive {
-    background: rgba(52, 211, 153, 0.15);
-    color: #34d399;
+.vaultProgressFill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
 }
 
-.statusFundraising {
-    background: rgba(255, 107, 53, 0.15);
-    color: #ff6b35;
-}
-
-.statusCompleted {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.vaultStats {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 16px;
-    padding: 16px;
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 8px;
-}
-
-.vaultStat {
-    text-align: center;
-}
-
-.vaultStatValue {
-    display: block;
-    font-size: 1rem;
-    font-weight: 600;
-    color: #fff;
-    margin-bottom: 4px;
-}
-
-.vaultStatLabel {
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.4);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.vaultProgress {
-    margin-bottom: 16px;
-}
-
-.progressHeader {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 8px;
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.progressBar {
-    height: 6px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 3px;
-    overflow: hidden;
-}
-
-.progressFill {
-    height: 100%;
-    background: linear-gradient(90deg, #ff6b35, #ff8f6b);
-    border-radius: 3px;
-    transition: width 0.8s ease;
-}
-
-.progressGreen {
-    background: linear-gradient(90deg, #34d399, #22c55e);
-}
-
-.progressPercent {
-    display: block;
-    margin-top: 8px;
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
-}
-
-.nextPaymentInfo {
-    margin-top: 8px;
-    font-size: 0.75rem;
-    color: rgba(255, 107, 53, 0.8);
+.vaultProgressMeta {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  margin-bottom: 10px;
 }
 
 .vaultActions {
-    display: flex;
-    gap: 12px;
+  display: flex;
+  gap: 8px;
 }
 
 .repayBtn {
-    padding: 10px 20px;
-    background: linear-gradient(135deg, #ff6b35, #ff8f6b);
-    color: #000;
-    font-size: 0.85rem;
-    font-weight: 600;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.repayBtn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(255, 107, 53, 0.3);
+  flex: 1;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--gradient-primary);
+  border: none;
+  color: #000;
+  font-weight: 700;
+  font-size: 0.78rem;
+  cursor: pointer;
 }
 
 .manageBtn {
-    padding: 10px 20px;
-    background: transparent;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.85rem;
-    font-weight: 500;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.manageBtn:hover {
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.2);
+.manageBtn:hover { border-color: var(--border-highlight); color: var(--text-primary); }
+
+/* Create button */
+.createBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--gradient-primary);
+  border: none;
+  color: #000;
+  font-weight: 700;
+  font-size: 0.78rem;
+  cursor: pointer;
 }
 
-/* ============================================
-   QUICK ACTIONS
-   ============================================ */
-
-.actionsList {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-}
-
-.actionItem {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 16px 0;
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    cursor: pointer;
-    text-align: left;
-    transition: all 0.3s ease;
-    width: 100%;
-}
-
-.actionItem:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-}
-
-.actionItem:first-child {
-    padding-top: 0;
-}
-
-.actionItem:hover {
-    padding-left: 8px;
-}
-
-.actionIcon {
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-    color: #ff6b35;
-    flex-shrink: 0;
-}
-
-.actionInfo {
-    flex: 1;
-    min-width: 0;
-}
-
-.actionTitle {
-    display: block;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #fff;
-    margin-bottom: 4px;
-}
-
-.actionDesc {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
-}
-
-.actionItem svg:last-child {
-    color: rgba(255, 255, 255, 0.3);
-    flex-shrink: 0;
-    transition: transform 0.3s ease;
-}
-
-.actionItem:hover svg:last-child {
-    transform: translateX(4px);
-    color: #ff6b35;
-}
-
-/* ============================================
-   MODAL
-   ============================================ */
-
+/* Modal */
 .modalOverlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 24px;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(4px);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .modal {
-    background: #0a0a0a;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    width: 100%;
-    max-width: 500px;
-    overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--border-light);
+  border-radius: 20px;
+  width: 480px;
+  max-width: 90vw;
 }
 
 .modalHeader {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 20px 24px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 0;
 }
 
 .modalHeader h2 {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
 }
 
 .modalClose {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.5);
-    cursor: pointer;
-    border-radius: 6px;
-    transition: all 0.3s ease;
-}
-
-.modalClose:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border-light);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
 }
 
 .modalBody {
-    padding: 24px;
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.formGroup {
-    margin-bottom: 20px;
+.formLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  display: block;
+  margin-bottom: 4px;
 }
 
-.formGroup:last-child {
-    margin-bottom: 0;
+.formInput {
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  box-sizing: border-box;
+  resize: vertical;
 }
 
-.formGroup label {
-    display: block;
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.6);
-    margin-bottom: 8px;
-}
-
-.formGroup input,
-.formGroup textarea {
-    width: 100%;
-    padding: 12px 16px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    color: #fff;
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
-}
-
-.formGroup input:focus,
-.formGroup textarea:focus {
-    outline: none;
-    border-color: rgba(255, 107, 53, 0.5);
-    background: rgba(255, 255, 255, 0.08);
-}
-
-.formGroup input::placeholder,
-.formGroup textarea::placeholder {
-    color: rgba(255, 255, 255, 0.3);
-}
-
-.formGroup textarea {
-    resize: vertical;
-    min-height: 80px;
-}
+.formInput:focus { outline: none; border-color: rgba(255,107,53,0.3); }
+.formInput::placeholder { color: var(--text-tertiary); }
 
 .formRow {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 
-.inputWithPrefix {
-    display: flex;
-    align-items: center;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    overflow: hidden;
-    transition: all 0.3s ease;
-}
-
-.inputWithPrefix:focus-within {
-    border-color: rgba(255, 107, 53, 0.5);
-    background: rgba(255, 255, 255, 0.08);
-}
-
-.inputWithPrefix span {
-    padding: 12px 0 12px 16px;
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 0.9rem;
-}
-
-.inputWithPrefix input {
-    background: transparent;
-    border: none;
-    padding-left: 4px;
-}
-
-.inputWithPrefix input:focus {
-    background: transparent;
-    border: none;
-}
-
-.formInfo {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 12px 16px;
-    background: rgba(255, 107, 53, 0.08);
-    border-radius: 8px;
-    margin-top: 20px;
-}
-
-.formInfo svg {
-    color: #ff6b35;
-    flex-shrink: 0;
-    margin-top: 2px;
-}
-
-.formInfo span {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.6);
-    line-height: 1.5;
-}
+.formGroup { display: flex; flex-direction: column; }
 
 .modalFooter {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    padding: 16px 24px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-light);
 }
 
 .cancelBtn {
-    padding: 10px 20px;
-    background: transparent;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.9rem;
-    font-weight: 500;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.cancelBtn:hover {
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.2);
+  padding: 9px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  cursor: pointer;
 }
 
 .submitBtn {
-    padding: 10px 24px;
-    background: linear-gradient(135deg, #ff6b35, #ff8f6b);
-    color: #000;
-    font-size: 0.9rem;
-    font-weight: 600;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
+  padding: 9px 22px;
+  border-radius: 8px;
+  background: var(--gradient-primary);
+  border: none;
+  color: #000;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
 }
 
-.submitBtn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(255, 107, 53, 0.3);
-}
-
-/* ============================================
-   RESPONSIVE
-   ============================================ */
-
-@media (max-width: 1024px) {
-    .content {
-        grid-template-columns: 1fr;
-    }
-
-    .leftColumn {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-    }
-
-    .creditCard {
-        grid-column: span 2;
-    }
-
-    .statsGrid {
-        grid-template-columns: repeat(3, 1fr);
-        grid-column: span 2;
-    }
-
-    .scheduleCard {
-        grid-column: span 2;
-    }
+/* Responsive */
+@media (max-width: 1100px) {
+  .statsRow { grid-template-columns: 1fr 1fr; }
+  .main { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 768px) {
-    .merchant {
-        padding: 80px 16px 40px;
-    }
-
-    .header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 20px;
-    }
-
-    .leftColumn {
-        grid-template-columns: 1fr;
-    }
-
-    .creditCard,
-    .statsGrid,
-    .scheduleCard {
-        grid-column: span 1;
-    }
-
-    .statsGrid {
-        grid-template-columns: 1fr;
-    }
-
-    .vaultStats {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .vaultActions {
-        flex-direction: column;
-    }
-
-    .repayBtn,
-    .manageBtn {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .formRow {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 480px) {
-    .creditScoreRing {
-        width: 140px;
-        height: 140px;
-    }
-
-    .scoreNumber {
-        font-size: 2rem;
-    }
-
-    .vaultStats {
-        gap: 12px;
-    }
-
-    .vaultStatValue {
-        font-size: 0.9rem;
-    }
+  .statsRow { grid-template-columns: 1fr; }
 }
