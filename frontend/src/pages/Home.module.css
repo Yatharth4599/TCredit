@@ -545,6 +545,15 @@
     );
 }
 
+.swapCardAlt {
+    padding: 32px 28px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: #ffffff;
+}
+
 .swapCardHeader {
     display: flex;
     align-items: center;
@@ -560,6 +569,10 @@
     font-variant-numeric: tabular-nums;
 }
 
+.swapCardAlt .swapCardNumber {
+    color: rgba(0, 0, 0, 0.4);
+}
+
 .swapCardIcon {
     width: 44px;
     height: 44px;
@@ -571,6 +584,11 @@
     color: #fff;
 }
 
+.swapCardAlt .swapCardIcon {
+    background: rgba(255, 107, 53, 0.1);
+    color: #FF6B35;
+}
+
 .swapCardTitle {
     font-size: 1.3rem;
     font-weight: 600;
@@ -578,11 +596,19 @@
     margin-bottom: 12px;
 }
 
+.swapCardAlt .swapCardTitle {
+    color: #0a0a0a;
+}
+
 .swapCardDesc {
     font-size: 0.92rem;
     line-height: 1.65;
     color: rgba(255, 255, 255, 0.85);
     margin: 0;
+}
+
+.swapCardAlt .swapCardDesc {
+    color: rgba(0, 0, 0, 0.6);
 }
 
 @media (max-width: 1024px) {

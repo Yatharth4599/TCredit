@@ -293,7 +293,7 @@ export default function Home() {
                                     </div>
                                 </Card>
                                 <Card>
-                                    <div className={styles.swapCard}>
+                                    <div className={`${styles.swapCard} ${styles.swapCardAlt}`}>
                                         <div className={styles.swapCardHeader}>
                                             <span className={styles.swapCardNumber}>02</span>
                                             <div className={styles.swapCardIcon}>
@@ -321,7 +321,7 @@ export default function Home() {
                                     </div>
                                 </Card>
                                 <Card>
-                                    <div className={styles.swapCard}>
+                                    <div className={`${styles.swapCard} ${styles.swapCardAlt}`}>
                                         <div className={styles.swapCardHeader}>
                                             <span className={styles.swapCardNumber}>04</span>
                                             <div className={styles.swapCardIcon}>
@@ -572,7 +572,7 @@ export default function Home() {
                                     </div>
                                 </Card>
                                 <Card>
-                                    <div className={styles.swapCard}>
+                                    <div className={`${styles.swapCard} ${styles.swapCardAlt}`}>
                                         <div className={styles.swapCardHeader}>
                                             <span className={styles.swapCardNumber}>02</span>
                                             <div className={styles.swapCardIcon}>
@@ -600,7 +600,7 @@ export default function Home() {
                                     </div>
                                 </Card>
                                 <Card>
-                                    <div className={styles.swapCard}>
+                                    <div className={`${styles.swapCard} ${styles.swapCardAlt}`}>
                                         <div className={styles.swapCardHeader}>
                                             <span className={styles.swapCardNumber}>04</span>
                                             <div className={styles.swapCardIcon}>

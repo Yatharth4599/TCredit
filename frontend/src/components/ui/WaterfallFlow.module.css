@@ -1,5 +1,5 @@
 /* ============================================
-   WATERFALL FLOW ANIMATION — REFINED
+   VAULT UNLOCK SEQUENCE — matches WaterfallFlow.tsx
    ============================================ */
 
 .wrap {
@@ -11,77 +11,81 @@
     margin: 0 auto;
 }
 
-/* ── Left Panel ── */
+/* ══════════════════════════════════════════
+   LEFT PANEL
+══════════════════════════════════════════ */
 
 .left {
     opacity: 0;
     transform: translateY(24px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s,
+                transform 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
 }
-
-.playing .left {
-    opacity: 1;
-    transform: translateY(0);
-}
+.playing .left { opacity: 1; transform: translateY(0); }
 
 .counterBox {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.07);
     border-radius: 16px;
     padding: 28px;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(10px);
 }
 
 .counterTitle {
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.5);
     margin-bottom: 20px;
     text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .counterGrid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
     text-align: center;
 }
 
 .counterItem {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 5px;
+    padding: 0 8px;
+}
+
+.counterItem:not(:last-child) {
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .counterValue {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
     font-weight: 700;
     color: #fff;
     font-variant-numeric: tabular-nums;
-    transition: color 0.3s, text-shadow 0.3s;
+    transition: color 0.4s ease, text-shadow 0.4s ease;
 }
 
 .counterDone {
     color: #FF6B35;
-    text-shadow: 0 0 12px rgba(255, 107, 53, 0.4);
+    text-shadow: 0 0 16px rgba(255, 107, 53, 0.45);
 }
 
 .counterLabel {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.35);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
-/* Staggered bullet entry */
 .bullets {
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    margin-top: 28px;
-    font-size: 0.92rem;
-    color: rgba(255, 255, 255, 0.7);
+    gap: 13px;
+    margin-top: 24px;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.65);
     padding: 0;
 }
 
@@ -90,249 +94,287 @@
     align-items: center;
     gap: 10px;
     opacity: 0;
-    transform: translateX(-12px);
-    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateX(-14px);
+    transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.playing .bullet0 { opacity: 1; transform: translateX(0); transition-delay: 0.4s; }
-.playing .bullet1 { opacity: 1; transform: translateX(0); transition-delay: 0.55s; }
-.playing .bullet2 { opacity: 1; transform: translateX(0); transition-delay: 0.7s; }
-.playing .bullet3 { opacity: 1; transform: translateX(0); transition-delay: 0.85s; }
+.playing .bullet0 { opacity: 1; transform: translateX(0); transition-delay: 0.3s; }
+.playing .bullet1 { opacity: 1; transform: translateX(0); transition-delay: 0.45s; }
+.playing .bullet2 { opacity: 1; transform: translateX(0); transition-delay: 0.6s; }
+.playing .bullet3 { opacity: 1; transform: translateX(0); transition-delay: 0.75s; }
 
-.check {
-    color: #FF6B35;
-    font-weight: 600;
-    font-size: 1rem;
+.check { color: #FF6B35; font-weight: 700; }
+
+.footerNote {
+    margin-top: 20px;
+    font-size: 0.78rem;
+    color: rgba(255, 107, 53, 0.7);
+    letter-spacing: 0.3px;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
+.footerNoteVisible { opacity: 1; transform: translateY(0); }
 
-/* ── Right Tower ── */
+/* ══════════════════════════════════════════
+   RIGHT TOWER
+══════════════════════════════════════════ */
 
 .tower {
     position: relative;
     display: flex;
     flex-direction: column;
-    padding-top: 70px;
-    min-height: 420px;
     opacity: 0;
-    transform: translateY(30px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s;
+    transform: translateY(20px);
+    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s,
+                transform 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s;
 }
+.playing .tower { opacity: 1; transform: translateY(0); }
 
-.playing .tower {
-    opacity: 1;
-    transform: translateY(0);
-}
+/* ══════════════════════════════════════════
+   CONNECTORS
+══════════════════════════════════════════ */
 
-/* ── Dollar Bill Particles ── */
-
-.bill {
-    position: absolute;
-    width: calc(22px * var(--sz, 1));
-    height: calc(13px * var(--sz, 1));
-    background: linear-gradient(145deg, rgba(133, 187, 101, 0.9), rgba(85, 130, 60, 0.75));
-    border: 1px solid rgba(133, 187, 101, 0.4);
-    border-radius: 2px;
-    z-index: 3;
-    opacity: 0;
-    pointer-events: none;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+.connector {
+    position: relative;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.billSymbol {
-    font-size: calc(7px * var(--sz, 1));
-    font-weight: 900;
-    color: rgba(255, 255, 255, 0.85);
-    text-shadow: 0 0 3px rgba(133, 187, 101, 0.5);
-    line-height: 1;
+.connector::before {
+    content: '';
+    position: absolute;
+    width: 1px;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 1px;
+    transition: background 0.4s ease, box-shadow 0.4s ease;
 }
 
-/* Wave 0: Rain from top into Senior */
-.playing .w0:not(.settled) {
-    animation-name: rainFall;
-    animation-timing-function: cubic-bezier(0.45, 0, 0.85, 0.35);
-    animation-fill-mode: forwards;
-}
-.playing .w0.settled {
-    animation-name: rainSettle;
-    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-    animation-fill-mode: forwards;
+.connLit::before {
+    background: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
 }
 
-/* Wave 1: Overflow Senior → Liquidity */
-.playing .w1:not(.settled) {
-    animation-name: flow1Fall;
-    animation-timing-function: cubic-bezier(0.45, 0, 0.85, 0.35);
-    animation-fill-mode: forwards;
-}
-.playing .w1.settled {
-    animation-name: flow1Settle;
-    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-    animation-fill-mode: forwards;
-}
-
-/* Wave 2: Trickle Liquidity → Community */
-.playing .w2:not(.settled) {
-    animation-name: flow2Fall;
-    animation-timing-function: cubic-bezier(0.45, 0, 0.85, 0.35);
-    animation-fill-mode: forwards;
-}
-.playing .w2.settled {
-    animation-name: flow2Settle;
-    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-    animation-fill-mode: forwards;
+.connDot {
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+    opacity: 0;
+    z-index: 2;
 }
 
-/* Wave 3: Drip Community → Risk Buffer */
-.playing .w3 {
-    animation-name: dripFall;
-    animation-timing-function: cubic-bezier(0.45, 0, 0.85, 0.35);
-    animation-fill-mode: forwards;
+.connDotPlay {
+    animation: travelerDrop 0.35s cubic-bezier(0.55, 0, 1, 0.45) forwards;
 }
 
-/* ── Bill Keyframes — with horizontal drift ── */
-
-@keyframes rainFall {
-    0%   { top: 0%; transform: translateX(0) rotate(0deg); opacity: 0; }
-    6%   { opacity: 0.9; }
-    50%  { opacity: 0.85; }
-    85%  { opacity: 0.4; }
-    100% { top: 24%; transform: translateX(var(--drift)) rotate(var(--rot)); opacity: 0; filter: blur(0.5px); }
+@keyframes travelerDrop {
+    0%   { transform: translateX(-50%) translateY(0);    opacity: 0; }
+    15%  { opacity: 1; }
+    85%  { opacity: 1; }
+    100% { transform: translateX(-50%) translateY(36px); opacity: 0; }
 }
 
-@keyframes rainSettle {
-    0%   { top: 0%; transform: translateX(0) rotate(0deg) scale(1); opacity: 0; }
-    8%   { opacity: 0.85; }
-    70%  { opacity: 0.7; }
-    100% { top: 19%; transform: translateX(var(--drift)) rotate(var(--rot)) scale(0.82); opacity: 0.55; }
-}
-
-@keyframes flow1Fall {
-    0%   { top: 30%; transform: translateX(0) rotate(0deg); opacity: 0; }
-    12%  { opacity: 0.8; }
-    50%  { opacity: 0.75; }
-    85%  { opacity: 0.3; }
-    100% { top: 49%; transform: translateX(var(--drift)) rotate(var(--rot)); opacity: 0; filter: blur(0.5px); }
-}
-
-@keyframes flow1Settle {
-    0%   { top: 30%; transform: translateX(0) rotate(0deg) scale(1); opacity: 0; }
-    12%  { opacity: 0.7; }
-    100% { top: 44%; transform: translateX(var(--drift)) rotate(var(--rot)) scale(0.82); opacity: 0.45; }
-}
-
-@keyframes flow2Fall {
-    0%   { top: 56%; transform: translateX(0) rotate(0deg); opacity: 0; }
-    18%  { opacity: 0.7; }
-    50%  { opacity: 0.65; }
-    85%  { opacity: 0.25; }
-    100% { top: 72%; transform: translateX(var(--drift)) rotate(var(--rot)); opacity: 0; filter: blur(0.5px); }
-}
-
-@keyframes flow2Settle {
-    0%   { top: 56%; transform: translateX(0) rotate(0deg) scale(1); opacity: 0; }
-    18%  { opacity: 0.6; }
-    100% { top: 66%; transform: translateX(var(--drift)) rotate(var(--rot)) scale(0.78); opacity: 0.4; }
-}
-
-@keyframes dripFall {
-    0%   { top: 78%; transform: translateX(0) rotate(0deg); opacity: 0; }
-    20%  { opacity: 0.6; }
-    55%  { opacity: 0.55; }
-    85%  { opacity: 0.2; }
-    100% { top: 90%; transform: translateX(var(--drift)) rotate(var(--rot)); opacity: 0; filter: blur(1px); }
-}
-
-/* ── Tier Cards ── */
+/* ══════════════════════════════════════════
+   TIER CARDS — locked initial state
+══════════════════════════════════════════ */
 
 .tierCard {
     position: relative;
     display: flex;
     align-items: stretch;
-    background: rgba(255, 255, 255, 0.025);
+    background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 16px;
     overflow: hidden;
-    opacity: 0;
-    transform: translateY(16px) scale(0.97);
-    transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                box-shadow 1.5s ease;
-    backdrop-filter: blur(6px);
+    /* locked state */
+    filter: blur(3px);
+    opacity: 0.25;
+    transform: scale(0.97);
 }
 
-.playing .t0 { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.3s; }
-.playing .t1 { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.5s; }
-.playing .t2 { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.7s; }
-.playing .t3 { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.9s; }
+.tierLocked {
+    /* explicit locked — same as default */
+}
 
-/* Glow when tier is being filled */
-.playing .t0 { box-shadow: 0 0 24px rgba(255, 107, 53, 0.1), 0 4px 16px rgba(0,0,0,0.2); transition-delay: 0.5s; }
-.playing .t1 { box-shadow: 0 0 24px rgba(59, 130, 246, 0.1), 0 4px 16px rgba(0,0,0,0.2); transition-delay: 2.2s; }
-.playing .t2 { box-shadow: 0 0 24px rgba(52, 211, 153, 0.1), 0 4px 16px rgba(0,0,0,0.2); transition-delay: 3.6s; }
-.playing .t3 { box-shadow: 0 0 24px rgba(255, 255, 255, 0.05), 0 4px 16px rgba(0,0,0,0.2); transition-delay: 4.6s; }
+.tierUnlocked {
+    animation: unlockCard 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.04);
+}
 
-/* Fill bar — grows from left with gradient edge */
+@keyframes unlockCard {
+    0%   { filter: blur(3px); opacity: 0.25; transform: scale(0.97); }
+    100% { filter: blur(0);   opacity: 1;    transform: scale(1); }
+}
+
+/* ══════════════════════════════════════════
+   BORDER FLASH (conditionally rendered on unlock)
+══════════════════════════════════════════ */
+
+.borderFlash {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: 15px;
+    border: 2px solid var(--flash-color);
+    z-index: 20;
+    animation: borderFlashAnim 0.5s ease forwards;
+}
+
+@keyframes borderFlashAnim {
+    0%   { opacity: 0; box-shadow: none; }
+    30%  { opacity: 1; box-shadow: 0 0 24px var(--flash-color), 0 0 48px var(--flash-color); }
+    100% { opacity: 0; }
+}
+
+/* ══════════════════════════════════════════
+   VAULT DOOR OVERLAY
+══════════════════════════════════════════ */
+
+.vaultDoor {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 10, 10, 0.88);
+    backdrop-filter: blur(2px);
+    z-index: 10;
+    clip-path: inset(0 0 0% 0);
+    pointer-events: none;
+}
+
+.vaultDoorOpen {
+    animation: vaultOpen 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes vaultOpen {
+    0%   { clip-path: inset(0 0 0% 0); }
+    100% { clip-path: inset(0 0 100% 0); }
+}
+
+/* ══════════════════════════════════════════
+   PADLOCK
+══════════════════════════════════════════ */
+
+.padlockWrap {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 11;
+    pointer-events: none;
+}
+
+.padlock {
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.2));
+}
+
+.padlockUnlocking .padlock {
+    animation: padlockFade 0.3s ease 0.3s forwards;
+}
+
+/* Shackle element inside SVG */
+.padlockShackle {
+    transform-box: fill-box;
+    transform-origin: bottom center;
+}
+
+.padlockUnlocking .padlockShackle {
+    animation: shackleOpen 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes shackleOpen {
+    0%   { transform: rotate(0deg) translateY(0);      opacity: 1; }
+    55%  { transform: rotate(-35deg) translateY(-5px); opacity: 1; }
+    100% { transform: rotate(-45deg) translateY(-8px); opacity: 0; }
+}
+
+@keyframes padlockFade {
+    to { opacity: 0; transform: scale(0.8) translateY(-4px); }
+}
+
+/* ══════════════════════════════════════════
+   TIER CONTENT (fades in on unlock)
+══════════════════════════════════════════ */
+
+.tierContent {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    position: relative;
+    opacity: 0;
+    transition: opacity 0.35s ease 0.15s;
+}
+
+.tierContentVisible {
+    opacity: 1;
+}
+
+/* ══════════════════════════════════════════
+   FILL BG + SHIMMER + ACCENT
+══════════════════════════════════════════ */
+
 .tierFill {
     position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
+    top: 0; left: 0; bottom: 0;
     width: 0%;
-    opacity: 0.12;
-    transition: width 1.8s cubic-bezier(0.16, 1, 0.3, 1);
-    mask-image: linear-gradient(90deg, rgba(0,0,0,1) 70%, rgba(0,0,0,0));
-    -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,1) 70%, rgba(0,0,0,0));
+    opacity: 0.1;
+    mask-image: linear-gradient(90deg, rgba(0,0,0,1) 60%, rgba(0,0,0,0));
+    -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,1) 60%, rgba(0,0,0,0));
+    transition: width 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.25s;
 }
 
-.playing .t0 .tierFill { width: 80%; transition-delay: 0.5s; }
-.playing .t1 .tierFill { width: 64%; transition-delay: 2.2s; transition-duration: 1.3s; }
-.playing .t2 .tierFill { width: 45%; transition-delay: 3.6s; transition-duration: 1.0s; }
-.playing .t3 .tierFill { width: 30%; transition-delay: 4.6s; transition-duration: 0.6s; }
+.tierContentVisible .tierFill {
+    width: 85%;
+}
 
-/* Shimmer sweep after fill */
 .tierShimmer {
     position: absolute;
-    top: 0;
-    left: -100%;
-    bottom: 0;
-    width: 100%;
+    top: 0; left: -100%; bottom: 0; width: 100%;
     background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%);
     z-index: 1;
     pointer-events: none;
 }
 
-.playing .t0 .tierShimmer { animation: shimmer 0.8s ease 2.3s forwards; }
-.playing .t1 .tierShimmer { animation: shimmer 0.8s ease 3.5s forwards; }
-.playing .t2 .tierShimmer { animation: shimmer 0.8s ease 4.6s forwards; }
-.playing .t3 .tierShimmer { animation: shimmer 0.8s ease 5.2s forwards; }
+.tierContentVisible .tierShimmer {
+    animation: shimmer 0.7s ease 1.0s forwards;
+}
 
 @keyframes shimmer {
     0%   { left: -100%; }
-    100% { left: 100%; }
+    100% { left: 110%; }
 }
 
-/* Accent bar — fills vertically with glow */
 .tierAccent {
     width: 5px;
     flex-shrink: 0;
+    align-self: stretch;
     transform: scaleY(0);
     transform-origin: top center;
-    transition: transform 1.5s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 0 8px currentColor;
+    transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.25s;
 }
 
-.playing .t0 .tierAccent { transform: scaleY(1); transition-delay: 0.5s; }
-.playing .t1 .tierAccent { transform: scaleY(1); transition-delay: 2.2s; transition-duration: 1.3s; }
-.playing .t2 .tierAccent { transform: scaleY(1); transition-delay: 3.6s; transition-duration: 1.0s; }
-.playing .t3 .tierAccent { transform: scaleY(1); transition-delay: 4.6s; transition-duration: 0.6s; }
+.tierContentVisible .tierAccent {
+    transform: scaleY(1);
+}
+
+/* ══════════════════════════════════════════
+   CARD BODY
+══════════════════════════════════════════ */
 
 .tierBody {
-    padding: 16px 20px;
+    padding: 18px 20px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 7px;
     flex: 1;
     position: relative;
     z-index: 2;
@@ -346,7 +388,7 @@
 }
 
 .tierName {
-    font-size: 0.92rem;
+    font-size: 0.93rem;
     font-weight: 600;
     color: #fff;
     display: flex;
@@ -367,175 +409,107 @@
 }
 
 .tierBadge {
-    font-size: 0.65rem;
-    font-weight: 600;
+    font-size: 0.62rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.6px;
-    padding: 3px 8px;
+    letter-spacing: 0.7px;
+    padding: 3px 9px;
     border-radius: 6px;
     border: 1px solid;
-    opacity: 0.7;
     white-space: nowrap;
     flex-shrink: 0;
+    opacity: 0;
+    transform: scale(0.85);
+    transition: opacity 0.3s ease 0.45s, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) 0.45s;
+}
+
+.tierBadgePulse {
+    opacity: 0.85;
+    transform: scale(1);
 }
 
 .tierDesc {
-    font-size: 0.78rem;
-    color: rgba(255, 255, 255, 0.4);
-    line-height: 1.4;
+    font-size: 0.76rem;
+    color: rgba(255, 255, 255, 0.38);
+    line-height: 1.45;
     padding-left: 42px;
 }
 
-/* Inline progress bar inside card */
+/* ══════════════════════════════════════════
+   PROGRESS BAR
+══════════════════════════════════════════ */
+
 .tierBar {
     display: flex;
     align-items: center;
     gap: 10px;
     padding-left: 42px;
+    margin-top: 4px;
+}
+
+.tierBarTrack {
+    flex: 1;
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+    position: relative;
 }
 
 .tierBarFill {
-    flex: 1;
-    height: 4px;
-    border-radius: 2px;
-    opacity: 0.2;
-    position: relative;
-    overflow: hidden;
-}
-
-.tierBarFill::after {
-    content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
+    top: 0; left: 0; bottom: 0;
     width: 0%;
-    background: inherit;
-    opacity: 1;
-    border-radius: 2px;
-    transition: width 1.8s cubic-bezier(0.16, 1, 0.3, 1);
+    border-radius: 3px;
+    transition: width 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.35s;
+    box-shadow: 4px 0 12px currentColor;
 }
 
-.playing .t0 .tierBarFill::after { width: 80%; transition-delay: 0.5s; }
-.playing .t1 .tierBarFill::after { width: 64%; transition-delay: 2.2s; transition-duration: 1.3s; }
-.playing .t2 .tierBarFill::after { width: 45%; transition-delay: 3.6s; transition-duration: 1.0s; }
-.playing .t3 .tierBarFill::after { width: 30%; transition-delay: 4.6s; transition-duration: 0.6s; }
+.tierBarFillAnimate {
+    width: var(--fill-pct, 80%);
+}
 
 .tierBarLabel {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
-    min-width: 32px;
+    min-width: 30px;
     text-align: right;
-}
-
-/* Risk Buffer pulse — more pronounced */
-.playing .t3 {
-    animation: riskPulse 1s ease-in-out 5.2s 2;
-}
-
-@keyframes riskPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); border-color: rgba(255,255,255,0.06); }
-    50% { box-shadow: 0 0 30px rgba(255, 255, 255, 0.08), inset 0 0 16px rgba(255, 255, 255, 0.03); border-color: rgba(255,255,255,0.15); }
-}
-
-/* ── Flow Connectors — enhanced ── */
-
-.connector {
-    width: 2px;
-    height: 32px;
-    margin: 0 auto;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 1px;
-    position: relative;
-    overflow: visible;
-}
-
-.connDot {
-    position: absolute;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    left: -2px;
-    top: -3px;
     opacity: 0;
+    transition: opacity 0.4s ease 1.0s;
 }
 
-.connDot2 {
-    width: 4px;
-    height: 4px;
-    left: -1px;
+.tierContentVisible .tierBarLabel {
+    opacity: 1;
 }
 
-.connArrow {
+/* ══════════════════════════════════════════
+   CASCADE GLOW (conditionally rendered)
+══════════════════════════════════════════ */
+
+.cascadeGlow {
     position: absolute;
-    bottom: -8px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 10px;
-    opacity: 0;
-    transition: opacity 0.3s;
-    color: rgba(255, 255, 255, 0.2);
+    inset: -36px 0 0 0;
+    pointer-events: none;
+    background: linear-gradient(
+        180deg,
+        rgba(255, 107, 53, 0.07) 0%,
+        rgba(59, 130, 246, 0.07) 50%,
+        rgba(52, 211, 153, 0.07) 100%
+    );
+    border-radius: 16px;
+    animation: cascadeRipple 1.0s ease forwards;
 }
 
-/* Connector 1 */
-.playing .c1 .connDot:not(.connDot2) {
-    background: #FF6B35;
-    box-shadow: 0 0 12px #FF6B35;
-    animation: dotSlide 0.45s ease-in 1.9s forwards;
-}
-.playing .c1 .connDot2 {
-    background: #FF6B35;
-    box-shadow: 0 0 8px #FF6B35;
-    animation: dotSlide 0.45s ease-in 2.05s forwards;
-}
-.playing .c1 .connArrow { opacity: 1; color: rgba(255, 107, 53, 0.4); transition-delay: 1.8s; }
-
-/* Connector 2 */
-.playing .c2 .connDot:not(.connDot2) {
-    background: #3b82f6;
-    box-shadow: 0 0 12px #3b82f6;
-    animation: dotSlide 0.45s ease-in 3.4s forwards;
-}
-.playing .c2 .connDot2 {
-    background: #3b82f6;
-    box-shadow: 0 0 8px #3b82f6;
-    animation: dotSlide 0.45s ease-in 3.55s forwards;
-}
-.playing .c2 .connArrow { opacity: 1; color: rgba(59, 130, 246, 0.4); transition-delay: 3.3s; }
-
-/* Connector 3 */
-.playing .c3 .connDot:not(.connDot2) {
-    background: #34d399;
-    box-shadow: 0 0 12px #34d399;
-    animation: dotSlide 0.45s ease-in 4.4s forwards;
-}
-.playing .c3 .connDot2 {
-    background: #34d399;
-    box-shadow: 0 0 8px #34d399;
-    animation: dotSlide 0.45s ease-in 4.55s forwards;
-}
-.playing .c3 .connArrow { opacity: 1; color: rgba(52, 211, 153, 0.4); transition-delay: 4.3s; }
-
-/* Connector glow */
-.playing .c1 { animation: connGlow 0.7s ease 1.8s forwards; --conn-color: #FF6B35; }
-.playing .c2 { animation: connGlow 0.7s ease 3.3s forwards; --conn-color: #3b82f6; }
-.playing .c3 { animation: connGlow 0.7s ease 4.3s forwards; --conn-color: #34d399; }
-
-@keyframes dotSlide {
-    0%   { top: -3px; opacity: 0; }
-    15%  { opacity: 1; }
-    75%  { opacity: 1; }
-    100% { top: calc(100% - 3px); opacity: 0; }
+@keyframes cascadeRipple {
+    0%   { opacity: 0; transform: scaleY(0.95); }
+    40%  { opacity: 1; }
+    100% { opacity: 0.35; transform: scaleY(1); }
 }
 
-@keyframes connGlow {
-    0%   { background: rgba(255, 255, 255, 0.05); box-shadow: none; }
-    40%  { background: var(--conn-color); box-shadow: 0 0 10px var(--conn-color); }
-    100% { background: rgba(255, 255, 255, 0.08); box-shadow: none; }
-}
-
-/* ── Responsive ── */
+/* ══════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════ */
 
 @media (max-width: 1024px) {
     .wrap {
@@ -545,69 +519,18 @@
 }
 
 @media (max-width: 768px) {
-    .counterGrid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
-    }
-
-    .counterValue {
-        font-size: 1.2rem;
-    }
-
-    .tierBody {
-        padding: 14px 16px;
-    }
-
-    .tierName {
-        font-size: 0.85rem;
-    }
-
-    .tower {
-        padding-top: 50px;
-        min-height: 360px;
-    }
-
-    .connector {
-        height: 24px;
-    }
+    .tierBody { padding: 14px 16px; }
+    .tierDesc { padding-left: 0; }
+    .tierBar { padding-left: 0; }
+    .tierName { font-size: 0.85rem; }
+    .counterValue { font-size: 1.3rem; }
+    .connector { height: 28px; }
 }
 
 @media (max-width: 480px) {
-    .counterGrid {
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 8px;
-    }
-
-    .counterValue {
-        font-size: 1rem;
-    }
-
-    .counterLabel {
-        font-size: 0.65rem;
-    }
-
-    .bullets {
-        font-size: 0.82rem;
-    }
-
-    .bill {
-        display: none;
-    }
-
-    .tierIcon {
-        display: none;
-    }
-
-    .tierDesc {
-        padding-left: 0;
-    }
-
-    .tierBar {
-        padding-left: 0;
-    }
-
-    .tower {
-        padding-top: 20px;
-        min-height: auto;
-    }
+    .tierIcon { display: none; }
+    .counterGrid { gap: 0; }
+    .counterValue { font-size: 1.1rem; }
+    .counterLabel { font-size: 0.62rem; }
+    .bullets { font-size: 0.82rem; }
 }
