@@ -361,8 +361,8 @@
 
 .stepsGrid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 40px;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
 }
 
 .step {
@@ -918,15 +918,355 @@
 }
 
 /* ============================================
+   THE PROBLEM SECTION
+   ============================================ */
+
+.problemSection {
+    padding: 100px 24px;
+}
+
+.problemGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+}
+
+.problemCard {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 32px 24px;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.problemCard.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.solutionCard {
+    border-color: rgba(255, 107, 53, 0.2);
+    background: rgba(255, 107, 53, 0.03);
+}
+
+.problemCardTitle {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 20px;
+}
+
+.orangeX {
+    color: #ff6b35;
+}
+
+.problemList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.problemList li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.xIcon {
+    color: rgba(255, 255, 255, 0.25);
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+/* ============================================
+   x402 INSIGHT SECTION
+   ============================================ */
+
+.insightSection {
+    padding: 100px 24px;
+    background: rgba(255, 255, 255, 0.01);
+}
+
+.flowDiagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 48px 24px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 20px;
+    margin-bottom: 40px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
+}
+
+.flowDiagram.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.flowStep {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    min-width: 120px;
+}
+
+.flowIcon {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.flowIconHighlight {
+    background: rgba(255, 107, 53, 0.12);
+    border-color: rgba(255, 107, 53, 0.3);
+    color: #ff6b35;
+}
+
+.flowLabel {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #fff;
+    text-align: center;
+}
+
+.flowSub {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.35);
+    text-align: center;
+}
+
+.flowArrow {
+    font-size: 1.5rem;
+    color: rgba(255, 107, 53, 0.5);
+    flex-shrink: 0;
+}
+
+.insightQuote {
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s;
+}
+
+.insightQuote.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.insightQuote p {
+    font-size: 1.15rem;
+    line-height: 1.8;
+    color: rgba(255, 255, 255, 0.55);
+    font-style: italic;
+}
+
+/* ============================================
+   CAPITAL STRUCTURE SECTION
+   ============================================ */
+
+.capitalSection {
+    padding: 100px 24px;
+}
+
+.waterfallVisual {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 800px;
+    margin: 0 auto 48px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
+}
+
+.waterfallVisual.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.tranche {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.trancheBar {
+    height: 32px;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+}
+
+.trancheInner {
+    height: 100%;
+    border-radius: 8px;
+    transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.trancheInfo {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.trancheName {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.trancheDesc {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.capitalExample {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 28px;
+    max-width: 600px;
+    margin: 0 auto;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s;
+}
+
+.capitalExample.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.exampleTitle {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.exampleGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    text-align: center;
+}
+
+.exampleItem {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.exampleValue {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.exampleLabel {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ============================================
+   FLYWHEEL SECTION
+   ============================================ */
+
+.flywheelSection {
+    padding: 100px 24px;
+    background: rgba(255, 255, 255, 0.01);
+}
+
+.flywheelRing {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
+}
+
+.flywheelRing.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.flywheelStep {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 28px 24px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+    min-width: 160px;
+    transition: all 0.3s ease;
+}
+
+.flywheelStep:hover {
+    border-color: rgba(255, 107, 53, 0.2);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.flywheelNum {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 107, 53, 0.15);
+    color: #ff6b35;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border-radius: 50%;
+}
+
+.flywheelLabel {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+}
+
+.flywheelArrow {
+    font-size: 1.5rem;
+    color: rgba(255, 107, 53, 0.4);
+}
+
+/* ============================================
    RESPONSIVE
    ============================================ */
 
 @media (max-width: 1024px) {
     .stepsGrid {
-        grid-template-columns: 1fr;
-        gap: 24px;
-        max-width: 500px;
-        margin: 0 auto;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
     }
 
     .splitSection {
@@ -944,6 +1284,33 @@
 
     .securityGrid {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    .problemGrid {
+        grid-template-columns: 1fr;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    .flowDiagram {
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .flowArrow {
+        display: none;
+    }
+
+    .flywheelRing {
+        gap: 12px;
+    }
+
+    .flywheelArrow {
+        display: none;
+    }
+
+    .exampleGrid {
+        gap: 12px;
     }
 }
 
@@ -981,8 +1348,17 @@
     .forUsers,
     .forMerchants,
     .security,
-    .finalCta {
+    .finalCta,
+    .problemSection,
+    .insightSection,
+    .capitalSection,
+    .flywheelSection {
         padding: 60px 20px;
+    }
+
+    .stepsGrid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
     }
 
     .sectionHeader {
@@ -1022,6 +1398,19 @@
         justify-content: center;
         gap: 20px;
     }
+
+    .step {
+        padding: 24px 16px;
+    }
+
+    .flywheelStep {
+        min-width: 140px;
+        padding: 20px 16px;
+    }
+
+    .exampleValue {
+        font-size: 1.2rem;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1033,6 +1422,10 @@
     .statDivider {
         width: 40px;
         height: 1px;
+    }
+
+    .stepsGrid {
+        grid-template-columns: 1fr;
     }
 
     .step {
@@ -1050,5 +1443,13 @@
 
     .creditValue {
         font-size: 2rem;
+    }
+
+    .exampleGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .flywheelStep {
+        min-width: 100%;
     }
 }
