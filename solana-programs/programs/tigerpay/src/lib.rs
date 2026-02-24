@@ -35,6 +35,9 @@ pub const REPAYMENT_SOURCE_X402: u8 = 1;
 /// Minimum fundraising threshold for vault activation (80%)
 pub const MIN_FUNDRAISE_PCT: u64 = 80;
 
+/// Maximum age for signed payment messages (5 minutes)
+pub const MAX_MESSAGE_AGE_SECS: i64 = 300;
+
 #[program]
 pub mod tigerpay {
     use super::*;
@@ -168,8 +171,12 @@ pub mod tigerpay {
 
     // ============ Programmable Credit: x402 Settlement ============
 
-    pub fn route_repayment(ctx: Context<RouteRepayment>, amount: u64) -> Result<()> {
-        instructions::route_repayment::route_repayment(ctx, amount)
+    pub fn route_repayment(
+        ctx: Context<RouteRepayment>,
+        amount: u64,
+        proof: Option<instructions::route_repayment::X402PaymentProof>,
+    ) -> Result<()> {
+        instructions::route_repayment::route_repayment(ctx, amount, proof)
     }
 
     pub fn create_settlement(ctx: Context<CreateSettlement>, repayment_rate_bps: u16) -> Result<()> {

@@ -135,4 +135,27 @@ pub enum TigerPayError {
 
     #[msg("Credit score must be 0-1000")]
     InvalidCreditScore,
-}
+
+    #[msg("Reentrant call detected")]
+    ReentrantCall,
+
+    #[msg("Invalid signature")]
+    InvalidSignature,
+
+    #[msg("Signature expired")]
+    SignatureExpired,
+
+    #[msg("Nonce already used")]
+    NonceAlreadyUsed,
+
+    #[msg("Rate limit exceeded")]
+    RateLimitExceeded,
+
+    #[msg("Invalid repayment rate")]
+    InvalidRepaymentRate,
+
+    #[msg("Message vault mismatch")]
+    MessageVaultMismatch,
+
+    #[msg("Message amount mismatch")]
+    MessageAmountMismatch,
