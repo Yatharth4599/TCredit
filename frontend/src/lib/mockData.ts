@@ -155,3 +155,63 @@ export const mockICMVaults = [
         totalDividends: 45000,
     },
 ]
+
+export const mockLiquidityPools = [
+    {
+        id: 'alpha',
+        name: 'TigerPay Alpha Vault',
+        type: 'treasury' as const,
+        totalCapital: 2500000,
+        deployed: 1800000,
+        available: 700000,
+        apy: 8.5,
+        vaultAllocations: 12,
+        partnerCount: 1,
+        status: 'active' as const,
+    },
+    {
+        id: 'pool1',
+        name: 'Gulf Capital Partners',
+        type: 'co-owned' as const,
+        totalCapital: 500000,
+        deployed: 320000,
+        available: 180000,
+        apy: 9.2,
+        vaultAllocations: 6,
+        partnerCount: 3,
+        status: 'active' as const,
+    },
+    {
+        id: 'pool2',
+        name: 'MENA Growth Fund',
+        type: 'co-owned' as const,
+        totalCapital: 750000,
+        deployed: 450000,
+        available: 300000,
+        apy: 8.8,
+        vaultAllocations: 8,
+        partnerCount: 5,
+        status: 'active' as const,
+    },
+    {
+        id: 'pool3',
+        name: 'Digital Commerce Pool',
+        type: 'co-owned' as const,
+        totalCapital: 300000,
+        deployed: 280000,
+        available: 20000,
+        apy: 10.1,
+        vaultAllocations: 4,
+        partnerCount: 2,
+        status: 'near-cap' as const,
+    },
+]
+
+export const mockPoolAllocations = [
+    { id: 'a1', pool: 'TigerPay Alpha Vault', vault: 'Dubai Electronics Store', amount: 150000, date: '2026-01-10', status: 'active' as const },
+    { id: 'a2', pool: 'Gulf Capital Partners', vault: 'Al Barsha Restaurant', amount: 45000, date: '2026-01-15', status: 'active' as const },
+    { id: 'a3', pool: 'MENA Growth Fund', vault: 'Tech Hub Dubai', amount: 120000, date: '2026-01-20', status: 'active' as const },
+    { id: 'a4', pool: 'TigerPay Alpha Vault', vault: 'JBR Fitness Center', amount: 80000, date: '2025-12-05', status: 'repaying' as const },
+    { id: 'a5', pool: 'Digital Commerce Pool', vault: 'Marina Fashion Boutique', amount: 30000, date: '2026-02-01', status: 'active' as const },
+    { id: 'a6', pool: 'TigerPay Alpha Vault', vault: 'Downtown Cafe Chain', amount: 200000, date: '2025-10-01', status: 'completed' as const },
+]
