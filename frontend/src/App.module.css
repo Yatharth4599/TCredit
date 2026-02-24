@@ -12,7 +12,6 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  /* Default sidebar width — Sidebar is fixed so offset with margin */
   margin-left: 220px;
   transition: margin-left 0.25s ease;
   min-height: 100vh;
@@ -21,4 +20,11 @@
 .content {
   flex: 1;
   padding: 24px;
+}
+
+/* When sidebar is collapsed, JS would toggle this, but for now it's CSS-driven */
+@media (max-width: 768px) {
+  .main {
+    margin-left: 60px;
+  }
 }

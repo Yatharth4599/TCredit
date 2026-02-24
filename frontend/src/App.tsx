@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
+import Navbar from './components/layout/Navbar'
 import Sidebar from './components/layout/Sidebar'
 import Topbar from './components/layout/Topbar'
 import Home from './pages/Home'
@@ -18,14 +19,22 @@ function AppLayout() {
   const isHome = location.pathname === '/'
   const title = PAGE_TITLES[location.pathname]
 
+  if (isHome) {
+    return (
+      <div className={styles.app}>
+        <Navbar />
+        <Home />
+      </div>
+    )
+  }
+
   return (
-    <div className={`${styles.app} ${!isHome ? styles.appWithSidebar : ''}`}>
-      {!isHome && <Sidebar />}
+    <div className={`${styles.app} ${styles.appWithSidebar}`}>
+      <Sidebar />
       <div className={styles.main}>
-        {!isHome && <Topbar title={title} />}
+        <Topbar title={title} />
         <div className={styles.content}>
           <Routes>
-            <Route path="/" element={<Home />} />
             <Route path="/vaults" element={<Vaults />} />
             <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/merchant" element={<MerchantDashboard />} />
@@ -39,7 +48,9 @@ function AppLayout() {
 function App() {
   return (
     <Router>
-      <AppLayout />
+      <Routes>
+        <Route path="*" element={<AppLayout />} />
+      </Routes>
     </Router>
   )
 }

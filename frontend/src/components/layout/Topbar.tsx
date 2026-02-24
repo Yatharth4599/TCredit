@@ -1,6 +1,4 @@
-import { useWallet } from '@solana/wallet-adapter-react'
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
-import { Bell, Search } from 'lucide-react'
+import { Bell, Search, Wallet } from 'lucide-react'
 import styles from './Topbar.module.css'
 
 interface TopbarProps {
@@ -8,8 +6,6 @@ interface TopbarProps {
 }
 
 export default function Topbar({ title }: TopbarProps) {
-  useWallet() // used for wallet state side-effects via context
-
   return (
     <header className={styles.topbar}>
       {title && <h1 className={styles.pageTitle}>{title}</h1>}
@@ -33,7 +29,10 @@ export default function Topbar({ title }: TopbarProps) {
           <Bell size={16} />
         </button>
 
-        <WalletMultiButton className={styles.walletBtn} />
+        <button className={styles.walletBtn}>
+          <Wallet size={14} />
+          Connect Wallet
+        </button>
       </div>
     </header>
   )

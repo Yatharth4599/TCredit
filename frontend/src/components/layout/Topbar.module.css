@@ -103,13 +103,23 @@
   color: var(--color-orange);
 }
 
-/* Override wallet adapter button */
+/* Wallet button */
 .walletBtn {
-  height: 36px !important;
-  padding: 0 16px !important;
-  font-size: 0.8rem !important;
-  background: var(--gradient-primary) !important;
-  border-radius: 8px !important;
-  border: none !important;
-  font-weight: 600 !important;
+  height: 36px;
+  padding: 0 16px;
+  font-size: 0.8rem;
+  background: var(--gradient-primary);
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  color: #000;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.2s;
+}
+
+.walletBtn:hover {
+  opacity: 0.9;
 }
