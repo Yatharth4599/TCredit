@@ -523,25 +523,40 @@ export default function Home() {
                         <h2 className={styles.sectionTitle}>Liquidity flows toward <span className={styles.gradientInline}>productivity</span></h2>
                     </div>
 
-                    <div className={`${styles.flywheelRing} ${isVisible('flywheel') ? styles.visible : ''}`}>
-                        <div className={styles.flywheelStep}>
-                            <span className={styles.flywheelNum}>1</span>
-                            <span className={styles.flywheelLabel}>Payments generate data</span>
+                    <div className={`${styles.flywheelDiagram} ${isVisible('flywheel') ? styles.visible : ''}`}>
+                        <svg className={styles.flywheelSvg} viewBox="0 0 360 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            {/* Outer dashed ring */}
+                            <circle cx="180" cy="180" r="138" stroke="rgba(255,107,53,0.15)" strokeWidth="1" strokeDasharray="6 6" className={styles.flywheelRingOuter} />
+                            {/* Animated flow arc */}
+                            <circle cx="180" cy="180" r="138" stroke="#FF6B35" strokeWidth="2" strokeDasharray="55 812" strokeLinecap="round" className={styles.flywheelArc} />
+                            {/* Inner ring */}
+                            <circle cx="180" cy="180" r="46" stroke="rgba(255,107,53,0.12)" strokeWidth="1" />
+                            {/* Center */}
+                            <circle cx="180" cy="180" r="38" fill="rgba(255,107,53,0.08)" stroke="rgba(255,107,53,0.25)" strokeWidth="1" />
+                            <text x="180" y="176" textAnchor="middle" fill="#FF6B35" fontSize="8" fontWeight="700" letterSpacing="1">TIGER</text>
+                            <text x="180" y="188" textAnchor="middle" fill="#FF6B35" fontSize="8" fontWeight="700" letterSpacing="1">PAYX</text>
+                            {/* Spokes */}
+                            <line x1="180" y1="42" x2="180" y2="62" stroke="rgba(255,107,53,0.2)" strokeWidth="1" strokeDasharray="3 3" />
+                            <line x1="318" y1="180" x2="298" y2="180" stroke="rgba(255,107,53,0.2)" strokeWidth="1" strokeDasharray="3 3" />
+                            <line x1="180" y1="318" x2="180" y2="298" stroke="rgba(255,107,53,0.2)" strokeWidth="1" strokeDasharray="3 3" />
+                            <line x1="42" y1="180" x2="62" y2="180" stroke="rgba(255,107,53,0.2)" strokeWidth="1" strokeDasharray="3 3" />
+                        </svg>
+
+                        <div className={`${styles.flywheelNode} ${styles.flywheelNodeTop}`}>
+                            <div className={styles.flywheelNodeNum}>1</div>
+                            <span className={styles.flywheelNodeLabel}>Payments generate data</span>
                         </div>
-                        <div className={styles.flywheelArrow}>→</div>
-                        <div className={styles.flywheelStep}>
-                            <span className={styles.flywheelNum}>2</span>
-                            <span className={styles.flywheelLabel}>Data unlocks credit</span>
+                        <div className={`${styles.flywheelNode} ${styles.flywheelNodeRight}`}>
+                            <div className={styles.flywheelNodeNum}>2</div>
+                            <span className={styles.flywheelNodeLabel}>Data unlocks credit</span>
                         </div>
-                        <div className={styles.flywheelArrow}>→</div>
-                        <div className={styles.flywheelStep}>
-                            <span className={styles.flywheelNum}>3</span>
-                            <span className={styles.flywheelLabel}>Credit grows business</span>
+                        <div className={`${styles.flywheelNode} ${styles.flywheelNodeBottom}`}>
+                            <div className={styles.flywheelNodeNum}>3</div>
+                            <span className={styles.flywheelNodeLabel}>Credit grows business</span>
                         </div>
-                        <div className={styles.flywheelArrow}>→</div>
-                        <div className={styles.flywheelStep}>
-                            <span className={styles.flywheelNum}>4</span>
-                            <span className={styles.flywheelLabel}>Growth generates more payments</span>
+                        <div className={`${styles.flywheelNode} ${styles.flywheelNodeLeft}`}>
+                            <div className={styles.flywheelNodeNum}>4</div>
+                            <span className={styles.flywheelNodeLabel}>Growth fuels more payments</span>
                         </div>
                     </div>
                 </div>
@@ -550,50 +565,91 @@ export default function Home() {
             {/* ── Why Blockchain ── */}
             <section className={styles.security} id="why-blockchain">
                 <div className={styles.sectionContainer}>
-                    <div className={`${styles.sectionHeader} ${isVisible('why-blockchain') ? styles.visible : ''}`}>
-                        <span className={styles.sectionLabel}>Why Blockchain</span>
-                        <h2 className={styles.sectionTitle}>What traditional infrastructure <span className={styles.gradientInline}>cannot do</span></h2>
-                    </div>
-
-                    <div className={styles.securityGrid}>
-                        <div className={`${styles.securityCard} ${isVisible('why-blockchain') ? styles.visible : ''}`} style={{ transitionDelay: '0.1s' }}>
-                            <div className={styles.securityIcon}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                    <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                                </svg>
-                            </div>
-                            <h3>Global Liquidity</h3>
-                            <p>Anyone worldwide can provide capital to productive businesses — no geographic restrictions.</p>
+                    <div className={styles.whySplit}>
+                        {/* Left: CardSwap */}
+                        <div className={styles.cardSwapWrapper}>
+                            <CardSwap
+                                width={420}
+                                height={280}
+                                cardDistance={-35}
+                                verticalDistance={30}
+                                delay={4000}
+                                pauseOnHover={true}
+                                skewAmount={-4}
+                                easing="elastic"
+                            >
+                                <Card>
+                                    <div className={styles.swapCard}>
+                                        <div className={styles.swapCardHeader}>
+                                            <span className={styles.swapCardNumber}>01</span>
+                                            <div className={styles.swapCardIcon}>
+                                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                                    <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <h3 className={styles.swapCardTitle}>Global Liquidity</h3>
+                                        <p className={styles.swapCardDesc}>Anyone worldwide can provide capital to productive businesses — no geographic restrictions or intermediaries.</p>
+                                    </div>
+                                </Card>
+                                <Card>
+                                    <div className={styles.swapCard}>
+                                        <div className={styles.swapCardHeader}>
+                                            <span className={styles.swapCardNumber}>02</span>
+                                            <div className={styles.swapCardIcon}>
+                                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <h3 className={styles.swapCardTitle}>Transparent Yield</h3>
+                                        <p className={styles.swapCardDesc}>Every repayment, fee, and distribution is verifiable on-chain. No hidden charges or opaque intermediaries.</p>
+                                    </div>
+                                </Card>
+                                <Card>
+                                    <div className={styles.swapCard}>
+                                        <div className={styles.swapCardHeader}>
+                                            <span className={styles.swapCardNumber}>03</span>
+                                            <div className={styles.swapCardIcon}>
+                                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <h3 className={styles.swapCardTitle}>Programmable Enforcement</h3>
+                                        <p className={styles.swapCardDesc}>x402 settlement and waterfall splits enforced by smart contracts — not by legal process or human action.</p>
+                                    </div>
+                                </Card>
+                                <Card>
+                                    <div className={styles.swapCard}>
+                                        <div className={styles.swapCardHeader}>
+                                            <span className={styles.swapCardNumber}>04</span>
+                                            <div className={styles.swapCardIcon}>
+                                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                                    <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <h3 className={styles.swapCardTitle}>Continuous Underwriting</h3>
+                                        <p className={styles.swapCardDesc}>Credit scores update in real-time from payment data — not from annual reviews or manual audits.</p>
+                                    </div>
+                                </Card>
+                            </CardSwap>
                         </div>
 
-                        <div className={`${styles.securityCard} ${isVisible('why-blockchain') ? styles.visible : ''}`} style={{ transitionDelay: '0.2s' }}>
-                            <div className={styles.securityIcon}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
-                                </svg>
-                            </div>
-                            <h3>Transparent Yield</h3>
-                            <p>Every repayment, fee, and distribution is verifiable on-chain. No hidden charges or opaque intermediaries.</p>
-                        </div>
-
-                        <div className={`${styles.securityCard} ${isVisible('why-blockchain') ? styles.visible : ''}`} style={{ transitionDelay: '0.3s' }}>
-                            <div className={styles.securityIcon}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                                </svg>
-                            </div>
-                            <h3>Programmable Enforcement</h3>
-                            <p>x402 settlement and waterfall splits are enforced by smart contracts — not by legal process or human action.</p>
-                        </div>
-
-                        <div className={`${styles.securityCard} ${isVisible('why-blockchain') ? styles.visible : ''}`} style={{ transitionDelay: '0.4s' }}>
-                            <div className={styles.securityIcon}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                    <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
-                                </svg>
-                            </div>
-                            <h3>Continuous Underwriting</h3>
-                            <p>Credit scores update in real-time from payment data — not from annual reviews or manual audits.</p>
+                        {/* Right: Text */}
+                        <div className={`${styles.whyText} ${isVisible('why-blockchain') ? styles.visible : ''}`}>
+                            <span className={styles.sectionLabel}>Why Blockchain</span>
+                            <h2 className={styles.sectionTitle}>What traditional infrastructure <span className={styles.gradientInline}>cannot do</span></h2>
+                            <p className={styles.whyDesc}>
+                                Blockchain removes every point of failure that makes traditional credit inaccessible — geographic limits, opaque intermediaries, manual enforcement, and slow data.
+                            </p>
+                            <ul className={styles.stepsList}>
+                                <li className={styles.stepsListItem}><span className={styles.stepsListNum}>01</span><span>Open to any lender, anywhere in the world</span></li>
+                                <li className={styles.stepsListItem}><span className={styles.stepsListNum}>02</span><span>Every transaction fully auditable on-chain</span></li>
+                                <li className={styles.stepsListItem}><span className={styles.stepsListNum}>03</span><span>Repayment enforced by code, not courts</span></li>
+                                <li className={styles.stepsListItem}><span className={styles.stepsListNum}>04</span><span>Credit profile built from live payment data</span></li>
+                            </ul>
                         </div>
                     </div>
                 </div>
