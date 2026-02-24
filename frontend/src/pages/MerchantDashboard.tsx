@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { GlassCard } from '../components/ui/GlassCard'
-import { StatWidget } from '../components/ui/StatWidget'
+import { BentoGrid, BentoCard } from '../components/ui/BentoGrid'
 import { WaterfallChart } from '../components/charts/WaterfallChart'
 import { DollarSign, Star, CreditCard, Zap, ChevronRight, Plus, Activity } from 'lucide-react'
 import styles from './MerchantDashboard.module.css'
@@ -45,43 +44,35 @@ export default function MerchantDashboard() {
 
   return (
     <div className={styles.page}>
-      {/* Stats Row */}
-      <div className={styles.statsRow}>
-        <StatWidget
-          label="Credit Score"
-          value={MERCHANT.creditScore}
-          sub={MERCHANT.creditRating}
-          trend="up"
-          trendValue="+12 pts"
-          icon={<Star size={14} />}
-        />
-        <StatWidget
-          label="Total Borrowed"
-          value={fmt(MERCHANT.totalBorrowed)}
-          sub={`${MERCHANT.activeLoanCount} active loans`}
-          icon={<CreditCard size={14} />}
-        />
-        <StatWidget
-          label="Total Repaid"
-          value={fmt(MERCHANT.totalRepaid)}
-          sub={`${MERCHANT.onTimePayments}% on-time`}
-          trend="up"
-          trendValue="100%"
-          icon={<DollarSign size={14} />}
-        />
-        <StatWidget
-          label="Available Credit"
-          value={fmt(MERCHANT.availableCredit)}
-          sub="Instant approval"
-          icon={<Zap size={14} />}
-        />
-      </div>
+      {/* Stats Row as Bento Cards */}
+      <BentoGrid columns={4} gap={14}>
+        {[
+          { icon: <Star size={16} />, label: 'Credit Score', value: MERCHANT.creditScore, sub: MERCHANT.creditRating, trend: '+12 pts' },
+          { icon: <CreditCard size={16} />, label: 'Total Borrowed', value: fmt(MERCHANT.totalBorrowed), sub: `${MERCHANT.activeLoanCount} active loans` },
+          { icon: <DollarSign size={16} />, label: 'Total Repaid', value: fmt(MERCHANT.totalRepaid), sub: `${MERCHANT.onTimePayments}% on-time`, trend: '100%' },
+          { icon: <Zap size={16} />, label: 'Available Credit', value: fmt(MERCHANT.availableCredit), sub: 'Instant approval' },
+        ].map((stat) => (
+          <BentoCard key={stat.label}>
+            <div className={styles.bentoStat}>
+              <div className={styles.bentoStatHeader}>
+                <span className={styles.bentoStatIcon}>{stat.icon}</span>
+                <span className={styles.bentoStatLabel}>{stat.label}</span>
+              </div>
+              <div className={styles.bentoStatValue}>{stat.value}</div>
+              <div className={styles.bentoStatSub}>
+                {stat.sub}
+                {stat.trend && <span className={styles.bentoStatTrend}>{stat.trend}</span>}
+              </div>
+            </div>
+          </BentoCard>
+        ))}
+      </BentoGrid>
 
-      {/* Main Content */}
-      <div className={styles.main}>
-        {/* Left: Live Payment Monitor */}
-        <div className={styles.leftCol}>
-          <GlassCard>
+      {/* Main Content as Bento Grid */}
+      <BentoGrid columns={3} gap={14}>
+        {/* Live x402 Payments — tall card */}
+        <BentoCard colSpan="span 1" rowSpan="span 2">
+          <div className={styles.bentoInner}>
             <div className={styles.sectionHeader}>
               <div className={styles.sectionTitle}>
                 <Activity size={15} className={styles.sectionIcon} />
@@ -112,22 +103,24 @@ export default function MerchantDashboard() {
                 </div>
               ))}
             </div>
-          </GlassCard>
+          </div>
+        </BentoCard>
 
-          {/* Waterfall breakdown for selected payment */}
-          <GlassCard variant="highlight">
+        {/* Waterfall Breakdown */}
+        <BentoCard colSpan="span 2">
+          <div className={styles.bentoInner}>
             <WaterfallChart
               totalAmount={activePayment.amount}
               seniorPayment={activePayment.split.senior}
               poolPayment={activePayment.split.pool}
               userPayment={activePayment.split.merchant}
             />
-          </GlassCard>
-        </div>
+          </div>
+        </BentoCard>
 
-        {/* Right: Vault Management */}
-        <div className={styles.rightCol}>
-          <GlassCard>
+        {/* Vault Management — wide card */}
+        <BentoCard colSpan="span 2">
+          <div className={styles.bentoInner}>
             <div className={styles.sectionHeader}>
               <div className={styles.sectionTitle}>Your Vaults</div>
               <button className={styles.createBtn} onClick={() => setShowCreateModal(true)}>
@@ -203,9 +196,9 @@ export default function MerchantDashboard() {
                 )
               })}
             </div>
-          </GlassCard>
-        </div>
-      </div>
+          </div>
+        </BentoCard>
+      </BentoGrid>
 
       {/* Create Vault Modal */}
       {showCreateModal && (

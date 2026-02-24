@@ -1,5 +1,9 @@
 import { useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import DecryptedText from '../components/ui/DecryptedText'
+import Carousel, { type CarouselItem } from '../components/ui/Carousel'
+import Stepper, { Step } from '../components/ui/Stepper'
+import CardSwap, { Card } from '../components/ui/CardSwap'
 import styles from './Home.module.css'
 
 export default function Home() {
@@ -44,10 +48,28 @@ export default function Home() {
 
                     <h1 className={styles.headline}>
                         <span className={`${styles.line} ${mounted ? styles.visible : ''}`}>
-                            <span className={styles.word}>Revenue-Backed</span>
+                            <DecryptedText
+                                text="Revenue-Backed"
+                                parentClassName={styles.decryptedWord}
+                                encryptedClassName={styles.encryptedChar}
+                                animateOn="view"
+                                speed={40}
+                                maxIterations={40}
+                                sequential={true}
+                                revealDirection="start"
+                            />
                         </span>
                         <span className={`${styles.line} ${styles.line2} ${mounted ? styles.visible : ''}`}>
-                            <span className={styles.gradientText}>Programmable Credit</span>
+                            <DecryptedText
+                                text="Programmable Credit"
+                                parentClassName={styles.decryptedGradient}
+                                encryptedClassName={styles.encryptedChar}
+                                animateOn="view"
+                                speed={40}
+                                maxIterations={40}
+                                sequential={true}
+                                revealDirection="start"
+                            />
                         </span>
                     </h1>
 
@@ -100,42 +122,63 @@ export default function Home() {
             {/* ── The Problem ── */}
             <section className={styles.problemSection} id="problem">
                 <div className={styles.sectionContainer}>
-                    <div className={`${styles.sectionHeader} ${isVisible('problem') ? styles.visible : ''}`}>
-                        <span className={styles.sectionLabel}>The Problem</span>
-                        <h2 className={styles.sectionTitle}>Capital cannot <span className={styles.gradientInline}>follow commerce</span></h2>
-                        <p className={styles.sectionDesc}>
-                            Productive companies remain underfunded despite predictable cash flows.
-                            The missing layer is not liquidity — it is enforceability.
-                        </p>
-                    </div>
-
-                    <div className={styles.problemGrid}>
-                        <div className={`${styles.problemCard} ${isVisible('problem') ? styles.visible : ''}`} style={{ transitionDelay: '0.1s' }}>
-                            <h3 className={styles.problemCardTitle}>Traditional Finance</h3>
-                            <ul className={styles.problemList}>
-                                <li><span className={styles.xIcon}>✕</span> Requires local presence</li>
-                                <li><span className={styles.xIcon}>✕</span> Relies on collateral</li>
-                                <li><span className={styles.xIcon}>✕</span> Enforces repayment manually</li>
-                                <li><span className={styles.xIcon}>✕</span> Weeks to months for approval</li>
+                    <div className={styles.problemSplit}>
+                        {/* Left: Text content */}
+                        <div className={`${styles.problemText} ${isVisible('problem') ? styles.visible : ''}`}>
+                            <span className={styles.sectionLabel}>The Problem</span>
+                            <h2 className={styles.sectionTitle}>Capital cannot <span className={styles.gradientInline}>follow commerce</span></h2>
+                            <p className={styles.problemDesc}>
+                                Productive companies remain underfunded despite predictable cash flows.
+                                The missing layer is not liquidity — it is enforceability.
+                            </p>
+                            <ul className={styles.problemHighlights}>
+                                <li><span className={styles.stepsListNum}>01</span> 65% of global SMEs lack access to credit</li>
+                                <li><span className={styles.stepsListNum}>02</span> DeFi ignores real-world business revenue</li>
+                                <li><span className={styles.stepsListNum}>03</span> TradFi requires collateral, not cash flow</li>
                             </ul>
                         </div>
-                        <div className={`${styles.problemCard} ${isVisible('problem') ? styles.visible : ''}`} style={{ transitionDelay: '0.2s' }}>
-                            <h3 className={styles.problemCardTitle}>DeFi Today</h3>
-                            <ul className={styles.problemList}>
-                                <li><span className={styles.xIcon}>✕</span> Requires overcollateralization</li>
-                                <li><span className={styles.xIcon}>✕</span> Ignores real-world productivity</li>
-                                <li><span className={styles.xIcon}>✕</span> Cannot evaluate businesses</li>
-                                <li><span className={styles.xIcon}>✕</span> No revenue-based underwriting</li>
-                            </ul>
-                        </div>
-                        <div className={`${styles.problemCard} ${styles.solutionCard} ${isVisible('problem') ? styles.visible : ''}`} style={{ transitionDelay: '0.3s' }}>
-                            <h3 className={styles.problemCardTitle}>TigerPay<span className={styles.orangeX}>X</span></h3>
-                            <ul className={styles.problemList}>
-                                <li><span className={styles.checkIcon}>✓</span> Lends against payment flow</li>
-                                <li><span className={styles.checkIcon}>✓</span> Automated x402 repayment</li>
-                                <li><span className={styles.checkIcon}>✓</span> Live credit scoring</li>
-                                <li><span className={styles.checkIcon}>✓</span> Global, instant, on-chain</li>
-                            </ul>
+                        {/* Right: Carousel */}
+                        <div className={`${styles.carouselWrapper} ${isVisible('problem') ? styles.visible : ''}`}>
+                            <Carousel
+                                baseWidth={330}
+                                autoplay
+                                autoplayDelay={2500}
+                                pauseOnHover={false}
+                                loop
+                                round={false}
+                                items={[
+                                    {
+                                        id: 1,
+                                        title: 'Traditional Finance',
+                                        description: 'Requires local presence and collateral. Enforces repayment manually. Weeks to months for approval. Excludes 65% of global SMEs.',
+                                        icon: (
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                                <path d="M3 21h18M3 7v14M21 7v14M6 7V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v3M9 21v-4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4" />
+                                            </svg>
+                                        ),
+                                    },
+                                    {
+                                        id: 2,
+                                        title: 'DeFi Today',
+                                        description: 'Requires overcollateralization. Ignores real-world productivity. Cannot evaluate businesses. No revenue-based underwriting.',
+                                        icon: (
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                                <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+                                            </svg>
+                                        ),
+                                    },
+                                    {
+                                        id: 3,
+                                        title: 'Liquidity Without Enforcement',
+                                        description: 'Capital exists but cannot verify borrower activity. No mechanism to route repayment from revenue. Trust-based systems leak value.',
+                                        icon: (
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                                            </svg>
+                                        ),
+                                    },
+                                ] satisfies CarouselItem[]}
+                            />
                         </div>
                     </div>
                 </div>
@@ -153,45 +196,29 @@ export default function Home() {
                         </p>
                     </div>
 
-                    <div className={`${styles.flowDiagram} ${isVisible('insight') ? styles.visible : ''}`}>
-                        <div className={styles.flowStep}>
-                            <div className={styles.flowIcon}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                                </svg>
-                            </div>
-                            <span className={styles.flowLabel}>Customer Payment</span>
-                        </div>
-                        <div className={styles.flowArrow}>→</div>
-                        <div className={styles.flowStep}>
-                            <div className={`${styles.flowIcon} ${styles.flowIconHighlight}`}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                                </svg>
-                            </div>
-                            <span className={styles.flowLabel}>x402 Settlement</span>
-                            <span className={styles.flowSub}>Controlled account</span>
-                        </div>
-                        <div className={styles.flowArrow}>→</div>
-                        <div className={styles.flowStep}>
-                            <div className={styles.flowIcon}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                    <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5" />
-                                </svg>
-                            </div>
-                            <span className={styles.flowLabel}>Waterfall Split</span>
-                            <span className={styles.flowSub}>On-chain enforcement</span>
-                        </div>
-                        <div className={styles.flowArrow}>→</div>
-                        <div className={styles.flowStep}>
-                            <div className={styles.flowIcon}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                    <rect x="2" y="4" width="20" height="16" rx="2" /><path d="M12 12h.01M8 12h.01M16 12h.01" />
-                                </svg>
-                            </div>
-                            <span className={styles.flowLabel}>Merchant Net</span>
-                            <span className={styles.flowSub}>After repayment</span>
-                        </div>
+                    <div className={`${styles.stepperWrapper} ${isVisible('insight') ? styles.visible : ''}`}>
+                        <Stepper
+                            initialStep={1}
+                            backButtonText="Back"
+                            nextButtonText="Next"
+                        >
+                            <Step>
+                                <h3 className={styles.stepperTitle}>Customer Payment</h3>
+                                <p>A customer pays for goods or services. The payment is routed through a TigerPayX x402 endpoint — not directly to the merchant's wallet.</p>
+                            </Step>
+                            <Step>
+                                <h3 className={styles.stepperTitle}>x402 Settlement</h3>
+                                <p>Funds land in a controlled settlement account — a smart contract that the merchant cannot bypass. This is where enforcement happens on-chain.</p>
+                            </Step>
+                            <Step>
+                                <h3 className={styles.stepperTitle}>Waterfall Split</h3>
+                                <p>The protocol automatically splits the payment: senior lender repayment first, then liquidity pool share, then community investors, and finally the merchant's net balance.</p>
+                            </Step>
+                            <Step>
+                                <h3 className={styles.stepperTitle}>Merchant Receives Net</h3>
+                                <p>After all obligations are met, the remaining balance is released to the merchant instantly. No invoices, no manual payments — just automated settlement.</p>
+                            </Step>
+                        </Stepper>
                     </div>
 
                     <div className={`${styles.insightQuote} ${isVisible('insight') ? styles.visible : ''}`}>
@@ -203,65 +230,121 @@ export default function Home() {
             {/* ── How It Works — 5 Steps ── */}
             <section className={styles.howItWorks} id="how-it-works">
                 <div className={styles.sectionContainer}>
-                    <div className={`${styles.sectionHeader} ${isVisible('how-it-works') ? styles.visible : ''}`}>
-                        <span className={styles.sectionLabel}>How It Works</span>
-                        <h2 className={styles.sectionTitle}>Five steps to <span className={styles.gradientInline}>programmable credit</span></h2>
-                    </div>
-
-                    <div className={styles.stepsGrid}>
-                        <div className={`${styles.step} ${isVisible('how-it-works') ? styles.visible : ''}`} style={{ transitionDelay: '0.1s' }}>
-                            <div className={styles.stepIcon}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                                </svg>
+                    <div className={styles.howItWorksSplit}>
+                        {/* Left: Text content */}
+                        <div className={`${styles.howItWorksText} ${isVisible('how-it-works') ? styles.visible : ''}`}>
+                            <span className={styles.sectionLabel}>How It Works</span>
+                            <h2 className={styles.sectionTitle}>Five steps to <span className={styles.gradientInline}>programmable credit</span></h2>
+                            <p className={styles.howItWorksDesc}>
+                                TigerPayX turns everyday business payments into a creditworthy financial identity — then funds working capital against it, with automated repayment built in.
+                            </p>
+                            <div className={styles.stepsList}>
+                                <div className={styles.stepsListItem}>
+                                    <span className={styles.stepsListNum}>01</span>
+                                    <span>Payment Routing</span>
+                                </div>
+                                <div className={styles.stepsListItem}>
+                                    <span className={styles.stepsListNum}>02</span>
+                                    <span>Financial Identity</span>
+                                </div>
+                                <div className={styles.stepsListItem}>
+                                    <span className={styles.stepsListNum}>03</span>
+                                    <span>Capital Advance</span>
+                                </div>
+                                <div className={styles.stepsListItem}>
+                                    <span className={styles.stepsListNum}>04</span>
+                                    <span>Liquidity Funding</span>
+                                </div>
+                                <div className={styles.stepsListItem}>
+                                    <span className={styles.stepsListNum}>05</span>
+                                    <span>Automated Repayment</span>
+                                </div>
                             </div>
-                            <span className={styles.stepNumber}>01</span>
-                            <h3>Payment Routing</h3>
-                            <p>Businesses bill customers using TigerPayX x402 payment endpoints. Customers pay via local rails or stablecoins.</p>
                         </div>
 
-                        <div className={`${styles.step} ${isVisible('how-it-works') ? styles.visible : ''}`} style={{ transitionDelay: '0.2s' }}>
-                            <div className={styles.stepIcon}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-                                </svg>
-                            </div>
-                            <span className={styles.stepNumber}>02</span>
-                            <h3>Financial Identity</h3>
-                            <p>Transaction behaviour builds a live credit profile — revenue consistency, volume, frequency, counterparty diversity.</p>
-                        </div>
-
-                        <div className={`${styles.step} ${isVisible('how-it-works') ? styles.visible : ''}`} style={{ transitionDelay: '0.3s' }}>
-                            <div className={styles.stepIcon}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                                </svg>
-                            </div>
-                            <span className={styles.stepNumber}>03</span>
-                            <h3>Capital Advance</h3>
-                            <p>Businesses request working capital, invoice financing, or trade finance against receivables. ~2% monthly cost.</p>
-                        </div>
-
-                        <div className={`${styles.step} ${isVisible('how-it-works') ? styles.visible : ''}`} style={{ transitionDelay: '0.4s' }}>
-                            <div className={styles.stepIcon}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                    <rect x="2" y="4" width="20" height="16" rx="2" /><path d="M12 12h.01M8 12h.01M16 12h.01" />
-                                </svg>
-                            </div>
-                            <span className={styles.stepNumber}>04</span>
-                            <h3>Liquidity Funding</h3>
-                            <p>On-chain vaults fund loans via structured tranches — senior lenders, liquidity pools, and community investors.</p>
-                        </div>
-
-                        <div className={`${styles.step} ${isVisible('how-it-works') ? styles.visible : ''}`} style={{ transitionDelay: '0.5s' }}>
-                            <div className={styles.stepIcon}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                                </svg>
-                            </div>
-                            <span className={styles.stepNumber}>05</span>
-                            <h3>Automated Repayment</h3>
-                            <p>Incoming payments auto-split: lender repayment first, remaining merchant balance second. No manual installments.</p>
+                        {/* Right: CardSwap animation */}
+                        <div className={styles.cardSwapWrapper}>
+                            <CardSwap
+                                width={420}
+                                height={280}
+                                cardDistance={35}
+                                verticalDistance={30}
+                                delay={4000}
+                                pauseOnHover={true}
+                                skewAmount={4}
+                                easing="elastic"
+                            >
+                                <Card>
+                                    <div className={styles.swapCard}>
+                                        <div className={styles.swapCardHeader}>
+                                            <span className={styles.swapCardNumber}>01</span>
+                                            <div className={styles.swapCardIcon}>
+                                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <h3 className={styles.swapCardTitle}>Payment Routing</h3>
+                                        <p className={styles.swapCardDesc}>Businesses bill customers using TigerPayX x402 payment endpoints. Customers pay via local rails or stablecoins.</p>
+                                    </div>
+                                </Card>
+                                <Card>
+                                    <div className={styles.swapCard}>
+                                        <div className={styles.swapCardHeader}>
+                                            <span className={styles.swapCardNumber}>02</span>
+                                            <div className={styles.swapCardIcon}>
+                                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <h3 className={styles.swapCardTitle}>Financial Identity</h3>
+                                        <p className={styles.swapCardDesc}>Transaction behaviour builds a live credit profile — revenue consistency, volume, frequency, counterparty diversity.</p>
+                                    </div>
+                                </Card>
+                                <Card>
+                                    <div className={styles.swapCard}>
+                                        <div className={styles.swapCardHeader}>
+                                            <span className={styles.swapCardNumber}>03</span>
+                                            <div className={styles.swapCardIcon}>
+                                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <h3 className={styles.swapCardTitle}>Capital Advance</h3>
+                                        <p className={styles.swapCardDesc}>Businesses request working capital, invoice financing, or trade finance against receivables. ~2% monthly cost.</p>
+                                    </div>
+                                </Card>
+                                <Card>
+                                    <div className={styles.swapCard}>
+                                        <div className={styles.swapCardHeader}>
+                                            <span className={styles.swapCardNumber}>04</span>
+                                            <div className={styles.swapCardIcon}>
+                                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                                    <rect x="2" y="4" width="20" height="16" rx="2" /><path d="M12 12h.01M8 12h.01M16 12h.01" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <h3 className={styles.swapCardTitle}>Liquidity Funding</h3>
+                                        <p className={styles.swapCardDesc}>On-chain vaults fund loans via structured tranches — senior lenders, liquidity pools, and community investors.</p>
+                                    </div>
+                                </Card>
+                                <Card>
+                                    <div className={styles.swapCard}>
+                                        <div className={styles.swapCardHeader}>
+                                            <span className={styles.swapCardNumber}>05</span>
+                                            <div className={styles.swapCardIcon}>
+                                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <h3 className={styles.swapCardTitle}>Automated Repayment</h3>
+                                        <p className={styles.swapCardDesc}>Incoming payments auto-split: lender repayment first, remaining merchant balance second. No manual installments.</p>
+                                    </div>
+                                </Card>
+                            </CardSwap>
                         </div>
                     </div>
                 </div>

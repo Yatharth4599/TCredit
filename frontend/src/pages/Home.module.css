@@ -143,6 +143,44 @@
     50% { background-position: 100% center; }
 }
 
+/* Encrypted/scrambled characters during DecryptedText animation */
+.encryptedChar {
+    color: rgba(255, 107, 53, 0.5);
+    -webkit-text-fill-color: rgba(255, 107, 53, 0.5);
+    font-style: normal;
+}
+
+/* DecryptedText parent wrappers — carry font sizing from .line context */
+.decryptedWord {
+    display: inline-block;
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: #fff;
+}
+
+.decryptedGradient {
+    display: inline-block;
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    background: linear-gradient(
+        135deg,
+        #ff6b35 0%,
+        #ff8f6b 25%,
+        #fff 50%,
+        #ff8f6b 75%,
+        #ff6b35 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradientShift 5s ease-in-out infinite;
+}
+
 /* Subtitle */
 .subtitle {
     font-size: 1.15rem;
@@ -420,6 +458,167 @@
     font-size: 0.9rem;
     line-height: 1.6;
     color: rgba(255, 255, 255, 0.45);
+}
+
+/* CardSwap wrapper for How It Works */
+.howItWorksSplit {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
+}
+
+.howItWorksText {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.howItWorksText.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.howItWorksText .sectionLabel,
+.howItWorksText .sectionTitle {
+    text-align: left;
+}
+
+.howItWorksDesc {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 20px 0 32px;
+}
+
+.stepsList {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.stepsListItem {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.02);
+    transition: all 0.25s ease;
+}
+
+.stepsListItem:hover {
+    background: rgba(255, 107, 53, 0.06);
+    border-color: rgba(255, 107, 53, 0.15);
+    color: #fff;
+}
+
+.stepsListNum {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #FF6B35;
+    letter-spacing: 1.5px;
+    min-width: 24px;
+}
+
+.cardSwapWrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 420px;
+    overflow: visible;
+}
+
+.swapCard {
+    padding: 32px 28px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: linear-gradient(
+        145deg,
+        #FF6B35 0%,
+        #E85A28 100%
+    );
+}
+
+.swapCardHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.swapCardNumber {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.7);
+    letter-spacing: 2px;
+    font-variant-numeric: tabular-nums;
+}
+
+.swapCardIcon {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    color: #fff;
+}
+
+.swapCardTitle {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 12px;
+}
+
+.swapCardDesc {
+    font-size: 0.92rem;
+    line-height: 1.65;
+    color: rgba(255, 255, 255, 0.85);
+    margin: 0;
+}
+
+@media (max-width: 1024px) {
+    .howItWorksSplit {
+        grid-template-columns: 1fr;
+        gap: 40px;
+    }
+
+    .problemSplit {
+        grid-template-columns: 1fr;
+        gap: 40px;
+    }
+
+    .howItWorksText .sectionLabel,
+    .howItWorksText .sectionTitle {
+        text-align: center;
+    }
+
+    .howItWorksDesc {
+        text-align: center;
+    }
+
+    .problemText .sectionLabel,
+    .problemText .sectionTitle {
+        text-align: center;
+    }
+
+    .problemDesc {
+        text-align: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .cardSwapWrapper {
+        min-height: 360px;
+    }
 }
 
 /* ============================================
@@ -925,64 +1124,62 @@
     padding: 100px 24px;
 }
 
-.problemGrid {
+.problemSplit {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
 }
 
-.problemCard {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 16px;
-    padding: 32px 24px;
+.problemText {
     opacity: 0;
     transform: translateY(30px);
     transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.problemCard.visible {
+.problemText.visible {
     opacity: 1;
     transform: translateY(0);
 }
 
-.solutionCard {
-    border-color: rgba(255, 107, 53, 0.2);
-    background: rgba(255, 107, 53, 0.03);
+.problemText .sectionLabel,
+.problemText .sectionTitle {
+    text-align: left;
 }
 
-.problemCardTitle {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #fff;
-    margin-bottom: 20px;
+.problemDesc {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 20px 0 32px;
 }
 
-.orangeX {
-    color: #ff6b35;
-}
-
-.problemList {
+.problemHighlights {
     list-style: none;
     padding: 0;
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
 }
 
-.problemList li {
+.problemHighlights li {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 0.9rem;
+    gap: 14px;
+    font-size: 0.95rem;
     color: rgba(255, 255, 255, 0.6);
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.02);
+    transition: all 0.25s ease;
 }
 
-.xIcon {
-    color: rgba(255, 255, 255, 0.25);
-    font-weight: 600;
-    font-size: 0.8rem;
+.problemHighlights li:hover {
+    background: rgba(255, 107, 53, 0.06);
+    border-color: rgba(255, 107, 53, 0.15);
+    color: #fff;
 }
 
 /* ============================================
@@ -994,69 +1191,38 @@
     background: rgba(255, 255, 255, 0.01);
 }
 
-.flowDiagram {
+.carouselWrapper {
     display: flex;
-    align-items: center;
     justify-content: center;
-    gap: 12px;
-    padding: 48px 24px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 20px;
-    margin-bottom: 40px;
+    align-items: center;
     opacity: 0;
     transform: translateY(20px);
     transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
 }
 
-.flowDiagram.visible {
+.carouselWrapper.visible {
     opacity: 1;
     transform: translateY(0);
 }
 
-.flowStep {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    min-width: 120px;
+.stepperWrapper {
+    max-width: 640px;
+    margin: 40px auto;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
 }
 
-.flowIcon {
-    width: 56px;
-    height: 56px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
-    color: rgba(255, 255, 255, 0.6);
+.stepperWrapper.visible {
+    opacity: 1;
+    transform: translateY(0);
 }
 
-.flowIconHighlight {
-    background: rgba(255, 107, 53, 0.12);
-    border-color: rgba(255, 107, 53, 0.3);
-    color: #ff6b35;
-}
-
-.flowLabel {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #fff;
-    text-align: center;
-}
-
-.flowSub {
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.35);
-    text-align: center;
-}
-
-.flowArrow {
-    font-size: 1.5rem;
-    color: rgba(255, 107, 53, 0.5);
-    flex-shrink: 0;
+.stepperTitle {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #FF6B35;
+    margin-bottom: 8px;
 }
 
 .insightQuote {
@@ -1284,21 +1450,6 @@
 
     .securityGrid {
         grid-template-columns: repeat(2, 1fr);
-    }
-
-    .problemGrid {
-        grid-template-columns: 1fr;
-        max-width: 500px;
-        margin: 0 auto;
-    }
-
-    .flowDiagram {
-        flex-wrap: wrap;
-        gap: 16px;
-    }
-
-    .flowArrow {
-        display: none;
     }
 
     .flywheelRing {

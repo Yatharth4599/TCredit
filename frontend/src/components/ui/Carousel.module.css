@@ -1,0 +1,110 @@
+.container {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 107, 53, 0.25);
+    border-radius: 24px;
+    padding: 16px;
+    background: rgba(255, 107, 53, 0.04);
+}
+
+.track {
+    display: flex;
+}
+
+.item {
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    border: 1px solid rgba(255, 107, 53, 0.3);
+    border-radius: 12px;
+    background: linear-gradient(145deg, #FF6B35 0%, #E85A28 100%);
+    overflow: hidden;
+    cursor: grab;
+}
+
+.item:active {
+    cursor: grabbing;
+}
+
+.round {
+    border-radius: 50%;
+}
+
+.roundHeader {
+    padding: 0;
+    margin: 0;
+}
+
+.roundIndicators {
+    position: absolute;
+    z-index: 2;
+    bottom: 3em;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.itemHeader {
+    margin-bottom: 16px;
+    padding: 20px 20px 0;
+}
+
+.iconContainer {
+    display: flex;
+    height: 36px;
+    width: 36px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.2);
+    color: #fff;
+}
+
+.itemContent {
+    padding: 0 20px 20px;
+}
+
+.itemTitle {
+    margin-bottom: 8px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #fff;
+}
+
+.itemDescription {
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0;
+}
+
+.indicatorsContainer {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+}
+
+.indicators {
+    margin-top: 16px;
+    display: flex;
+    gap: 10px;
+    padding: 0 32px;
+}
+
+.indicator {
+    height: 8px;
+    width: 8px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background-color 150ms;
+}
+
+.indicatorActive {
+    background-color: #FF6B35;
+}
+
+.indicatorInactive {
+    background-color: rgba(255, 255, 255, 0.15);
+}

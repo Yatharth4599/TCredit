@@ -7,25 +7,56 @@
   gap: 20px;
 }
 
-/* Stats Row */
-.statsRow {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+/* Bento stat cards */
+.bentoStat {
+  padding: 20px;
 }
 
-/* Main layout */
-.main {
-  display: grid;
-  grid-template-columns: 1fr 1.4fr;
-  gap: 16px;
-  align-items: flex-start;
+.bentoStatHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
-.leftCol, .rightCol {
+.bentoStatIcon {
+  color: #FF6B35;
+  display: flex;
+}
+
+.bentoStatLabel {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.bentoStatValue {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.bentoStatSub {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bentoStatTrend {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+/* Bento inner padding */
+.bentoInner {
+  padding: 20px;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 14px;
 }
 
 /* Section header */

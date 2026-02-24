@@ -1,24 +1,36 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
 import Navbar from './components/layout/Navbar'
-import Home from './pages/Home'
-import Vaults from './pages/Vaults'
-import Portfolio from './pages/Portfolio'
-import MerchantDashboard from './pages/MerchantDashboard'
-import LiquidityPools from './pages/LiquidityPools'
 import styles from './App.module.css'
+
+const Home = lazy(() => import('./pages/Home'))
+const Vaults = lazy(() => import('./pages/Vaults'))
+const Portfolio = lazy(() => import('./pages/Portfolio'))
+const MerchantDashboard = lazy(() => import('./pages/MerchantDashboard'))
+const LiquidityPools = lazy(() => import('./pages/LiquidityPools'))
+
+function PageLoader() {
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 32, height: 32, border: '3px solid rgba(255,107,53,0.2)', borderTopColor: '#FF6B35', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+    </div>
+  )
+}
 
 function App() {
   return (
     <Router>
       <div className={styles.app}>
         <Navbar />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/vaults" element={<Vaults />} />
-          <Route path="/portfolio" element={<Portfolio />} />
-          <Route path="/pools" element={<LiquidityPools />} />
-          <Route path="/merchant" element={<MerchantDashboard />} />
-        </Routes>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/vaults" element={<Vaults />} />
+            <Route path="/portfolio" element={<Portfolio />} />
+            <Route path="/pools" element={<LiquidityPools />} />
+            <Route path="/merchant" element={<MerchantDashboard />} />
+          </Routes>
+        </Suspense>
       </div>
     </Router>
   )
