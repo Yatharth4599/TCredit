@@ -59,7 +59,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 120px 24px 60px;
+    padding: 100px 24px 60px;
     position: relative;
 }
 
@@ -935,44 +935,90 @@
     padding: 80px 24px;
 }
 
-.techStack {
+.marqueeOuter {
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%);
+}
+
+.marqueeOuter:hover .marqueeTrack {
+    animation-play-state: paused;
+}
+
+.marqueeTrack {
+    display: flex;
+    width: max-content;
+    gap: 16px;
+}
+
+.marqueeLeft {
+    animation: marqueeLeft 28s linear infinite;
+}
+
+.marqueeRight {
+    animation: marqueeRight 28s linear infinite;
+}
+
+@keyframes marqueeLeft {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+}
+
+@keyframes marqueeRight {
+    from { transform: translateX(-50%); }
+    to   { transform: translateX(0); }
+}
+
+.marqueePill {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 24px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-left: 3px solid #FF6B35;
+    border-radius: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.marqueePill:hover {
+    background: rgba(255, 107, 53, 0.06);
+    border-color: rgba(255, 107, 53, 0.3);
+    border-left-color: #FF6B35;
+}
+
+.marqueePillIcon {
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 40px;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
+    background: rgba(255, 107, 53, 0.12);
+    border-radius: 8px;
+    color: #FF6B35;
+    flex-shrink: 0;
 }
 
-.techStack.visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.techItem {
-    text-align: center;
-}
-
-.techName {
-    display: block;
-    font-size: 1.1rem;
+.marqueePillName {
+    font-size: 0.95rem;
     font-weight: 600;
     color: #fff;
-    margin-bottom: 4px;
 }
 
-.techDesc {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
+.marqueePillRole {
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.38);
     text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.techDivider {
-    width: 1px;
-    height: 40px;
-    background: rgba(255, 255, 255, 0.1);
+    letter-spacing: 0.8px;
+    padding: 3px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
 }
 
 /* ============================================
@@ -1240,109 +1286,6 @@
     padding: 100px 24px;
 }
 
-.waterfallVisual {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    max-width: 800px;
-    margin: 0 auto 48px;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
-}
-
-.waterfallVisual.visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.tranche {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.trancheBar {
-    height: 32px;
-    border-radius: 8px;
-    overflow: hidden;
-    position: relative;
-}
-
-.trancheInner {
-    height: 100%;
-    border-radius: 8px;
-    transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.trancheInfo {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-.trancheName {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #fff;
-}
-
-.trancheDesc {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.4);
-}
-
-.capitalExample {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 16px;
-    padding: 28px;
-    max-width: 600px;
-    margin: 0 auto;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s;
-}
-
-.capitalExample.visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.exampleTitle {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.6);
-    margin-bottom: 20px;
-    text-align: center;
-}
-
-.exampleGrid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    text-align: center;
-}
-
-.exampleItem {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.exampleValue {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #fff;
-}
-
-.exampleLabel {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
 /* ============================================
    FLYWHEEL SECTION
    ============================================ */
@@ -1352,120 +1295,192 @@
     background: rgba(255, 255, 255, 0.01);
 }
 
-.flywheelDiagram {
+.flywheelSplit {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
+}
+
+/* ── Orbital Animation ── */
+
+.orbitContainer {
     position: relative;
-    width: 360px;
-    height: 360px;
+    width: 420px;
+    height: 420px;
     margin: 0 auto;
     opacity: 0;
-    transform: translateY(20px) scale(0.96);
+    transform: scale(0.9);
     transition: all 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
 }
 
-.flywheelDiagram.visible {
+.orbitContainer.visible {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: scale(1);
 }
 
-.flywheelSvg {
+.orbitHub {
     position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 107, 53, 0.15) 0%, rgba(255, 107, 53, 0.04) 70%);
+    border: 1px solid rgba(255, 107, 53, 0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    box-shadow: 0 0 40px rgba(255, 107, 53, 0.1);
 }
 
-@keyframes flywheelSpin {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
+.orbitHubText {
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: #FF6B35;
+    letter-spacing: 2px;
+    line-height: 1.3;
 }
 
-@keyframes flywheelArcChase {
-    from { stroke-dashoffset: 0; }
-    to   { stroke-dashoffset: -867; }
-}
-
-.flywheelRingOuter {
-    transform-origin: 180px 180px;
-    animation: flywheelSpin 30s linear infinite;
-}
-
-.flywheelArc {
-    transform-origin: 180px 180px;
-    animation: flywheelArcChase 3.5s linear infinite;
-}
-
-.flywheelNode {
+.orbitRing {
     position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 320px;
+    height: 320px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 1px dashed rgba(255, 107, 53, 0.15);
+}
+
+.orbitGlow {
+    display: none;
+}
+
+/* Single orbit keyframe: rotate position, then counter-rotate content back upright */
+@keyframes orbitCard {
+    from { transform: translate(-50%, -50%) rotate(0deg)   translateY(-160px) rotate(0deg); }
+    to   { transform: translate(-50%, -50%) rotate(360deg) translateY(-160px) rotate(-360deg); }
+}
+
+/* Cards positioned directly in orbitContainer, each with a delay for 90° offsets */
+.orbitCard {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 120px;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 6px;
+    padding: 14px 12px;
+    background: linear-gradient(145deg, #FF6B35 0%, #E85A28 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
     text-align: center;
+    animation: orbitCard 20s linear infinite;
+    box-shadow: 0 4px 20px rgba(255, 107, 53, 0.3);
+    color: #fff;
 }
 
-.flywheelNodeTop {
-    top: -4px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 120px;
+.orbitPos0 { animation-delay: 0s; }
+.orbitPos1 { animation-delay: -5s; }
+.orbitPos2 { animation-delay: -10s; }
+.orbitPos3 { animation-delay: -15s; }
+
+.orbitCardInner {
+    display: contents;
 }
 
-.flywheelNodeRight {
-    top: 50%;
-    right: -4px;
-    transform: translateY(-50%);
-    width: 110px;
+@keyframes counterSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(-360deg); }
+}
+
+.orbitCardNum {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: rgba(0, 0, 0, 0.5);
+}
+
+.orbitCardTitle {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1.3;
+}
+
+/* ── Flywheel Text (right side) ── */
+
+.flywheelText {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.flywheelText.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.flywheelDesc {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 32px;
+}
+
+.flywheelSteps {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.flywheelStep {
+    display: flex;
     align-items: flex-start;
-    text-align: left;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.02);
+    transition: border-color 0.3s, background 0.3s;
 }
 
-.flywheelNodeBottom {
-    bottom: -4px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 120px;
+.flywheelStep:hover {
+    border-color: rgba(255, 107, 53, 0.2);
+    background: rgba(255, 107, 53, 0.04);
 }
 
-.flywheelNodeLeft {
-    top: 50%;
-    left: -4px;
-    transform: translateY(-50%);
-    width: 110px;
-    align-items: flex-end;
-    text-align: right;
-}
-
-.flywheelNodeNum {
-    width: 28px;
-    height: 28px;
+.flywheelStepNum {
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: rgba(255, 107, 53, 0.12);
     border: 1px solid rgba(255, 107, 53, 0.3);
     color: #FF6B35;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     font-weight: 700;
     border-radius: 50%;
     flex-shrink: 0;
-    transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 
-.flywheelNode:hover .flywheelNodeNum {
-    background: rgba(255, 107, 53, 0.25);
-    box-shadow: 0 0 12px rgba(255, 107, 53, 0.4);
-}
-
-.flywheelNodeLabel {
-    font-size: 0.72rem;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.55);
-    line-height: 1.35;
-    transition: color 0.3s ease;
-}
-
-.flywheelNode:hover .flywheelNodeLabel {
+.flywheelStepTitle {
+    font-size: 0.9rem;
+    font-weight: 600;
     color: #fff;
+    margin-bottom: 4px;
+}
+
+.flywheelStepDesc {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.4);
 }
 
 /* ============================================
@@ -1482,6 +1497,7 @@
         grid-template-columns: 1fr;
         gap: 48px;
     }
+
 
     .splitReverse {
         direction: ltr;
@@ -1505,9 +1521,24 @@
         text-align: center;
     }
 
-    .flywheelDiagram {
-        width: 300px;
-        height: 300px;
+    .flywheelSplit {
+        grid-template-columns: 1fr;
+        gap: 40px;
+    }
+
+    .orbitContainer {
+        width: 340px;
+        height: 340px;
+    }
+
+    .orbitRing {
+        width: 270px;
+        height: 270px;
+    }
+
+    @keyframes orbitCard {
+        from { transform: translate(-50%, -50%) rotate(0deg)   translateY(-135px) rotate(0deg); }
+        to   { transform: translate(-50%, -50%) rotate(360deg) translateY(-135px) rotate(-360deg); }
     }
 
     .exampleGrid {
@@ -1597,14 +1628,32 @@
         padding: 24px 16px;
     }
 
-    .flywheelDiagram {
-        width: 280px;
-        height: 280px;
+    .orbitContainer {
+        width: 300px;
+        height: 300px;
     }
 
-    .flywheelNodeLabel {
-        font-size: 0.68rem;
+    .orbitRing {
+        width: 240px;
+        height: 240px;
     }
+
+    .orbitCard {
+        width: 110px;
+    }
+
+    .orbitCardInner {
+        padding: 10px 8px;
+    }
+
+    .orbitCardTitle {
+        font-size: 0.65rem;
+    }
+
+    .orbitPos0 { transform: translate(-50%, -50%) rotate(0deg) translateY(-120px); }
+    .orbitPos1 { transform: translate(-50%, -50%) rotate(90deg) translateY(-120px); }
+    .orbitPos2 { transform: translate(-50%, -50%) rotate(180deg) translateY(-120px); }
+    .orbitPos3 { transform: translate(-50%, -50%) rotate(270deg) translateY(-120px); }
 
     .exampleValue {
         font-size: 1.2rem;
@@ -1647,8 +1696,36 @@
         grid-template-columns: 1fr;
     }
 
-    .flywheelDiagram {
+    .orbitContainer {
         width: 260px;
         height: 260px;
     }
+
+    .orbitRing {
+        width: 210px;
+        height: 210px;
+    }
+
+    .orbitCard {
+        width: 95px;
+    }
+
+    .orbitCardInner {
+        padding: 8px 6px;
+        gap: 4px;
+    }
+
+    .orbitCardTitle {
+        font-size: 0.6rem;
+    }
+
+    .orbitHub {
+        width: 60px;
+        height: 60px;
+    }
+
+    .orbitPos0 { transform: translate(-50%, -50%) rotate(0deg) translateY(-105px); }
+    .orbitPos1 { transform: translate(-50%, -50%) rotate(90deg) translateY(-105px); }
+    .orbitPos2 { transform: translate(-50%, -50%) rotate(180deg) translateY(-105px); }
+    .orbitPos3 { transform: translate(-50%, -50%) rotate(270deg) translateY(-105px); }
 }

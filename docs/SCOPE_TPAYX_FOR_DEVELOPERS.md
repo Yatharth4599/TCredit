@@ -216,7 +216,186 @@ Payments generate data → Data unlocks credit → Credit grows business → Gro
 > - Do investors/pool partners also need credit checks?
 
 **Decision:** _______________
+## The Programmable Credit Network
 
+**Category:** Programmable Credit (Cash-Flow Backed Capital Markets)
+
+---
+
+## 1. Introduction
+
+Global businesses operate online, but capital does not.
+
+Small and mid-sized companies generate verifiable digital revenue every day — subscriptions, trade payments, API usage, recurring invoices — yet access to financing still depends on geography, collateral, and manual approvals.
+
+TigerPayX introduces a new primitive: **programmable credit**.
+
+Instead of lending against assets or reputation, the protocol lends against enforceable payment flow.
+
+When revenue is programmable, repayment becomes automatic — and capital can be allocated globally.
+
+TigerPayX connects real economic activity to on-chain liquidity, creating internet-native capital markets for businesses.
+
+---
+
+## 2. The Problem
+
+### Capital cannot follow commerce
+
+Traditional finance:
+
+- requires local presence
+- relies on collateral
+- enforces repayment manually
+
+DeFi:
+
+- requires overcollateralization
+- ignores real-world productivity
+- cannot evaluate businesses
+
+Result: productive companies remain underfunded despite predictable cash flows.
+
+The missing layer is not liquidity — it is enforceability.
+
+---
+
+## 3. The Insight
+
+Revenue becomes lendable only when it becomes enforceable.
+
+TigerPayX uses programmable billing (x402 payment requests) and controlled settlement accounts to ensure business income passes through the protocol before reaching the borrower.
+
+This transforms invoices into programmable receivables.
+
+Instead of trusting borrowers to repay, the protocol routes repayment directly from incoming payments.
+
+Credit risk becomes activity risk.
+
+---
+
+## 4. What is Programmable Credit
+
+Programmable credit is lending where repayment executes automatically from future revenue streams.
+
+Payment event → settlement routing → repayment split
+
+No collection process
+
+No manual installments
+
+No behavioral default
+
+Businesses receive net earnings while principal and interest amortize continuously.
+
+---
+
+## 5. How TigerPayX Works
+
+### Step 1 — Payment Routing
+
+Businesses bill customers using TigerPayX payment endpoints.
+
+Customers pay via local rails or stablecoins.
+
+### Step 2 — Financial Identity
+
+Transaction behavior builds a live credit profile based on revenue consistency.
+
+### Step 3 — Capital Advance
+
+Businesses request working capital or trade financing against receivables.
+
+### Step 4 — Liquidity Funding
+
+On-chain vaults fund loans via a financing entity and lending partners.
+
+### Step 5 — Automated Repayment
+
+Incoming payments automatically split:
+
+- lender repayment
+- remaining merchant balance
+
+Repayment occurs before funds reach the borrower.
+
+---
+
+## 6. Capital Structure
+
+Each loan is funded through structured liquidity:
+
+Senior capital — lending partners
+
+Liquidity pools — stablecoin providers
+
+Risk buffers — community staking
+
+Protocol treasury — first loss
+
+This allows scalable funding while protecting liquidity providers.
+
+---
+
+## 7. Loan Types
+
+Working capital lines
+
+Invoice financing
+
+Trade finance
+
+Typical cost: ~2% monthly
+
+Maximum duration: 12 months
+
+Capital scales with business performance rather than approvals.
+
+---
+
+## 8. Why Blockchain Matters
+
+Blockchain enables:
+
+Global liquidity participation
+
+Transparent yield distribution
+
+Programmable settlement enforcement
+
+Continuous underwriting
+
+Traditional infrastructure cannot combine these properties.
+
+---
+
+## 9. The Economic Flywheel
+
+Payments generate data
+
+Data unlocks credit
+
+Credit grows business
+
+Growth generates more payments
+
+Liquidity flows toward productivity automatically.
+
+---
+
+## 10. Vision
+
+TigerPayX turns businesses into continuously fundable economic nodes.
+
+Companies no longer apply for loans.
+
+They stream capital as they perform.
+
+This creates an internet capital market — where any productive business can raise funding based on activity rather than location or collateral.
+
+---
+
+TigerPayX is a programmable credit network that makes real-world revenue natively lendable on-chain.
 ---
 
 *Document version: 2.0 — Updated to reflect programmable credit vision (litepaper Feb 2026). Decisions required by: [DATE]. Owner: [NAME].*

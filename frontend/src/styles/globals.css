@@ -24,6 +24,7 @@ body,
   background-size: 100% 60%;
   color: var(--text-primary);
   overflow-x: hidden;
+  padding-bottom: 0;
 }
 
 a {

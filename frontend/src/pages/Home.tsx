@@ -4,6 +4,8 @@ import DecryptedText from '../components/ui/DecryptedText'
 import Carousel, { type CarouselItem } from '../components/ui/Carousel'
 import Stepper, { Step } from '../components/ui/Stepper'
 import CardSwap, { Card } from '../components/ui/CardSwap'
+import NoiseBackground from '../components/ui/NoiseBackground'
+import WaterfallFlow from '../components/ui/WaterfallFlow'
 import styles from './Home.module.css'
 
 export default function Home() {
@@ -80,12 +82,14 @@ export default function Home() {
                     </p>
 
                     <div className={`${styles.cta} ${mounted ? styles.visible : ''}`}>
-                        <button className={styles.primaryBtn} onClick={() => navigate('/vaults')}>
-                            <span>Launch App</span>
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                        </button>
+                        <NoiseBackground gradientColors={['#FF6B35', '#E85A28', '#FF9B70']}>
+                            <button className={styles.primaryBtn} onClick={() => navigate('/vaults')}>
+                                <span>Launch App</span>
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </button>
+                        </NoiseBackground>
                         <button className={styles.secondaryBtn}>
                             <span>Read Litepaper</span>
                         </button>
@@ -142,7 +146,7 @@ export default function Home() {
                             <Carousel
                                 baseWidth={330}
                                 autoplay
-                                autoplayDelay={2500}
+                                autoplayDelay={1750}
                                 pauseOnHover={false}
                                 loop
                                 round={false}
@@ -269,7 +273,7 @@ export default function Home() {
                                 height={280}
                                 cardDistance={35}
                                 verticalDistance={30}
-                                delay={4000}
+                                delay={2500}
                                 pauseOnHover={true}
                                 skewAmount={4}
                                 easing="elastic"
@@ -360,63 +364,7 @@ export default function Home() {
                             Each loan is funded through layered capital. Repayment flows top-down — senior first, merchant last.
                         </p>
                     </div>
-
-                    <div className={`${styles.waterfallVisual} ${isVisible('capital') ? styles.visible : ''}`}>
-                        <div className={styles.tranche}>
-                            <div className={styles.trancheBar} style={{ width: '100%', background: 'rgba(255, 107, 53, 0.25)' }}>
-                                <div className={styles.trancheInner} style={{ width: '80%', background: 'linear-gradient(90deg, #ff6b35, #ff8f6b)' }} />
-                            </div>
-                            <div className={styles.trancheInfo}>
-                                <span className={styles.trancheName}>Senior Capital</span>
-                                <span className={styles.trancheDesc}>Lending partners · Paid first · Lowest risk</span>
-                            </div>
-                        </div>
-                        <div className={styles.tranche}>
-                            <div className={styles.trancheBar} style={{ width: '100%', background: 'rgba(59, 130, 246, 0.2)' }}>
-                                <div className={styles.trancheInner} style={{ width: '64%', background: 'linear-gradient(90deg, #3b82f6, #60a5fa)' }} />
-                            </div>
-                            <div className={styles.trancheInfo}>
-                                <span className={styles.trancheName}>Liquidity Pools</span>
-                                <span className={styles.trancheDesc}>TigerPay Alpha + co-owned partner pools</span>
-                            </div>
-                        </div>
-                        <div className={styles.tranche}>
-                            <div className={styles.trancheBar} style={{ width: '100%', background: 'rgba(52, 211, 153, 0.2)' }}>
-                                <div className={styles.trancheInner} style={{ width: '45%', background: 'linear-gradient(90deg, #34d399, #6ee7b7)' }} />
-                            </div>
-                            <div className={styles.trancheInfo}>
-                                <span className={styles.trancheName}>Community Investors</span>
-                                <span className={styles.trancheDesc}>Vault investors · Higher yield · Higher risk</span>
-                            </div>
-                        </div>
-                        <div className={styles.tranche}>
-                            <div className={styles.trancheBar} style={{ width: '100%', background: 'rgba(255, 255, 255, 0.06)' }}>
-                                <div className={styles.trancheInner} style={{ width: '30%', background: 'linear-gradient(90deg, rgba(255,255,255,0.3), rgba(255,255,255,0.5))' }} />
-                            </div>
-                            <div className={styles.trancheInfo}>
-                                <span className={styles.trancheName}>Risk Buffer</span>
-                                <span className={styles.trancheDesc}>Community staking · First-loss layer</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className={`${styles.capitalExample} ${isVisible('capital') ? styles.visible : ''}`}>
-                        <h4 className={styles.exampleTitle}>Example: AED 500K Gym Loan</h4>
-                        <div className={styles.exampleGrid}>
-                            <div className={styles.exampleItem}>
-                                <span className={styles.exampleValue}>400K</span>
-                                <span className={styles.exampleLabel}>Senior (Jupiter)</span>
-                            </div>
-                            <div className={styles.exampleItem}>
-                                <span className={styles.exampleValue}>80K</span>
-                                <span className={styles.exampleLabel}>Liquidity Pools</span>
-                            </div>
-                            <div className={styles.exampleItem}>
-                                <span className={styles.exampleValue}>20K</span>
-                                <span className={styles.exampleLabel}>Community</span>
-                            </div>
-                        </div>
-                    </div>
+                    <WaterfallFlow />
                 </div>
             </section>
 
@@ -523,40 +471,71 @@ export default function Home() {
                         <h2 className={styles.sectionTitle}>Liquidity flows toward <span className={styles.gradientInline}>productivity</span></h2>
                     </div>
 
-                    <div className={`${styles.flywheelDiagram} ${isVisible('flywheel') ? styles.visible : ''}`}>
-                        <svg className={styles.flywheelSvg} viewBox="0 0 360 360" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            {/* Outer dashed ring */}
-                            <circle cx="180" cy="180" r="138" stroke="rgba(255,107,53,0.15)" strokeWidth="1" strokeDasharray="6 6" className={styles.flywheelRingOuter} />
-                            {/* Animated flow arc */}
-                            <circle cx="180" cy="180" r="138" stroke="#FF6B35" strokeWidth="2" strokeDasharray="55 812" strokeLinecap="round" className={styles.flywheelArc} />
-                            {/* Inner ring */}
-                            <circle cx="180" cy="180" r="46" stroke="rgba(255,107,53,0.12)" strokeWidth="1" />
-                            {/* Center */}
-                            <circle cx="180" cy="180" r="38" fill="rgba(255,107,53,0.08)" stroke="rgba(255,107,53,0.25)" strokeWidth="1" />
-                            <text x="180" y="176" textAnchor="middle" fill="#FF6B35" fontSize="8" fontWeight="700" letterSpacing="1">TIGER</text>
-                            <text x="180" y="188" textAnchor="middle" fill="#FF6B35" fontSize="8" fontWeight="700" letterSpacing="1">PAYX</text>
-                            {/* Spokes */}
-                            <line x1="180" y1="42" x2="180" y2="62" stroke="rgba(255,107,53,0.2)" strokeWidth="1" strokeDasharray="3 3" />
-                            <line x1="318" y1="180" x2="298" y2="180" stroke="rgba(255,107,53,0.2)" strokeWidth="1" strokeDasharray="3 3" />
-                            <line x1="180" y1="318" x2="180" y2="298" stroke="rgba(255,107,53,0.2)" strokeWidth="1" strokeDasharray="3 3" />
-                            <line x1="42" y1="180" x2="62" y2="180" stroke="rgba(255,107,53,0.2)" strokeWidth="1" strokeDasharray="3 3" />
-                        </svg>
+                    <div className={styles.flywheelSplit}>
+                        {/* Left: Text */}
+                        <div className={`${styles.flywheelText} ${isVisible('flywheel') ? styles.visible : ''}`}>
+                            <p className={styles.flywheelDesc}>
+                                Every payment processed through TigerPayX generates real-time data that feeds the credit engine — creating a self-reinforcing cycle of access, growth, and liquidity.
+                            </p>
+                            <div className={styles.flywheelSteps}>
+                                <div className={styles.flywheelStep}>
+                                    <div className={styles.flywheelStepNum}>1</div>
+                                    <div>
+                                        <h4 className={styles.flywheelStepTitle}>Payments generate data</h4>
+                                        <p className={styles.flywheelStepDesc}>x402 transactions create verifiable payment history on-chain</p>
+                                    </div>
+                                </div>
+                                <div className={styles.flywheelStep}>
+                                    <div className={styles.flywheelStepNum}>2</div>
+                                    <div>
+                                        <h4 className={styles.flywheelStepTitle}>Data unlocks credit</h4>
+                                        <p className={styles.flywheelStepDesc}>FairScale scores enable access to structured credit pools</p>
+                                    </div>
+                                </div>
+                                <div className={styles.flywheelStep}>
+                                    <div className={styles.flywheelStepNum}>3</div>
+                                    <div>
+                                        <h4 className={styles.flywheelStepTitle}>Credit grows business</h4>
+                                        <p className={styles.flywheelStepDesc}>Working capital fuels inventory, expansion, and new markets</p>
+                                    </div>
+                                </div>
+                                <div className={styles.flywheelStep}>
+                                    <div className={styles.flywheelStepNum}>4</div>
+                                    <div>
+                                        <h4 className={styles.flywheelStepTitle}>Growth fuels more payments</h4>
+                                        <p className={styles.flywheelStepDesc}>Larger businesses process more volume, restarting the cycle</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-                        <div className={`${styles.flywheelNode} ${styles.flywheelNodeTop}`}>
-                            <div className={styles.flywheelNodeNum}>1</div>
-                            <span className={styles.flywheelNodeLabel}>Payments generate data</span>
-                        </div>
-                        <div className={`${styles.flywheelNode} ${styles.flywheelNodeRight}`}>
-                            <div className={styles.flywheelNodeNum}>2</div>
-                            <span className={styles.flywheelNodeLabel}>Data unlocks credit</span>
-                        </div>
-                        <div className={`${styles.flywheelNode} ${styles.flywheelNodeBottom}`}>
-                            <div className={styles.flywheelNodeNum}>3</div>
-                            <span className={styles.flywheelNodeLabel}>Credit grows business</span>
-                        </div>
-                        <div className={`${styles.flywheelNode} ${styles.flywheelNodeLeft}`}>
-                            <div className={styles.flywheelNodeNum}>4</div>
-                            <span className={styles.flywheelNodeLabel}>Growth fuels more payments</span>
+                        {/* Right: Orbital animation */}
+                        <div className={`${styles.orbitContainer} ${isVisible('flywheel') ? styles.visible : ''}`}>
+                            <div className={styles.orbitHub}>
+                                <span className={styles.orbitHubText}>TIGER</span>
+                                <span className={styles.orbitHubText}>PAYX</span>
+                            </div>
+                            <div className={styles.orbitRing} />
+                            <div className={`${styles.orbitCard} ${styles.orbitPos0}`}>
+                                <span className={styles.orbitCardNum}>01</span>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+                                <span className={styles.orbitCardTitle}>Payments generate data</span>
+                            </div>
+                            <div className={`${styles.orbitCard} ${styles.orbitPos1}`}>
+                                <span className={styles.orbitCardNum}>02</span>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 20h20M6 20V10M10 20V4M14 20V8M18 20V14"/></svg>
+                                <span className={styles.orbitCardTitle}>Data unlocks credit</span>
+                            </div>
+                            <div className={`${styles.orbitCard} ${styles.orbitPos2}`}>
+                                <span className={styles.orbitCardNum}>03</span>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                                <span className={styles.orbitCardTitle}>Credit grows business</span>
+                            </div>
+                            <div className={`${styles.orbitCard} ${styles.orbitPos3}`}>
+                                <span className={styles.orbitCardNum}>04</span>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                                <span className={styles.orbitCardTitle}>Growth fuels payments</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -573,7 +552,7 @@ export default function Home() {
                                 height={280}
                                 cardDistance={-35}
                                 verticalDistance={30}
-                                delay={4000}
+                                delay={1750}
                                 pauseOnHover={true}
                                 skewAmount={-4}
                                 easing="elastic"
@@ -663,32 +642,37 @@ export default function Home() {
                         <h2 className={styles.sectionTitle}>Powered by <span className={styles.gradientInline}>Solana</span></h2>
                     </div>
 
-                    <div className={`${styles.techStack} ${isVisible('integrations') ? styles.visible : ''}`}>
-                        <div className={styles.techItem}>
-                            <span className={styles.techName}>Solana</span>
-                            <span className={styles.techDesc}>Layer 1</span>
-                        </div>
-                        <div className={styles.techDivider} />
-                        <div className={styles.techItem}>
-                            <span className={styles.techName}>x402</span>
-                            <span className={styles.techDesc}>Payment Protocol</span>
-                        </div>
-                        <div className={styles.techDivider} />
-                        <div className={styles.techItem}>
-                            <span className={styles.techName}>USDC</span>
-                            <span className={styles.techDesc}>Stablecoin</span>
-                        </div>
-                        <div className={styles.techDivider} />
-                        <div className={styles.techItem}>
-                            <span className={styles.techName}>FairScale</span>
-                            <span className={styles.techDesc}>Credit Scoring</span>
-                        </div>
-                        <div className={styles.techDivider} />
-                        <div className={styles.techItem}>
-                            <span className={styles.techName}>Jupiter</span>
-                            <span className={styles.techDesc}>Senior Tranche</span>
-                        </div>
-                    </div>
+                    {(() => {
+                        const pills = [
+                            { name: 'Solana', role: 'Layer 1', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M4 17.5h13.5l2.5-2.5H6.5L4 17.5zm0-5.5h13.5L20 9.5H6.5L4 12zm2.5-8L4 6.5h13.5L20 4H6.5z"/></svg> },
+                            { name: 'x402', role: 'Payment Protocol', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg> },
+                            { name: 'USDC', role: 'Stablecoin', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M8 9.5C8 8.1 9.8 7 12 7s4 1.1 4 2.5-1.8 2.5-4 2.5-4 1.1-4 2.5S9.8 17 12 17s4-1.1 4-2.5"/></svg> },
+                            { name: 'FairScale', role: 'Credit Scoring', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 20h20M6 20V10M10 20V4M14 20V8M18 20V14"/></svg> },
+                            { name: 'Jupiter', role: 'Senior Tranche', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M5 12h14M12 5c-2.5 2-4 4.5-4 7s1.5 5 4 7M12 5c2.5 2 4 4.5 4 7s-1.5 5-4 7"/></svg> },
+                            { name: 'Anchor', role: 'Smart Contracts', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v4M12 18v4M12 6a6 6 0 0 1 0 12M9 20H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h3M15 20h3a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/></svg> },
+                            { name: 'Metaplex', role: 'NFT Standard', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="9" height="9" rx="1"/><rect x="13" y="2" width="9" height="9" rx="1"/><rect x="2" y="13" width="9" height="9" rx="1"/><rect x="13" y="13" width="9" height="9" rx="1"/></svg> },
+                            { name: 'Pyth', role: 'Oracle', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 12h20M12 2l10 10-10 10L2 12l10-10z"/></svg> },
+                        ]
+                        const pillEl = (p: typeof pills[0], i: number) => (
+                            <div key={i} className={styles.marqueePill}>
+                                <span className={styles.marqueePillIcon}>{p.icon}</span>
+                                <span className={styles.marqueePillName}>{p.name}</span>
+                                <span className={styles.marqueePillRole}>{p.role}</span>
+                            </div>
+                        )
+                        const row1 = [...pills, ...pills]
+                        const row2 = [...[...pills].reverse(), ...[...pills].reverse()]
+                        return (
+                            <div className={styles.marqueeOuter}>
+                                <div className={`${styles.marqueeTrack} ${styles.marqueeLeft}`}>
+                                    {row1.map((p, i) => pillEl(p, i))}
+                                </div>
+                                <div className={`${styles.marqueeTrack} ${styles.marqueeRight}`}>
+                                    {row2.map((p, i) => pillEl(p, i))}
+                                </div>
+                            </div>
+                        )
+                    })()}
                 </div>
             </section>
 
@@ -704,12 +688,14 @@ export default function Home() {
                             Any productive business can raise funding based on activity — not location or collateral.
                         </p>
                         <div className={styles.ctaButtons}>
-                            <button className={styles.primaryBtn} onClick={() => navigate('/vaults')}>
-                                <span>Launch App</span>
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                            </button>
+                            <NoiseBackground gradientColors={['#FF6B35', '#E85A28', '#FF9B70']}>
+                                <button className={styles.primaryBtn} onClick={() => navigate('/vaults')}>
+                                    <span>Launch App</span>
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                        <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                </button>
+                            </NoiseBackground>
                             <button className={styles.secondaryBtn} onClick={() => navigate('/pools')}>
                                 <span>Explore Pools</span>
                             </button>

@@ -78,14 +78,16 @@ const CardSwap: React.FC<CardSwapProps> = ({
     const total = refs.length
     refs.forEach((r, i) => placeNow(r.current!, makeSlot(i, cardDistance, verticalDistance, total), skewAmount))
 
+    const pausedRef = { current: false }
+
     const swap = () => {
-      if (stoppedRef.current || order.current.length < 2) return
+      if (stoppedRef.current || pausedRef.current || order.current.length < 2) return
       const [front, ...rest] = order.current
       const elFront = refs[front].current!
       const tl = gsap.timeline({
         onComplete: () => {
           order.current = [...rest, front]
-          if (!stoppedRef.current) {
+          if (!stoppedRef.current && !pausedRef.current) {
             timeoutRef.current = window.setTimeout(swap, delay)
           }
         },
@@ -107,24 +109,57 @@ const CardSwap: React.FC<CardSwapProps> = ({
       tl.to(elFront, { x: backSlot.x, y: backSlot.y, z: backSlot.z, duration: config.durReturn, ease: config.ease }, 'return')
     }
 
+    const scheduleNext = () => {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = window.setTimeout(swap, delay)
+    }
+
+    const pause = () => {
+      pausedRef.current = true
+      tlRef.current?.pause()
+      clearTimeout(timeoutRef.current)
+    }
+
+    const resume = () => {
+      if (stoppedRef.current) return
+      pausedRef.current = false
+      const tl = tlRef.current
+      if (tl && tl.progress() < 1) {
+        tl.play()
+      } else {
+        scheduleNext()
+      }
+    }
+
+    // Recover from tab switches
+    const onVisibility = () => {
+      if (stoppedRef.current) return
+      if (document.hidden) {
+        pause()
+      } else {
+        resume()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+
     timeoutRef.current = window.setTimeout(swap, 500)
 
     if (pauseOnHover && container.current) {
       const node = container.current
-      const pause = () => { tlRef.current?.pause(); clearTimeout(timeoutRef.current) }
-      const resume = () => { if (!stoppedRef.current) { tlRef.current?.play() } }
       node.addEventListener('mouseenter', pause)
       node.addEventListener('mouseleave', resume)
       return () => {
         stoppedRef.current = true
         node.removeEventListener('mouseenter', pause)
         node.removeEventListener('mouseleave', resume)
+        document.removeEventListener('visibilitychange', onVisibility)
         clearTimeout(timeoutRef.current)
         tlRef.current?.kill()
       }
     }
     return () => {
       stoppedRef.current = true
+      document.removeEventListener('visibilitychange', onVisibility)
       clearTimeout(timeoutRef.current)
       tlRef.current?.kill()
     }
