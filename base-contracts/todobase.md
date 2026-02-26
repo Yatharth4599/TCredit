@@ -2,7 +2,7 @@
 
 **Component:** `base-contracts/` — Solidity smart contracts for Base L2
 **Purpose:** Accelerator demo — AI-native programmable credit on Base
-**Last updated:** 2026-02-26
+**Last updated:** 2026-03-01
 
 ---
 
@@ -164,48 +164,41 @@ base-contracts/
 ### Tests
 - [x] **E2E.t.sol** — Full demo flow: 4 agents, vault creation, funding, payments, waterfall verification
 - [x] **Unit tests** — AgentRegistry (7), PaymentRouter (5), MerchantVault (8), LiquidityPool (6), Waterfall (7)
+- [x] **SecurityHardening.t.sol** — 12 dedicated security hardening tests
+- [x] **VaultFactory.t.sol** — 22 VaultFactory unit tests (CREATE2, fees, admin, pause, bounds)
+- [x] **MerchantVaultLifecycle.t.sol** — 15 lifecycle tests (default, claimRefund, state transitions, claimReturns)
+- [x] **PaymentRouterSettlement.t.sol** — 12 settlement tests (rate limiting, maxPayment, deactivate, update)
+- [x] **LiquidityPoolLifecycle.t.sol** — 9 pool lifecycle tests (allocate → repay → processReturn → withdraw)
+- [x] **MultiInvestorE2E.t.sol** — 2 multi-investor E2E tests (proportional claims, senior pool claims)
+- **Total: 120/120 tests passing | 87% line coverage | 55% branch coverage**
 
 ### Deployment
 - [x] **Deploy.s.sol** — Deploys all contracts, wires basic permissions, supports Base Sepolia
+- [x] **.env.example** — All required vars: DEPLOYER_PRIVATE_KEY, ORACLE_ADDRESS, FEE_RECIPIENT, PLATFORM_FEE_BPS, USDC_ADDRESS, BASE_RPC_URL, BASE_SEPOLIA_RPC_URL, BASESCAN_API_KEY
+
+### Interface Sync
+- [x] **IAgentRegistry** — All security functions + events added
+- [x] **IPaymentRouter** — pause/unpause, setFactory/setOracle, proposeAdmin/acceptAdmin + 6 events
+- [x] **IMerchantVault** — setPaymentRouter, proposeAdmin/acceptAdmin, getInvestors, getWaterfallState + 3 events
+- [x] **ILiquidityPool** — pause/unpause, setMaxAllocation, proposeAdmin/acceptAdmin, getAllocatedVaults + 3 events
+
+### Code Quality
+- [x] **AgentRegistry modifier** — Extracted `_checkAuthorized()` internal function (Foundry lint fix)
+- [x] **Duplicate events removed** — Event declarations live in interfaces only (contracts inherit via `is IFoo`)
 
 ---
 
 ## Remaining 🔧
 
-### 1. Interface Sync (HIGH — blocks clean integration)
-All 4 interfaces are stale after security hardening. Missing:
-- [ ] **IAgentRegistry** — Add `proposeAdmin()`, `acceptAdmin()`, `setFactory()`, `setPaymentRouter()`, `deactivateAgent()`, `getAllAgents()`, `getAgentCount()` + events (`FactoryUpdated`, `PaymentRouterUpdated`, `AdminTransferProposed`, `AdminTransferred`)
-- [ ] **IPaymentRouter** — Add `setFactory()`, `setOracle()`, `pause()`, `unpause()`, `proposeAdmin()`, `acceptAdmin()` + events (`Paused`, `Unpaused`, `OracleUpdated`, `FactoryUpdated`, `AdminTransferProposed`, `AdminTransferred`)
-- [ ] **IMerchantVault** — Add `setPaymentRouter()`, `proposeAdmin()`, `acceptAdmin()`, `getInvestors()`, `getWaterfallState()` + events (`PaymentRouterUpdated`, `AdminTransferProposed`, `AdminTransferred`)
-- [ ] **ILiquidityPool** — Add `pause()`, `unpause()`, `setMaxAllocation()`, `proposeAdmin()`, `acceptAdmin()`, `getAllocatedVaults()` + events (`MaxAllocationUpdated`, `AdminTransferProposed`, `AdminTransferred`)
+### 1. Testnet Deploy (HIGH — needed for live demo)
+- [ ] **Deploy to Base Sepolia** — Run `script/Deploy.s.sol` with real env vars
+- [ ] **Verify contracts on BaseScan** — Use `--verify --etherscan-api-key $BASESCAN_API_KEY`
+- [ ] **Wire LiquidityPool permissions post-deploy** — Pools need `setFactory()` + `setPaymentRouter()` called after deploy
+- [ ] **Pre-fund demo wallets** — Sepolia ETH + USDC for oracle, deployer, test agents
 
-### 2. Test Coverage Gaps (HIGH — demo credibility)
-Branch coverage is 35%. Key untested paths:
-- [ ] **VaultFactory tests** — `createVault` happy path, duplicate vault rejection, platform pause blocking, `predictVaultAddress` accuracy, `setPlatformFee`, `setFeeRecipient`, `setOracle`, admin-only guards
-- [ ] **MerchantVault default flow** — `markDefault()` → `claimRefund()` with partial repayment, recovery path
-- [ ] **MerchantVault claimReturns** — Investor claiming after waterfall distributions, multi-investor proportional claims
-- [ ] **MerchantVault state transitions** — Invest when not fundraising, releaseTranche when not active, processRepayment when not repaying
-- [ ] **PaymentRouter rate limiting** — `minPaymentInterval` enforcement, `maxSinglePayment` cap
-- [ ] **PaymentRouter settlement update/deactivate** — `updateSettlement()`, `deactivateSettlement()` + attempting payment after deactivation
-- [ ] **LiquidityPool full lifecycle** — `allocateToVault()` → vault repays → `processReturn()` → LP withdraws with profit
-- [ ] **SignatureLib edge cases** — Invalid signature formats, expired deadline via `verifyPaymentProofFull()`
-- [ ] **Multi-investor E2E** — Multiple community investors + senior + pool, verify proportional claimReturns
-
-### 3. Deploy Script Hardening (MEDIUM — needed for testnet demo)
-- [ ] **Wire LiquidityPool permissions** — Pools are deployed but not linked to factory/router (orphaned)
-- [ ] **Add verification step** — `--verify` flag or post-deploy verification script for BaseScan
-- [ ] **Complete .env.example** — Missing `ORACLE_ADDRESS`, `FEE_RECIPIENT`, `PLATFORM_FEE_BPS`, `USDC_ADDRESS`
-- [ ] **Add deployment log** — Output deployed addresses to a JSON file for frontend/backend consumption
-- [ ] **Testnet deploy & verify** — Actually deploy to Base Sepolia and verify contracts
-
-### 4. Demo Script (HIGH — the actual presentation)
-- [ ] **Interactive demo script** — Forge script that runs the E2E flow on-chain (Base Sepolia) with real transactions, console.log output showing each step
-- [ ] **Demo wallet setup** — Pre-fund demo wallets with Sepolia ETH + USDC
-
-### 5. Minor Code Quality
-- [ ] **Lint cleanup** — Unwrapped modifier logic warnings in AgentRegistry (Foundry lint suggestion)
-- [ ] **SignatureLib.verifyPaymentProofFull** — Change `view` to `pure` (no state access, just has `block.timestamp`)
-- [ ] **NatSpec documentation** — Add `@notice`/`@param`/`@return` to all public functions for auto-generated docs
+### 2. Demo Script (HIGH — the actual presentation)
+- [ ] **Interactive Forge script** — Runs E2E flow on-chain with console.log output showing each step
+- [ ] **Demo narrative output** — Each step prints human-readable: "TranslateBot registered → Vault created ($50K) → Senior funded ($40K) → 9 payments processed → Waterfall distributed → Returns claimed"
 
 ---
 
@@ -223,10 +216,10 @@ Branch coverage is 35%. Key untested paths:
 | Access Control          | ✅ onlyAdmin / onlyAuthorized          | Resolved |
 | Waterfall Correctness   | ✅ Fuzz tested, 100% coverage          | Resolved |
 | CREATE2 Determinism     | ✅ Salt = agent only                   | Resolved |
-| Interface Sync          | ❌ Stale after hardening               | Medium   |
-| Branch Coverage         | ⚠️ 35% overall                        | Medium   |
-| Deploy Wiring           | ⚠️ Pools not linked                   | Medium   |
+| Interface Sync          | ✅ All 4 interfaces updated            | Resolved |
+| Branch Coverage         | ✅ 87% line / 55% branch (120 tests)  | Resolved |
+| Deploy Wiring           | ⚠️ Needs post-deploy wiring on testnet | Low      |
 
 ---
 
-*Document version: 1.0 — Created Feb 26, 2026*
+*Document version: 2.0 — Updated 2026-03-01 — All pre-testnet todos complete. Next: Base Sepolia deploy + demo script.*
