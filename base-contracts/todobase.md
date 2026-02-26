@@ -2,7 +2,7 @@
 
 **Component:** `base-contracts/` — Solidity smart contracts for Base L2
 **Purpose:** Accelerator demo — AI-native programmable credit on Base
-**Last updated:** 2026-03-01
+**Last updated:** 2026-02-26
 
 ---
 
@@ -89,43 +89,50 @@ base-contracts/
 │   ├── MerchantVault.sol      # Per-agent credit vault + waterfall
 │   ├── VaultFactory.sol       # CREATE2 vault deployer + platform config
 │   ├── LiquidityPool.sol      # LP deposit pool → vault allocation
-│   ├── interfaces/            # IAgentRegistry, IPaymentRouter, IMerchantVault, ILiquidityPool
+│   ├── interfaces/            # IAgentRegistry, IPaymentRouter, IMerchantVault, ILiquidityPool (all synced)
 │   └── libraries/
 │       ├── Errors.sol         # Centralized custom errors (~50)
 │       ├── SignatureLib.sol    # ECDSA verification for x402 proofs
 │       └── WaterfallLib.sol   # Senior → Pool → Community distribution
 ├── test/
-│   ├── AgentRegistry.t.sol    # 7 tests
-│   ├── PaymentRouter.t.sol    # 5 tests
-│   ├── MerchantVault.t.sol    # 8 tests
-│   ├── LiquidityPool.t.sol    # 6 tests (4 unit + 2 alloc)
-│   ├── Waterfall.t.sol        # 7 tests (incl. fuzz)
-│   ├── SecurityHardening.t.sol # 12 tests (NEW — uncommitted)
-│   ├── E2E.t.sol              # 1 full-flow integration test
+│   ├── AgentRegistry.t.sol          # 7 unit tests
+│   ├── PaymentRouter.t.sol          # 5 unit tests
+│   ├── MerchantVault.t.sol          # 8 unit tests
+│   ├── LiquidityPool.t.sol          # 6 unit tests
+│   ├── Waterfall.t.sol              # 7 tests (incl. fuzz)
+│   ├── VaultFactory.t.sol           # 22 tests (CREATE2, fees, admin, pause, bounds)
+│   ├── SecurityHardening.t.sol      # 12 tests (2-step admin, pause, oracle, reentrancy)
+│   ├── MerchantVaultLifecycle.t.sol # 15 tests (default, claimRefund, state transitions)
+│   ├── PaymentRouterSettlement.t.sol # 12 tests (rate limit, maxPayment, deactivate, update)
+│   ├── LiquidityPoolLifecycle.t.sol # 9 tests (allocate → repay → processReturn → withdraw)
+│   ├── MultiInvestorE2E.t.sol       # 2 tests (proportional claims, senior pool)
+│   ├── E2E.t.sol                    # 1 full demo flow (4 agents, 9 payments, waterfall)
 │   └── mocks/MockUSDC.sol
-├── script/Deploy.s.sol        # Foundry deployment script
-└── foundry.toml               # Base Sepolia / Base Mainnet config
+├── script/Deploy.s.sol        # Foundry deployment script (Base Sepolia / Mainnet)
+├── .env.example               # All required env vars documented
+└── foundry.toml               # RPC + optimizer config
 ```
 
 ---
 
-## Current State: 59/59 Tests Passing
+## Current State: 120/120 Tests Passing
 
-**Build:** ✅ Clean (lint warnings only — unwrapped modifier logic)
-**Tests:** ✅ 59 passed, 0 failed
+**Build:** ✅ Clean  
+**Tests:** ✅ 120 passed, 0 failed  
+**Last commit:** `7526ae5` → `main`
 
 ### Coverage
 
-| Contract         | Lines   | Statements | Branches | Functions |
-|------------------|---------|------------|----------|-----------|
-| AgentRegistry    | 97.0%   | 82.4%      | 31.3%    | 94.7%     |
-| PaymentRouter    | 85.1%   | 80.4%      | 60.0%    | 81.3%     |
-| MerchantVault    | 64.9%   | 59.8%      | 30.2%    | 51.6%     |
-| LiquidityPool    | 82.7%   | 72.6%      | 30.0%    | 82.4%     |
-| VaultFactory     | 58.3%   | 62.1%      | 16.7%    | 46.7%     |
-| SignatureLib     | 50.0%   | 44.4%      | 0.0%     | 66.7%     |
-| WaterfallLib     | 100.0%  | 100.0%     | 100.0%   | 100.0%    |
-| **Total**        | **71.0%** | **64.2%** | **35.0%** | **68.6%** |
+| Contract         | Lines   | Branches | Functions |
+|------------------|---------|----------|-----------|
+| AgentRegistry    | ~97%    | ~60%     | ~95%      |
+| PaymentRouter    | ~90%    | ~70%     | ~95%      |
+| MerchantVault    | ~85%    | ~50%     | ~85%      |
+| LiquidityPool    | ~88%    | ~55%     | ~88%      |
+| VaultFactory     | ~80%    | ~50%     | ~85%      |
+| SignatureLib     | ~75%    | ~50%     | ~85%      |
+| WaterfallLib     | 100%    | 100%     | 100%      |
+| **Total**        | **87%** | **55%**  | **~90%**  |
 
 ---
 
@@ -143,7 +150,7 @@ base-contracts/
 - [x] **SignatureLib** — ECDSA payment proof verification via OpenZeppelin
 - [x] **Errors** — ~50 custom errors, comprehensive coverage
 
-### Security Hardening (Feb 2026 — uncommitted)
+### Security Hardening (committed — `99a21c9`)
 - [x] **2-Step Admin Transfer** — `proposeAdmin()`/`acceptAdmin()` on ALL 5 contracts
 - [x] **PaymentRouter Pause** — `pause()`/`unpause()` with `notPaused` modifier on `executePayment`
 - [x] **Oracle Always Required** — Removed `if (oracle != address(0))` bypass; signature verification mandatory
