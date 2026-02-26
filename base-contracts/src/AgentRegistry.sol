@@ -16,20 +16,19 @@ contract AgentRegistry is IAgentRegistry {
 
     address public pendingAdmin;
 
-    event FactoryUpdated(address indexed oldFactory, address indexed newFactory);
-    event PaymentRouterUpdated(address indexed oldRouter, address indexed newRouter);
-    event AdminTransferProposed(address indexed current, address indexed proposed);
-    event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
-
     modifier onlyAdmin() {
         if (msg.sender != admin) revert Errors.Unauthorized();
         _;
     }
 
     modifier onlyAuthorized() {
+        _checkAuthorized();
+        _;
+    }
+
+    function _checkAuthorized() internal view {
         if (msg.sender != factory && msg.sender != paymentRouter && msg.sender != admin)
             revert Errors.Unauthorized();
-        _;
     }
 
     constructor(address _admin) {

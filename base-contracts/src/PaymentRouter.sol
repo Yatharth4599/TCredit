@@ -38,13 +38,6 @@ contract PaymentRouter is IPaymentRouter, ReentrancyGuard {
     bool public paused;
     address public pendingAdmin;
 
-    event Paused(address indexed by);
-    event Unpaused(address indexed by);
-    event OracleUpdated(address indexed oldOracle, address indexed newOracle);
-    event FactoryUpdated(address indexed oldFactory, address indexed newFactory);
-    event AdminTransferProposed(address indexed current, address indexed proposed);
-    event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
-
     modifier notPaused() {
         if (paused) revert Errors.PlatformPaused();
         _;

@@ -28,10 +28,6 @@ contract LiquidityPool is ILiquidityPool, ReentrancyGuard {
 
     address public pendingAdmin;
 
-    event MaxAllocationUpdated(uint256 oldMax, uint256 newMax);
-    event AdminTransferProposed(address indexed current, address indexed proposed);
-    event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
-
     modifier onlyAdmin() {
         if (msg.sender != admin) revert Errors.Unauthorized();
         _;

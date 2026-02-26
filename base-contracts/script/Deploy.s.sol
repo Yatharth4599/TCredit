@@ -53,10 +53,24 @@ contract Deploy is Script {
         registry.setPaymentRouter(address(router));
         router.setFactory(address(factory));
 
+        // 7. Wire liquidity pools to factory and router (informational — pools use their own admin)
+        // Both pools are deployed with deployer as admin; deployer can call allocateToVault
+        // to fund vaults created by the factory. No additional permission wiring needed.
+        // Registry does not track pool addresses; pools are operated by the deployer directly.
+
+        // 8. Output deployment manifest
         console.log("--- Deployment complete ---");
-        console.log("Admin:", deployer);
-        console.log("Oracle:", oracle);
-        console.log("USDC:", usdc);
+        console.log("Admin:      ", deployer);
+        console.log("Oracle:     ", oracle);
+        console.log("USDC:       ", usdc);
+        console.log("Registry:   ", address(registry));
+        console.log("Router:     ", address(router));
+        console.log("Factory:    ", address(factory));
+        console.log("SeniorPool: ", address(seniorPool));
+        console.log("GeneralPool:", address(generalPool));
+        console.log("");
+        console.log("Verify on BaseScan:");
+        console.log("  forge verify-contract <address> src/AgentRegistry.sol:AgentRegistry --chain base-sepolia");
 
         vm.stopBroadcast();
     }

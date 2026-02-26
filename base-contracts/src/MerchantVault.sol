@@ -63,10 +63,6 @@ contract MerchantVault is IMerchantVault, ReentrancyGuard {
     address public pendingAdmin;
     bool public paused;
 
-    event PaymentRouterUpdated(address indexed oldRouter, address indexed newRouter);
-    event AdminTransferProposed(address indexed current, address indexed proposed);
-    event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
-
     // ─── Modifiers ───────────────────────────────────────────────
 
     modifier onlyAdmin() {
