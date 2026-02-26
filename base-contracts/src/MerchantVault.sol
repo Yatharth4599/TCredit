@@ -60,7 +60,12 @@ contract MerchantVault is IMerchantVault, ReentrancyGuard {
     mapping(address => bool) public isSeniorInvestor;
     address[] public investors;
 
+    address public pendingAdmin;
     bool public paused;
+
+    event PaymentRouterUpdated(address indexed oldRouter, address indexed newRouter);
+    event AdminTransferProposed(address indexed current, address indexed proposed);
+    event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
 
     // ─── Modifiers ───────────────────────────────────────────────
 
@@ -120,7 +125,23 @@ contract MerchantVault is IMerchantVault, ReentrancyGuard {
 
     function setPaymentRouter(address _router) external onlyAdmin {
         if (_router == address(0)) revert Errors.ZeroAddress();
+        address old = paymentRouter;
         paymentRouter = _router;
+        emit PaymentRouterUpdated(old, _router);
+    }
+
+    function proposeAdmin(address _newAdmin) external onlyAdmin {
+        if (_newAdmin == address(0)) revert Errors.ZeroAddress();
+        pendingAdmin = _newAdmin;
+        emit AdminTransferProposed(admin, _newAdmin);
+    }
+
+    function acceptAdmin() external {
+        if (msg.sender != pendingAdmin) revert Errors.Unauthorized();
+        address old = admin;
+        admin = pendingAdmin;
+        pendingAdmin = address(0);
+        emit AdminTransferred(old, admin);
     }
 
     // ─── Invest ──────────────────────────────────────────────────
@@ -192,16 +213,14 @@ contract MerchantVault is IMerchantVault, ReentrancyGuard {
         if (tranchesReleased >= numTranches) revert Errors.AllTranchesReleased();
 
         tranchesReleased++;
-        uint256 trancheAmount = totalRaised / numTranches;
+        uint256 trancheSize = totalRaised / numTranches;
+        uint256 trancheAmount;
 
-        // Last tranche gets remainder to avoid dust
+        // Last tranche gets remainder to avoid dust (from integer division)
         if (tranchesReleased == numTranches) {
-            trancheAmount = usdc.balanceOf(address(this));
-            // Keep enough for any pending claims
-            uint256 claimable = _totalClaimable();
-            if (trancheAmount > claimable) {
-                trancheAmount -= claimable;
-            }
+            trancheAmount = totalRaised - (numTranches - 1) * trancheSize;
+        } else {
+            trancheAmount = trancheSize;
         }
 
         usdc.safeTransfer(agent, trancheAmount);
@@ -303,6 +322,7 @@ contract MerchantVault is IMerchantVault, ReentrancyGuard {
         if (state == VaultState.Cancelled) {
             refund = balance;
         } else {
+            if (totalRaised == 0) revert Errors.NothingToClaim();
             uint256 remaining = usdc.balanceOf(address(this));
             refund = (balance * remaining) / totalRaised;
         }
@@ -375,6 +395,7 @@ contract MerchantVault is IMerchantVault, ReentrancyGuard {
     // ─── Internal ────────────────────────────────────────────────
 
     function _activate() internal {
+        if (seniorFunded + poolFunded > totalRaised) revert Errors.ArithmeticOverflow();
         userFunded = totalRaised - seniorFunded - poolFunded;
 
         // totalToRepay = principal + interest
@@ -408,7 +429,6 @@ contract MerchantVault is IMerchantVault, ReentrancyGuard {
     }
 
     function _totalClaimable() internal view returns (uint256) {
-        return totalSeniorRepaid + totalPoolRepaid + totalCommunityRepaid
-            - platformFeesCollected;
+        return totalSeniorRepaid + totalPoolRepaid + totalCommunityRepaid;
     }
 }

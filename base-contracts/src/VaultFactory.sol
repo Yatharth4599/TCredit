@@ -25,6 +25,8 @@ contract VaultFactory {
     address[] public allVaults;
     mapping(address => address) public agentToVault;
 
+    address public pendingAdmin;
+
     event VaultCreated(
         address indexed agent,
         address indexed vault,
@@ -33,6 +35,10 @@ contract VaultFactory {
         uint256 durationSeconds
     );
     event PlatformConfigUpdated();
+    event PlatformPausedEvent();
+    event PlatformUnpausedEvent();
+    event AdminTransferProposed(address indexed current, address indexed proposed);
+    event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
 
     modifier onlyAdmin() {
         if (msg.sender != config.admin) revert Errors.Unauthorized();
@@ -83,9 +89,11 @@ contract VaultFactory {
         if (!registry.isRegistered(agent)) revert Errors.AgentNotRegistered();
         if (agentToVault[agent] != address(0)) revert Errors.VaultAlreadyExists();
         if (targetAmount == 0) revert Errors.InvalidAmount();
+        if (interestRateBps > 5000) revert Errors.FeeTooHigh(); // max 50%
+        if (durationSeconds < 7 days || durationSeconds > 730 days) revert Errors.InvalidAmount();
 
-        // CREATE2 deploy with agent as salt
-        bytes32 salt = keccak256(abi.encodePacked(agent, block.timestamp));
+        // CREATE2 deploy with agent as sole salt (one vault per agent enforced above)
+        bytes32 salt = keccak256(abi.encodePacked(agent));
 
         vault = address(
             new MerchantVault{salt: salt}(
@@ -117,7 +125,7 @@ contract VaultFactory {
     // ─── Predicted Address ───────────────────────────────────────
 
     function predictVaultAddress(address agent) external view returns (address) {
-        bytes32 salt = keccak256(abi.encodePacked(agent, block.timestamp));
+        bytes32 salt = keccak256(abi.encodePacked(agent));
         bytes32 hash = keccak256(
             abi.encodePacked(
                 bytes1(0xff),
@@ -166,10 +174,26 @@ contract VaultFactory {
 
     function pausePlatform() external onlyAdmin {
         config.paused = true;
+        emit PlatformPausedEvent();
     }
 
     function unpausePlatform() external onlyAdmin {
         config.paused = false;
+        emit PlatformUnpausedEvent();
+    }
+
+    function proposeAdmin(address _newAdmin) external onlyAdmin {
+        if (_newAdmin == address(0)) revert Errors.ZeroAddress();
+        pendingAdmin = _newAdmin;
+        emit AdminTransferProposed(config.admin, _newAdmin);
+    }
+
+    function acceptAdmin() external {
+        if (msg.sender != pendingAdmin) revert Errors.Unauthorized();
+        address old = config.admin;
+        config.admin = pendingAdmin;
+        pendingAdmin = address(0);
+        emit AdminTransferred(old, config.admin);
     }
 
     // ─── View ────────────────────────────────────────────────────

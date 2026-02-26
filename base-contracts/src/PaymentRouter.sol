@@ -35,8 +35,23 @@ contract PaymentRouter is IPaymentRouter, ReentrancyGuard {
 
     address public factory;
 
+    bool public paused;
+    address public pendingAdmin;
+
+    event Paused(address indexed by);
+    event Unpaused(address indexed by);
+    event OracleUpdated(address indexed oldOracle, address indexed newOracle);
+    event FactoryUpdated(address indexed oldFactory, address indexed newFactory);
+    event AdminTransferProposed(address indexed current, address indexed proposed);
+    event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
+
+    modifier notPaused() {
+        if (paused) revert Errors.PlatformPaused();
+        _;
+    }
+
     constructor(address _usdc, address _registry, address _admin, address _oracle) {
-        if (_usdc == address(0) || _registry == address(0) || _admin == address(0))
+        if (_usdc == address(0) || _registry == address(0) || _admin == address(0) || _oracle == address(0))
             revert Errors.ZeroAddress();
 
         usdc = IERC20(_usdc);
@@ -47,32 +62,59 @@ contract PaymentRouter is IPaymentRouter, ReentrancyGuard {
 
     function setFactory(address _factory) external onlyAdmin {
         if (_factory == address(0)) revert Errors.ZeroAddress();
+        address old = factory;
         factory = _factory;
+        emit FactoryUpdated(old, _factory);
     }
 
     function setOracle(address _oracle) external onlyAdmin {
+        if (_oracle == address(0)) revert Errors.ZeroAddress();
+        address old = oracle;
         oracle = _oracle;
+        emit OracleUpdated(old, _oracle);
+    }
+
+    function pause() external onlyAdmin {
+        paused = true;
+        emit Paused(msg.sender);
+    }
+
+    function unpause() external onlyAdmin {
+        paused = false;
+        emit Unpaused(msg.sender);
+    }
+
+    function proposeAdmin(address _newAdmin) external onlyAdmin {
+        if (_newAdmin == address(0)) revert Errors.ZeroAddress();
+        pendingAdmin = _newAdmin;
+        emit AdminTransferProposed(admin, _newAdmin);
+    }
+
+    function acceptAdmin() external {
+        if (msg.sender != pendingAdmin) revert Errors.Unauthorized();
+        address old = admin;
+        admin = pendingAdmin;
+        pendingAdmin = address(0);
+        emit AdminTransferred(old, admin);
     }
 
     // ─── Execute Payment (THE x402 function) ─────────────────────
 
-    function executePayment(X402Payment calldata payment, bytes calldata signature) external nonReentrant {
+    function executePayment(X402Payment calldata payment, bytes calldata signature) external nonReentrant notPaused {
         // 1. Validate deadline
         if (block.timestamp > payment.deadline) revert Errors.PaymentExpired();
 
-        // 2. Verify signature (oracle signs the payment proof)
-        if (oracle != address(0)) {
-            bytes32 paymentHash = SignatureLib.paymentHash(
-                payment.from,
-                payment.to,
-                payment.amount,
-                payment.nonce,
-                payment.deadline,
-                payment.paymentId
-            );
-            if (!SignatureLib.verifyPaymentProof(paymentHash, signature, oracle))
-                revert Errors.InvalidSignature();
-        }
+        // 2. Verify signature (oracle signs the payment proof) — ALWAYS required
+        bytes32 paymentHash = SignatureLib.paymentHash(
+            payment.from,
+            payment.to,
+            payment.amount,
+            payment.nonce,
+            payment.deadline,
+            payment.paymentId
+        );
+        if (!SignatureLib.verifyPaymentProof(paymentHash, signature, oracle))
+            revert Errors.InvalidSignature();
 
         // 3. Replay protection
         if (usedNonces[payment.from][payment.nonce]) revert Errors.NonceAlreadyUsed();
@@ -105,7 +147,7 @@ contract PaymentRouter is IPaymentRouter, ReentrancyGuard {
 
             // Route repayment to vault
             if (repaymentAmount > 0) {
-                usdc.approve(settlement.vault, repaymentAmount);
+                usdc.forceApprove(settlement.vault, repaymentAmount);
                 IMerchantVault(settlement.vault).processRepayment(repaymentAmount);
             }
 

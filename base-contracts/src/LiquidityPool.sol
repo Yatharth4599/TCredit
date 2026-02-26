@@ -26,6 +26,12 @@ contract LiquidityPool is ILiquidityPool, ReentrancyGuard {
     mapping(address => PoolAllocation) private _allocations;
     address[] public allocatedVaults;
 
+    address public pendingAdmin;
+
+    event MaxAllocationUpdated(uint256 oldMax, uint256 newMax);
+    event AdminTransferProposed(address indexed current, address indexed proposed);
+    event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
+
     modifier onlyAdmin() {
         if (msg.sender != admin) revert Errors.Unauthorized();
         _;
@@ -73,7 +79,7 @@ contract LiquidityPool is ILiquidityPool, ReentrancyGuard {
 
     // ─── Vault Allocation ────────────────────────────────────────
 
-    function allocateToVault(address vault, uint256 amount) external onlyAdmin notPaused {
+    function allocateToVault(address vault, uint256 amount) external onlyAdmin notPaused nonReentrant {
         if (vault == address(0)) revert Errors.ZeroAddress();
         if (amount == 0) revert Errors.InvalidAmount();
 
@@ -96,7 +102,7 @@ contract LiquidityPool is ILiquidityPool, ReentrancyGuard {
         totalAllocated += amount;
 
         // Invest into vault (as pool tranche)
-        usdc.approve(vault, amount);
+        usdc.forceApprove(vault, amount);
         if (isAlpha) {
             IMerchantVault(vault).investSenior(amount);
         } else {
@@ -115,7 +121,8 @@ contract LiquidityPool is ILiquidityPool, ReentrancyGuard {
         usdc.safeTransferFrom(msg.sender, address(this), amount);
 
         _allocations[vault].returnedAmount += amount;
-        totalAllocated = totalAllocated > amount ? totalAllocated - amount : 0;
+        if (totalAllocated < amount) revert Errors.ArithmeticOverflow();
+        totalAllocated -= amount;
 
         // Deactivate if fully returned
         if (_allocations[vault].returnedAmount >= _allocations[vault].amount) {
@@ -138,7 +145,23 @@ contract LiquidityPool is ILiquidityPool, ReentrancyGuard {
     }
 
     function setMaxAllocation(uint256 _max) external onlyAdmin {
+        uint256 old = maxAllocationPerVault;
         maxAllocationPerVault = _max;
+        emit MaxAllocationUpdated(old, _max);
+    }
+
+    function proposeAdmin(address _newAdmin) external onlyAdmin {
+        if (_newAdmin == address(0)) revert Errors.ZeroAddress();
+        pendingAdmin = _newAdmin;
+        emit AdminTransferProposed(admin, _newAdmin);
+    }
+
+    function acceptAdmin() external {
+        if (msg.sender != pendingAdmin) revert Errors.Unauthorized();
+        address old = admin;
+        admin = pendingAdmin;
+        pendingAdmin = address(0);
+        emit AdminTransferred(old, admin);
     }
 
     // ─── View ────────────────────────────────────────────────────

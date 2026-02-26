@@ -14,6 +14,13 @@ contract AgentRegistry is IAgentRegistry {
     address public paymentRouter;
     address public admin;
 
+    address public pendingAdmin;
+
+    event FactoryUpdated(address indexed oldFactory, address indexed newFactory);
+    event PaymentRouterUpdated(address indexed oldRouter, address indexed newRouter);
+    event AdminTransferProposed(address indexed current, address indexed proposed);
+    event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
+
     modifier onlyAdmin() {
         if (msg.sender != admin) revert Errors.Unauthorized();
         _;
@@ -32,12 +39,30 @@ contract AgentRegistry is IAgentRegistry {
 
     function setFactory(address _factory) external onlyAdmin {
         if (_factory == address(0)) revert Errors.ZeroAddress();
+        address old = factory;
         factory = _factory;
+        emit FactoryUpdated(old, _factory);
     }
 
     function setPaymentRouter(address _router) external onlyAdmin {
         if (_router == address(0)) revert Errors.ZeroAddress();
+        address old = paymentRouter;
         paymentRouter = _router;
+        emit PaymentRouterUpdated(old, _router);
+    }
+
+    function proposeAdmin(address _newAdmin) external onlyAdmin {
+        if (_newAdmin == address(0)) revert Errors.ZeroAddress();
+        pendingAdmin = _newAdmin;
+        emit AdminTransferProposed(admin, _newAdmin);
+    }
+
+    function acceptAdmin() external {
+        if (msg.sender != pendingAdmin) revert Errors.Unauthorized();
+        address old = admin;
+        admin = pendingAdmin;
+        pendingAdmin = address(0);
+        emit AdminTransferred(old, admin);
     }
 
     function registerAgent(string calldata metadataURI) external {
@@ -77,10 +102,12 @@ contract AgentRegistry is IAgentRegistry {
     }
 
     function incrementPaymentsSent(address agent, uint256 amount) external onlyAuthorized {
+        if (_agents[agent].registeredAt == 0) revert Errors.AgentNotRegistered();
         _agents[agent].totalPaymentsSent += amount;
     }
 
     function incrementPaymentsReceived(address agent, uint256 amount) external onlyAuthorized {
+        if (_agents[agent].registeredAt == 0) revert Errors.AgentNotRegistered();
         _agents[agent].totalPaymentsReceived += amount;
     }
 
