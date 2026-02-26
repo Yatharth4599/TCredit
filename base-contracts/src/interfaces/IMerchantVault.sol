@@ -21,6 +21,9 @@ interface IMerchantVault {
     event VaultUnpaused();
     event VaultDefaulted(uint256 timestamp);
     event VaultCancelled(uint256 timestamp);
+    event PaymentRouterUpdated(address indexed oldRouter, address indexed newRouter);
+    event AdminTransferProposed(address indexed current, address indexed proposed);
+    event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
 
     function invest(uint256 amount) external;
     function investSenior(uint256 amount) external;
@@ -33,6 +36,9 @@ interface IMerchantVault {
     function markDefault() external;
     function cancel() external;
     function claimRefund() external;
+    function setPaymentRouter(address _router) external;
+    function proposeAdmin(address _newAdmin) external;
+    function acceptAdmin() external;
 
     function getAgent() external view returns (address);
     function getState() external view returns (VaultState);
@@ -41,4 +47,13 @@ interface IMerchantVault {
     function getTotalToRepay() external view returns (uint256);
     function getInvestorBalance(address investor) external view returns (uint256);
     function getClaimable(address investor) external view returns (uint256);
+    function getInvestors() external view returns (address[] memory);
+    function getWaterfallState() external view returns (
+        uint256 seniorFunded,
+        uint256 poolFunded,
+        uint256 userFunded,
+        uint256 seniorRepaid,
+        uint256 poolRepaid,
+        uint256 communityRepaid
+    );
 }

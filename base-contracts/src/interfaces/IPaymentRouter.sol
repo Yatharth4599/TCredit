@@ -33,6 +33,12 @@ interface IPaymentRouter {
     event SettlementCreated(address indexed agent, address indexed vault, uint16 repaymentRateBps);
     event SettlementDeactivated(address indexed agent);
     event SettlementUpdated(address indexed agent, uint16 repaymentRateBps);
+    event Paused(address indexed by);
+    event Unpaused(address indexed by);
+    event OracleUpdated(address indexed oldOracle, address indexed newOracle);
+    event FactoryUpdated(address indexed oldFactory, address indexed newFactory);
+    event AdminTransferProposed(address indexed current, address indexed proposed);
+    event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
 
     function executePayment(X402Payment calldata payment, bytes calldata signature) external;
     function createSettlement(
@@ -44,6 +50,12 @@ interface IPaymentRouter {
     ) external;
     function deactivateSettlement(address agent) external;
     function updateSettlement(address agent, uint16 repaymentRateBps) external;
+    function setFactory(address _factory) external;
+    function setOracle(address _oracle) external;
+    function pause() external;
+    function unpause() external;
+    function proposeAdmin(address _newAdmin) external;
+    function acceptAdmin() external;
     function getSettlement(address agent) external view returns (Settlement memory);
     function isNonceUsed(address agent, uint256 nonce) external view returns (bool);
 }

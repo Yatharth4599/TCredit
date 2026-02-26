@@ -336,7 +336,7 @@ contract SecurityHardeningTest is Test {
 
         vm.prank(admin);
         vm.expectEmit(true, true, false, false);
-        emit PaymentRouter.OracleUpdated(oracle, newOracle);
+        emit IPaymentRouter.OracleUpdated(oracle, newOracle);
         router.setOracle(newOracle);
     }
 
@@ -345,7 +345,7 @@ contract SecurityHardeningTest is Test {
 
         vm.prank(admin);
         vm.expectEmit(true, true, false, false);
-        emit PaymentRouter.FactoryUpdated(address(factory), newFactory);
+        emit IPaymentRouter.FactoryUpdated(address(factory), newFactory);
         router.setFactory(newFactory);
     }
 
