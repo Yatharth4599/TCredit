@@ -14,7 +14,6 @@ import {
   PLATFORM,
   TRANCHES,
   ALL_INVESTORS,
-  type Payment,
   type WaterfallState,
   computeWaterfallState,
   fmtUSD,
@@ -75,8 +74,7 @@ export default function X402Demo() {
   }, [step])
 
   // Update waterfall as payments flow
-  const handlePayments = useCallback((payments: Payment[]) => {
-    const totalRepaid = payments.reduce((s, p) => s + p.vaultRepayment, 0)
+  const handlePayments = useCallback((totalRepaid: number) => {
     setWaterfallState(computeWaterfallState(totalRepaid))
   }, [])
 

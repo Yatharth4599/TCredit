@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { type Payment, PAYMENT_STREAM, fmtUSD } from '../../lib/x402MockData'
+import { type Payment, PAYMENT_STREAM, TOTAL_OBLIGATION, fmtUSD } from '../../lib/x402MockData'
 import { AgentAvatar } from './Icons'
 import s from './LivePaymentFeed.module.css'
 
 interface LivePaymentFeedProps {
-  onPaymentAdded?: (payments: Payment[]) => void
+  onPaymentAdded?: (totalRepaid: number) => void
   speed?: number // ms between payments
   maxVisible?: number
 }
@@ -19,11 +19,20 @@ export default function LivePaymentFeed({
   const [totalRevenue, setTotalRevenue] = useState(0)
   const [totalRepaid, setTotalRepaid] = useState(0)
   const [totalKept, setTotalKept] = useState(0)
+  const [fullyRepaid, setFullyRepaid] = useState(false)
   const indexRef = useRef(0)
   const intervalRef = useRef<ReturnType<typeof setInterval>>()
+  const repaidRef = useRef(0)
 
   useEffect(() => {
     intervalRef.current = setInterval(() => {
+      // Stop when loan is fully repaid
+      if (repaidRef.current >= TOTAL_OBLIGATION) {
+        clearInterval(intervalRef.current)
+        setFullyRepaid(true)
+        return
+      }
+
       if (indexRef.current >= PAYMENT_STREAM.length) {
         indexRef.current = 0
       }
@@ -31,18 +40,23 @@ export default function LivePaymentFeed({
       const payment = PAYMENT_STREAM[indexRef.current]
       indexRef.current++
 
+      // Cap vault repayment at remaining obligation
+      const remaining = TOTAL_OBLIGATION - repaidRef.current
+      const actualVaultRepay = Math.min(payment.vaultRepayment, remaining)
+      const actualAgentNet = payment.amount - actualVaultRepay
+
+      repaidRef.current += actualVaultRepay
+
       setVisiblePayments((prev) => {
         const next = [payment, ...prev].slice(0, maxVisible)
         return next
       })
 
       setTotalRevenue((p) => p + payment.amount)
-      setTotalRepaid((p) => p + payment.vaultRepayment)
-      setTotalKept((p) => p + payment.agentNet)
+      setTotalRepaid(repaidRef.current)
+      setTotalKept((p) => p + actualAgentNet)
 
-      onPaymentAdded?.(
-        [payment, ...visiblePayments].slice(0, indexRef.current),
-      )
+      onPaymentAdded?.(repaidRef.current)
     }, speed)
 
     return () => clearInterval(intervalRef.current)
@@ -71,7 +85,7 @@ export default function LivePaymentFeed({
         <div className={s.feedHeader}>
           <span className={s.liveIndicator}>
             <span className={s.liveDot} />
-            LIVE
+            {fullyRepaid ? 'REPAID ✓' : 'LIVE'}
           </span>
           <span className={s.feedTitle}>x402 Payment Stream</span>
         </div>

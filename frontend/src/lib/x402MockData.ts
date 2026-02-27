@@ -136,6 +136,10 @@ export const PLATFORM = {
 
 export const ALL_INVESTORS = [SENIOR_INVESTOR, COMMUNITY_INVESTOR]
 
+// Total obligation = all principal + all interest
+export const TOTAL_OBLIGATION =
+  SENIOR_INVESTOR.totalReturn + COMMUNITY_INVESTOR.totalReturn + PLATFORM.totalSpread // $56,000
+
 // ── Simulated Payment Stream ──
 // 18 payments across the loan lifecycle
 
@@ -194,22 +198,18 @@ export const STREAM_TOTALS = {
 // Simulated distribution state at various points
 
 export function computeWaterfallState(totalRepaid: number): WaterfallState {
-  const seniorTarget = SENIOR_INVESTOR.totalReturn // $42,400
+  const seniorTarget = SENIOR_INVESTOR.totalReturn   // $42,400
   const communityTarget = COMMUNITY_INVESTOR.totalReturn // $10,900
-  const platformTarget = PLATFORM.totalSpread // $2,700
+  const platformTarget = PLATFORM.totalSpread         // $2,700
+  const totalTarget = TOTAL_OBLIGATION                // $56,000
 
-  // Platform takes spread proportionally from each repayment
-  const platformRate = PLATFORM.monthlySpread / VAULT_CONFIG.monthlyInterest // 0.45
-  const platformCollected = Math.min(Math.round(totalRepaid * platformRate), platformTarget)
+  // Cap input at total obligation
+  const capped = Math.min(totalRepaid, totalTarget)
 
-  const afterPlatform = totalRepaid - platformCollected
-
-  // Senior gets repaid first (principal + yield)
-  const seniorRepaid = Math.min(afterPlatform, seniorTarget)
-  const remaining = Math.max(afterPlatform - seniorRepaid, 0)
-
-  // Community gets the rest (principal + yield)
-  const communityRepaid = Math.min(remaining, communityTarget)
+  // Proportional distribution — each tier gets its share of every dollar repaid
+  const seniorRepaid = Math.min(Math.round(capped * seniorTarget / totalTarget), seniorTarget)
+  const communityRepaid = Math.min(Math.round(capped * communityTarget / totalTarget), communityTarget)
+  const platformCollected = Math.min(Math.round(capped * platformTarget / totalTarget), platformTarget)
 
   return {
     seniorRepaid,
