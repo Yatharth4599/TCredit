@@ -1,0 +1,683 @@
+.page {
+  min-height: 100vh;
+  padding: 80px 24px 40px;
+  max-width: 960px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.ambientGlow {
+  position: fixed;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(255, 107, 53, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Header ── */
+
+.header {
+  text-align: center;
+  margin-bottom: 40px;
+  opacity: 0;
+  transform: translateY(16px);
+  transition: all 0.6s ease;
+}
+
+.header.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.overline {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #FF6B35;
+  margin-bottom: 12px;
+  background: rgba(255, 107, 53, 0.08);
+  border: 1px solid rgba(255, 107, 53, 0.15);
+  border-radius: 20px;
+  padding: 5px 14px;
+}
+
+.title {
+  font-size: 36px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 12px;
+  line-height: 1.15;
+}
+
+.subtitle {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.5);
+  max-width: 580px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* ── Step Bar ── */
+
+.stepBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.stepItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  transition: all 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.stepItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.stepItem.active {
+  background: rgba(255, 107, 53, 0.1);
+  border-color: rgba(255, 107, 53, 0.3);
+  color: #FF6B35;
+}
+
+.stepItem.done {
+  border-color: rgba(52, 211, 153, 0.2);
+  color: #34d399;
+}
+
+.stepIcon {
+  font-size: 18px;
+}
+
+.stepLabel {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+/* ── Content ── */
+
+.content {
+  position: relative;
+  min-height: 400px;
+}
+
+.stepContent {
+  width: 100%;
+}
+
+/* ── Cards ── */
+
+.card, .cardWide {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 28px;
+  backdrop-filter: blur(12px);
+}
+
+.cardWide {
+  max-width: 100%;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.cardIcon {
+  font-size: 28px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.cardTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 4px;
+}
+
+.cardDesc {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Animated Flow ── */
+
+.animFlow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 16px;
+  margin-bottom: 20px;
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+}
+
+.animNode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  min-width: 100px;
+}
+
+.animNodeHighlight {
+  border-color: rgba(52, 211, 153, 0.3);
+  background: rgba(52, 211, 153, 0.06);
+  box-shadow: 0 0 20px rgba(52, 211, 153, 0.08);
+}
+
+.animNodeIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+}
+
+.animNodeLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+}
+
+.animArrow {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transform-origin: left center;
+}
+
+/* ── Code Block (kept for optional use) ── */
+
+.codeBlock {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+
+.codeBlock code {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  color: #FF6B35;
+  white-space: pre;
+  line-height: 1.7;
+}
+
+/* ── Agent Card ── */
+
+.agentCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+
+.agentEmoji {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 107, 53, 0.08);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.agentInfo {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.agentName {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.agentType {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.agentAddr {
+  font-size: 11px;
+  font-family: monospace;
+  color: rgba(255, 255, 255, 0.3);
+  margin-top: 2px;
+}
+
+.registeredBadge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+  border-radius: 8px;
+  padding: 4px 10px;
+}
+
+/* ── Vault Params ── */
+
+.vaultParams {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.paramItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.paramLabel {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.paramValue {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* ── Investor Grid ── */
+
+.investorGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.investorCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.investorCard.senior {
+  border-color: rgba(59, 130, 246, 0.2);
+  background: rgba(59, 130, 246, 0.04);
+}
+
+.investorCard.community {
+  border-color: rgba(52, 211, 153, 0.2);
+  background: rgba(52, 211, 153, 0.04);
+}
+
+.investorBadge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.investorName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.investorAmount {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.investorYield {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.investorProfit {
+  font-size: 11px;
+  color: #34d399;
+  margin-top: 4px;
+}
+
+/* ── Funding Progress ── */
+
+.fundingProgress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fundingBar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.fundingFill {
+  height: 100%;
+  background: linear-gradient(90deg, #FF6B35, #ff8f66);
+  border-radius: 4px;
+  transition: width 1s ease-out;
+}
+
+.fundingMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.vaultStatusBadge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 6px;
+  transition: all 0.3s;
+}
+
+.vaultStatusBadge[data-status="fundraising"] {
+  color: #FF6B35;
+  background: rgba(255, 107, 53, 0.1);
+  border: 1px solid rgba(255, 107, 53, 0.2);
+}
+
+.vaultStatusBadge[data-status="active"] {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+}
+
+/* ── Tranche List ── */
+
+.trancheList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.trancheItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  transition: all 0.5s ease;
+}
+
+.trancheItem.released {
+  border-color: rgba(52, 211, 153, 0.25);
+  background: rgba(52, 211, 153, 0.04);
+}
+
+.trancheLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.trancheAmount {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.trancheStatus {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.trancheItem.released .trancheStatus {
+  color: #34d399;
+}
+
+.trancheTotal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.trancheAgent {
+  font-weight: 600;
+  color: #FF6B35;
+}
+
+/* ── Waterfall Grid ── */
+
+.waterfallGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.waterfallFeed, .waterfallPanel {
+  min-width: 0;
+}
+
+/* ── Outcome Grid ── */
+
+.outcomeGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.outcomeCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: 20px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.outcomeSenior { border-color: rgba(59, 130, 246, 0.2); background: rgba(59, 130, 246, 0.04); }
+.outcomeCommunity { border-color: rgba(52, 211, 153, 0.2); background: rgba(52, 211, 153, 0.04); }
+.outcomeAgent { border-color: rgba(255, 107, 53, 0.2); background: rgba(255, 107, 53, 0.04); }
+.outcomePlatform { border-color: rgba(168, 85, 247, 0.2); background: rgba(168, 85, 247, 0.04); }
+
+.outcomeIcon {
+  font-size: 28px;
+}
+
+.outcomeLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.outcomeInvested {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.outcomeReturn {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.outcomeProfit {
+  font-size: 12px;
+  font-weight: 500;
+  color: #34d399;
+}
+
+.outcomePlatform .outcomeProfit {
+  color: #a855f7;
+}
+
+/* ── Punchline ── */
+
+.punchline {
+  text-align: center;
+  padding: 20px 24px;
+  background: rgba(255, 107, 53, 0.04);
+  border: 1px solid rgba(255, 107, 53, 0.1);
+  border-radius: 14px;
+}
+
+.punchline p {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.7;
+  margin: 0 0 8px;
+}
+
+.punchline p:last-child {
+  margin: 0;
+}
+
+.punchlineHighlight {
+  font-size: 18px !important;
+  font-weight: 700;
+  background: linear-gradient(135deg, #FF6B35, #ff8f66);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Navigation ── */
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.navBtn {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.navBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.navBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.navBtnPrimary {
+  background: rgba(255, 107, 53, 0.15);
+  border-color: rgba(255, 107, 53, 0.3);
+  color: #FF6B35;
+}
+
+.navBtnPrimary:hover:not(:disabled) {
+  background: rgba(255, 107, 53, 0.25);
+  color: #ff8f66;
+}
+
+.navStep {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 768px) {
+  .title { font-size: 26px; }
+  .vaultParams { grid-template-columns: repeat(2, 1fr); }
+  .investorGrid { grid-template-columns: 1fr; }
+  .waterfallGrid { grid-template-columns: 1fr; }
+  .outcomeGrid { grid-template-columns: 1fr; }
+  .stepBar { gap: 2px; }
+  .stepItem { padding: 6px 10px; }
+}

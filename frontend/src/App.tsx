@@ -8,6 +8,7 @@ const Vaults = lazy(() => import('./pages/Vaults'))
 const Portfolio = lazy(() => import('./pages/Portfolio'))
 const MerchantDashboard = lazy(() => import('./pages/MerchantDashboard'))
 const LiquidityPools = lazy(() => import('./pages/LiquidityPools'))
+const X402Demo = lazy(() => import('./pages/X402Demo'))
 
 function PageLoader() {
   return (
@@ -29,6 +30,7 @@ function App() {
             <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/pools" element={<LiquidityPools />} />
             <Route path="/merchant" element={<MerchantDashboard />} />
+            <Route path="/x402" element={<X402Demo />} />
           </Routes>
         </Suspense>
       </div>

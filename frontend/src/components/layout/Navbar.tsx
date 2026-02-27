@@ -56,6 +56,16 @@ export default function Navbar() {
       onClick: () => navigate('/merchant'),
     },
     {
+      title: 'x402 Demo',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+        </svg>
+      ),
+      href: '/x402',
+      onClick: () => navigate('/x402'),
+    },
+    {
       title: 'Twitter / X',
       icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
