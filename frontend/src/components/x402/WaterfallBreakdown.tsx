@@ -1,6 +1,6 @@
 import React from 'react'
-import { type WaterfallState, fmtUSD, SENIOR_INVESTOR, COMMUNITY_INVESTOR, PLATFORM } from '../../lib/x402MockData'
-import { ShieldIcon, UsersIcon, BoltIcon } from './Icons'
+import { type WaterfallState, fmtUSD, SENIOR_TRANCHE, MEZZANINE_TRANCHE, JUNIOR_TRANCHE } from '../../lib/x402MockData'
+import { ShieldIcon, LayersIcon, BankIcon } from './Icons'
 import s from './WaterfallBreakdown.module.css'
 
 interface WaterfallBreakdownProps {
@@ -62,13 +62,13 @@ export default function WaterfallBreakdown({ state }: WaterfallBreakdownProps) {
     <div className={s.container}>
       <div className={s.header}>
         <h3 className={s.title}>Waterfall Distribution</h3>
-        <span className={s.subtitle}>Repayment priority: Senior → Community → Platform</span>
+        <span className={s.subtitle}>Priority: Senior → Mezzanine → Junior</span>
       </div>
 
       <div className={s.tiers}>
         <ProgressTier
-          label={SENIOR_INVESTOR.name}
-          sublabel={`${SENIOR_INVESTOR.yieldRate}%/mo yield · Priority repayment`}
+          label={SENIOR_TRANCHE.name}
+          sublabel={`${SENIOR_TRANCHE.yieldRate}%/mo · NBFC · Priority repayment`}
           current={state.seniorRepaid}
           target={state.seniorTarget}
           color="#3b82f6"
@@ -80,25 +80,25 @@ export default function WaterfallBreakdown({ state }: WaterfallBreakdownProps) {
           <div className={s.connectorLine} />
         </div>
         <ProgressTier
-          label={COMMUNITY_INVESTOR.name}
-          sublabel={`${COMMUNITY_INVESTOR.yieldRate}%/mo yield · Higher return, junior risk`}
-          current={state.communityRepaid}
-          target={state.communityTarget}
-          color="#34d399"
-          icon={<UsersIcon size={20} color="#34d399" />}
+          label={MEZZANINE_TRANCHE.name}
+          sublabel={`${MEZZANINE_TRANCHE.yieldRate}%/mo · LP · Mid-risk`}
+          current={state.mezzanineRepaid}
+          target={state.mezzanineTarget}
+          color="#a855f7"
+          icon={<LayersIcon size={20} color="#a855f7" />}
         />
         <div className={s.connector}>
           <div className={s.connectorLine} />
-          <span className={s.connectorLabel}>spread</span>
+          <span className={s.connectorLabel}>then</span>
           <div className={s.connectorLine} />
         </div>
         <ProgressTier
-          label={PLATFORM.name}
-          sublabel={`${fmtUSD(PLATFORM.monthlySpread)}/mo spread`}
-          current={state.platformCollected}
-          target={state.platformTarget}
+          label={JUNIOR_TRANCHE.name}
+          sublabel={`${JUNIOR_TRANCHE.yieldRate}%/mo · First-loss · Highest yield`}
+          current={state.juniorRepaid}
+          target={state.juniorTarget}
           color="#FF6B35"
-          icon={<BoltIcon size={20} color="#FF6B35" />}
+          icon={<BankIcon size={20} color="#FF6B35" />}
         />
       </div>
     </div>

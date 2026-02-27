@@ -22,7 +22,7 @@ export default function Topbar({ title }: TopbarProps) {
       <div className={styles.right}>
         <div className={styles.networkBadge}>
           <span className={styles.networkDot} />
-          Solana Devnet
+          Base Sepolia
         </div>
 
         <button className={styles.iconBtn} aria-label="Notifications">

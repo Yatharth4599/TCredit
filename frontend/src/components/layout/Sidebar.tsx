@@ -21,7 +21,7 @@ export default function Sidebar() {
     <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
       <div className={styles.logo}>
         <Zap size={22} className={styles.logoIcon} />
-        {!collapsed && <span>TigerPay<strong>X</strong></span>}
+        {!collapsed && <span>TCredit</span>}
       </div>
 
       <nav className={styles.nav}>

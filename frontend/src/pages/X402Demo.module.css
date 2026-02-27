@@ -343,9 +343,9 @@
 
 /* ── Investor Grid ── */
 
-.investorGrid {
+.investorGrid3 {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 14px;
   margin-bottom: 20px;
 }
@@ -365,9 +365,14 @@
   background: rgba(59, 130, 246, 0.04);
 }
 
-.investorCard.community {
-  border-color: rgba(52, 211, 153, 0.2);
-  background: rgba(52, 211, 153, 0.04);
+.investorCard.mezzanine {
+  border-color: rgba(168, 85, 247, 0.2);
+  background: rgba(168, 85, 247, 0.04);
+}
+
+.investorCard.junior {
+  border-color: rgba(255, 107, 53, 0.2);
+  background: rgba(255, 107, 53, 0.04);
 }
 
 .investorBadge {
@@ -552,9 +557,9 @@
 }
 
 .outcomeSenior { border-color: rgba(59, 130, 246, 0.2); background: rgba(59, 130, 246, 0.04); }
-.outcomeCommunity { border-color: rgba(52, 211, 153, 0.2); background: rgba(52, 211, 153, 0.04); }
+.outcomeMezzanine { border-color: rgba(168, 85, 247, 0.2); background: rgba(168, 85, 247, 0.04); }
+.outcomeJunior { border-color: rgba(255, 107, 53, 0.2); background: rgba(255, 107, 53, 0.04); }
 .outcomeAgent { border-color: rgba(255, 107, 53, 0.2); background: rgba(255, 107, 53, 0.04); }
-.outcomePlatform { border-color: rgba(168, 85, 247, 0.2); background: rgba(168, 85, 247, 0.04); }
 
 .outcomeIcon {
   font-size: 28px;
@@ -585,6 +590,177 @@
 
 .outcomePlatform .outcomeProfit {
   color: #a855f7;
+}
+
+/* ── AI Assessment ── */
+
+.assessGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.assessRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  transition: all 0.4s ease;
+}
+
+.assessRow.assessChecked {
+  border-color: rgba(52, 211, 153, 0.2);
+  background: rgba(52, 211, 153, 0.03);
+}
+
+.assessLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  min-width: 140px;
+}
+
+.assessValue {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.assessCheck {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.assessSpinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-top-color: rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.assessResult {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: rgba(52, 211, 153, 0.06);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+  border-radius: 12px;
+}
+
+.assessScore {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.scoreGrade {
+  font-size: 20px;
+  font-weight: 700;
+  color: #34d399;
+}
+
+.scoreDivider {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.scoreLimit {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.approvedBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  border-radius: 8px;
+  padding: 6px 14px;
+}
+
+/* ── Disbursement ── */
+
+.disburseFlow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px 20px;
+  margin-bottom: 16px;
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+}
+
+.disburseFrom, .disburseTo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 24px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  min-width: 140px;
+}
+
+.disburseAmount {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.disburseArrow {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transform-origin: left center;
+}
+
+.disburseTo.disburseComplete {
+  border-color: rgba(52, 211, 153, 0.3);
+  background: rgba(52, 211, 153, 0.06);
+}
+
+.disburseStatus {
+  font-size: 12px;
+  font-weight: 600;
+  color: #34d399;
+}
+
+.disburseNote {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  padding: 12px 16px;
+  background: rgba(255, 107, 53, 0.04);
+  border: 1px solid rgba(255, 107, 53, 0.1);
+  border-radius: 10px;
 }
 
 /* ── Punchline ── */
@@ -675,7 +851,7 @@
 @media (max-width: 768px) {
   .title { font-size: 26px; }
   .vaultParams { grid-template-columns: repeat(2, 1fr); }
-  .investorGrid { grid-template-columns: 1fr; }
+  .investorGrid3 { grid-template-columns: 1fr; }
   .waterfallGrid { grid-template-columns: 1fr; }
   .outcomeGrid { grid-template-columns: 1fr; }
   .stepBar { gap: 2px; }

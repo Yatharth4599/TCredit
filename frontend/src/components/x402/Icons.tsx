@@ -127,6 +127,33 @@ export function UsersIcon(props: IconProps) {
   )
 }
 
+export function SearchIcon(props: IconProps) {
+  return (
+    <svg width={props.size ?? 20} height={props.size ?? 20} viewBox="0 0 24 24" fill="none" stroke={props.color ?? 'currentColor'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={props.style} className={props.className}>
+      <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+    </svg>
+  )
+}
+
+export function LayersIcon(props: IconProps) {
+  return (
+    <svg width={props.size ?? 20} height={props.size ?? 20} viewBox="0 0 24 24" fill="none" stroke={props.color ?? 'currentColor'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={props.style} className={props.className}>
+      <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" />
+      <path d="m22.39 12.19-8.56 3.9a2 2 0 0 1-1.66 0l-8.56-3.9" />
+      <path d="m22.39 16.19-8.56 3.9a2 2 0 0 1-1.66 0l-8.56-3.9" />
+    </svg>
+  )
+}
+
+export function BankIcon(props: IconProps) {
+  return (
+    <svg width={props.size ?? 20} height={props.size ?? 20} viewBox="0 0 24 24" fill="none" stroke={props.color ?? 'currentColor'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={props.style} className={props.className}>
+      <path d="M3 21h18" /><path d="M3 10h18" /><path d="M12 2l9 8H3z" />
+      <path d="M5 10v11" /><path d="M19 10v11" /><path d="M9 10v11" /><path d="M15 10v11" />
+    </svg>
+  )
+}
+
 // Map avatar string keys to components
 const AVATAR_MAP: Record<string, (props: IconProps) => JSX.Element> = {
   translate: TranslateIcon,

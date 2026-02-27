@@ -1,5 +1,5 @@
 // x402 Demo Mock Data — TranslateBot $50K Credit Line Example
-// Economics: 2%/month interest → Senior 1%/mo, Community 1.5%/mo, Platform keeps spread
+// Economics: Senior (NBFC) 1%/mo, Mezzanine (LP) 1.25%/mo, Junior (Treasury) 1.5%/mo
 
 export interface Agent {
   id: string
@@ -7,23 +7,21 @@ export interface Agent {
   type: string
   address: string
   metadataUri: string
-  avatar: string // SVG string or ReactNode identifier
+  avatar: string
 }
 
 export interface VaultConfig {
   target: number
-  interestRateMonthly: number
   durationDays: number
   durationMonths: number
-  numTranches: number
   repaymentRate: number
-  trancheSize: number
   monthlyInterest: number
+  blendedRate: number
 }
 
 export interface Investor {
   name: string
-  type: 'senior' | 'community'
+  type: 'senior' | 'mezzanine' | 'junior'
   amount: number
   yieldRate: number
   monthlyYield: number
@@ -46,10 +44,34 @@ export interface Payment {
 export interface WaterfallState {
   seniorRepaid: number
   seniorTarget: number
-  communityRepaid: number
-  communityTarget: number
-  platformCollected: number
-  platformTarget: number
+  mezzanineRepaid: number
+  mezzanineTarget: number
+  juniorRepaid: number
+  juniorTarget: number
+}
+
+export interface CreditAssessment {
+  paymentHistory: number
+  totalTransactions: number
+  averageMonthlyRevenue: number
+  activeSubscriptions: number
+  onTimePaymentRate: number
+  riskScore: string
+  creditLimit: number
+  approved: boolean
+}
+
+// ── AI Credit Assessment ──
+
+export const CREDIT_ASSESSMENT: CreditAssessment = {
+  paymentHistory: 14,
+  totalTransactions: 2_847,
+  averageMonthlyRevenue: 12_500,
+  activeSubscriptions: 342,
+  onTimePaymentRate: 99.2,
+  riskScore: 'A',
+  creditLimit: 50_000,
+  approved: true,
 }
 
 // ── Agents ──
@@ -93,34 +115,42 @@ export const CODE_BOT: Agent = {
 export const ALL_AGENTS = [TRANSLATE_BOT, SHOP_BOT, DATA_BOT, CODE_BOT]
 export const PAYING_AGENTS = [SHOP_BOT, DATA_BOT, CODE_BOT]
 
-// ── Vault Configuration ──
+// ── Vault Configuration — single disbursement ──
 
 export const VAULT_CONFIG: VaultConfig = {
   target: 50_000,
-  interestRateMonthly: 2, // 2% per month
   durationDays: 180,
   durationMonths: 6,
-  numTranches: 4,
   repaymentRate: 15, // 15% of incoming payments
-  trancheSize: 12_500,
-  monthlyInterest: 1_000, // 2% of $50K
+  monthlyInterest: 588, // $250 + $188 + $150
+  blendedRate: 1.18, // weighted avg across 3 tranches
 }
 
-// ── Investors ──
+// ── Three-Pool Capital Structure ──
 
-export const SENIOR_INVESTOR: Investor = {
-  name: 'Alpha Pool (Senior)',
+export const SENIOR_TRANCHE: Investor = {
+  name: 'NBFC Pool (Senior)',
   type: 'senior',
-  amount: 40_000,
+  amount: 25_000,
   yieldRate: 1, // 1%/month
-  monthlyYield: 400, // 1% of $40K
-  totalReturn: 42_400, // $40K + 6 × $400
-  profit: 2_400,
+  monthlyYield: 250, // 1% of $25K
+  totalReturn: 26_500, // $25K + 6 × $250
+  profit: 1_500,
 }
 
-export const COMMUNITY_INVESTOR: Investor = {
-  name: 'YieldBot (Community)',
-  type: 'community',
+export const MEZZANINE_TRANCHE: Investor = {
+  name: 'LP Pool (Mezzanine)',
+  type: 'mezzanine',
+  amount: 15_000,
+  yieldRate: 1.25, // 1.25%/month
+  monthlyYield: 188, // 1.25% of $15K (rounded)
+  totalReturn: 16_128, // $15K + 6 × $188
+  profit: 1_128,
+}
+
+export const JUNIOR_TRANCHE: Investor = {
+  name: 'Protocol Treasury (Junior)',
+  type: 'junior',
   amount: 10_000,
   yieldRate: 1.5, // 1.5%/month
   monthlyYield: 150, // 1.5% of $10K
@@ -128,20 +158,13 @@ export const COMMUNITY_INVESTOR: Investor = {
   profit: 900,
 }
 
-export const PLATFORM = {
-  name: 'TigerPayX',
-  monthlySpread: 450, // $1000 - $400 - $150
-  totalSpread: 2_700, // 6 × $450
-}
+export const ALL_INVESTORS = [SENIOR_TRANCHE, MEZZANINE_TRANCHE, JUNIOR_TRANCHE]
 
-export const ALL_INVESTORS = [SENIOR_INVESTOR, COMMUNITY_INVESTOR]
-
-// Total obligation = all principal + all interest
+// Total obligation = all principal + all yield
 export const TOTAL_OBLIGATION =
-  SENIOR_INVESTOR.totalReturn + COMMUNITY_INVESTOR.totalReturn + PLATFORM.totalSpread // $56,000
+  SENIOR_TRANCHE.totalReturn + MEZZANINE_TRANCHE.totalReturn + JUNIOR_TRANCHE.totalReturn // $53,528
 
 // ── Simulated Payment Stream ──
-// 18 payments across the loan lifecycle
 
 function makePayment(
   id: number,
@@ -187,47 +210,36 @@ export const PAYMENT_STREAM: Payment[] = [
   makePayment(18, SHOP_BOT, 1_300, 15, 2, 59),
 ]
 
-// Running totals for the full stream
 export const STREAM_TOTALS = {
   totalRevenue: PAYMENT_STREAM.reduce((s, p) => s + p.amount, 0),
   totalVaultRepayment: PAYMENT_STREAM.reduce((s, p) => s + p.vaultRepayment, 0),
   totalAgentKept: PAYMENT_STREAM.reduce((s, p) => s + p.agentNet, 0),
 }
 
-// ── Waterfall Snapshots ──
-// Simulated distribution state at various points
+// ── Waterfall Computation ──
 
 export function computeWaterfallState(totalRepaid: number): WaterfallState {
-  const seniorTarget = SENIOR_INVESTOR.totalReturn   // $42,400
-  const communityTarget = COMMUNITY_INVESTOR.totalReturn // $10,900
-  const platformTarget = PLATFORM.totalSpread         // $2,700
-  const totalTarget = TOTAL_OBLIGATION                // $56,000
+  const seniorTarget = SENIOR_TRANCHE.totalReturn
+  const mezzanineTarget = MEZZANINE_TRANCHE.totalReturn
+  const juniorTarget = JUNIOR_TRANCHE.totalReturn
+  const totalTarget = TOTAL_OBLIGATION
 
-  // Cap input at total obligation
   const capped = Math.min(totalRepaid, totalTarget)
 
   // Proportional distribution — each tier gets its share of every dollar repaid
   const seniorRepaid = Math.min(Math.round(capped * seniorTarget / totalTarget), seniorTarget)
-  const communityRepaid = Math.min(Math.round(capped * communityTarget / totalTarget), communityTarget)
-  const platformCollected = Math.min(Math.round(capped * platformTarget / totalTarget), platformTarget)
+  const mezzanineRepaid = Math.min(Math.round(capped * mezzanineTarget / totalTarget), mezzanineTarget)
+  const juniorRepaid = Math.min(Math.round(capped * juniorTarget / totalTarget), juniorTarget)
 
   return {
     seniorRepaid,
     seniorTarget,
-    communityRepaid,
-    communityTarget,
-    platformCollected,
-    platformTarget,
+    mezzanineRepaid,
+    mezzanineTarget,
+    juniorRepaid,
+    juniorTarget,
   }
 }
-
-// Tranche release schedule
-export const TRANCHES = [
-  { id: 1, amount: 12_500, label: 'Tranche 1', status: 'released' },
-  { id: 2, amount: 12_500, label: 'Tranche 2', status: 'released' },
-  { id: 3, amount: 12_500, label: 'Tranche 3', status: 'released' },
-  { id: 4, amount: 12_500, label: 'Tranche 4', status: 'released' },
-]
 
 // Helper: format currency
 export function fmtUSD(n: number): string {

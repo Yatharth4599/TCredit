@@ -6,6 +6,7 @@ import Stepper, { Step } from '../components/ui/Stepper'
 import CardSwap, { Card } from '../components/ui/CardSwap'
 import NoiseBackground from '../components/ui/NoiseBackground'
 import WaterfallFlow from '../components/ui/WaterfallFlow'
+
 import styles from './Home.module.css'
 
 export default function Home() {
@@ -195,7 +196,7 @@ export default function Home() {
                         <span className={styles.sectionLabel}>The x402 Protocol</span>
                         <h2 className={styles.sectionTitle}>Revenue becomes lendable when it becomes <span className={styles.gradientInline}>enforceable</span></h2>
                         <p className={styles.sectionDesc}>
-                            TigerPayX uses programmable billing and controlled settlement accounts to ensure
+                            TCredit uses programmable billing and controlled settlement accounts to ensure
                             business income passes through the protocol before reaching the borrower.
                         </p>
                     </div>
@@ -208,7 +209,7 @@ export default function Home() {
                         >
                             <Step>
                                 <h3 className={styles.stepperTitle}>Customer Payment</h3>
-                                <p>A customer pays for goods or services. The payment is routed through a TigerPayX x402 endpoint — not directly to the merchant's wallet.</p>
+                                <p>A customer pays for goods or services. The payment is routed through a TCredit x402 endpoint — not directly to the merchant's wallet.</p>
                             </Step>
                             <Step>
                                 <h3 className={styles.stepperTitle}>x402 Settlement</h3>
@@ -240,7 +241,7 @@ export default function Home() {
                             <span className={styles.sectionLabel}>How It Works</span>
                             <h2 className={styles.sectionTitle}>Five steps to <span className={styles.gradientInline}>programmable credit</span></h2>
                             <p className={styles.howItWorksDesc}>
-                                TigerPayX turns everyday business payments into a creditworthy financial identity — then funds working capital against it, with automated repayment built in.
+                                TCredit turns everyday business payments into a creditworthy financial identity — then funds working capital against it, with automated repayment built in.
                             </p>
                             <div className={styles.stepsList}>
                                 <div className={styles.stepsListItem}>
@@ -289,7 +290,7 @@ export default function Home() {
                                             </div>
                                         </div>
                                         <h3 className={styles.swapCardTitle}>Payment Routing</h3>
-                                        <p className={styles.swapCardDesc}>Businesses bill customers using TigerPayX x402 payment endpoints. Customers pay via local rails or stablecoins.</p>
+                                        <p className={styles.swapCardDesc}>Businesses bill customers using TCredit x402 payment endpoints. Customers pay via local rails or stablecoins.</p>
                                     </div>
                                 </Card>
                                 <Card>
@@ -426,7 +427,7 @@ export default function Home() {
                             <span className={styles.sectionLabel}>For Merchants</span>
                             <h2 className={styles.splitTitle}>Stream capital as you <span className={styles.gradientInline}>perform</span></h2>
                             <p className={styles.splitDesc}>
-                                Bill through TigerPayX endpoints. Your payment history becomes your credit score. Access working capital, invoice financing, or trade finance — up to 12 months.
+                                Bill through TCredit endpoints. Your payment history becomes your credit score. Access working capital, invoice financing, or trade finance — up to 12 months.
                             </p>
                             <ul className={styles.featureList}>
                                 <li><span className={styles.checkIcon}>✓</span> x402 payment endpoints — plug into your billing</li>
@@ -475,7 +476,7 @@ export default function Home() {
                         {/* Left: Text */}
                         <div className={`${styles.flywheelText} ${isVisible('flywheel') ? styles.visible : ''}`}>
                             <p className={styles.flywheelDesc}>
-                                Every payment processed through TigerPayX generates real-time data that feeds the credit engine — creating a self-reinforcing cycle of access, growth, and liquidity.
+                                Every payment processed through TCredit generates real-time data that feeds the credit engine — creating a self-reinforcing cycle of access, growth, and liquidity.
                             </p>
                             <div className={styles.flywheelSteps}>
                                 <div className={styles.flywheelStep}>
@@ -639,12 +640,12 @@ export default function Home() {
                 <div className={styles.sectionContainer}>
                     <div className={`${styles.sectionHeader} ${isVisible('integrations') ? styles.visible : ''}`}>
                         <span className={styles.sectionLabel}>Ecosystem</span>
-                        <h2 className={styles.sectionTitle}>Powered by <span className={styles.gradientInline}>Solana</span></h2>
+                        <h2 className={styles.sectionTitle}>Powered by <span className={styles.gradientInline}>Base</span></h2>
                     </div>
 
                     {(() => {
                         const pills = [
-                            { name: 'Solana', role: 'Layer 1', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M4 17.5h13.5l2.5-2.5H6.5L4 17.5zm0-5.5h13.5L20 9.5H6.5L4 12zm2.5-8L4 6.5h13.5L20 4H6.5z"/></svg> },
+                            { name: 'Base', role: 'Layer 2', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M4 17.5h13.5l2.5-2.5H6.5L4 17.5zm0-5.5h13.5L20 9.5H6.5L4 12zm2.5-8L4 6.5h13.5L20 4H6.5z"/></svg> },
                             { name: 'x402', role: 'Payment Protocol', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg> },
                             { name: 'USDC', role: 'Stablecoin', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M8 9.5C8 8.1 9.8 7 12 7s4 1.1 4 2.5-1.8 2.5-4 2.5-4 1.1-4 2.5S9.8 17 12 17s4-1.1 4-2.5"/></svg> },
                             { name: 'FairScale', role: 'Credit Scoring', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 20h20M6 20V10M10 20V4M14 20V8M18 20V14"/></svg> },
@@ -708,7 +709,7 @@ export default function Home() {
             <footer className={styles.footer}>
                 <div className={styles.footerContent}>
                     <div className={styles.footerBrand}>
-                        <span className={styles.footerLogo}>TigerPay<span className={styles.orangeX}>X</span></span>
+                        <span className={styles.footerLogo}>TCredit</span>
                         <p>The Programmable Credit Network</p>
                     </div>
                     <div className={styles.footerLinks}>
@@ -719,7 +720,7 @@ export default function Home() {
                     </div>
                 </div>
                 <div className={styles.footerBottom}>
-                    <span>© 2026 TigerPayX. Making real-world revenue natively lendable on-chain.</span>
+                    <span>© 2026 TCredit. Making real-world revenue natively lendable on-chain.</span>
                 </div>
             </footer>
         </div>
