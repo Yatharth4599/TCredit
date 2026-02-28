@@ -21,6 +21,7 @@ interface IMerchantVault {
     event VaultUnpaused();
     event VaultDefaulted(uint256 timestamp);
     event VaultCancelled(uint256 timestamp);
+    event LateFeeApplied(uint256 feeAmount, uint256 totalLateFees);
     event PaymentRouterUpdated(address indexed oldRouter, address indexed newRouter);
     event AdminTransferProposed(address indexed current, address indexed proposed);
     event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
@@ -34,9 +35,12 @@ interface IMerchantVault {
     function pause() external;
     function unpause() external;
     function markDefault() external;
+    function autoCancelExpired() external;
+    function completeFundraisingManual() external;
     function cancel() external;
     function claimRefund() external;
     function setPaymentRouter(address _router) external;
+    function setMilestoneRegistry(address _milestoneRegistry) external;
     function proposeAdmin(address _newAdmin) external;
     function acceptAdmin() external;
 
@@ -56,4 +60,6 @@ interface IMerchantVault {
         uint256 poolRepaid,
         uint256 communityRepaid
     );
+    function calculateLateFee() external view returns (uint256);
+    function shouldDefault() external view returns (bool);
 }

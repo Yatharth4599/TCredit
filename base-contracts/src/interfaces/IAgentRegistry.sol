@@ -13,6 +13,14 @@ interface IAgentRegistry {
         bool active;
     }
 
+    enum CreditTier { D, C, B, A }
+
+    struct CreditProfile {
+        uint16 score;
+        CreditTier tier;
+        uint256 updatedAt;
+    }
+
     event AgentRegistered(address indexed wallet, string metadataURI);
     event AgentUpdated(address indexed wallet, string metadataURI);
     event VaultLinked(address indexed wallet, address indexed vault);
@@ -21,6 +29,7 @@ interface IAgentRegistry {
     event PaymentRouterUpdated(address indexed oldRouter, address indexed newRouter);
     event AdminTransferProposed(address indexed current, address indexed proposed);
     event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
+    event CreditScoreUpdated(address indexed wallet, uint16 score, CreditTier tier);
 
     function registerAgent(string calldata metadataURI) external;
     function updateMetadata(string calldata metadataURI) external;
@@ -30,6 +39,7 @@ interface IAgentRegistry {
     function setFactory(address _factory) external;
     function setPaymentRouter(address _router) external;
     function deactivateAgent(address agent) external;
+    function updateCreditScore(address agent, uint16 score) external;
     function proposeAdmin(address _newAdmin) external;
     function acceptAdmin() external;
     function getAgent(address wallet) external view returns (Agent memory);
@@ -38,4 +48,7 @@ interface IAgentRegistry {
     function getVault(address wallet) external view returns (address);
     function getAllAgents() external view returns (address[] memory);
     function getAgentCount() external view returns (uint256);
+    function getCreditProfile(address wallet) external view returns (CreditProfile memory);
+    function getCreditTier(address wallet) external view returns (CreditTier);
+    function isCreditValid(address wallet) external view returns (bool);
 }

@@ -6,6 +6,7 @@ import {AgentRegistry} from "../src/AgentRegistry.sol";
 import {PaymentRouter} from "../src/PaymentRouter.sol";
 import {VaultFactory} from "../src/VaultFactory.sol";
 import {LiquidityPool} from "../src/LiquidityPool.sol";
+import {MilestoneRegistry} from "../src/MilestoneRegistry.sol";
 
 /// @title Deploy — TigerPayX Base contracts deployment
 /// @notice Deploy order: Registry → Router → Factory → Pools, then wire permissions
@@ -48,7 +49,11 @@ contract Deploy is Script {
         LiquidityPool generalPool = new LiquidityPool(usdc, deployer, false, 200_000e6);
         console.log("GeneralPool:", address(generalPool));
 
-        // 6. Wire permissions
+        // 6. Milestone Registry
+        MilestoneRegistry milestones = new MilestoneRegistry(deployer);
+        console.log("MilestoneRegistry:", address(milestones));
+
+        // 7. Wire permissions
         registry.setFactory(address(factory));
         registry.setPaymentRouter(address(router));
         router.setFactory(address(factory));
@@ -68,6 +73,7 @@ contract Deploy is Script {
         console.log("Factory:    ", address(factory));
         console.log("SeniorPool: ", address(seniorPool));
         console.log("GeneralPool:", address(generalPool));
+        console.log("Milestones: ", address(milestones));
         console.log("");
         console.log("Verify on BaseScan:");
         console.log("  forge verify-contract <address> src/AgentRegistry.sol:AgentRegistry --chain base-sepolia");

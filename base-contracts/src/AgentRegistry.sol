@@ -8,7 +8,11 @@ import {Errors} from "./libraries/Errors.sol";
 /// @notice Permissionless self-registration. Every wallet is an agent.
 contract AgentRegistry is IAgentRegistry {
     mapping(address => Agent) private _agents;
+    mapping(address => CreditProfile) private _creditProfiles;
     address[] private _allAgents;
+
+    uint16 public constant CREDIT_SCORE_MAX = 1000;
+    uint256 public constant CREDIT_SCORE_MAX_AGE = 90 days;
 
     address public factory;
     address public paymentRouter;
@@ -116,6 +120,16 @@ contract AgentRegistry is IAgentRegistry {
         emit AgentDeactivated(agent);
     }
 
+    function updateCreditScore(address agent, uint16 score) external onlyAdmin {
+        if (_agents[agent].registeredAt == 0) revert Errors.AgentNotRegistered();
+        if (score > CREDIT_SCORE_MAX) revert Errors.CreditScoreOutOfRange();
+
+        CreditTier tier = _deriveTier(score);
+        _creditProfiles[agent] = CreditProfile({score: score, tier: tier, updatedAt: block.timestamp});
+
+        emit CreditScoreUpdated(agent, score, tier);
+    }
+
     // ─── View Functions ──────────────────────────────────────────
 
     function getAgent(address wallet) external view returns (Agent memory) {
@@ -140,5 +154,28 @@ contract AgentRegistry is IAgentRegistry {
 
     function getAgentCount() external view returns (uint256) {
         return _allAgents.length;
+    }
+
+    function getCreditProfile(address wallet) external view returns (CreditProfile memory) {
+        return _creditProfiles[wallet];
+    }
+
+    function getCreditTier(address wallet) external view returns (CreditTier) {
+        return _creditProfiles[wallet].tier;
+    }
+
+    function isCreditValid(address wallet) external view returns (bool) {
+        CreditProfile storage profile = _creditProfiles[wallet];
+        if (profile.updatedAt == 0) return false;
+        return block.timestamp <= profile.updatedAt + CREDIT_SCORE_MAX_AGE;
+    }
+
+    // ─── Internal ─────────────────────────────────────────────────
+
+    function _deriveTier(uint16 score) internal pure returns (CreditTier) {
+        if (score >= 750) return CreditTier.A;
+        if (score >= 600) return CreditTier.B;
+        if (score >= 450) return CreditTier.C;
+        return CreditTier.D;
     }
 }

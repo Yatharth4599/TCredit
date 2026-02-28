@@ -44,6 +44,12 @@ contract VaultFactoryTest is Test {
 
         vm.prank(agent2);
         registry.registerAgent("ipfs://shopBot");
+
+        // Credit scores required for vault creation
+        vm.startPrank(admin);
+        registry.updateCreditScore(agent, 750);
+        registry.updateCreditScore(agent2, 750);
+        vm.stopPrank();
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -52,7 +58,7 @@ contract VaultFactoryTest is Test {
 
     function test_createVault_happy() public {
         vm.prank(admin);
-        address vault = factory.createVault(agent, 50_000e6, 1200, 180 days, 4, 1500, 0, 0);
+        address vault = factory.createVault(agent, 50_000e6, 1200, 180 days, 4, 1500, 0, 0, 0, 0, type(uint256).max);
 
         assertTrue(vault != address(0));
         assertEq(factory.agentToVault(agent), vault);
@@ -71,7 +77,7 @@ contract VaultFactoryTest is Test {
 
     function test_createVault_deployedVault_isUsable() public {
         vm.prank(admin);
-        address vaultAddr = factory.createVault(agent, 50_000e6, 1200, 180 days, 4, 1500, 0, 0);
+        address vaultAddr = factory.createVault(agent, 50_000e6, 1200, 180 days, 4, 1500, 0, 0, 0, 0, type(uint256).max);
 
         MerchantVault vault = MerchantVault(vaultAddr);
         assertEq(uint8(vault.state()), uint8(IMerchantVault.VaultState.Fundraising));
@@ -89,7 +95,7 @@ contract VaultFactoryTest is Test {
         vm.prank(admin);
         vm.expectEmit(true, false, false, false);
         emit VaultFactory.VaultCreated(agent, address(0), 50_000e6, 1200, 180 days);
-        factory.createVault(agent, 50_000e6, 1200, 180 days, 4, 1500, 0, 0);
+        factory.createVault(agent, 50_000e6, 1200, 180 days, 4, 1500, 0, 0, 0, 0, type(uint256).max);
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -98,16 +104,16 @@ contract VaultFactoryTest is Test {
 
     function test_createVault_duplicate_reverts() public {
         vm.startPrank(admin);
-        factory.createVault(agent, 50_000e6, 1200, 180 days, 4, 1500, 0, 0);
+        factory.createVault(agent, 50_000e6, 1200, 180 days, 4, 1500, 0, 0, 0, 0, type(uint256).max);
         vm.expectRevert(Errors.VaultAlreadyExists.selector);
-        factory.createVault(agent, 50_000e6, 1200, 180 days, 4, 1500, 0, 0);
+        factory.createVault(agent, 50_000e6, 1200, 180 days, 4, 1500, 0, 0, 0, 0, type(uint256).max);
         vm.stopPrank();
     }
 
     function test_createVault_differentAgents_succeed() public {
         vm.startPrank(admin);
-        address vault1 = factory.createVault(agent, 50_000e6, 1200, 180 days, 4, 1500, 0, 0);
-        address vault2 = factory.createVault(agent2, 30_000e6, 1000, 90 days, 3, 1000, 0, 0);
+        address vault1 = factory.createVault(agent, 50_000e6, 1200, 180 days, 4, 1500, 0, 0, 0, 0, type(uint256).max);
+        address vault2 = factory.createVault(agent2, 30_000e6, 1000, 90 days, 3, 1000, 0, 0, 0, 0, type(uint256).max);
         vm.stopPrank();
 
         assertTrue(vault1 != vault2);
@@ -122,7 +128,7 @@ contract VaultFactoryTest is Test {
         address stranger = makeAddr("stranger");
         vm.prank(admin);
         vm.expectRevert(Errors.AgentNotRegistered.selector);
-        factory.createVault(stranger, 50_000e6, 1200, 180 days, 4, 1500, 0, 0);
+        factory.createVault(stranger, 50_000e6, 1200, 180 days, 4, 1500, 0, 0, 0, 0, type(uint256).max);
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -135,14 +141,14 @@ contract VaultFactoryTest is Test {
 
         vm.prank(admin);
         vm.expectRevert(Errors.PlatformPaused.selector);
-        factory.createVault(agent, 50_000e6, 1200, 180 days, 4, 1500, 0, 0);
+        factory.createVault(agent, 50_000e6, 1200, 180 days, 4, 1500, 0, 0, 0, 0, type(uint256).max);
     }
 
     function test_unpausePlatform_resumesCreation() public {
         vm.startPrank(admin);
         factory.pausePlatform();
         factory.unpausePlatform();
-        address vault = factory.createVault(agent, 50_000e6, 1200, 180 days, 4, 1500, 0, 0);
+        address vault = factory.createVault(agent, 50_000e6, 1200, 180 days, 4, 1500, 0, 0, 0, 0, type(uint256).max);
         vm.stopPrank();
         assertTrue(vault != address(0));
     }
@@ -154,7 +160,7 @@ contract VaultFactoryTest is Test {
     function test_createVault_onlyAdmin_reverts() public {
         vm.prank(agent);
         vm.expectRevert(Errors.Unauthorized.selector);
-        factory.createVault(agent, 50_000e6, 1200, 180 days, 4, 1500, 0, 0);
+        factory.createVault(agent, 50_000e6, 1200, 180 days, 4, 1500, 0, 0, 0, 0, type(uint256).max);
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -239,8 +245,8 @@ contract VaultFactoryTest is Test {
 
     function test_getAllVaults_afterCreation() public {
         vm.startPrank(admin);
-        factory.createVault(agent, 50_000e6, 1200, 180 days, 4, 1500, 0, 0);
-        factory.createVault(agent2, 30_000e6, 1000, 90 days, 3, 1000, 0, 0);
+        factory.createVault(agent, 50_000e6, 1200, 180 days, 4, 1500, 0, 0, 0, 0, type(uint256).max);
+        factory.createVault(agent2, 30_000e6, 1000, 90 days, 3, 1000, 0, 0, 0, 0, type(uint256).max);
         vm.stopPrank();
 
         assertEq(factory.getVaultCount(), 2);

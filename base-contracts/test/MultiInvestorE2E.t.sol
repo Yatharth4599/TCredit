@@ -68,6 +68,10 @@ contract MultiInvestorE2ETest is Test {
         vm.prank(translateBot); registry.registerAgent("ipfs://translateBot");
         vm.prank(shopBot);      registry.registerAgent("ipfs://shopBot");
 
+        // Credit score for vault creation
+        vm.prank(admin);
+        registry.updateCreditScore(translateBot, 750);
+
         // Mint community investor balances
         usdc.mint(investorA, 10_000e6);
         usdc.mint(investorB, 10_000e6);
@@ -76,7 +80,7 @@ contract MultiInvestorE2ETest is Test {
 
         // Admin creates vault: 20K target (10K senior + 10K community), 15% repayment
         vm.prank(admin);
-        address vaultAddr = factory.createVault(translateBot, 20_000e6, 1200, 365 days, 2, 1500, 0, 0);
+        address vaultAddr = factory.createVault(translateBot, 20_000e6, 1200, 365 days, 2, 1500, 0, 0, 0, 0, type(uint256).max);
         vault = MerchantVault(vaultAddr);
 
         // Wire vault's payment router (factory doesn't set it automatically)
@@ -200,10 +204,21 @@ contract MultiInvestorE2ETest is Test {
     function test_multiInvestor_seniorClaimsProportionally() public {
         // Two senior investors directly (no pool), same vault
         // Override: create a fresh vault without pool, senior only
-        MerchantVault directVault = new MerchantVault(
-            address(usdc), translateBot, admin, address(this),
-            10_000e6, 1200, 365 days, 2, 200, feeRecipient
-        );
+        MerchantVault directVault = new MerchantVault(MerchantVault.VaultParams({
+            usdc: address(usdc),
+            agent: translateBot,
+            admin: admin,
+            factory: address(this),
+            targetAmount: 10_000e6,
+            interestRateBps: 1200,
+            durationSeconds: 365 days,
+            numTranches: 2,
+            platformFeeBps: 200,
+            platformFeeRecipient: feeRecipient,
+            lateFeeBps: 0,
+            gracePeriodSeconds: 0,
+            fundraisingDeadline: type(uint256).max
+        }));
         vm.prank(admin);
         directVault.setPaymentRouter(address(this));
 

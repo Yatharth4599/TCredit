@@ -27,11 +27,21 @@ contract MerchantVaultTest is Test {
 
     function setUp() public {
         usdc = new MockUSDC();
-        vault = new MerchantVault(
-            address(usdc), agent, admin, factory,
-            TARGET, INTEREST_BPS, DURATION, TRANCHES,
-            PLATFORM_FEE, feeRecipient
-        );
+        vault = new MerchantVault(MerchantVault.VaultParams({
+            usdc: address(usdc),
+            agent: agent,
+            admin: admin,
+            factory: factory,
+            targetAmount: TARGET,
+            interestRateBps: INTEREST_BPS,
+            durationSeconds: DURATION,
+            numTranches: TRANCHES,
+            platformFeeBps: PLATFORM_FEE,
+            platformFeeRecipient: feeRecipient,
+            lateFeeBps: 0,
+            gracePeriodSeconds: 0,
+            fundraisingDeadline: type(uint256).max
+        }));
 
         vm.prank(admin);
         vault.setPaymentRouter(router);

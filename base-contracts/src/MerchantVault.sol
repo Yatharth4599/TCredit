@@ -5,6 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IMerchantVault} from "./interfaces/IMerchantVault.sol";
+import {IMilestoneRegistry} from "./interfaces/IMilestoneRegistry.sol";
 import {WaterfallLib} from "./libraries/WaterfallLib.sol";
 import {Errors} from "./libraries/Errors.sol";
 
@@ -54,6 +55,17 @@ contract MerchantVault is IMerchantVault, ReentrancyGuard {
     uint256 public totalLateFees;
     uint256 public gracePeriodSeconds;
 
+    // x402-aware repayment tracking
+    uint256 public nextPaymentDue;
+    uint256 public expectedRepaymentPerPeriod;
+    uint256 public constant REPAYMENT_INTERVAL = 30 days;
+
+    // Fundraising deadline (for keeper auto-cancel)
+    uint256 public fundraisingDeadline;
+
+    // Milestone registry (for tranche gating)
+    IMilestoneRegistry public milestoneRegistry;
+
     // Investor tracking
     mapping(address => uint256) public investorBalances;
     mapping(address => uint256) public claimedReturns;
@@ -87,33 +99,41 @@ contract MerchantVault is IMerchantVault, ReentrancyGuard {
 
     // ─── Constructor ─────────────────────────────────────────────
 
-    constructor(
-        address _usdc,
-        address _agent,
-        address _admin,
-        address _factory,
-        uint256 _targetAmount,
-        uint256 _interestRateBps,
-        uint256 _durationSeconds,
-        uint256 _numTranches,
-        uint16 _platformFeeBps,
-        address _platformFeeRecipient
-    ) {
-        if (_usdc == address(0) || _agent == address(0) || _admin == address(0))
-            revert Errors.ZeroAddress();
-        if (_targetAmount == 0) revert Errors.InvalidAmount();
-        if (_numTranches == 0) revert Errors.InvalidTrancheCount();
+    struct VaultParams {
+        address usdc;
+        address agent;
+        address admin;
+        address factory;
+        uint256 targetAmount;
+        uint256 interestRateBps;
+        uint256 durationSeconds;
+        uint256 numTranches;
+        uint16 platformFeeBps;
+        address platformFeeRecipient;
+        uint16 lateFeeBps;
+        uint256 gracePeriodSeconds;
+        uint256 fundraisingDeadline;
+    }
 
-        usdc = IERC20(_usdc);
-        agent = _agent;
-        admin = _admin;
-        factory = _factory;
-        targetAmount = _targetAmount;
-        interestRateBps = _interestRateBps;
-        durationSeconds = _durationSeconds;
-        numTranches = _numTranches;
-        platformFeeBps = _platformFeeBps;
-        platformFeeRecipient = _platformFeeRecipient;
+    constructor(VaultParams memory p) {
+        if (p.usdc == address(0) || p.agent == address(0) || p.admin == address(0))
+            revert Errors.ZeroAddress();
+        if (p.targetAmount == 0) revert Errors.InvalidAmount();
+        if (p.numTranches == 0) revert Errors.InvalidTrancheCount();
+
+        usdc = IERC20(p.usdc);
+        agent = p.agent;
+        admin = p.admin;
+        factory = p.factory;
+        targetAmount = p.targetAmount;
+        interestRateBps = p.interestRateBps;
+        durationSeconds = p.durationSeconds;
+        numTranches = p.numTranches;
+        platformFeeBps = p.platformFeeBps;
+        platformFeeRecipient = p.platformFeeRecipient;
+        lateFeeBps = p.lateFeeBps;
+        gracePeriodSeconds = p.gracePeriodSeconds;
+        fundraisingDeadline = p.fundraisingDeadline;
         state = VaultState.Fundraising;
     }
 
@@ -124,6 +144,10 @@ contract MerchantVault is IMerchantVault, ReentrancyGuard {
         address old = paymentRouter;
         paymentRouter = _router;
         emit PaymentRouterUpdated(old, _router);
+    }
+
+    function setMilestoneRegistry(address _milestoneRegistry) external onlyAdmin {
+        milestoneRegistry = IMilestoneRegistry(_milestoneRegistry);
     }
 
     function proposeAdmin(address _newAdmin) external onlyAdmin {
@@ -208,6 +232,12 @@ contract MerchantVault is IMerchantVault, ReentrancyGuard {
             revert Errors.InvalidVaultState();
         if (tranchesReleased >= numTranches) revert Errors.AllTranchesReleased();
 
+        // Milestone gate: if registry is set, require milestone approved for this tranche
+        if (address(milestoneRegistry) != address(0)) {
+            if (!milestoneRegistry.isMilestoneApproved(address(this), tranchesReleased + 1))
+                revert Errors.MilestoneNotApproved();
+        }
+
         tranchesReleased++;
         uint256 trancheSize = totalRaised / numTranches;
         uint256 trancheAmount;
@@ -239,6 +269,20 @@ contract MerchantVault is IMerchantVault, ReentrancyGuard {
         }
 
         usdc.safeTransferFrom(msg.sender, address(this), amount);
+
+        // Apply late fees if behind schedule (x402-aware: based on cumulative shortfall)
+        if (lateFeeBps > 0 && nextPaymentDue > 0 && block.timestamp > nextPaymentDue) {
+            uint256 lateFee = calculateLateFee();
+            if (lateFee > 0) {
+                totalToRepay += lateFee;
+                totalLateFees += lateFee;
+                emit LateFeeApplied(lateFee, totalLateFees);
+            }
+            // Advance nextPaymentDue past current time
+            while (nextPaymentDue > 0 && nextPaymentDue <= block.timestamp) {
+                nextPaymentDue += REPAYMENT_INTERVAL;
+            }
+        }
 
         // Platform fee
         uint256 fee = 0;
@@ -289,14 +333,36 @@ contract MerchantVault is IMerchantVault, ReentrancyGuard {
 
     // ─── Lifecycle ───────────────────────────────────────────────
 
-    function markDefault() external onlyAdmin {
+    function markDefault() external {
         if (state != VaultState.Active && state != VaultState.Repaying)
             revert Errors.InvalidVaultState();
+        // Permissionless when default conditions are met; admin can always force default
+        if (!shouldDefault() && msg.sender != admin) revert Errors.DefaultConditionsNotMet();
 
         VaultState oldState = state;
         state = VaultState.Defaulted;
         emit VaultStateChanged(oldState, VaultState.Defaulted);
         emit VaultDefaulted(block.timestamp);
+    }
+
+    function autoCancelExpired() external {
+        if (state != VaultState.Fundraising) revert Errors.InvalidVaultState();
+        if (fundraisingDeadline == 0 || block.timestamp <= fundraisingDeadline)
+            revert Errors.FundraisingNotExpired();
+        if (totalRaised >= (targetAmount * 80) / 100)
+            revert Errors.FundraisingAboveThreshold();
+
+        VaultState oldState = state;
+        state = VaultState.Cancelled;
+        emit VaultStateChanged(oldState, VaultState.Cancelled);
+        emit VaultCancelled(block.timestamp);
+    }
+
+    function completeFundraisingManual() external onlyAdmin inState(VaultState.Fundraising) {
+        if (totalRaised < (targetAmount * 80) / 100)
+            revert Errors.FundraisingThresholdNotMet();
+
+        _activate();
     }
 
     function cancel() external onlyAdmin inState(VaultState.Fundraising) {
@@ -388,6 +454,40 @@ contract MerchantVault is IMerchantVault, ReentrancyGuard {
         return (seniorFunded, poolFunded, userFunded, totalSeniorRepaid, totalPoolRepaid, totalCommunityRepaid);
     }
 
+    /// @notice x402-aware late fee: based on cumulative repayment shortfall
+    function calculateLateFee() public view returns (uint256) {
+        if (lateFeeBps == 0 || nextPaymentDue == 0) return 0;
+        if (block.timestamp <= nextPaymentDue) return 0;
+
+        uint256 daysLate = (block.timestamp - nextPaymentDue) / 1 days;
+        if (daysLate == 0) return 0;
+        // Cap to one period to prevent quadratic compounding across multiple missed periods.
+        // Each missed period gets its own fee charge when nextPaymentDue advances.
+        if (daysLate > REPAYMENT_INTERVAL / 1 days) {
+            daysLate = REPAYMENT_INTERVAL / 1 days;
+        }
+
+        // Calculate expected cumulative repayment by now
+        uint256 periodsElapsed = 0;
+        if (activatedAt > 0 && REPAYMENT_INTERVAL > 0) {
+            periodsElapsed = (block.timestamp - activatedAt) / REPAYMENT_INTERVAL;
+        }
+        uint256 expectedCumulative = periodsElapsed * expectedRepaymentPerPeriod;
+        if (expectedCumulative > totalToRepay) expectedCumulative = totalToRepay;
+
+        // Shortfall = how much behind schedule
+        uint256 shortfall = totalRepaid >= expectedCumulative ? 0 : expectedCumulative - totalRepaid;
+        if (shortfall == 0) return 0;
+
+        return (shortfall * lateFeeBps * daysLate) / 10_000;
+    }
+
+    function shouldDefault() public view returns (bool) {
+        if (state != VaultState.Active && state != VaultState.Repaying) return false;
+        if (nextPaymentDue == 0 || gracePeriodSeconds == 0) return false;
+        return block.timestamp > nextPaymentDue + gracePeriodSeconds;
+    }
+
     // ─── Internal ────────────────────────────────────────────────
 
     function _activate() internal {
@@ -402,6 +502,14 @@ contract MerchantVault is IMerchantVault, ReentrancyGuard {
         VaultState oldState = state;
         state = VaultState.Active;
         activatedAt = block.timestamp;
+
+        // Set up repayment schedule for late fee tracking
+        if (lateFeeBps > 0 && durationSeconds >= REPAYMENT_INTERVAL) {
+            nextPaymentDue = block.timestamp + REPAYMENT_INTERVAL;
+            uint256 numberOfPeriods = durationSeconds / REPAYMENT_INTERVAL;
+            expectedRepaymentPerPeriod = numberOfPeriods > 0 ? totalToRepay / numberOfPeriods : totalToRepay;
+        }
+
         emit VaultStateChanged(oldState, VaultState.Active);
     }
 

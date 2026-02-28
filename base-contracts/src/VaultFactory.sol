@@ -84,7 +84,10 @@ contract VaultFactory {
         uint256 numTranches,
         uint16 repaymentRateBps,
         uint64 minPaymentInterval,
-        uint256 maxSinglePayment
+        uint256 maxSinglePayment,
+        uint16 lateFeeBps,
+        uint256 gracePeriodSeconds,
+        uint256 fundraisingDeadline
     ) external onlyAdmin notPaused returns (address vault) {
         if (!registry.isRegistered(agent)) revert Errors.AgentNotRegistered();
         if (agentToVault[agent] != address(0)) revert Errors.VaultAlreadyExists();
@@ -92,21 +95,31 @@ contract VaultFactory {
         if (interestRateBps > 5000) revert Errors.FeeTooHigh(); // max 50%
         if (durationSeconds < 7 days || durationSeconds > 730 days) revert Errors.InvalidAmount();
 
+        // Credit tier gating: require valid score and tier >= C
+        if (!registry.isCreditValid(agent)) revert Errors.CreditScoreExpired();
+        IAgentRegistry.CreditTier tier = registry.getCreditTier(agent);
+        if (tier == IAgentRegistry.CreditTier.D) revert Errors.CreditTierTooLow();
+
         // CREATE2 deploy with agent as sole salt (one vault per agent enforced above)
         bytes32 salt = keccak256(abi.encodePacked(agent));
 
         vault = address(
             new MerchantVault{salt: salt}(
-                config.usdc,
-                agent,
-                config.admin,
-                address(this),
-                targetAmount,
-                interestRateBps,
-                durationSeconds,
-                numTranches,
-                config.defaultFeeBps,
-                config.feeRecipient
+                MerchantVault.VaultParams({
+                    usdc: config.usdc,
+                    agent: agent,
+                    admin: config.admin,
+                    factory: address(this),
+                    targetAmount: targetAmount,
+                    interestRateBps: interestRateBps,
+                    durationSeconds: durationSeconds,
+                    numTranches: numTranches,
+                    platformFeeBps: config.defaultFeeBps,
+                    platformFeeRecipient: config.feeRecipient,
+                    lateFeeBps: lateFeeBps,
+                    gracePeriodSeconds: gracePeriodSeconds,
+                    fundraisingDeadline: fundraisingDeadline
+                })
             )
         );
 
@@ -126,6 +139,21 @@ contract VaultFactory {
 
     function predictVaultAddress(address agent) external view returns (address) {
         bytes32 salt = keccak256(abi.encodePacked(agent));
+        MerchantVault.VaultParams memory p = MerchantVault.VaultParams({
+            usdc: config.usdc,
+            agent: agent,
+            admin: config.admin,
+            factory: address(this),
+            targetAmount: 0,
+            interestRateBps: 0,
+            durationSeconds: 0,
+            numTranches: 0,
+            platformFeeBps: config.defaultFeeBps,
+            platformFeeRecipient: config.feeRecipient,
+            lateFeeBps: 0,
+            gracePeriodSeconds: 0,
+            fundraisingDeadline: 0
+        });
         bytes32 hash = keccak256(
             abi.encodePacked(
                 bytes1(0xff),
@@ -134,18 +162,7 @@ contract VaultFactory {
                 keccak256(
                     abi.encodePacked(
                         type(MerchantVault).creationCode,
-                        abi.encode(
-                            config.usdc,
-                            agent,
-                            config.admin,
-                            address(this),
-                            uint256(0), // placeholder
-                            uint256(0),
-                            uint256(0),
-                            uint256(0),
-                            config.defaultFeeBps,
-                            config.feeRecipient
-                        )
+                        abi.encode(p)
                     )
                 )
             )

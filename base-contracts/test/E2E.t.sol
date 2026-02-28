@@ -83,6 +83,10 @@ contract E2ETest is Test {
         vm.prank(yieldBot);
         registry.registerAgent("ipfs://QmYieldBot");
 
+        // Credit score for vault creation
+        vm.prank(admin);
+        registry.updateCreditScore(translateBot, 750);
+
         assertEq(registry.getAgentCount(), 4);
 
         // ═══════════════════════════════════════════════════════════
@@ -98,7 +102,10 @@ contract E2ETest is Test {
             4,           // 4 tranches
             1500,        // 15% repayment on each payment
             0,           // no rate limit
-            0            // no max payment
+            0,           // no max payment
+            0,           // no late fees
+            0,           // no grace period
+            type(uint256).max // no fundraising deadline
         );
 
         MerchantVault vault = MerchantVault(vaultAddr);

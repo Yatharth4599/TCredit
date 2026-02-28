@@ -51,6 +51,10 @@ contract SecurityHardeningTest is Test {
         vm.prank(payer);
         registry.registerAgent("ipfs://shopBot");
 
+        // Credit score for vault creation
+        vm.prank(admin);
+        registry.updateCreditScore(borrower, 750);
+
         // Fund payer
         usdc.mint(payer, 1_000_000e6);
     }
@@ -202,19 +206,19 @@ contract SecurityHardeningTest is Test {
     function test_createVault_interestRateTooHigh() public {
         vm.prank(admin);
         vm.expectRevert(Errors.FeeTooHigh.selector);
-        factory.createVault(borrower, 50_000e6, 5001, 180 days, 3, 1500, 0, 0);
+        factory.createVault(borrower, 50_000e6, 5001, 180 days, 3, 1500, 0, 0, 0, 0, type(uint256).max);
     }
 
     function test_createVault_durationTooShort() public {
         vm.prank(admin);
         vm.expectRevert(Errors.InvalidAmount.selector);
-        factory.createVault(borrower, 50_000e6, 1200, 1 days, 3, 1500, 0, 0);
+        factory.createVault(borrower, 50_000e6, 1200, 1 days, 3, 1500, 0, 0, 0, 0, type(uint256).max);
     }
 
     function test_createVault_durationTooLong() public {
         vm.prank(admin);
         vm.expectRevert(Errors.InvalidAmount.selector);
-        factory.createVault(borrower, 50_000e6, 1200, 731 days, 3, 1500, 0, 0);
+        factory.createVault(borrower, 50_000e6, 1200, 731 days, 3, 1500, 0, 0, 0, 0, type(uint256).max);
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -245,10 +249,21 @@ contract SecurityHardeningTest is Test {
 
     function test_claimRefund_zeroBalance_reverts() public {
         // Create a vault in Fundraising state and cancel it
-        MerchantVault vault2 = new MerchantVault(
-            address(usdc), borrower, admin, address(this),
-            50_000e6, 1200, 180 days, 3, 200, feeRecipient
-        );
+        MerchantVault vault2 = new MerchantVault(MerchantVault.VaultParams({
+            usdc: address(usdc),
+            agent: borrower,
+            admin: admin,
+            factory: address(this),
+            targetAmount: 50_000e6,
+            interestRateBps: 1200,
+            durationSeconds: 180 days,
+            numTranches: 3,
+            platformFeeBps: 200,
+            platformFeeRecipient: feeRecipient,
+            lateFeeBps: 0,
+            gracePeriodSeconds: 0,
+            fundraisingDeadline: type(uint256).max
+        }));
 
         // Invest something so vault has state
         usdc.mint(address(this), 10_000e6);
@@ -367,10 +382,21 @@ contract SecurityHardeningTest is Test {
     // ════════════════════════════════════════════════════════════════
 
     function _createFundedVault(uint256 target, uint256 tranches) internal returns (MerchantVault) {
-        MerchantVault vault = new MerchantVault(
-            address(usdc), borrower, admin, address(this),
-            target, 1200, 180 days, tranches, 200, feeRecipient
-        );
+        MerchantVault vault = new MerchantVault(MerchantVault.VaultParams({
+            usdc: address(usdc),
+            agent: borrower,
+            admin: admin,
+            factory: address(this),
+            targetAmount: target,
+            interestRateBps: 1200,
+            durationSeconds: 180 days,
+            numTranches: tranches,
+            platformFeeBps: 200,
+            platformFeeRecipient: feeRecipient,
+            lateFeeBps: 0,
+            gracePeriodSeconds: 0,
+            fundraisingDeadline: type(uint256).max
+        }));
         usdc.mint(address(this), target);
         usdc.approve(address(vault), target);
         vault.investSenior(target);
@@ -378,10 +404,21 @@ contract SecurityHardeningTest is Test {
     }
 
     function _createVaultForPoolTest() internal returns (MerchantVault) {
-        MerchantVault vault = new MerchantVault(
-            address(usdc), borrower, admin, address(this),
-            50_000e6, 1200, 180 days, 3, 200, feeRecipient
-        );
+        MerchantVault vault = new MerchantVault(MerchantVault.VaultParams({
+            usdc: address(usdc),
+            agent: borrower,
+            admin: admin,
+            factory: address(this),
+            targetAmount: 50_000e6,
+            interestRateBps: 1200,
+            durationSeconds: 180 days,
+            numTranches: 3,
+            platformFeeBps: 200,
+            platformFeeRecipient: feeRecipient,
+            lateFeeBps: 0,
+            gracePeriodSeconds: 0,
+            fundraisingDeadline: type(uint256).max
+        }));
         return vault;
     }
 

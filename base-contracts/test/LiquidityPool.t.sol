@@ -21,10 +21,21 @@ contract LiquidityPoolTest is Test {
         pool = new LiquidityPool(address(usdc), admin, false, 50_000e6);
 
         // Create a vault for allocation tests
-        vault = new MerchantVault(
-            address(usdc), makeAddr("agent"), admin, address(this),
-            50_000e6, 1200, 365 days, 4, 200, feeRecipient
-        );
+        vault = new MerchantVault(MerchantVault.VaultParams({
+            usdc: address(usdc),
+            agent: makeAddr("agent"),
+            admin: admin,
+            factory: address(this),
+            targetAmount: 50_000e6,
+            interestRateBps: 1200,
+            durationSeconds: 365 days,
+            numTranches: 4,
+            platformFeeBps: 200,
+            platformFeeRecipient: feeRecipient,
+            lateFeeBps: 0,
+            gracePeriodSeconds: 0,
+            fundraisingDeadline: type(uint256).max
+        }));
 
         usdc.mint(lp1, 100_000e6);
     }

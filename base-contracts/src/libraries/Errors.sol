@@ -53,6 +53,24 @@ library Errors {
     error AgentNotRegistered();
     error AgentNotActive();
 
+    // ── Credit Scoring ──
+    error CreditScoreOutOfRange();
+    error CreditScoreExpired();
+    error CreditTierTooLow();
+
+    // ── Milestones ──
+    error MilestoneNotApproved();
+    error MilestoneAlreadyVoted();
+    error MilestoneNotPending();
+    error InvalidMilestoneId();
+    error MilestoneAlreadyFinalized();
+
+    // ── Keeper / Lifecycle ──
+    error FundraisingNotExpired();
+    error FundraisingThresholdNotMet();
+    error DefaultConditionsNotMet();
+    error FundraisingAboveThreshold();
+
     // ── Access Control ──
     error Unauthorized();
     error OnlyFactory();

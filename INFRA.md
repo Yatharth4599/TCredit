@@ -51,11 +51,15 @@ These are features in the Solana program that Base contracts don't have yet:
 - Behavior: Milestones have status (Pending/Submitted/Approved/Rejected), evidence_hash, required_approvals. VerifierVotes are per-verifier-per-milestone. releaseTranche requires milestone approved.
 - Port to: New `MilestoneRegistry.sol` + update `MerchantVault.releaseTranche()` to check milestone status
 
-**3. Late Fee System**
+**3. Late Fee System (x402-Aware)**
 - Source: `solana-programs/.../state/vault.rs` (`calculate_late_fee()`, `should_default()`)
-- What: If merchant misses repayment due date, late fees accrue daily. Fee = remaining_balance × late_fee_bps × days_late / 10000. Grace period before default.
-- Behavior: `nextPaymentDue` tracks 30-day intervals. Late fees added to `totalToRepay`. `shouldDefault()` = past grace period.
-- Port to: `MerchantVault.sol` (add fields + modify `processRepayment()` / `executePayment()` path)
+- What: If merchant falls behind expected repayment schedule, late fees accrue daily. Fee = remaining_balance × late_fee_bps × days_late / 10000. Grace period before default.
+- **x402 adaptation**: Solana assumed discrete manual payments. Base uses continuous x402 auto-split from merchant revenue. "Missing a payment" = cumulative repayment hasn't reached the expected minimum for the current period. `minimumRepaymentPerPeriod = totalToRepay / numberOfPeriods`. If `totalRepaid < expectedRepaidByNow` when a period ends, late fees accrue on the shortfall.
+- Behavior: `nextPaymentDue` tracks 30-day intervals. When a period deadline passes and repayment is behind schedule, late fees are calculated and added to `totalToRepay` inside `processRepayment()`. No changes to `PaymentRouter` — it already calls `processRepayment()`.
+- Port to: `MerchantVault.sol` (add fields + modify `processRepayment()`)
+
+**x402 Integration Note — Settlement Deactivation on Default:**
+When `markDefault()` is called on a vault, the keeper service must also call `PaymentRouter.deactivateSettlement(agent)` so future x402 payments go directly to the merchant instead of routing into a defaulted vault.
 
 **4. Automated Keeper Functions**
 - Source: `solana-programs/.../keeper_ops.rs`
@@ -263,7 +267,7 @@ require(milestoneRegistry.isMilestoneApproved(address(this), trancheIndex + 1), 
 - `test_rejectedMilestone_canResubmit` (if needed)
 - `test_milestoneEvents_emitted`
 
-### 3C. Late Fee Logic (MerchantVault.sol)
+### 3C. Late Fee Logic — x402-Aware (MerchantVault.sol)
 
 **New storage:**
 ```solidity
@@ -272,21 +276,32 @@ uint16 public lateFeeBps;
 uint256 public totalLateFees;
 uint8 public gracePeriodDays;
 uint256 public constant REPAYMENT_INTERVAL = 30 days;
+uint256 public expectedRepaymentPerPeriod; // totalToRepay / numberOfPeriods
 ```
+
+**x402 design notes:**
+- With x402 auto-split, repayments trickle in continuously (every merchant sale)
+- `nextPaymentDue` marks the end of each 30-day repayment window
+- At each window boundary: if `totalRepaid < expectedCumulativeByNow`, the shortfall accrues late fees
+- Late fees are checked/applied lazily inside `processRepayment()` — no PaymentRouter changes needed
+- `expectedRepaymentPerPeriod` = `totalToRepay * REPAYMENT_INTERVAL / durationSeconds`
 
 **New/modified functions:**
 ```solidity
 function calculateLateFee() public view returns (uint256);
 function shouldDefault() public view returns (bool);
-// Modified: processRepayment() applies late fee, advances nextPaymentDue
+// Modified: processRepayment() checks if past due, applies late fee to totalToRepay, advances nextPaymentDue
 // Modified: VaultFactory.createVault() accepts lateFeeBps + gracePeriodDays params
 ```
 
-**Late fee formula (from Solana):**
+**Late fee formula (x402-adapted):**
 ```
-days_late = (block.timestamp - nextPaymentDue) / 1 days
-remaining = totalToRepay - totalRepaid
-fee = remaining * lateFeeBps * days_late / 10000
+if (block.timestamp > nextPaymentDue && totalRepaid < expectedCumulativeByNow):
+    days_late = (block.timestamp - nextPaymentDue) / 1 days
+    shortfall = expectedCumulativeByNow - totalRepaid
+    fee = shortfall * lateFeeBps * days_late / 10000
+    totalToRepay += fee
+    totalLateFees += fee
 ```
 
 **New tests (~8):**
@@ -320,6 +335,8 @@ state = VaultState.Cancelled;
 require(state == VaultState.Repaying);
 require(shouldDefault());
 state = VaultState.Defaulted;
+// NOTE: Keeper service must also call PaymentRouter.deactivateSettlement(agent) off-chain
+// so future x402 payments go directly to merchant, not into a defaulted vault
 ```
 
 **completeFundraisingManual():**

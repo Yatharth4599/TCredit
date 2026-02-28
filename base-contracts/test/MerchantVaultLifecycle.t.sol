@@ -32,10 +32,21 @@ contract MerchantVaultLifecycleTest is Test {
 
     // Creates a vault with address(this) as the router so tests can call processRepayment
     function _makeVault(uint256 target, uint256 tranches) internal returns (MerchantVault) {
-        MerchantVault vault = new MerchantVault(
-            address(usdc), agent, admin, factory,
-            target, 1200, 365 days, tranches, PLATFORM_FEE, feeRecipient
-        );
+        MerchantVault vault = new MerchantVault(MerchantVault.VaultParams({
+            usdc: address(usdc),
+            agent: agent,
+            admin: admin,
+            factory: factory,
+            targetAmount: target,
+            interestRateBps: 1200,
+            durationSeconds: 365 days,
+            numTranches: tranches,
+            platformFeeBps: PLATFORM_FEE,
+            platformFeeRecipient: feeRecipient,
+            lateFeeBps: 0,
+            gracePeriodSeconds: 0,
+            fundraisingDeadline: type(uint256).max
+        }));
         vm.prank(admin);
         vault.setPaymentRouter(address(this));
         return vault;
@@ -111,7 +122,7 @@ contract MerchantVaultLifecycleTest is Test {
         _fundSenior(vault, 10_000e6);
 
         vm.prank(agent);
-        vm.expectRevert(Errors.Unauthorized.selector);
+        vm.expectRevert(Errors.DefaultConditionsNotMet.selector);
         vault.markDefault();
     }
 

@@ -8,44 +8,60 @@
 
 ## Phase 0: Port Solana Features to Base Contracts
 
-### 0A. Credit Scoring System
-- [ ] Add `CreditProfile` struct + mapping to `AgentRegistry.sol`
-- [ ] `updateCreditScore(address, uint16)` — admin-only, auto-derives tier (A≥750, B≥600, C≥450, D<450)
-- [ ] `getCreditTier()`, `isCreditValid()` view functions
-- [ ] 90-day score expiry constant (`CREDIT_SCORE_MAX_AGE`)
-- [ ] Gate `VaultFactory.createVault()` by credit tier (block D, require fresh score)
-- [ ] `CreditScoreUpdated` event
+### 0A. Credit Scoring System ✅
+- [x] Add `CreditProfile` struct + mapping to `AgentRegistry.sol`
+- [x] `updateCreditScore(address, uint16)` — admin-only, auto-derives tier (A≥750, B≥600, C≥450, D<450)
+- [x] `getCreditTier()`, `isCreditValid()` view functions
+- [x] 90-day score expiry constant (`CREDIT_SCORE_MAX_AGE`)
+- [x] Gate `VaultFactory.createVault()` by credit tier (block D, require fresh score)
+- [x] `CreditScoreUpdated` event
 - [ ] **10 new tests** (tier derivation, blocked merchant, expired score, boundaries)
 
-### 0B. Milestone System
-- [ ] New `MilestoneRegistry.sol` contract (~200 lines)
-- [ ] `Milestone` struct: vault, milestoneId, evidenceHash, status, approvalCount, requiredApprovals
-- [ ] `VerifierVote` mapping: per-verifier-per-milestone
-- [ ] `initializeMilestone()`, `submitMilestone()`, `voteMilestone()`
-- [ ] Auto-approve when `approvalCount >= requiredApprovals`
-- [ ] Update `MerchantVault.releaseTranche()` to require `milestoneRegistry.isMilestoneApproved()`
-- [ ] Update `Deploy.s.sol` to deploy MilestoneRegistry + wire to MerchantVault
-- [ ] Milestone events: `MilestoneSubmitted`, `MilestoneApproved`, `MilestoneRejected`, `MilestoneVoted`
+### 0B. Milestone System ✅
+- [x] New `MilestoneRegistry.sol` contract + `IMilestoneRegistry.sol` interface
+- [x] `Milestone` struct: vault, trancheIndex, evidenceHash, status, approvalCount, requiredApprovals
+- [x] `hasVoted` mapping: per-verifier-per-milestone
+- [x] `initializeMilestone()`, `submitMilestone()`, `voteMilestone()`
+- [x] Auto-approve when `approvalCount >= requiredApprovals`
+- [x] Update `MerchantVault.releaseTranche()` to require `milestoneRegistry.isMilestoneApproved()`
+- [x] Update `Deploy.s.sol` to deploy MilestoneRegistry
+- [x] Milestone events: `MilestoneInitialized`, `MilestoneSubmitted`, `MilestoneApproved`, `MilestoneRejected`, `MilestoneVoted`
 - [ ] **15 new tests** (full lifecycle, rejection, double-vote, tranche gate)
 
-### 0C. Late Fee System
-- [ ] Add to `MerchantVault.sol`: `nextPaymentDue`, `lateFeeBps`, `totalLateFees`, `gracePeriodDays`
-- [ ] `REPAYMENT_INTERVAL` constant (30 days)
-- [ ] `calculateLateFee()` view: remaining × lateFeeBps × daysLate / 10000
-- [ ] `shouldDefault()` view: past nextPaymentDue + gracePeriod
-- [ ] Apply late fee in `processRepayment()` — add to `totalToRepay`
-- [ ] Advance `nextPaymentDue` after each repayment
-- [ ] Apply late fee in `PaymentRouter.executePayment()` path too
-- [ ] Add `lateFeeBps`, `gracePeriodDays` params to `VaultFactory.createVault()`
+### 0C. Late Fee System ✅ (x402-Aware)
+- [x] Add to `MerchantVault.sol`: `nextPaymentDue`, `lateFeeBps`, `totalLateFees`, `gracePeriodSeconds`
+- [x] `REPAYMENT_INTERVAL` constant (30 days)
+- [x] `calculateLateFee()` view: shortfall × lateFeeBps × daysLate / 10000 (x402: based on cumulative shortfall, not missed discrete payments)
+- [x] `shouldDefault()` view: past nextPaymentDue + gracePeriod
+- [x] `expectedRepaymentPerPeriod`: set on activation = totalToRepay / numberOfPeriods
+- [x] Apply late fee in `processRepayment()` — check if behind schedule, add to `totalToRepay`
+- [x] Advance `nextPaymentDue` after each period boundary
+- [x] `VaultParams` struct constructor accepts lateFeeBps + gracePeriodSeconds + fundraisingDeadline
 - [ ] **8 new tests** (on-time, late, multi-period, grace period, default trigger)
 
-### 0D. Keeper Functions + completeFundraisingManual
-- [ ] `autoCancelExpired()` on MerchantVault — permissionless, checks deadline + <80%
-- [ ] `markDefault()` on MerchantVault — permissionless, checks `shouldDefault()`
-- [ ] `completeFundraisingManual()` — admin activates vault at 80%+ raised
+### 0D. Keeper Functions + completeFundraisingManual ✅
+- [x] `autoCancelExpired()` on MerchantVault — permissionless, checks deadline + <80%
+- [x] `markDefault()` on MerchantVault — permissionless when `shouldDefault()` true, admin can always force
+- [x] `completeFundraisingManual()` — admin activates vault at 80%+ raised
+- [x] **x402 integration note**: keeper service calls `PaymentRouter.deactivateSettlement(agent)` after `markDefault()`
 - [ ] **7 new tests** (expired cancel, default, manual completion, edge cases)
 
-**Total: ~40 new tests → ~160 grand total**
+### 0E. Infrastructure Changes ✅
+- [x] `MerchantVault` constructor refactored to `VaultParams` struct (stack-too-deep fix)
+- [x] `via_ir = true` in `foundry.toml`
+- [x] `Errors.sol` — 9 new errors (credit, milestone, keeper)
+- [x] `IAgentRegistry.sol` — CreditProfile, CreditTier enum, new functions
+- [x] `IMerchantVault.sol` — new events + functions (autoCancelExpired, completeFundraisingManual, calculateLateFee, shouldDefault, setMilestoneRegistry, LateFeeApplied)
+- [x] All 8 existing test files updated to match new constructor
+- [x] **120/120 existing tests passing**
+
+### Remaining: ~40 New Tests (not yet written)
+- [ ] CreditScoring.t.sol (~10 tests)
+- [ ] MilestoneRegistry.t.sol (~15 tests)
+- [ ] LateFees.t.sol (~8 tests)
+- [ ] KeeperFunctions.t.sol (~7 tests)
+
+**Status: All contract code done, compiling, 120/120 old tests pass. New tests pending. Not yet committed.**
 
 ---
 

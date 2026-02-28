@@ -33,10 +33,21 @@ contract LiquidityPoolLifecycleTest is Test {
 
     // Creates a vault with address(this) as router so tests can call processRepayment
     function _makeVault(uint256 target) internal returns (MerchantVault) {
-        MerchantVault vault = new MerchantVault(
-            address(usdc), agent, admin, address(this),
-            target, 1200, 365 days, 2, 200, feeRecipient
-        );
+        MerchantVault vault = new MerchantVault(MerchantVault.VaultParams({
+            usdc: address(usdc),
+            agent: agent,
+            admin: admin,
+            factory: address(this),
+            targetAmount: target,
+            interestRateBps: 1200,
+            durationSeconds: 365 days,
+            numTranches: 2,
+            platformFeeBps: 200,
+            platformFeeRecipient: feeRecipient,
+            lateFeeBps: 0,
+            gracePeriodSeconds: 0,
+            fundraisingDeadline: type(uint256).max
+        }));
         vm.prank(admin);
         vault.setPaymentRouter(address(this));
         return vault;

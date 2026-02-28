@@ -31,10 +31,21 @@ contract PaymentRouterTest is Test {
         registry.setPaymentRouter(address(router));
 
         // Create vault for borrower
-        vault = new MerchantVault(
-            address(usdc), borrower, admin, address(this),
-            50_000e6, 1200, 365 days, 4, 200, feeRecipient
-        );
+        vault = new MerchantVault(MerchantVault.VaultParams({
+            usdc: address(usdc),
+            agent: borrower,
+            admin: admin,
+            factory: address(this),
+            targetAmount: 50_000e6,
+            interestRateBps: 1200,
+            durationSeconds: 365 days,
+            numTranches: 4,
+            platformFeeBps: 200,
+            platformFeeRecipient: feeRecipient,
+            lateFeeBps: 0,
+            gracePeriodSeconds: 0,
+            fundraisingDeadline: type(uint256).max
+        }));
         vm.prank(admin);
         vault.setPaymentRouter(address(router));
 
