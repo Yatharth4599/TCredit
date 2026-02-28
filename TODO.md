@@ -1,155 +1,227 @@
-# TigerPayX — Production Readiness TODO
+# TigerPayX — MVP TODO
 
-This document tracks items remaining before TigerPayX Solana programs are ready for Mainnet deployment.
-
-Last updated: 2026-02-24
-
----
-
-## Completed ✅
-
-### Security Hardening (On-Chain)
-
-- [x] **Reentrancy Protection:** All CPI instructions (`release_tranche`, `route_repayment`, `make_repayment`) reordered to checks-effects-interactions pattern — state updates happen BEFORE external CPI calls.
-- [x] **Ed25519 Oracle Signature Verification:** `security/signature.rs` implements real Ed25519 verification via Solana instruction introspection (Ed25519SigVerify program). Replaces the previous placeholder.
-- [x] **Signature Wired into route_repayment:** `route_repayment.rs` calls `verify_oracle_signature()` and `validate_message_params()` when an `X402PaymentProof` is provided. `RouteRepayment` accounts struct includes `instructions_sysvar` for introspection.
-- [x] **Nonce-Based Replay Protection:** `SettlementAccount` tracks last 8 payment IDs, enforces monotonically increasing nonces, and checks replay via `check_replay()`.
-- [x] **Rate Limiting:** `SettlementAccount` enforces `min_payment_interval_secs` between payments via `check_rate_limit()`. Configurable per settlement.
-- [x] **Security Module Imported:** `pub mod security;` added to `lib.rs` so `security/reentrancy.rs` and `security/signature.rs` compile and are available.
-
-### Sequential Waterfall
-
-- [x] **Senior Tranche Logic:** `MerchantVault::distribute_waterfall()` implemented in `vault.rs`. Distributes each repayment: Senior (Jupiter/Treasury) first → Liquidity Pools second → Retail investors last. Updates `total_senior_repaid` and `total_pool_repaid`.
-- [x] **Dynamic Split Ratios:** Both `route_repayment.rs` (x402 path) and `repayment.rs` (manual path) call `distribute_waterfall()` on every payment. Split is dynamic based on what each tranche is still owed.
-
-### Arithmetic Safety
-
-- [x] **invest.rs:** Replaced 3x `.unwrap()` on `checked_mul`/`checked_div` with `.ok_or(TigerPayError::ArithmeticOverflow)?`.
-- [x] **investor.rs:** Replaced `checked_mul().unwrap_or(0)` chain with `saturating_mul()` in `calculate_claimable()`.
-- [x] **vault.rs:** Replaced raw `/ 10000` division in `calculate_late_fee()` with `checked_div(10000).unwrap_or(0)`.
-
-### Event Emission
-
-- [x] **Duplicate Events Fixed:** Removed 7 duplicate event structs from `events.rs`. Updated originals (`VaultDefaulted`, `FundsRecovered`, `VaultCancelled`, `VaultPaused`, `VaultUnpaused`) to match actual emit field signatures.
-- [x] **TrancheReleased:** Event emitted in `tranche.rs::release_tranche()`.
-- [x] **RepaymentReceived:** Event emitted in `repayment.rs::make_repayment()`.
-- [x] **WaterfallDistributed:** New event emitted on every repayment with full senior/pool/retail breakdown.
-- [x] **RepaymentRouted:** Already existed; confirmed emitting correctly.
-
-### Compilation Fixes
-
-- [x] **Settlement Signature Mismatch:** Fixed `lib.rs::create_settlement` to pass all 4 arguments (added optional `min_payment_interval_secs` and `max_single_payment`).
-- [x] **TODO Comments Removed:** Placeholder/TODO comments in `signature.rs` removed per rules.md anti-vibecoding policy.
+**Chain:** Base (EVM) — Solana features ported to Solidity
+**Target:** Lending protocol MVP with x402 automated repayment
+**Last updated:** 2026-02-28
 
 ---
 
-## Remaining — On-Chain 🔧
+## Phase 0: Port Solana Features to Base Contracts
 
-### 1. Tooling & Build (MEDIUM)
+### 0A. Credit Scoring System
+- [ ] Add `CreditProfile` struct + mapping to `AgentRegistry.sol`
+- [ ] `updateCreditScore(address, uint16)` — admin-only, auto-derives tier (A≥750, B≥600, C≥450, D<450)
+- [ ] `getCreditTier()`, `isCreditValid()` view functions
+- [ ] 90-day score expiry constant (`CREDIT_SCORE_MAX_AGE`)
+- [ ] Gate `VaultFactory.createVault()` by credit tier (block D, require fresh score)
+- [ ] `CreditScoreUpdated` event
+- [ ] **10 new tests** (tier derivation, blocked merchant, expired score, boundaries)
 
-- [ ] **Fix Local Compilation:** `constant_time_eq` v0.4.2 requires Rust 2024 edition, incompatible with Rust 1.82 / Cargo 1.82. Options: (a) pin `constant_time_eq = "=0.3.1"` via `[patch]` in workspace `Cargo.toml`, (b) upgrade Rust toolchain to 1.85+, or (c) upgrade Anchor to 0.32+ which may resolve transitive dep.
-- [ ] **Anchor Version Mismatch:** `Cargo.toml` uses `anchor-lang = "0.29.0"` but `Anchor.toml` specifies `anchor_version = "0.32.1"`. Decide whether to upgrade on-chain deps to 0.32 (recommended — includes CPI safety, account validation improvements, IDL fixes).
-- [ ] **IDL Verification:** Ensure `anchor build` generates a correct IDL with all instructions after the security changes (new `instructions_sysvar` account, updated `X402PaymentProof` struct with `repayment_rate_bps` field).
-- [ ] **Program Size Optimization:** Monitor the .so size; with 35+ instructions + security module, we may approach the 10MB BPF limit.
+### 0B. Milestone System
+- [ ] New `MilestoneRegistry.sol` contract (~200 lines)
+- [ ] `Milestone` struct: vault, milestoneId, evidenceHash, status, approvalCount, requiredApprovals
+- [ ] `VerifierVote` mapping: per-verifier-per-milestone
+- [ ] `initializeMilestone()`, `submitMilestone()`, `voteMilestone()`
+- [ ] Auto-approve when `approvalCount >= requiredApprovals`
+- [ ] Update `MerchantVault.releaseTranche()` to require `milestoneRegistry.isMilestoneApproved()`
+- [ ] Update `Deploy.s.sol` to deploy MilestoneRegistry + wire to MerchantVault
+- [ ] Milestone events: `MilestoneSubmitted`, `MilestoneApproved`, `MilestoneRejected`, `MilestoneVoted`
+- [ ] **15 new tests** (full lifecycle, rejection, double-vote, tranche gate)
 
-### 2. Testing (HIGH)
+### 0C. Late Fee System
+- [ ] Add to `MerchantVault.sol`: `nextPaymentDue`, `lateFeeBps`, `totalLateFees`, `gracePeriodDays`
+- [ ] `REPAYMENT_INTERVAL` constant (30 days)
+- [ ] `calculateLateFee()` view: remaining × lateFeeBps × daysLate / 10000
+- [ ] `shouldDefault()` view: past nextPaymentDue + gracePeriod
+- [ ] Apply late fee in `processRepayment()` — add to `totalToRepay`
+- [ ] Advance `nextPaymentDue` after each repayment
+- [ ] Apply late fee in `PaymentRouter.executePayment()` path too
+- [ ] Add `lateFeeBps`, `gracePeriodDays` params to `VaultFactory.createVault()`
+- [ ] **8 new tests** (on-time, late, multi-period, grace period, default trigger)
 
-- [ ] **Waterfall Logic Test:** Verify `distribute_waterfall()` correctly splits Senior → Pools → Retail using the gym 500k canonical example (400k senior, 80k pool, 20k retail).
-- [ ] **Ed25519 Signature Test:** Test `route_repayment` with a valid Ed25519 signature from oracle, verify introspection matches.
-- [ ] **Replay Protection Test:** Submit same nonce twice, verify second call fails with `NonceAlreadyUsed`.
-- [ ] **Rate Limit Test:** Submit two payments within `min_payment_interval_secs`, verify second fails with `RateLimitExceeded`.
-- [ ] **Interest & Late Fee Test:** Verify math precision and rounding for late fee calculations with checked arithmetic.
-- [ ] **Fundraising End-to-End:** Test `create_vault` → `invest` → `auto_cancel_expired` (keeper flow).
-- [ ] **Default & Recovery:** Test `mark_default` and `recover_funds` with remaining token balances.
-- [ ] **Edge Cases:** Overflow testing on all `u64` arithmetic; concurrent investor claims; zero-amount edge cases.
+### 0D. Keeper Functions + completeFundraisingManual
+- [ ] `autoCancelExpired()` on MerchantVault — permissionless, checks deadline + <80%
+- [ ] `markDefault()` on MerchantVault — permissionless, checks `shouldDefault()`
+- [ ] `completeFundraisingManual()` — admin activates vault at 80%+ raised
+- [ ] **7 new tests** (expired cancel, default, manual completion, edge cases)
 
-### 3. Security Audit (MEDIUM)
-
-- [ ] **UncheckedAccount Audit:** Review all `/// CHECK:` justifications in `lib.rs`. Currently 6 unchecked accounts — each has technical justification, but should be re-validated.
-- [ ] **PDA Seed Collision:** Verify no seeds can overlap (especially `b"liquidity_pool"` vs `b"vault"` vs `b"settlement"` seeds).
-- [ ] **Upgradeability:** Define the program upgrade authority and migration path for mainnet.
-- [ ] **Role-Based Access Control:** Currently basic authority checks. Consider formal Admin/Oracle/Keeper/Merchant role system for production.
-- [ ] **Platform-Level Emergency Pause:** `PlatformConfig.paused` exists but only checked in `invest`. Should gate all critical operations.
-
----
-
-## Remaining — Off-Chain (x402 Infrastructure) 🌐
-
-The on-chain x402 infrastructure is complete. The following off-chain services are required to connect real payment events to the on-chain settlement system.
-
-### 4. Settlement Oracle Service (HIGH)
-
-The oracle is the bridge between real-world x402 payment events and on-chain `route_repayment` execution.
-
-- [ ] **Event Listener:** Service that monitors x402 payment endpoints for incoming customer payments. Receives webhooks or polls payment provider APIs.
-- [ ] **Message Signing:** When a payment is detected, constructs an `X402PaymentMessage` (nonce, vault, amount, payment_source, timestamp, repayment_rate_bps) and signs it with the oracle's Ed25519 keypair.
-- [ ] **Transaction Builder:** Builds a Solana transaction containing: (1) an Ed25519SigVerify instruction with the signed message, and (2) the `route_repayment` instruction with the `X402PaymentProof`.
-- [ ] **Transaction Submission:** Submits the transaction to Solana with retry/confirmation logic.
-- [ ] **Nonce Management:** Maintains a monotonically increasing nonce per vault to satisfy `settlement.nonce` checks. Must be durable across restarts.
-- [ ] **Oracle Key Security:** Ed25519 signing key must be stored in a secure enclave or HSM. Key rotation mechanism needed.
-- [ ] **Failure Handling:** If tx fails (rate limit, insufficient funds), queue for retry with backoff. Alert on repeated failures.
-
-**Tech stack suggestion:** Node.js/TypeScript service in `backend/src/services/oracle/`, using `@solana/web3.js` for tx building and `tweetnacl` for Ed25519 signing.
-
-### 5. Crank / Keeper Service (MEDIUM)
-
-Permissionless automation for vault lifecycle operations.
-
-- [ ] **Vault Expiry Monitor:** Poll active vaults past `fundraising_deadline` with `total_raised < 80%` of target. Call `auto_cancel_expired` for each.
-- [ ] **Default Detection:** Poll repaying vaults past `next_payment_due + grace_period`. Call `mark_default` when conditions met.
-- [ ] **Late Fee Tracking:** Monitor vaults approaching payment deadlines. Emit alerts/events for the frontend.
-- [ ] **Pool Allocation Returns:** After a vault repays, trigger `return_pool_allocation` to credit liquidity pools.
-- [ ] **Scheduling:** Run on interval (every 5-15 minutes). Must be idempotent — calling instructions that have already been processed should fail gracefully.
-
-**Tech stack suggestion:** Node.js/TypeScript service in `backend/src/jobs/keeper/`, or a Clockwork/cron-based trigger.
-
-### 6. Event Indexer (MEDIUM)
-
-Parses on-chain events into a queryable database for frontend/analytics.
-
-- [ ] **Event Parser:** Subscribe to program logs and decode events: `RepaymentRouted`, `WaterfallDistributed`, `VaultCreated`, `TrancheReleased`, `VaultDefaulted`, etc.
-- [ ] **Database Schema:** Store parsed events with vault ID, timestamp, amounts, waterfall breakdown.
-- [ ] **REST API:** Expose endpoints for frontend:
-  - `GET /vaults/:id/repayments` — repayment history with waterfall splits
-  - `GET /vaults/:id/waterfall` — current senior/pool/retail repayment totals
-  - `GET /settlements/:vault/status` — settlement health (last payment, nonce, rate limit state)
-- [ ] **WebSocket Feed:** Real-time event stream for live dashboard updates.
-- [ ] **Backfill:** Ability to replay historical transactions to rebuild state from genesis.
-
-**Tech stack suggestion:** Node.js service in `backend/src/services/indexer/` using Solana `onLogs` subscription, PostgreSQL for storage.
+**Total: ~40 new tests → ~160 grand total**
 
 ---
 
-## Remaining — Integration & Frontend 🖥️
+## Phase 1: Testnet Deployment (Base Sepolia)
 
-### 7. Client SDK (LOW)
-
-- [ ] **TypeScript IDL Bindings:** Generate updated TypeScript types from Anchor IDL after build (includes new `instructions_sysvar`, `X402PaymentProof.repayment_rate_bps`, `WaterfallDistributed` event).
-- [ ] **SDK Helper Functions:** Wrap common flows: `createVaultAndSettle()`, `investWithDebtToken()`, `buildRouteRepaymentTx()` (constructs Ed25519 + route_repayment in one tx).
-
-### 8. Frontend Ops Dashboard (LOW)
-
-- [ ] **Admin Panel:** `pause_vault`, `unpause_vault`, `update_credit_score`, `recover_funds`, `mark_default` controls.
-- [ ] **Waterfall Visualization:** Live chart showing Senior/Pool/Retail repayment progress per vault.
-- [ ] **Settlement Monitor:** Show oracle health, last payment timestamp, nonce state, rate limit countdown.
-- [ ] **Investor Portfolio:** Yield accruing from waterfall distribution (uses `WaterfallDistributed` events).
+- [ ] Set up `.env` with real values (deployer key, oracle address, USDC, RPC)
+- [ ] Run `forge script script/Deploy.s.sol --broadcast --verify`
+- [ ] Verify ALL contracts on BaseScan
+- [ ] Post-deploy wiring: `setFactory()`, `setPaymentRouter()` on pools
+- [ ] Pre-fund deployer + oracle wallets with Sepolia ETH
+- [ ] Get Sepolia USDC (Circle faucet or deploy mock)
+- [ ] Call `initialize_platform` / register test merchant
+- [ ] Generate TypeScript ABIs from `out/` artifacts
+- [ ] Document deployed addresses in config
 
 ---
 
-## Current Security Posture
+## Phase 2: Backend Bootstrap
 
-| Area                | Status                           | Risk     |
-|---------------------|----------------------------------|----------|
-| Anchor Version      | 0.29.0 (outdated)                | Medium   |
-| Reentrancy Guards   | ✅ State-before-CPI enforced     | Resolved |
-| Overflow Protection | ✅ All checked/saturating         | Resolved |
-| Access Control      | Basic (authority checks)         | Medium   |
-| Oracle Security     | ✅ Ed25519 signature + nonce      | Resolved |
-| Rate Limiting       | ✅ Per-settlement interval        | Resolved |
-| Pause Mechanisms    | Partial (vault level only)       | Low      |
-| Event Emission      | ✅ Full coverage + waterfall      | Resolved |
-| Waterfall           | ✅ Sequential Senior→Pool→Retail  | Resolved |
+- [ ] Initialize Express + TypeScript project in `backend/`
+- [ ] Set up Prisma + PostgreSQL (schema: merchants, vaults, investments, events, pools, api_keys, oracle_payments)
+- [ ] Environment config (Base RPC, contract addresses, oracle key)
+- [ ] ethers.js/viem contract wrappers (read chain state, build unsigned txs)
+- [ ] Express middleware: error handling, request logging, CORS
+- [ ] API versioning: `/api/v1/` prefix
+- [ ] Health check: `GET /api/v1/health`
+- [ ] Docker compose for local PostgreSQL
 
 ---
 
-*Document version: 3.0 — Updated after security hardening and waterfall implementation (Feb 2026).*
+## Phase 3: Backend Core API
+
+### Merchant Endpoints
+- [ ] `POST /api/v1/merchants/register` — build register tx
+- [ ] `GET /api/v1/merchants/:address` — read from chain + DB
+- [ ] `GET /api/v1/merchants/:address/vaults` — list by merchant
+- [ ] `POST /api/v1/merchants/:address/credit-score` — build update tx (admin)
+
+### Vault Endpoints
+- [ ] `POST /api/v1/vaults/create` — build createVault tx
+- [ ] `GET /api/v1/vaults` — list with filters (state, merchant) + pagination
+- [ ] `GET /api/v1/vaults/:address` — full detail + computed fields
+- [ ] `GET /api/v1/vaults/:address/investors` — investor list
+- [ ] `GET /api/v1/vaults/:address/repayments` — from indexed events
+- [ ] `GET /api/v1/vaults/:address/waterfall` — senior/pool/community breakdown
+- [ ] `GET /api/v1/vaults/:address/tranches` — tranche status
+- [ ] `GET /api/v1/vaults/:address/milestones` — milestone status
+- [ ] `POST /api/v1/vaults/:address/milestone/submit` — build submit tx
+- [ ] `POST /api/v1/vaults/:address/milestone/vote` — build vote tx
+
+### Investment Endpoints
+- [ ] `POST /api/v1/invest` — build invest tx
+- [ ] `POST /api/v1/claim` — build claim returns tx
+- [ ] `POST /api/v1/refund` — build claim refund tx
+- [ ] `GET /api/v1/portfolio/:address` — all investments for wallet
+
+### Pool Endpoints
+- [ ] `GET /api/v1/pools` — list pools
+- [ ] `GET /api/v1/pools/:address` — pool detail
+- [ ] `POST /api/v1/pools/deposit` — build deposit tx
+- [ ] `POST /api/v1/pools/allocate` — build allocate tx (admin)
+- [ ] `POST /api/v1/pools/withdraw` — build withdraw tx
+
+### Platform Endpoints
+- [ ] `GET /api/v1/platform/stats` — TVL, active vaults, total repaid
+- [ ] `GET /api/v1/platform/config` — fee structure, limits
+
+---
+
+## Phase 4: Oracle Service
+
+- [ ] `POST /api/v1/oracle/payment` — webhook receiver
+- [ ] Validate payment: vault exists, settlement active, amount ≤ max
+- [ ] Check rate limit (block.timestamp ≥ lastPayment + minInterval)
+- [ ] Nonce management (monotonically increasing, stored in DB)
+- [ ] ECDSA signing: sign(keccak256(nonce, vault, amount, source, timestamp))
+- [ ] Build `PaymentRouter.executePayment()` transaction
+- [ ] Submit to Base with gas estimation + retry
+- [ ] Wait for confirmation (3 blocks)
+- [ ] Record in `OraclePayment` table (status, txHash, error)
+- [ ] Failure queue: exponential backoff (30s→60s→120s→240s, max 5 attempts)
+- [ ] `GET /api/v1/oracle/health` — status, queue depth, last payment per vault
+- [ ] Alert on 3+ consecutive failures
+
+---
+
+## Phase 5: Event Indexer
+
+- [ ] WebSocket subscription to all contract events (ethers.js/viem)
+- [ ] Event parser: decode each event type into structured data
+- [ ] Events: VaultCreated, InvestmentReceived, TrancheReleased, RepaymentProcessed, WaterfallDistributed, VaultDefaulted, VaultCompleted, PoolAllocated, CreditScoreUpdated, MilestoneSubmitted, MilestoneApproved
+- [ ] Store in PostgreSQL `VaultEvent` table (eventType, data JSON, blockNumber, txHash)
+- [ ] Update denormalized tables (Vault, Merchant, Investment amounts)
+- [ ] Backfill capability: replay from deployment block
+- [ ] Health check: last indexed block, lag detection
+
+---
+
+## Phase 6: Keeper / Crank Service
+
+- [ ] node-cron scheduler (every 5 minutes)
+- [ ] Scan fundraising vaults past deadline with <80% → `autoCancelExpired()`
+- [ ] Scan repaying vaults past grace period → `markDefault()`
+- [ ] Process pool allocation returns after repayment events
+- [ ] Late fee alert logging (vaults approaching due dates)
+- [ ] All calls idempotent (reverted txs handled gracefully)
+- [ ] Structured logging for all lifecycle transitions
+
+---
+
+## Phase 7: Frontend Integration
+
+- [ ] Remove `@solana/wallet-adapter-*` dependencies
+- [ ] Install wagmi + viem + Web3Modal (or RainbowKit)
+- [ ] Configure Base Sepolia chain (chainId: 84532)
+- [ ] Replace `lib/mockData.ts` → API calls to backend
+- [ ] Replace `lib/x402MockData.ts` → oracle health + live events
+- [ ] Wire Zustand store to real API responses
+- [ ] **Home page**: live platform stats
+- [ ] **Vaults page**: real vault list, invest flow with wallet signing
+- [ ] **VaultDetail**: waterfall chart (real), milestones, tranches, repayment history
+- [ ] **Portfolio page**: real investor data
+- [ ] **Merchant Dashboard**: real profile, vault creation form, credit score display
+- [ ] **Liquidity Pools**: real pool data, deposit/withdraw flows
+- [ ] **X402 Demo**: live payment feed from indexed events
+- [ ] Transaction UX: pending/confirmed/failed states, error messages
+
+---
+
+## Phase 8: API Documentation & SDK
+
+- [ ] OpenAPI/Swagger spec (auto-generated from Express routes)
+- [ ] API key registration system
+- [ ] Per-key rate limiting middleware
+- [ ] TypeScript SDK: `@tigerpay/sdk` wrapping REST endpoints
+- [ ] Developer docs: "Integrate TigerPayX lending into your protocol"
+- [ ] Webhook system: subscribe to vault events (created, funded, repaid, defaulted)
+- [ ] Multi-tenant: per-protocol vault visibility / scoping
+
+---
+
+## Completed ✅ (Base Contracts)
+
+- [x] **AgentRegistry** — Identity, stats, vault linking, deactivation (7 tests)
+- [x] **PaymentRouter** — x402 execution, ECDSA oracle, settlement auto-split, replay protection, rate limiting (17 tests)
+- [x] **MerchantVault** — Full lifecycle, waterfall, tranches, claims, refunds (23 tests)
+- [x] **VaultFactory** — CREATE2, platform config, bounds, agent validation (22 tests)
+- [x] **LiquidityPool** — Deposits, withdrawals, allocation, returns (15 tests)
+- [x] **WaterfallLib** — Senior→Pool→Community (7 fuzz tests, 100% coverage)
+- [x] **SignatureLib** — ECDSA verification (5 tests)
+- [x] **Security Hardening** — 2-step admin, reentrancy, pause, oracle mandatory, forceApprove (12 tests)
+- [x] **Deploy.s.sol** — Full deployment script with wiring
+- [x] **Interface Sync** — All 4 interfaces updated (IAgentRegistry, IPaymentRouter, IMerchantVault, ILiquidityPool)
+- **Total: 120/120 tests | 87% line coverage | 55% branch coverage**
+
+---
+
+## Security Posture
+
+| Area | Status | Risk |
+|---|---|---|
+| Reentrancy | ✅ nonReentrant on all externals | Resolved |
+| Oracle Verification | ✅ Always required, ECDSA via OZ | Resolved |
+| Replay Protection | ✅ Nonce per sender | Resolved |
+| Admin Transfer | ✅ 2-step on all 5 contracts | Resolved |
+| Pause Mechanism | ✅ Router, Pool, Factory, Vault | Resolved |
+| Arithmetic Safety | ✅ Solidity 0.8.24 built-in | Resolved |
+| ERC20 Safety | ✅ SafeERC20 + forceApprove | Resolved |
+| Access Control | ✅ onlyAdmin / onlyAuthorized | Resolved |
+| Waterfall | ✅ Fuzz tested, 100% coverage | Resolved |
+| CREATE2 | ✅ Salt = agent only | Resolved |
+| Credit Scoring | ⬜ To be added (Phase 0A) | Pending |
+| Milestones | ⬜ To be added (Phase 0B) | Pending |
+| Late Fees | ⬜ To be added (Phase 0C) | Pending |
+| Keeper Functions | ⬜ To be added (Phase 0D) | Pending |
+
+---
+
+*Version 4.0 — Rewritten for Base MVP with Solana feature ports (Feb 2026)*
