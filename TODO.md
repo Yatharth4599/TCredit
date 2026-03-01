@@ -2,7 +2,7 @@
 
 **Chain:** Base (EVM) — Solana features ported to Solidity
 **Target:** Lending protocol MVP with x402 automated repayment
-**Last updated:** 2026-02-28
+**Last updated:** 2026-03-01
 
 ---
 
@@ -15,7 +15,7 @@
 - [x] 90-day score expiry constant (`CREDIT_SCORE_MAX_AGE`)
 - [x] Gate `VaultFactory.createVault()` by credit tier (block D, require fresh score)
 - [x] `CreditScoreUpdated` event
-- [ ] **10 new tests** (tier derivation, blocked merchant, expired score, boundaries)
+- [x] **10 new tests** — `CreditScoring.t.sol` (tier derivation, blocked merchant, expired score, boundaries)
 
 ### 0B. Milestone System ✅
 - [x] New `MilestoneRegistry.sol` contract + `IMilestoneRegistry.sol` interface
@@ -26,7 +26,7 @@
 - [x] Update `MerchantVault.releaseTranche()` to require `milestoneRegistry.isMilestoneApproved()`
 - [x] Update `Deploy.s.sol` to deploy MilestoneRegistry
 - [x] Milestone events: `MilestoneInitialized`, `MilestoneSubmitted`, `MilestoneApproved`, `MilestoneRejected`, `MilestoneVoted`
-- [ ] **15 new tests** (full lifecycle, rejection, double-vote, tranche gate)
+- [x] **15 new tests** — `MilestoneRegistry.t.sol` (full lifecycle, rejection, double-vote, tranche gate)
 
 ### 0C. Late Fee System ✅ (x402-Aware)
 - [x] Add to `MerchantVault.sol`: `nextPaymentDue`, `lateFeeBps`, `totalLateFees`, `gracePeriodSeconds`
@@ -37,14 +37,14 @@
 - [x] Apply late fee in `processRepayment()` — check if behind schedule, add to `totalToRepay`
 - [x] Advance `nextPaymentDue` after each period boundary
 - [x] `VaultParams` struct constructor accepts lateFeeBps + gracePeriodSeconds + fundraisingDeadline
-- [ ] **8 new tests** (on-time, late, multi-period, grace period, default trigger)
+- [x] **8 new tests** — `LateFees.t.sol` (on-time, late, multi-period, grace period, default trigger)
 
 ### 0D. Keeper Functions + completeFundraisingManual ✅
 - [x] `autoCancelExpired()` on MerchantVault — permissionless, checks deadline + <80%
 - [x] `markDefault()` on MerchantVault — permissionless when `shouldDefault()` true, admin can always force
 - [x] `completeFundraisingManual()` — admin activates vault at 80%+ raised
 - [x] **x402 integration note**: keeper service calls `PaymentRouter.deactivateSettlement(agent)` after `markDefault()`
-- [ ] **7 new tests** (expired cancel, default, manual completion, edge cases)
+- [x] **7 new tests** — `KeeperFunctions.t.sol` (expired cancel, default, manual completion, edge cases)
 
 ### 0E. Infrastructure Changes ✅
 - [x] `MerchantVault` constructor refactored to `VaultParams` struct (stack-too-deep fix)
@@ -55,13 +55,7 @@
 - [x] All 8 existing test files updated to match new constructor
 - [x] **120/120 existing tests passing**
 
-### Remaining: ~40 New Tests (not yet written)
-- [ ] CreditScoring.t.sol (~10 tests)
-- [ ] MilestoneRegistry.t.sol (~15 tests)
-- [ ] LateFees.t.sol (~8 tests)
-- [ ] KeeperFunctions.t.sol (~7 tests)
-
-**Status: All contract code done, compiling, 120/120 old tests pass. New tests pending. Not yet committed.**
+**Status: Phase 0 COMPLETE — 160/160 tests passing, all committed and pushed to Yatharth4599/TCredit.**
 
 ---
 
@@ -215,7 +209,11 @@
 - [x] **Security Hardening** — 2-step admin, reentrancy, pause, oracle mandatory, forceApprove (12 tests)
 - [x] **Deploy.s.sol** — Full deployment script with wiring
 - [x] **Interface Sync** — All 4 interfaces updated (IAgentRegistry, IPaymentRouter, IMerchantVault, ILiquidityPool)
-- **Total: 120/120 tests | 87% line coverage | 55% branch coverage**
+- [x] **Credit Scoring** — AgentRegistry FairScale 0-1000, tiers A/B/C/D, 90-day expiry, vault gating (10 tests)
+- [x] **Milestone System** — MilestoneRegistry.sol, evidence + verifier voting, tranche gate (15 tests)
+- [x] **Late Fee System** — x402-aware, cumulative shortfall, daysLate capped at 30, shouldDefault (8 tests)
+- [x] **Keeper Functions** — autoCancelExpired, markDefault (permissionless + admin), completeFundraisingManual (7 tests)
+- **Total: 160/160 tests | Phase 0 complete | Pushed to Yatharth4599/TCredit**
 
 ---
 
@@ -233,10 +231,10 @@
 | Access Control | ✅ onlyAdmin / onlyAuthorized | Resolved |
 | Waterfall | ✅ Fuzz tested, 100% coverage | Resolved |
 | CREATE2 | ✅ Salt = agent only | Resolved |
-| Credit Scoring | ⬜ To be added (Phase 0A) | Pending |
-| Milestones | ⬜ To be added (Phase 0B) | Pending |
-| Late Fees | ⬜ To be added (Phase 0C) | Pending |
-| Keeper Functions | ⬜ To be added (Phase 0D) | Pending |
+| Credit Scoring | ✅ Implemented + 10 tests | Resolved |
+| Milestones | ✅ Implemented + 15 tests | Resolved |
+| Late Fees | ✅ Implemented + 8 tests (daysLate capped at 30) | Resolved |
+| Keeper Functions | ✅ Implemented + 7 tests | Resolved |
 
 ---
 
