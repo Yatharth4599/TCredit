@@ -1,35 +1,94 @@
-# TigerPayX — AI Agent Development Rules
+# TCredit — AI Agent Development Rules
+
+**Repo:** https://github.com/Yatharth4599/TCredit
+**Chain:** Base L2 (EVM) — Solidity 0.8.24, Foundry
+**Stack:** Solidity + Foundry | Vite + React + Zustand | Node.js + Express + Prisma
+
+---
 
 ## 0. Rule Zero: Git Protocol
-- **NEVER COMMIT OR PUSH TO GIT WITHOUT EXPLICIT USER CONSENT.** Even if a task is "complete," you must wait for the user to verify the changes and give the "go ahead" to commit.
+- **NEVER COMMIT OR PUSH TO GIT WITHOUT EXPLICIT USER CONSENT.** Even if a task is "complete," you must wait for the user to verify the changes and give the explicit go-ahead to commit or push.
+- **Default remote is `origin` → `https://github.com/Yatharth4599/TCredit.git`**
+- Backup remote is `backup` → `https://github.com/valtoosh/tpayx.git`
 
-These rules are mandatory for all AI agents working on the TigerPayX codebase. They ensure professional grade, audit-ready code and prevent "vibecoding" (lazy patterns/placeholders).
+---
 
-## 1. Project Architecture
-- **lib.rs (Thin Router):** `lib.rs` MUST only contain program ID, imports, instruction routing (thin wrappers), and `#[derive(Accounts)]` structs. No business logic allowed.
-- **Instruction Logic:** All logic lives in `src/instructions/`. Use the `_ops.rs` suffix for files that conflict with state names (e.g., `pool_ops.rs` vs `state/pool.rs`).
-- **State Definitions:** All structs live in `src/state/`.
-- **Error Handling:** All custom errors must be defined in `src/errors.rs`. Never reuse unrelated error codes.
-- **Event Emission:** Every significant state change must emit an event defined in `src/events.rs`.
+These rules are mandatory for all AI agents working on the TCredit codebase. They ensure professional-grade, audit-ready code and prevent "vibecoding" (lazy patterns, placeholders, shortcuts).
 
-## 2. Code Integrity (Anti-Vibecoding)
+---
+
+## 1. Smart Contract Architecture (Solidity / Foundry)
+
+- **Contract Structure:** Each contract has a clear single responsibility.
+  - `AgentRegistry.sol` — identity + credit scoring
+  - `PaymentRouter.sol` — x402 execution + oracle ECDSA
+  - `VaultFactory.sol` — CREATE2 vault deployment + config
+  - `MerchantVault.sol` — full loan lifecycle, waterfall, tranches
+  - `LiquidityPool.sol` — LP deposits, allocations, returns
+  - `MilestoneRegistry.sol` — evidence-based tranche gating
+- **Libraries:** `WaterfallLib.sol`, `SignatureLib.sol` — pure/view only, no storage.
+- **Errors:** All custom errors in `src/libraries/Errors.sol`. Never inline `require(false, "string")`.
+- **Events:** Every state change emits an event. No silent mutations.
+- **Interfaces:** All 4 interfaces in `src/interfaces/`. Keep in sync with contract implementations.
+- **Tests:** All tests in `test/`. Run `forge test` before any commit. 160 tests must pass.
+
+## 2. Solidity Code Standards
+
 - **No Placeholders:** `TODO`, `FIXME`, or `placeholder` comments are forbidden. Implement it or don't.
-- **No Magic Numbers:** All numbers (time intervals, fee bps, thresholds) must be pulled from the constants block in `lib.rs`.
-- **CHECK Justifications:** Every `/// CHECK:` comment must provide a technical explanation of *why* the account is unchecked and *how* safety is ensured by other constraints.
-- **Math Safety:** Always use `.checked_add()`, `.checked_mul()`, or `.saturating_` methods. Avoid `.unwrap()` on arithmetic.
+- **No Magic Numbers:** All constants must be named (`REPAYMENT_INTERVAL`, `CREDIT_SCORE_MAX_AGE`, etc.). Never use raw numbers for time, fees, or thresholds.
+- **Math Safety:** Solidity 0.8.24 has built-in overflow protection. Do NOT use unchecked blocks for financial arithmetic.
+- **ERC20 Safety:** Always use `SafeERC20` + `forceApprove`. Never call raw `.transfer()` or `.approve()`.
+- **Reentrancy:** Every function that moves funds must have `nonReentrant`.
+- **Access Control:** Use `onlyAdmin`, `onlyPaymentRouter`, `onlyAuthorized` modifiers. Never skip.
+- **Admin Transfers:** Always 2-step (proposeAdmin → acceptAdmin). Never single-step on any contract.
+- **Pause Mechanisms:** All critical contracts must respect `notPaused` / `paused` state.
+- **Compiler:** `solc 0.8.24`, `via_ir = true`, `optimizer_runs = 200`, `evm_version = "cancun"`.
 
 ## 3. Financial Logic Rules
-- **Structural Repayment (x402):** Repayment is enforced via x402 settlement routing. It is **Structural**, not **Behavioral**.
-- **The Sequential Waterfall:** Repayment payouts MUST follow this order:
-    1. **Senior Tranche (Jupiter/Treasury)**
-    2. **Liquidity Pools (Alpha/Co-owned)**
-    3. **Community Tranche (Retail Investors)**
-- **Waterfall Progress:** Always update `total_senior_repaid`, `total_pool_repaid`, and `total_user_repaid` in the vault state.
-- **Late Fees:** Calculated strictly using `SECONDS_PER_DAY` (86,400) and `REPAYMENT_INTERVAL_SECS` (30 days).
 
-## 4. Git & Tooling
-- **Gitignore:** Maintain a clean root `.gitignore`. Never stage `target/`, `.anchor/`, or `Cargo.lock` unless specifically asked.
-- **Naming:** Follow Rust naming conventions (snake_case for files/vars, PascalCase for Structs).
+- **Structural Repayment (x402):** Repayment is enforced via x402 settlement routing — it is **Structural**, not **Behavioral**. The `PaymentRouter` routes payment splits automatically.
+- **The Sequential Waterfall:** Repayment MUST follow this order:
+  1. **Senior Tranche** (first priority)
+  2. **Liquidity Pools** (second priority)
+  3. **Community Investors** (residual)
+- **Late Fees:** Calculated on cumulative shortfall, not discrete missed payments. `daysLate` capped at `REPAYMENT_INTERVAL / 1 days` (30) per period to prevent quadratic compounding.
+- **Waterfall Accounting:** Always update `totalSeniorRepaid`, `totalPoolRepaid`, `totalCommunityRepaid` in vault state.
+- **Platform Fees:** Deducted before waterfall distribution. Max 500 bps enforced in VaultFactory.
+- **Credit Gating:** Agents with tier D credit or expired scores are blocked from vault creation. Score expires after 90 days.
 
-## 5. Decision Log
-- Before implementing major logic changes, reference the `TODO.md` roadmap to ensure alignment with the production state.
+## 4. Testing Standards
+
+- **Forge:** All tests use Foundry (`forge test`). No Hardhat, no Ethers.js tests.
+- **Coverage:** Maintain ≥87% line coverage. Run `forge coverage` before PRs.
+- **Test files mirror source files:** `MerchantVault.t.sol` for `MerchantVault.sol`, etc.
+- **Fuzz tests:** Use `testFuzz_` prefix. Waterfall distribution is fuzz-tested.
+- **No skip:** Never comment out or `vm.skip()` failing tests. Fix them.
+- **Current count:** 160 tests, 0 failing — this is the baseline.
+
+## 5. Backend Standards (Node.js / Express / Prisma)
+
+- **API versioning:** All routes under `/api/v1/`.
+- **Transaction building:** Backend builds unsigned transactions. Users sign with their wallet.
+- **Oracle key:** Never log, never commit, never expose. Stored in env only.
+- **Prisma migrations:** Always generate a migration for schema changes. Never edit the DB directly.
+- **Error handling:** Structured errors with HTTP status codes. No raw stack traces to clients.
+
+## 6. Frontend Standards (React / Vite / Zustand)
+
+- **No Solana packages:** `@solana/*` packages are removed. Use `wagmi` + `viem` for EVM wallet.
+- **No mock data in production paths:** `lib/mockData.ts` is dev-only. All production pages hit the backend API.
+- **State:** Zustand store is the single source of truth. No prop drilling.
+- **Wallet:** wagmi `useSendTransaction` for all on-chain actions. Never embed private keys.
+
+## 7. Git & Tooling
+
+- **Gitignore:** Never stage `out/`, `cache/`, `.env`, `node_modules/`, `target/`.
+- **Naming:** Solidity files — PascalCase (`MerchantVault.sol`). Solidity vars/functions — camelCase. Test files — `ContractName.t.sol`.
+- **Commit format:** Conventional commits (`feat:`, `fix:`, `chore:`, `docs:`). Be descriptive.
+- **`.env` files:** Never committed. `base-contracts/.env` and `backend/.env` are gitignored.
+
+## 8. Decision Log
+
+- Before implementing major logic changes, reference `TODO.md` to ensure alignment with the production roadmap.
+- Before changing fee math, waterfall logic, or credit scoring — check `INFRA.md` for the canonical spec.
+- Document any deviation from spec in a comment with reasoning.
