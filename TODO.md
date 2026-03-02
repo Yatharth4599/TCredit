@@ -73,16 +73,16 @@
 
 ---
 
-## Phase 2: Backend Bootstrap
+## Phase 2: Backend Bootstrap ✅
 
-- [ ] Initialize Express + TypeScript project in `backend/`
-- [ ] Set up Prisma + PostgreSQL (schema: merchants, vaults, investments, events, pools, api_keys, oracle_payments)
-- [ ] Environment config (Base RPC, contract addresses, oracle key)
-- [ ] ethers.js/viem contract wrappers (read chain state, build unsigned txs)
-- [ ] Express middleware: error handling, request logging, CORS
-- [ ] API versioning: `/api/v1/` prefix
-- [ ] Health check: `GET /api/v1/health`
-- [ ] Docker compose for local PostgreSQL
+- [x] Initialize Express + TypeScript project in `backend/`
+- [x] Set up Prisma 6 + PostgreSQL (8 models: Merchant, Vault, Investment, VaultEvent, MilestoneRecord, Pool, ApiKey, OraclePayment)
+- [x] Environment config (zod-validated: Base RPC, 7 contract addresses, oracle key)
+- [x] viem contract wrappers — 6 files: agentRegistry, paymentRouter, vaultFactory, merchantVault, liquidityPool, milestoneRegistry
+- [x] Express middleware: error handling (AppError), morgan request logging, CORS (localhost:5173)
+- [x] API versioning: `/api/v1/` prefix + `/api` backward-compat for frontend
+- [x] Health check: `GET /api/v1/health` — verifies DB + chain (Base Sepolia chainId 84532)
+- [x] Docker compose for local PostgreSQL 16
 
 ---
 

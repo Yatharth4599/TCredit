@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tcredit-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: tcredit
+      POSTGRES_PASSWORD: tcredit
+      POSTGRES_DB: tcredit
+    volumes:
+      - tcredit-pg-data:/var/lib/postgresql/data
+
+volumes:
+  tcredit-pg-data:

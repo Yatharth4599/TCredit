@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Merchant {
+  address      String   @id
+  name         String?
+  creditScore  Int      @default(0)
+  creditTier   Int      @default(0)
+  scoreUpdated DateTime?
+  registeredAt DateTime
+  vaults       Vault[]
+}
+
+model Vault {
+  address           String   @id
+  merchant          Merchant @relation(fields: [merchantAddr], references: [address])
+  merchantAddr      String
+  targetAmount      BigInt
+  totalRaised       BigInt   @default(0)
+  totalRepaid       BigInt   @default(0)
+  totalToRepay      BigInt   @default(0)
+  interestRateBps   Int
+  durationSeconds   Int
+  numTranches       Int
+  tranchesReleased  Int      @default(0)
+  state             String   @default("fundraising")
+  seniorFunded      BigInt   @default(0)
+  poolFunded        BigInt   @default(0)
+  userFunded        BigInt   @default(0)
+  totalSeniorRepaid BigInt   @default(0)
+  totalPoolRepaid   BigInt   @default(0)
+  nextPaymentDue    DateTime?
+  lateFeeBps        Int      @default(0)
+  totalLateFees     BigInt   @default(0)
+  gracePeriodDays   Int      @default(7)
+  createdAt         DateTime
+  activatedAt       DateTime?
+  investments       Investment[]
+  events            VaultEvent[]
+  milestones        MilestoneRecord[]
+}
+
+model Investment {
+  id             String   @id @default(uuid())
+  vault          Vault    @relation(fields: [vaultAddr], references: [address])
+  vaultAddr      String
+  investor       String
+  amount         BigInt
+  claimedReturns BigInt   @default(0)
+  investedAt     DateTime
+}
+
+model VaultEvent {
+  id          String   @id @default(uuid())
+  vault       Vault    @relation(fields: [vaultAddr], references: [address])
+  vaultAddr   String
+  eventType   String
+  data        Json
+  blockNumber BigInt
+  txHash      String
+  timestamp   DateTime
+}
+
+model MilestoneRecord {
+  id            String    @id @default(uuid())
+  vault         Vault     @relation(fields: [vaultAddr], references: [address])
+  vaultAddr     String
+  milestoneId   Int
+  status        String    @default("pending")
+  evidenceHash  String?
+  approvalCount Int       @default(0)
+  submittedAt   DateTime?
+  approvedAt    DateTime?
+}
+
+model Pool {
+  address               String  @id
+  admin                 String
+  isAlpha               Boolean
+  totalDeposits         BigInt  @default(0)
+  totalAllocated        BigInt  @default(0)
+  maxAllocationPerVault BigInt
+  paused                Boolean @default(false)
+}
+
+model ApiKey {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  name      String
+  rateLimit Int      @default(100)
+  createdAt DateTime @default(now())
+  active    Boolean  @default(true)
+}
+
+model OraclePayment {
+  id          String    @id @default(uuid())
+  vault       String
+  amount      BigInt
+  nonce       BigInt
+  status      String    @default("pending")
+  txHash      String?
+  error       String?
+  attempts    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+}
