@@ -86,42 +86,48 @@
 
 ---
 
-## Phase 3: Backend Core API
+## Phase 3: Backend Core API ✅
 
 ### Merchant Endpoints
-- [ ] `POST /api/v1/merchants/register` — build register tx
-- [ ] `GET /api/v1/merchants/:address` — read from chain + DB
-- [ ] `GET /api/v1/merchants/:address/vaults` — list by merchant
-- [ ] `POST /api/v1/merchants/:address/credit-score` — build update tx (admin)
+- [x] `POST /api/v1/merchants/register` — build unsigned registerAgent tx
+- [x] `GET /api/v1/merchants/:address` — read agent profile from chain
+- [x] `GET /api/v1/merchants/:address/vaults` — filter vaults by agent
+- [x] `GET /api/v1/merchants/:address/stats` — credit tier, TVL, loan count
+- [x] `POST /api/v1/merchants/:address/credit-score` — build unsigned updateCreditScore tx
 
 ### Vault Endpoints
-- [ ] `POST /api/v1/vaults/create` — build createVault tx
-- [ ] `GET /api/v1/vaults` — list with filters (state, merchant) + pagination
-- [ ] `GET /api/v1/vaults/:address` — full detail + computed fields
-- [ ] `GET /api/v1/vaults/:address/investors` — investor list
-- [ ] `GET /api/v1/vaults/:address/repayments` — from indexed events
-- [ ] `GET /api/v1/vaults/:address/waterfall` — senior/pool/community breakdown
-- [ ] `GET /api/v1/vaults/:address/tranches` — tranche status
-- [ ] `GET /api/v1/vaults/:address/milestones` — milestone status
-- [ ] `POST /api/v1/vaults/:address/milestone/submit` — build submit tx
-- [ ] `POST /api/v1/vaults/:address/milestone/vote` — build vote tx
+- [x] `POST /api/v1/vaults/create` — build unsigned createVault tx
+- [x] `GET /api/v1/vaults` — list all vaults from chain (filter by state/agent)
+- [x] `GET /api/v1/vaults/:address` — full detail + waterfall + investor count
+- [x] `GET /api/v1/vaults/:address/investors` — investor list with balances + claimable
+- [x] `GET /api/v1/vaults/:address/repayments` — stub (Phase 5 event indexer)
+- [x] `GET /api/v1/vaults/:address/waterfall` — senior/pool/community breakdown
+- [x] `GET /api/v1/vaults/:address/tranches` — tranche status + released count
+- [x] `GET /api/v1/vaults/:address/milestones` — milestone status per tranche
+- [x] `POST /api/v1/vaults/:address/milestone/submit` — build unsigned tx
+- [x] `POST /api/v1/vaults/:address/milestone/vote` — build unsigned tx
 
 ### Investment Endpoints
-- [ ] `POST /api/v1/invest` — build invest tx
-- [ ] `POST /api/v1/claim` — build claim returns tx
-- [ ] `POST /api/v1/refund` — build claim refund tx
-- [ ] `GET /api/v1/portfolio/:address` — all investments for wallet
+- [x] `POST /api/v1/invest` — build unsigned invest tx
+- [x] `POST /api/v1/claim` — build unsigned claimReturns tx
+- [x] `POST /api/v1/refund` — build unsigned claimRefund tx
+- [x] `GET /api/v1/portfolio/:address` — all investments for wallet (live from chain)
 
 ### Pool Endpoints
-- [ ] `GET /api/v1/pools` — list pools
-- [ ] `GET /api/v1/pools/:address` — pool detail
-- [ ] `POST /api/v1/pools/deposit` — build deposit tx
-- [ ] `POST /api/v1/pools/allocate` — build allocate tx (admin)
-- [ ] `POST /api/v1/pools/withdraw` — build withdraw tx
+- [x] `GET /api/v1/pools` — list both pools with TVL summary
+- [x] `GET /api/v1/pools/:address` — pool detail
+- [x] `POST /api/v1/pools/deposit` — build unsigned deposit tx
+- [x] `POST /api/v1/pools/allocate` — build unsigned allocateToVault tx (admin)
+- [x] `POST /api/v1/pools/withdraw` — build unsigned withdraw tx
 
 ### Platform Endpoints
-- [ ] `GET /api/v1/platform/stats` — TVL, active vaults, total repaid
-- [ ] `GET /api/v1/platform/config` — fee structure, limits
+- [x] `GET /api/v1/platform/stats` — live TVL, active vaults, pool liquidity from chain
+- [x] `GET /api/v1/platform/config` — fee structure, limits, all contract addresses
+
+### Notes
+- All read endpoints pull live data from Base Sepolia via viem (no event indexer yet)
+- All write endpoints return `{ to, data }` unsigned tx — user signs with wallet
+- `/merchant/:id/*` aliases added for frontend backward-compat (client.ts uses singular path)
 
 ---
 

@@ -6,7 +6,7 @@ export async function getTotalDeposits(poolAddr: Address) {
   return publicClient.readContract({
     address: poolAddr,
     abi: LiquidityPoolABI,
-    functionName: 'totalDeposits',
+    functionName: 'getTotalDeposits',
   });
 }
 
@@ -14,7 +14,7 @@ export async function getAvailableBalance(poolAddr: Address) {
   return publicClient.readContract({
     address: poolAddr,
     abi: LiquidityPoolABI,
-    functionName: 'availableBalance',
+    functionName: 'getAvailableBalance',
   });
 }
 
@@ -22,7 +22,7 @@ export async function getAllocation(poolAddr: Address, vaultAddr: Address) {
   return publicClient.readContract({
     address: poolAddr,
     abi: LiquidityPoolABI,
-    functionName: 'allocations',
+    functionName: 'getAllocation',
     args: [vaultAddr],
   });
 }
