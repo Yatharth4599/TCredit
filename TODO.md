@@ -131,20 +131,24 @@
 
 ---
 
-## Phase 4: Oracle Service
+## Phase 4: Oracle Service ✅
 
-- [ ] `POST /api/v1/oracle/payment` — webhook receiver
-- [ ] Validate payment: vault exists, settlement active, amount ≤ max
-- [ ] Check rate limit (block.timestamp ≥ lastPayment + minInterval)
-- [ ] Nonce management (monotonically increasing, stored in DB)
-- [ ] ECDSA signing: sign(keccak256(nonce, vault, amount, source, timestamp))
-- [ ] Build `PaymentRouter.executePayment()` transaction
-- [ ] Submit to Base with gas estimation + retry
-- [ ] Wait for confirmation (3 blocks)
-- [ ] Record in `OraclePayment` table (status, txHash, error)
-- [ ] Failure queue: exponential backoff (30s→60s→120s→240s, max 5 attempts)
-- [ ] `GET /api/v1/oracle/health` — status, queue depth, last payment per vault
-- [ ] Alert on 3+ consecutive failures
+- [x] `POST /api/v1/oracle/payment` — webhook receiver
+- [x] Validate payment: vault exists, settlement active, amount ≤ max
+- [x] Check rate limit (block.timestamp ≥ lastPayment + minInterval)
+- [x] Nonce management (monotonically increasing, stored in DB)
+- [x] ECDSA signing: sign(keccak256(nonce, vault, amount, source, timestamp))
+- [x] Build `PaymentRouter.executePayment()` transaction
+- [x] Submit to Base with gas estimation + retry
+- [x] Wait for confirmation (3 blocks)
+- [x] Record in `OraclePayment` table (status, txHash, error)
+- [x] Failure queue: exponential backoff (30s→60s→120s→240s, max 5 attempts)
+- [x] `GET /api/v1/oracle/health` — status, queue depth, last payment per vault
+- [x] Alert on 3+ consecutive failures
+- [x] `GET /api/v1/oracle/payments` — list oracle payments with status/vault filters
+- [x] Transaction simulation before submission (catch reverts pre-gas)
+- [x] Background retry processor (catches orphaned retries after restart)
+- [x] Deadline-aware retries (expire payments past deadline instead of wasting gas)
 
 ---
 

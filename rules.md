@@ -16,6 +16,8 @@
 These rules are mandatory for all AI agents working on the TCredit codebase. They ensure professional-grade, audit-ready code and prevent "vibecoding" (lazy patterns, placeholders, shortcuts).
 
 ---
+important always ask when Opus is needed i will switch the model immediately ensure the right model is selected for the best quality of output tokens can be compromised for quality 
+
 
 ## 1. Smart Contract Architecture (Solidity / Foundry)
 

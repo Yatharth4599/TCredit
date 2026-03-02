@@ -100,13 +100,21 @@ model ApiKey {
 
 model OraclePayment {
   id          String    @id @default(uuid())
+  from        String
+  to          String
   vault       String
   amount      BigInt
   nonce       BigInt
-  status      String    @default("pending")
+  deadline    BigInt
+  paymentId   String
+  status      String    @default("pending") // pending | submitted | confirmed | failed | expired
   txHash      String?
   error       String?
   attempts    Int       @default(0)
+  nextRetryAt DateTime?
   createdAt   DateTime  @default(now())
   processedAt DateTime?
+
+  @@index([status])
+  @@index([from, nonce])
 }
