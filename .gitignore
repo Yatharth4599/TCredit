@@ -41,7 +41,8 @@ logs/
 coverage/
 coverage.json
 
-# Deployment artifacts
-deployments/
+# Deployment artifacts (Foundry broadcast has sensitive data)
+base-contracts/broadcast/
+base-contracts/cache/
 .openzeppelin/
 .vercel

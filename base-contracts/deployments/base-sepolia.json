@@ -1,0 +1,24 @@
+{
+  "network": "base-sepolia",
+  "chainId": 84532,
+  "deployedAt": "2026-03-02",
+  "deployer": "0xA1090527ac5c019Abc3989F405a5a63bB008008D",
+  "oracle": "0xA1090527ac5c019Abc3989F405a5a63bB008008D",
+  "usdc": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+  "contracts": {
+    "AgentRegistry": "0xAEa7C5CCACebB1423b163b765d3214752f1496A4",
+    "PaymentRouter": "0xf8A5ED433222dFfb9514637243C3599cCE87f977",
+    "VaultFactory": "0xf8fDa17F877dEFFCD80784E0465F33d585644360",
+    "SeniorPool": "0xDf980d0734b00888e4Ac350027515B4D6E473bBa",
+    "GeneralPool": "0x7E7D8082572C0AD2f51074D272A501180Db06Fb2",
+    "MilestoneRegistry": "0x48a471eEB88f84a867bEBC0f6DFF848660BC8c84"
+  },
+  "basescan": {
+    "AgentRegistry": "https://sepolia.basescan.org/address/0xAEa7C5CCACebB1423b163b765d3214752f1496A4",
+    "PaymentRouter": "https://sepolia.basescan.org/address/0xf8A5ED433222dFfb9514637243C3599cCE87f977",
+    "VaultFactory": "https://sepolia.basescan.org/address/0xf8fDa17F877dEFFCD80784E0465F33d585644360",
+    "SeniorPool": "https://sepolia.basescan.org/address/0xDf980d0734b00888e4Ac350027515B4D6E473bBa",
+    "GeneralPool": "https://sepolia.basescan.org/address/0x7E7D8082572C0AD2f51074D272A501180Db06Fb2",
+    "MilestoneRegistry": "https://sepolia.basescan.org/address/0x48a471eEB88f84a867bEBC0f6DFF848660BC8c84"
+  }
+}

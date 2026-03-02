@@ -59,17 +59,17 @@
 
 ---
 
-## Phase 1: Testnet Deployment (Base Sepolia)
+## Phase 1: Testnet Deployment (Base Sepolia) ✅
 
-- [ ] Set up `.env` with real values (deployer key, oracle address, USDC, RPC)
-- [ ] Run `forge script script/Deploy.s.sol --broadcast --verify`
-- [ ] Verify ALL contracts on BaseScan
-- [ ] Post-deploy wiring: `setFactory()`, `setPaymentRouter()` on pools
-- [ ] Pre-fund deployer + oracle wallets with Sepolia ETH
-- [ ] Get Sepolia USDC (Circle faucet or deploy mock)
-- [ ] Call `initialize_platform` / register test merchant
-- [ ] Generate TypeScript ABIs from `out/` artifacts
-- [ ] Document deployed addresses in config
+- [x] Set up `.env` with real values (deployer key, oracle address, USDC, RPC)
+- [x] Run `forge script script/Deploy.s.sol --broadcast --verify`
+- [x] Verify ALL contracts on BaseScan (all 6 verified)
+- [x] Post-deploy wiring: `setFactory()`, `setPaymentRouter()` (handled in Deploy.s.sol)
+- [x] Pre-fund deployer wallet with Base Sepolia ETH
+- [x] Document deployed addresses in `deployments/base-sepolia.json`
+- [x] Get Sepolia USDC (Circle faucet)
+- [x] Register test merchant + assign credit score 700 (tier B) via cast
+- [x] Generate TypeScript ABIs + addresses → `deployments/contracts.ts` + `deployments/abis.json`
 
 ---
 
