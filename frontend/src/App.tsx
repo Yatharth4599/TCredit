@@ -39,7 +39,7 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
 function PageLoader() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: 32, height: 32, border: '3px solid rgba(var(--accent-rgb, 255,107,53),0.2)', borderTopColor: 'var(--accent, #FF6B35)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ width: 28, height: 28, border: '2px solid rgba(245,245,247,0.08)', borderTopColor: 'rgba(245,245,247,0.5)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
     </div>
   )
 }
@@ -55,11 +55,14 @@ function App() {
               position="bottom-right"
               toastOptions={{
                 style: {
-                  background: '#1a1a1a',
-                  color: '#fff',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '12px',
-                  fontSize: '14px',
+                  background: '#10141C',
+                  color: '#F5F5F7',
+                  border: 'none',
+                  borderRadius: '9999px',
+                  fontSize: '13px',
+                  fontFamily: "'Inter', -apple-system, sans-serif",
+                  padding: '10px 20px',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
                 },
               }}
             />

@@ -1,581 +1,403 @@
 .vaultDetail {
-    min-height: 100vh;
-    padding: 100px 0 50px;
+  min-height: 100vh;
+  padding: 100px 0 50px;
 }
 
 .backButton {
-    padding: 10px 20px;
-    background: var(--surface-glass);
-    color: var(--text-primary);
-    border: 1px solid var(--border-light);
-    border-radius: 8px;
-    font-size: 0.95rem;
-    margin-bottom: 30px;
-    transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  border: none;
+  border-radius: var(--pill-radius);
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 28px;
+  transition: background 0.15s ease, color 0.15s ease;
 }
-
 .backButton:hover {
-    border-color: var(--border-highlight);
+  background: var(--surface-3);
+  color: var(--text-primary);
 }
 
 .content {
-    display: grid;
-    grid-template-columns: 1fr 400px;
-    gap: 40px;
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 32px;
 }
 
 .main {
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 }
-
 .header h1 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 8px;
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  letter-spacing: -0.03em;
 }
-
 .category {
-    font-size: 0.9rem;
-    color: var(--text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.riskBadge {
-    padding: 10px 20px;
-    background: var(--surface-glass);
-    border: 1px solid var(--border-light);
-    border-radius: 8px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.description {
-    font-size: 1.1rem;
-    line-height: 1.8;
-    color: var(--text-secondary);
-}
-
-.progressSection {
-    padding: 30px;
-    background: var(--surface-glass);
-    border: 1px solid var(--border-light);
-    border-radius: var(--card-border-radius);
-    backdrop-filter: blur(var(--glass-blur));
-}
-
-.progressHeader {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 12px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.progressBar {
-    width: 100%;
-    height: 12px;
-    background: var(--surface-2);
-    border-radius: 6px;
-    overflow: hidden;
-    margin-bottom: 12px;
-}
-
-.progressFill {
-    height: 100%;
-    background: var(--gradient-primary);
-    transition: width 0.3s ease;
-}
-
-.progressText {
-    color: var(--text-tertiary);
-    font-size: 0.9rem;
-}
-
-.statsGrid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
-}
-
-.statCard {
-    padding: 24px;
-    background: var(--surface-glass);
-    border: 1px solid var(--border-light);
-    border-radius: var(--card-border-radius);
-    backdrop-filter: blur(var(--glass-blur));
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.statLabel {
-    font-size: 0.85rem;
-    color: var(--text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.statValue {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--text-primary);
-}
-
-.details {
-    padding: 30px;
-    background: var(--surface-glass);
-    border: 1px solid var(--border-light);
-    border-radius: var(--card-border-radius);
-    backdrop-filter: blur(var(--glass-blur));
-}
-
-.details h2 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 24px;
-}
-
-.detailItem {
-    display: flex;
-    justify-content: space-between;
-    padding: 16px 0;
-    border-bottom: 1px solid var(--border-light);
-    color: var(--text-secondary);
-}
-
-.detailItem:last-child {
-    border-bottom: none;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
 }
 
 .statusBadge {
-    padding: 4px 12px;
-    background: rgba(var(--accent-rgb), 0.2);
-    color: var(--accent-light);
-    border-radius: 6px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-transform: capitalize;
+  padding: 5px 14px;
+  border-radius: var(--pill-radius);
+  border: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
 }
 
+/* ─── Progress ─────────────────────────────── */
+.progressSection {
+  padding: 28px;
+  background: var(--surface-2);
+  border-radius: var(--card-border-radius);
+}
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.progressBar {
+  width: 100%;
+  height: 4px;
+  background: var(--surface-4);
+  border-radius: var(--pill-radius);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.progressFill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--pill-radius);
+  transition: width 0.8s ease;
+}
+.progressText {
+  color: var(--text-tertiary);
+  font-size: 0.82rem;
+}
+
+/* ─── Stats Grid ───────────────────────────── */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.statCard {
+  padding: 20px;
+  background: var(--surface-2);
+  border-radius: var(--card-border-radius);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text-tertiary);
+}
+.statLabel {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.statValue {
+  font-family: var(--font-mono);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* ─── Section ──────────────────────────────── */
+.section {
+  padding: 28px;
+  background: var(--surface-2);
+  border-radius: var(--card-border-radius);
+}
+.sectionTitle {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 20px;
+}
+
+/* ─── Tranches ─────────────────────────────── */
+.trancheGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+.trancheItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--surface-3);
+  border-radius: 10px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+.trancheIndex {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+/* ─── Milestones ───────────────────────────── */
+.milestoneItem {
+  padding: 14px 16px;
+  background: var(--surface-3);
+  border-radius: 10px;
+  margin-bottom: 8px;
+}
+.milestoneItem:last-child { margin-bottom: 0; }
+.milestoneHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.milestoneStatus {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.milestoneDetail {
+  display: flex;
+  gap: 16px;
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+}
+
+/* ─── Investors ────────────────────────────── */
+.investorList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.investorItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 14px;
+  background: var(--surface-3);
+  border-radius: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.investorAddr {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+.claimable {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+/* ─── Repayments ───────────────────────────── */
+.repaymentItem {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 14px;
+  background: var(--surface-3);
+  border-radius: 10px;
+  margin-bottom: 6px;
+  font-size: 0.82rem;
+}
+.repaymentItem:last-child { margin-bottom: 0; }
+.repaymentType {
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: capitalize;
+  min-width: 110px;
+}
+.repaymentDate {
+  color: var(--text-tertiary);
+  font-size: 0.78rem;
+}
+.txLink {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--accent);
+  opacity: 0.7;
+  text-decoration: none;
+  margin-left: auto;
+  transition: opacity 0.15s ease;
+}
+.txLink:hover { opacity: 1; }
+
+/* ─── Sidebar ──────────────────────────────── */
 .sidebar {
-    position: sticky;
-    top: 100px;
-    height: fit-content;
+  position: sticky;
+  top: 100px;
+  height: fit-content;
 }
-
 .investCard {
-    padding: 30px;
-    background: var(--surface-glass);
-    border: 1px solid var(--border-light);
-    border-radius: var(--card-border-radius);
-    backdrop-filter: blur(var(--glass-blur));
+  padding: 28px;
+  background: var(--surface-2);
+  border-radius: var(--card-border-radius);
 }
-
 .investCard h3 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 8px;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
 }
-
-.investCard>p {
-    color: var(--text-secondary);
-    margin-bottom: 24px;
+.investCard > p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 24px;
 }
-
-.inputGroup {
-    margin-bottom: 20px;
-}
-
+.inputGroup { margin-bottom: 18px; }
 .inputGroup label {
-    display: block;
-    font-size: 0.9rem;
-    color: var(--text-tertiary);
-    margin-bottom: 8px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
-
 .inputGroup input {
-    width: 100%;
-    padding: 14px;
-    background: var(--surface-2);
-    border: 1px solid var(--border-light);
-    border-radius: 8px;
-    color: var(--text-primary);
-    font-size: 1rem;
-    transition: all 0.3s ease;
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--surface-3);
+  border: none;
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  transition: background 0.15s ease;
 }
-
 .inputGroup input:focus {
-    outline: none;
-    border-color: var(--border-highlight);
+  outline: none;
+  background: var(--surface-4);
 }
 
 .returns {
-    padding: 20px;
-    background: var(--surface-2);
-    border-radius: 8px;
-    margin-bottom: 20px;
+  padding: 16px;
+  background: var(--surface-3);
+  border-radius: 12px;
+  margin-bottom: 18px;
 }
-
 .returnItem {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-    color: var(--text-secondary);
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
 }
-
 .returnItem:last-child {
-    font-weight: 600;
-    color: var(--text-primary);
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .investButton {
-    width: 100%;
-    padding: 16px;
-    background: var(--gradient-primary);
-    color: var(--color-black);
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    margin-bottom: 16px;
+  width: 100%;
+  padding: 14px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: var(--pill-radius);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
-
 .investButton:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: var(--glow-medium);
+  transform: scale(0.97);
+  filter: brightness(1.1);
 }
-
 .investButton:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  opacity: 0.4;
+  cursor: not-allowed;
 }
-
 .disclaimer {
-    font-size: 0.8rem;
-    color: var(--text-tertiary);
-    text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  text-align: center;
 }
 
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    backdrop-filter: blur(5px);
-}
-
-.modalContent {
-    background: var(--surface-1);
-    border: 1px solid var(--border-light);
-    border-radius: var(--panel-border-radius);
-    padding: 40px;
-    max-width: 500px;
-    width: 90%;
-}
-
-.modalContent h2 {
-    font-size: 1.8rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 12px;
-}
-
-.modalContent>p {
-    color: var(--text-secondary);
-    margin-bottom: 24px;
-}
-
-.modalStats {
-    padding: 20px;
-    background: var(--surface-glass);
-    border-radius: 8px;
-    margin-bottom: 24px;
-}
-
-.modalStats>div {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px 0;
-    color: var(--text-secondary);
-}
-
-.modalStats>div:last-child {
-    font-weight: 600;
-    color: var(--text-primary);
-    border-top: 1px solid var(--border-light);
-    padding-top: 16px;
-    margin-top: 6px;
-}
-
-.modalActions {
-    display: flex;
-    gap: 12px;
-}
-
-.confirmButton {
-    flex: 1;
-    padding: 14px;
-    background: var(--gradient-primary);
-    color: var(--color-black);
-    border-radius: 8px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-
-.confirmButton:hover {
-    transform: translateY(-2px);
-}
-
-.cancelButton {
-    flex: 1;
-    padding: 14px;
-    background: transparent;
-    color: var(--text-primary);
-    border: 1px solid var(--border-highlight);
-    border-radius: 8px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-
-.cancelButton:hover {
-    background: var(--surface-glass);
-}
-
-.notFound {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-}
-
-/* Loading & Spinner */
-.spinner {
-    animation: spin 0.8s linear infinite;
-}
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-.loadingState {
-    min-height: 60vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    color: var(--text-tertiary);
-    font-size: 0.9rem;
-}
-
-/* Section containers */
-.section {
-    padding: 30px;
-    background: var(--surface-glass);
-    border: 1px solid var(--border-light);
-    border-radius: var(--card-border-radius);
-    backdrop-filter: blur(var(--glass-blur));
-}
-
-.sectionTitle {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0 0 20px;
-}
-
-/* Tranches Grid */
-.trancheGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 12px;
-}
-
-.trancheItem {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 14px 16px;
-    background: var(--surface-2);
-    border: 1px solid var(--border-light);
-    border-radius: 10px;
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-}
-
-.trancheIndex {
-    font-weight: 700;
-    color: var(--text-primary);
-    font-size: 0.9rem;
-}
-
-/* Milestones */
-.milestoneItem {
-    padding: 16px;
-    background: var(--surface-2);
-    border: 1px solid var(--border-light);
-    border-radius: 10px;
-    margin-bottom: 10px;
-}
-
-.milestoneItem:last-child {
-    margin-bottom: 0;
-}
-
-.milestoneHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.milestoneStatus {
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: capitalize;
-}
-
-.milestoneDetail {
-    display: flex;
-    gap: 16px;
-    font-size: 0.8rem;
-    color: var(--text-tertiary);
-}
-
-/* Investors */
-.investorList {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.investorItem {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
-    background: var(--surface-2);
-    border: 1px solid var(--border-light);
-    border-radius: 10px;
-    font-size: 0.85rem;
-    color: var(--text-primary);
-    font-weight: 600;
-}
-
-.investorAddr {
-    font-family: monospace;
-    font-size: 0.82rem;
-    color: var(--text-secondary);
-    font-weight: 500;
-}
-
-.claimable {
-    font-size: 0.78rem;
-    color: #22c55e;
-    font-weight: 600;
-}
-
-/* Repayments */
-.repaymentItem {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 14px 16px;
-    background: var(--surface-2);
-    border: 1px solid var(--border-light);
-    border-radius: 10px;
-    margin-bottom: 8px;
-    font-size: 0.85rem;
-}
-
-.repaymentItem:last-child {
-    margin-bottom: 0;
-}
-
-.repaymentType {
-    font-weight: 600;
-    color: var(--text-primary);
-    text-transform: capitalize;
-    min-width: 120px;
-}
-
-.repaymentDate {
-    color: var(--text-tertiary);
-    font-size: 0.8rem;
-}
-
-.txLink {
-    font-family: monospace;
-    font-size: 0.78rem;
-    color: rgba(var(--accent-rgb), 0.8);
-    text-decoration: none;
-    margin-left: auto;
-    transition: color 0.2s;
-}
-
-.txLink:hover {
-    color: var(--accent);
-}
-
-/* Sidebar status messages */
+/* ─── Status messages ──────────────────────── */
 .statusMessage {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 12px;
-    padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 20px 0;
 }
-
 .statusMessage h3 {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+.statusMessage p {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  margin: 0;
 }
 
-.statusMessage p {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    margin: 0;
+/* ─── Not Found ────────────────────────────── */
+.notFound {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+/* ─── Loading ──────────────────────────────── */
+.spinner { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loadingState {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--text-tertiary);
+  font-size: 0.9rem;
 }
 
 @media (max-width: 1024px) {
-    .content {
-        grid-template-columns: 1fr;
-    }
-
-    .sidebar {
-        position: static;
-    }
-
-    .statsGrid {
-        grid-template-columns: repeat(2, 1fr);
-    }
+  .content { grid-template-columns: 1fr; }
+  .sidebar { position: static; }
+  .statsGrid { grid-template-columns: repeat(2, 1fr); }
 }

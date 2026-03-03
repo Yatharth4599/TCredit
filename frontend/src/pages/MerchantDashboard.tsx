@@ -51,9 +51,9 @@ export default function MerchantDashboard() {
     }
     setLoading(true)
     Promise.all([
-      merchantApi.stats(walletAddress).then(r => setMerchant(r.data)).catch(() => setMerchant(null)),
-      merchantApi.vaults(walletAddress).then(r => setVaults(r.data.vaults)).catch(() => setVaults([])),
-      oracleApi.payments({ limit: 10 }).then(r => setPayments(r.data.payments)).catch(() => setPayments([])),
+      merchantApi.stats(walletAddress).then(r => setMerchant(r.data ?? null)).catch(() => setMerchant(null)),
+      merchantApi.vaults(walletAddress).then(r => setVaults(r.data?.vaults ?? [])).catch(() => setVaults([])),
+      oracleApi.payments({ limit: 10 }).then(r => setPayments(r.data?.payments ?? [])).catch(() => setPayments([])),
     ]).finally(() => setLoading(false))
   }, [walletAddress])
 
@@ -74,7 +74,7 @@ export default function MerchantDashboard() {
       await executeTx(unsignedTx)
       setShowCreateModal(false)
       // Refresh vaults
-      merchantApi.vaults(walletAddress).then(r => setVaults(r.data.vaults)).catch(() => {})
+      merchantApi.vaults(walletAddress).then(r => setVaults(r.data?.vaults ?? [])).catch(() => {})
     } catch {
       // Error handled by toast
     } finally {

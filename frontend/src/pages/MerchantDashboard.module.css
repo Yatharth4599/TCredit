@@ -1,5 +1,9 @@
+/* ============================================
+   MERCHANT DASHBOARD — Amber accent, borderless surfaces
+   ============================================ */
+
 .page {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 104px 24px 60px;
   display: flex;
@@ -20,34 +24,36 @@
 }
 
 .bentoStatIcon {
-  color: #FF6B35;
+  color: var(--accent);
   display: flex;
 }
 
 .bentoStatLabel {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
 }
 
 .bentoStatValue {
+  font-family: var(--font-mono);
   font-size: 1.6rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .bentoStatSub {
   font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--text-tertiary);
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .bentoStatTrend {
-  color: #22c55e;
+  font-family: var(--font-mono);
+  color: var(--color-success);
   font-weight: 600;
 }
 
@@ -71,12 +77,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  font-family: var(--font-display);
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--text-primary);
 }
 
-.sectionIcon { color: var(--color-orange); }
+.sectionIcon { color: var(--accent); }
 
 .liveBadge {
   display: flex;
@@ -84,18 +91,17 @@
   gap: 5px;
   font-size: 0.7rem;
   font-weight: 600;
-  color: #22c55e;
-  padding: 3px 8px;
-  background: rgba(34,197,94,0.1);
-  border: 1px solid rgba(34,197,94,0.2);
-  border-radius: 20px;
+  color: var(--color-success);
+  padding: 3px 10px;
+  background: rgba(34, 197, 94, 0.1);
+  border-radius: var(--pill-radius);
 }
 
 .liveDot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #22c55e;
+  background: var(--color-success);
   animation: pulse 1.5s infinite;
 }
 
@@ -118,17 +124,15 @@
   padding: 10px 12px;
   border-radius: 10px;
   cursor: pointer;
-  transition: background 0.2s;
-  border: 1px solid transparent;
+  transition: background 0.2s ease;
 }
 
 .paymentRow:hover {
-  background: rgba(255,255,255,0.03);
+  background: var(--surface-3);
 }
 
 .paymentRowActive {
-  background: rgba(var(--accent-rgb),0.06) !important;
-  border-color: rgba(var(--accent-rgb),0.15);
+  background: rgba(var(--accent-rgb), 0.06) !important;
 }
 
 .paymentLeft { flex: 1; }
@@ -137,13 +141,23 @@
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--text-primary);
-  font-family: monospace;
+  font-family: var(--font-mono);
 }
 .paymentVault { font-size: 0.7rem; color: var(--text-tertiary); }
 
 .paymentRight { text-align: right; }
-.paymentAmount { display: block; font-size: 0.88rem; font-weight: 700; color: var(--color-orange); }
-.paymentTime { font-size: 0.68rem; color: var(--text-tertiary); }
+.paymentAmount {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+.paymentTime {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-tertiary);
+}
 
 .paymentChevron { color: var(--text-tertiary); flex-shrink: 0; }
 
@@ -156,9 +170,13 @@
 
 .vaultItem {
   padding: 14px;
-  background: rgba(255,255,255,0.025);
-  border: 1px solid var(--border-light);
+  background: var(--surface-3);
   border-radius: 14px;
+  transition: background 0.15s ease;
+}
+
+.vaultItem:hover {
+  background: var(--surface-4);
 }
 
 .vaultTop {
@@ -169,6 +187,7 @@
 }
 
 .vaultName {
+  font-family: var(--font-display);
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-primary);
@@ -176,6 +195,7 @@
 }
 
 .vaultMeta {
+  font-family: var(--font-mono);
   font-size: 0.72rem;
   color: var(--text-tertiary);
 }
@@ -183,9 +203,8 @@
 .vaultStatus {
   font-size: 0.68rem;
   font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 20px;
-  border: 1px solid;
+  padding: 3px 10px;
+  border-radius: var(--pill-radius);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -197,24 +216,37 @@
 }
 
 .vaultAmt {}
-.vaultAmtVal { font-size: 1rem; font-weight: 700; color: var(--text-primary); display: block; }
-.vaultAmtLbl { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary); }
+.vaultAmtVal {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: block;
+}
+.vaultAmtLbl {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
 
 .vaultProgressBar {
-  height: 4px;
-  background: var(--border-light);
-  border-radius: 4px;
+  height: 3px;
+  background: var(--surface-4);
+  border-radius: var(--pill-radius);
   overflow: hidden;
   margin-bottom: 4px;
 }
 
 .vaultProgressFill {
   height: 100%;
-  border-radius: 4px;
-  transition: width 0.4s ease;
+  background: var(--accent);
+  border-radius: var(--pill-radius);
+  transition: width 0.8s ease;
 }
 
 .vaultProgressMeta {
+  font-family: var(--font-mono);
   font-size: 0.72rem;
   color: var(--text-tertiary);
   margin-bottom: 10px;
@@ -228,49 +260,64 @@
 .repayBtn {
   flex: 1;
   padding: 8px;
-  border-radius: 8px;
-  background: var(--gradient-primary);
+  border-radius: var(--pill-radius);
+  background: var(--accent);
   border: none;
   color: #000;
   font-weight: 700;
   font-size: 0.78rem;
   cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.repayBtn:hover {
+  transform: scale(0.97);
+  filter: brightness(1.1);
 }
 
 .manageBtn {
   padding: 8px 14px;
-  border-radius: 8px;
-  background: transparent;
-  border: 1px solid var(--border-light);
+  border-radius: var(--pill-radius);
+  background: var(--surface-3);
+  border: none;
   color: var(--text-secondary);
   font-size: 0.78rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
-.manageBtn:hover { border-color: var(--border-highlight); color: var(--text-primary); }
+.manageBtn:hover {
+  background: var(--surface-4);
+  color: var(--text-primary);
+}
 
 /* Create button */
 .createBtn {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  background: var(--gradient-primary);
+  padding: 6px 14px;
+  border-radius: var(--pill-radius);
+  background: var(--accent);
   border: none;
   color: #000;
   font-weight: 700;
   font-size: 0.78rem;
   cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.createBtn:hover {
+  transform: scale(0.97);
+  filter: brightness(1.1);
 }
 
 /* Modal */
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.75);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
   z-index: 500;
   display: flex;
   align-items: center;
@@ -279,7 +326,6 @@
 
 .modal {
   background: var(--surface-2);
-  border: 1px solid var(--border-light);
   border-radius: 20px;
   width: 480px;
   max-width: 90vw;
@@ -293,6 +339,7 @@
 }
 
 .modalHeader h2 {
+  font-family: var(--font-display);
   font-size: 1rem;
   font-weight: 700;
   color: var(--text-primary);
@@ -301,12 +348,18 @@
 
 .modalClose {
   width: 28px; height: 28px;
-  border-radius: 6px;
-  border: 1px solid var(--border-light);
-  background: transparent;
+  border-radius: 8px;
+  border: none;
+  background: var(--surface-3);
   color: var(--text-tertiary);
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.modalClose:hover {
+  background: var(--surface-4);
+  color: var(--accent);
 }
 
 .modalBody {
@@ -329,16 +382,20 @@
 .formInput {
   width: 100%;
   padding: 10px 12px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--border-light);
+  background: var(--surface-3);
+  border: none;
   border-radius: 10px;
   color: var(--text-primary);
   font-size: 0.875rem;
   box-sizing: border-box;
   resize: vertical;
+  transition: background 0.15s ease;
 }
 
-.formInput:focus { outline: none; border-color: rgba(var(--accent-rgb),0.3); }
+.formInput:focus {
+  outline: none;
+  background: var(--surface-4);
+}
 .formInput::placeholder { color: var(--text-tertiary); }
 
 .formRow {
@@ -354,28 +411,40 @@
   justify-content: flex-end;
   gap: 10px;
   padding: 16px 24px;
-  border-top: 1px solid var(--border-light);
+  border-top: 1px solid var(--surface-3);
 }
 
 .cancelBtn {
   padding: 9px 18px;
-  border-radius: 8px;
-  border: 1px solid var(--border-light);
-  background: transparent;
+  border-radius: var(--pill-radius);
+  border: none;
+  background: var(--surface-3);
   color: var(--text-secondary);
   font-size: 0.875rem;
   cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.cancelBtn:hover {
+  background: var(--surface-4);
+  color: var(--text-primary);
 }
 
 .submitBtn {
   padding: 9px 22px;
-  border-radius: 8px;
-  background: var(--gradient-primary);
+  border-radius: var(--pill-radius);
+  background: var(--accent);
   border: none;
   color: #000;
   font-weight: 700;
   font-size: 0.875rem;
   cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.submitBtn:hover {
+  transform: scale(0.97);
+  filter: brightness(1.1);
 }
 
 /* Connect Prompt */
@@ -391,6 +460,7 @@
 }
 
 .connectPrompt h2 {
+    font-family: var(--font-display);
     font-size: 1.3rem;
     font-weight: 600;
     color: var(--text-primary);

@@ -263,30 +263,46 @@
   animation: blurIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* ─── Skeleton pulse ─────────────────────────── */
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.8; }
+}
+
+.skeleton {
+  background: var(--surface-3);
+  border-radius: 8px;
+  animation: skeletonPulse 1.6s ease-in-out infinite;
+}
+
+/* ─── Progress bar grow ──────────────────────── */
+@keyframes progressGrow {
+  from { width: 0%; }
+}
+
+/* ─── Number tick ────────────────────────────── */
+@keyframes numberTick {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-number-tick {
+  animation: numberTick 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 /* Animation delays */
-.delay-100 {
-  animation-delay: 100ms;
-}
-
-.delay-200 {
-  animation-delay: 200ms;
-}
-
-.delay-300 {
-  animation-delay: 300ms;
-}
-
-.delay-400 {
-  animation-delay: 400ms;
-}
-
-.delay-500 {
-  animation-delay: 500ms;
-}
-
-.delay-1000 {
-  animation-delay: 1000ms;
-}
+.delay-50  { animation-delay: 50ms;   }
+.delay-100 { animation-delay: 100ms;  }
+.delay-150 { animation-delay: 150ms;  }
+.delay-200 { animation-delay: 200ms;  }
+.delay-250 { animation-delay: 250ms;  }
+.delay-300 { animation-delay: 300ms;  }
+.delay-400 { animation-delay: 400ms;  }
+.delay-500 { animation-delay: 500ms;  }
+.delay-600 { animation-delay: 600ms;  }
+.delay-700 { animation-delay: 700ms;  }
+.delay-800 { animation-delay: 800ms;  }
+.delay-1000 { animation-delay: 1000ms; }
 
 /* Animation durations */
 .duration-300 {

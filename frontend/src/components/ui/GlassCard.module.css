@@ -1,22 +1,10 @@
 .card {
-  background: var(--surface-card);
-  border: 1px solid var(--border-light);
+  background: var(--surface-2);
   border-radius: var(--card-border-radius);
   padding: 20px;
   position: relative;
   overflow: hidden;
-  transition: border-color 0.25s ease, box-shadow 0.25s ease;
-}
-
-/* Subtle top edge glow */
-.card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 10%;
-  right: 10%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 107, 53, 0.15), transparent);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .interactive {
@@ -24,15 +12,16 @@
 }
 
 .interactive:hover {
-  border-color: rgba(255, 107, 53, 0.25);
-  box-shadow: 0 0 20px rgba(255, 107, 53, 0.06);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+.interactive:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-md);
 }
 
 .highlight {
-  border-color: rgba(255, 107, 53, 0.35);
-  box-shadow: 0 0 24px rgba(255, 107, 53, 0.08);
-}
-
-.highlight::before {
-  background: linear-gradient(90deg, transparent, rgba(255, 107, 53, 0.4), transparent);
+  background: var(--surface-2);
+  box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.2), 0 8px 40px rgba(0, 0, 0, 0.3);
 }

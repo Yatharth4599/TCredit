@@ -41,7 +41,7 @@ export default function Vaults() {
     setLoading(true)
     const params = filter !== 'all' ? { state: filter } : undefined
     vaultsApi.list(params)
-      .then(({ data }) => setVaults(data.vaults))
+      .then(({ data }) => setVaults(data?.vaults ?? []))
       .catch(() => setVaults([]))
       .finally(() => setLoading(false))
   }, [filter])

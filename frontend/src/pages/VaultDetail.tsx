@@ -40,11 +40,11 @@ export default function VaultDetail() {
         setLoading(true)
 
         Promise.all([
-            vaultsApi.detail(address).then(r => setVault(r.data)),
-            vaultsApi.investors(address).then(r => setInvestors(r.data.investors)).catch(() => {}),
-            vaultsApi.tranches(address).then(r => setTranches(r.data)).catch(() => {}),
-            vaultsApi.milestones(address).then(r => setMilestones(r.data.milestones)).catch(() => {}),
-            vaultsApi.repayments(address).then(r => setRepayments(r.data.repayments)).catch(() => {}),
+            vaultsApi.detail(address).then(r => setVault(r.data ?? null)).catch(() => setVault(null)),
+            vaultsApi.investors(address).then(r => setInvestors(r.data?.investors ?? [])).catch(() => {}),
+            vaultsApi.tranches(address).then(r => setTranches(r.data ?? null)).catch(() => {}),
+            vaultsApi.milestones(address).then(r => setMilestones(r.data?.milestones ?? [])).catch(() => {}),
+            vaultsApi.repayments(address).then(r => setRepayments(r.data?.repayments ?? [])).catch(() => {}),
         ]).finally(() => setLoading(false))
     }, [address])
 

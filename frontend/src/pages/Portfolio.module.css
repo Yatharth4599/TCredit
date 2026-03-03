@@ -1,10 +1,10 @@
 /* ============================================
-   PORTFOLIO PAGE - Minimalist Dashboard
+   PORTFOLIO PAGE — Cyan accent, borderless surfaces
    ============================================ */
 
 .portfolio {
     min-height: 100vh;
-    background: #050505;
+    background: var(--bg-dark);
     padding: 100px 24px 60px;
     position: relative;
 }
@@ -14,14 +14,14 @@
     position: fixed;
     top: -20%;
     right: -10%;
-    width: 600px;
-    height: 600px;
+    width: 900px;
+    height: 900px;
     background: radial-gradient(
         ellipse at center,
-        rgba(var(--accent-rgb), 0.06) 0%,
-        transparent 60%
+        rgba(var(--accent-rgb), 0.08) 0%,
+        transparent 55%
     );
-    filter: blur(80px);
+    filter: blur(100px);
     pointer-events: none;
 }
 
@@ -30,7 +30,7 @@
    ============================================ */
 
 .header {
-    max-width: 1200px;
+    max-width: 1280px;
     margin: 0 auto 40px;
     opacity: 0;
     transform: translateY(20px);
@@ -49,17 +49,19 @@
 }
 
 .overline {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
-    letter-spacing: 2px;
+    letter-spacing: 0.15em;
     text-transform: uppercase;
-    color: rgba(255, 107, 53, 0.8);
+    color: var(--accent);
 }
 
 .title {
+    font-family: var(--font-display);
     font-size: clamp(1.75rem, 4vw, 2.5rem);
-    font-weight: 700;
-    color: #fff;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--text-primary);
 }
 
 /* ============================================
@@ -67,7 +69,7 @@
    ============================================ */
 
 .content {
-    max-width: 1200px;
+    max-width: 1280px;
     margin: 0 auto;
     display: grid;
     grid-template-columns: 340px 1fr;
@@ -89,9 +91,8 @@
    ============================================ */
 
 .overviewCard {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 16px;
+    background: var(--surface-2);
+    border-radius: var(--card-border-radius);
     padding: 24px;
     opacity: 0;
     transform: translateY(20px);
@@ -109,16 +110,16 @@
     justify-content: space-between;
     margin-bottom: 16px;
     font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-tertiary);
 }
 
 .liveBadge {
     padding: 4px 10px;
-    background: rgba(var(--accent-rgb), 0.15);
+    background: rgba(var(--accent-rgb), 0.12);
     color: var(--accent);
     font-size: 0.7rem;
     font-weight: 600;
-    border-radius: 100px;
+    border-radius: var(--pill-radius);
 }
 
 .overviewValue {
@@ -129,15 +130,17 @@
 }
 
 .currency {
+    font-family: var(--font-mono);
     font-size: 1.5rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-tertiary);
 }
 
 .amount {
+    font-family: var(--font-mono);
     font-size: 2.5rem;
     font-weight: 700;
-    color: #fff;
+    color: var(--text-primary);
 }
 
 .overviewChange {
@@ -148,18 +151,20 @@
 }
 
 .profit {
+    font-family: var(--font-mono);
     font-size: 1rem;
     font-weight: 600;
-    color: #34d399;
+    color: var(--color-success);
 }
 
 .percent {
-    padding: 4px 8px;
-    background: rgba(52, 211, 153, 0.15);
-    color: #34d399;
+    padding: 4px 10px;
+    background: rgba(34, 197, 94, 0.12);
+    color: var(--color-success);
+    font-family: var(--font-mono);
     font-size: 0.8rem;
     font-weight: 600;
-    border-radius: 4px;
+    border-radius: var(--pill-radius);
 }
 
 .overviewStats {
@@ -167,8 +172,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 16px 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid var(--surface-4);
+    border-bottom: 1px solid var(--surface-4);
 }
 
 .overviewStat {
@@ -178,23 +183,24 @@
 
 .overviewStatValue {
     display: block;
+    font-family: var(--font-mono);
     font-size: 1.1rem;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-primary);
     margin-bottom: 4px;
 }
 
 .overviewStatLabel {
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.68rem;
+    color: var(--text-tertiary);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.06em;
 }
 
 .overviewStatDivider {
     width: 1px;
     height: 32px;
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--surface-4);
 }
 
 .claimSection {
@@ -203,8 +209,7 @@
     justify-content: space-between;
     margin-top: 20px;
     padding: 16px;
-    background: rgba(var(--accent-rgb), 0.08);
-    border: 1px solid rgba(var(--accent-rgb), 0.2);
+    background: rgba(var(--accent-rgb), 0.06);
     border-radius: 12px;
 }
 
@@ -216,10 +221,11 @@
 
 .claimLabel {
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-tertiary);
 }
 
 .claimValue {
+    font-family: var(--font-mono);
     font-size: 1.25rem;
     font-weight: 700;
     color: var(--accent);
@@ -227,19 +233,19 @@
 
 .claimBtn {
     padding: 10px 20px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    background: var(--accent);
     color: #000;
     font-size: 0.85rem;
     font-weight: 600;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--pill-radius);
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: transform 0.15s ease, filter 0.15s ease;
 }
 
 .claimBtn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(var(--accent-rgb), 0.3);
+    transform: scale(0.97);
+    filter: brightness(1.1);
 }
 
 /* ============================================
@@ -248,9 +254,8 @@
 
 .allocationCard,
 .activityCard {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 16px;
+    background: var(--surface-2);
+    border-radius: var(--card-border-radius);
     padding: 20px;
     opacity: 0;
     transform: translateY(20px);
@@ -264,9 +269,10 @@
 }
 
 .cardTitle {
+    font-family: var(--font-display);
     font-size: 0.9rem;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-primary);
     margin-bottom: 16px;
 }
 
@@ -296,7 +302,7 @@
 }
 
 .dotActive {
-    background: #34d399;
+    background: var(--color-success);
 }
 
 .dotRepaying {
@@ -304,12 +310,12 @@
 }
 
 .dotCompleted {
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--text-tertiary);
 }
 
 .allocationName {
     font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-secondary);
 }
 
 .allocationRight {
@@ -319,23 +325,25 @@
 }
 
 .allocationAmount {
+    font-family: var(--font-mono);
     font-size: 0.85rem;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-primary);
 }
 
 .allocationPercent {
+    font-family: var(--font-mono);
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-tertiary);
     min-width: 32px;
     text-align: right;
 }
 
 .allocationBar {
     display: flex;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 3px;
+    height: 4px;
+    background: var(--surface-4);
+    border-radius: var(--pill-radius);
     overflow: hidden;
 }
 
@@ -345,7 +353,7 @@
 }
 
 .barActive {
-    background: #34d399;
+    background: var(--color-success);
 }
 
 .barRepaying {
@@ -353,7 +361,7 @@
 }
 
 .barCompleted {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--text-tertiary);
 }
 
 /* ============================================
@@ -371,7 +379,7 @@
     align-items: center;
     gap: 12px;
     padding: 12px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid var(--surface-3);
 }
 
 .activityItem:last-child {
@@ -389,9 +397,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    color: rgba(255, 255, 255, 0.5);
+    background: var(--surface-3);
+    border-radius: 10px;
+    color: var(--text-tertiary);
 }
 
 .activityInfo {
@@ -403,13 +411,13 @@
     display: block;
     font-size: 0.85rem;
     font-weight: 500;
-    color: #fff;
+    color: var(--text-primary);
     margin-bottom: 2px;
 }
 
 .activityDesc {
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-tertiary);
 }
 
 .activityRight {
@@ -418,6 +426,7 @@
 
 .activityAmount {
     display: block;
+    font-family: var(--font-mono);
     font-size: 0.85rem;
     font-weight: 600;
     color: var(--accent);
@@ -426,15 +435,16 @@
 
 .activityAmountGreen {
     display: block;
+    font-family: var(--font-mono);
     font-size: 0.85rem;
     font-weight: 600;
-    color: #34d399;
+    color: var(--color-success);
     margin-bottom: 2px;
 }
 
 .activityTime {
     font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.3);
+    color: var(--text-tertiary);
 }
 
 /* ============================================
@@ -442,9 +452,8 @@
    ============================================ */
 
 .investmentsCard {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 16px;
+    background: var(--surface-2);
+    border-radius: var(--card-border-radius);
     overflow: hidden;
     opacity: 0;
     transform: translateY(20px);
@@ -461,13 +470,14 @@
     align-items: center;
     justify-content: space-between;
     padding: 20px 24px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--surface-3);
 }
 
 .investmentsHeader h2 {
+    font-family: var(--font-display);
     font-size: 1.1rem;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-primary);
 }
 
 .tabs {
@@ -478,22 +488,24 @@
 .tab {
     padding: 8px 16px;
     background: transparent;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-tertiary);
     font-size: 0.8rem;
     font-weight: 500;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--pill-radius);
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .tab:hover {
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--text-primary);
+    background: var(--surface-3);
 }
 
 .tabActive {
-    background: rgba(var(--accent-rgb), 0.15);
-    color: var(--accent);
+    background: var(--accent);
+    color: #000;
+    font-weight: 600;
 }
 
 .investmentsList {
@@ -502,8 +514,8 @@
 
 .investmentItem {
     padding: 20px 24px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    transition: background 0.3s ease;
+    border-bottom: 1px solid var(--surface-3);
+    transition: background 0.2s ease;
 }
 
 .investmentItem:last-child {
@@ -511,7 +523,7 @@
 }
 
 .investmentItem:hover {
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(255, 255, 255, 0.015);
 }
 
 .investmentMain {
@@ -522,9 +534,10 @@
 }
 
 .investmentInfo h4 {
+    font-family: var(--font-display);
     font-size: 1rem;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-primary);
     margin-bottom: 8px;
 }
 
@@ -540,34 +553,35 @@
     padding: 4px 10px;
     font-size: 0.7rem;
     font-weight: 600;
-    border-radius: 4px;
+    border-radius: var(--pill-radius);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.04em;
 }
 
 .statusActive {
-    background: rgba(52, 211, 153, 0.15);
-    color: #34d399;
+    background: rgba(34, 197, 94, 0.12);
+    color: var(--color-success);
 }
 
 .statusRepaying {
-    background: rgba(96, 165, 250, 0.15);
+    background: rgba(96, 165, 250, 0.12);
     color: #60a5fa;
 }
 
 .statusCompleted {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.5);
+    background: var(--surface-3);
+    color: var(--text-tertiary);
 }
 
 .investmentCategory {
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-tertiary);
 }
 
 .investmentDate {
+    font-family: var(--font-mono);
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.3);
+    color: var(--text-tertiary);
 }
 
 .investmentStats {
@@ -581,21 +595,22 @@
 
 .investmentStatValue {
     display: block;
+    font-family: var(--font-mono);
     font-size: 1rem;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-primary);
     margin-bottom: 4px;
 }
 
 .investmentStatLabel {
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.68rem;
+    color: var(--text-tertiary);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.06em;
 }
 
 .profitValue {
-    color: #34d399;
+    color: var(--color-success);
 }
 
 .investmentProgress {
@@ -606,21 +621,22 @@
     display: flex;
     justify-content: space-between;
     margin-bottom: 8px;
+    font-family: var(--font-mono);
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-tertiary);
 }
 
 .progressBar {
-    height: 4px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 2px;
+    height: 3px;
+    background: var(--surface-4);
+    border-radius: var(--pill-radius);
     overflow: hidden;
 }
 
 .progressFill {
     height: 100%;
-    background: linear-gradient(90deg, var(--accent), var(--accent-light));
-    border-radius: 2px;
+    background: var(--accent);
+    border-radius: var(--pill-radius);
     transition: width 0.8s ease;
 }
 
@@ -631,37 +647,37 @@
 }
 
 .claimSmallBtn {
-    padding: 8px 16px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    padding: 8px 18px;
+    background: var(--accent);
     color: #000;
     font-size: 0.8rem;
     font-weight: 600;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--pill-radius);
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: transform 0.15s ease, filter 0.15s ease;
 }
 
 .claimSmallBtn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(var(--accent-rgb), 0.3);
+    transform: scale(0.97);
+    filter: brightness(1.1);
 }
 
 .detailsBtn {
-    padding: 8px 16px;
-    background: transparent;
-    color: rgba(255, 255, 255, 0.6);
+    padding: 8px 18px;
+    background: var(--surface-3);
+    color: var(--text-secondary);
     font-size: 0.8rem;
     font-weight: 500;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
+    border: none;
+    border-radius: var(--pill-radius);
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: background 0.15s ease, color 0.15s ease;
 }
 
 .detailsBtn:hover {
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.2);
+    background: var(--surface-4);
+    color: var(--text-primary);
 }
 
 .completedBadge {
@@ -669,10 +685,10 @@
     align-items: center;
     gap: 6px;
     padding: 8px 16px;
-    background: rgba(255, 255, 255, 0.05);
-    color: rgba(255, 255, 255, 0.5);
+    background: var(--surface-3);
+    color: var(--text-tertiary);
     font-size: 0.8rem;
-    border-radius: 6px;
+    border-radius: var(--pill-radius);
 }
 
 .emptyState {
@@ -682,7 +698,7 @@
 
 .emptyState p {
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-tertiary);
 }
 
 /* ============================================
@@ -703,20 +719,21 @@
     align-items: center;
     justify-content: center;
     gap: 16px;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-tertiary);
     text-align: center;
 }
 
 .connectPrompt h2 {
+    font-family: var(--font-display);
     font-size: 1.3rem;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-primary);
     margin: 0;
 }
 
 .connectPrompt p {
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-secondary);
     margin: 0;
 }
 
@@ -725,7 +742,7 @@
     align-items: center;
     justify-content: center;
     padding: 30px 0;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-tertiary);
 }
 
 /* ============================================

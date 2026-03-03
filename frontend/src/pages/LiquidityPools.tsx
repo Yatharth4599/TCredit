@@ -29,8 +29,8 @@ export default function LiquidityPools() {
         setLoading(true)
         poolsApi.list()
             .then(({ data }) => {
-                setPools(data.pools)
-                setSummary(data.summary)
+                setPools(data?.pools ?? [])
+                setSummary(data?.summary ?? null)
             })
             .catch(() => {
                 setPools([])
@@ -68,7 +68,7 @@ export default function LiquidityPools() {
             setActionModal(null)
             setActionAmount('')
             // Refresh
-            poolsApi.list().then(({ data }) => { setPools(data.pools); setSummary(data.summary) }).catch(() => {})
+            poolsApi.list().then(({ data }) => { setPools(data?.pools ?? []); setSummary(data?.summary ?? null) }).catch(() => {})
         } catch {
             // Error handled by toast
         } finally {

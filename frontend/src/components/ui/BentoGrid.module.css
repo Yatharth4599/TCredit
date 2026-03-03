@@ -1,85 +1,52 @@
 .grid {
-    display: grid;
-    width: 100%;
+  display: grid;
+  width: 100%;
 }
 
 .card {
-    position: relative;
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(255, 255, 255, 0.03);
-    overflow: hidden;
-    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  position: relative;
+  border-radius: var(--card-border-radius);
+  background: var(--surface-2);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 
-    --glow-x: 50%;
-    --glow-y: 50%;
-    --glow-opacity: 0;
-    --glow-color: 255, 107, 53;
+  --glow-x: 50%;
+  --glow-y: 50%;
+  --glow-opacity: 0;
+  --glow-color: var(--accent-rgb);
 }
 
 .card:hover {
-    transform: translateY(-2px);
-    border-color: rgba(var(--glow-color), 0.2);
-    box-shadow:
-        0 8px 30px rgba(0, 0, 0, 0.3),
-        0 0 40px rgba(var(--glow-color), 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
 }
 
 .cardGlow {
-    position: absolute;
-    inset: 0;
-    opacity: var(--glow-opacity);
-    transition: opacity 0.4s ease;
-    pointer-events: none;
-    z-index: 0;
-    background: radial-gradient(
-        400px circle at var(--glow-x) var(--glow-y),
-        rgba(var(--glow-color), 0.08) 0%,
-        rgba(var(--glow-color), 0.03) 40%,
-        transparent 70%
-    );
-}
-
-/* Border glow overlay */
-.card::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    padding: 1px;
-    border-radius: inherit;
-    background: radial-gradient(
-        300px circle at var(--glow-x) var(--glow-y),
-        rgba(var(--glow-color), calc(var(--glow-opacity) * 0.5)) 0%,
-        rgba(var(--glow-color), calc(var(--glow-opacity) * 0.15)) 40%,
-        transparent 70%
-    );
-    -webkit-mask:
-        linear-gradient(#fff 0 0) content-box,
-        linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask:
-        linear-gradient(#fff 0 0) content-box,
-        linear-gradient(#fff 0 0);
-    mask-composite: exclude;
-    pointer-events: none;
-    z-index: 1;
+  position: absolute;
+  inset: 0;
+  opacity: var(--glow-opacity);
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    400px circle at var(--glow-x) var(--glow-y),
+    rgba(var(--glow-color), 0.07) 0%,
+    rgba(var(--glow-color), 0.02) 40%,
+    transparent 70%
+  );
 }
 
 .cardContent {
-    position: relative;
-    z-index: 2;
-    height: 100%;
+  position: relative;
+  z-index: 2;
+  height: 100%;
 }
 
 /* Responsive */
 @media (max-width: 1024px) {
-    .grid {
-        grid-template-columns: repeat(2, 1fr) !important;
-    }
+  .grid { grid-template-columns: repeat(2, 1fr) !important; }
 }
 
 @media (max-width: 600px) {
-    .grid {
-        grid-template-columns: 1fr !important;
-    }
+  .grid { grid-template-columns: 1fr !important; }
 }

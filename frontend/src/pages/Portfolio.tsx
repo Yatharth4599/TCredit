@@ -43,8 +43,8 @@ export default function Portfolio() {
         setLoading(true)
         investApi.portfolio(walletAddress)
             .then(({ data }) => {
-                setInvestments(data.investments)
-                setSummary(data.summary)
+                setInvestments(data?.investments ?? [])
+                setSummary(data?.summary ?? null)
             })
             .catch(() => {
                 setInvestments([])
@@ -61,8 +61,8 @@ export default function Portfolio() {
             // Refresh portfolio
             if (walletAddress) {
                 const { data } = await investApi.portfolio(walletAddress)
-                setInvestments(data.investments)
-                setSummary(data.summary)
+                setInvestments(data?.investments ?? [])
+                setSummary(data?.summary ?? null)
             }
         } catch {
             // Error handled by toast

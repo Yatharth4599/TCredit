@@ -1,97 +1,96 @@
 :root {
-  /* TigerPay Brand Colors */
-  --color-orange: #FF6B35;
-  --color-orange-light: #FF8C5A;
-  --color-orange-dark: #E85A28;
+  /* ─── Base ───────────────────────────────────── */
+  --bg-black:  #000000;
+  --bg-dark:   #06070A;   /* Near-black base (1inch-style) */
 
-  /* Main theme colors */
-  --color-black: #000000;
-  --color-dark-gray: #121212;
-  --color-gray: #222222;
-  --color-light-gray: #333333;
-  --color-medium-gray: #555555;
-  --color-lighter-gray: #888888;
-  --color-white: #FFFFFF;
+  /* ─── Surface layers (no borders — differentiate by color) ─── */
+  --surface-0: #06070A;   /* Page background */
+  --surface-1: #0C0F14;   /* Subtle elevated (sidebar, panels) */
+  --surface-2: #10141C;   /* Cards, main content blocks */
+  --surface-3: #161B26;   /* Inputs, nested elements, hover targets */
+  --surface-4: #1C2130;   /* Active/selected states */
 
-  /* Gradient colors for enhanced UI */
-  --gradient-gray-1: #FFFFFF;
-  --gradient-gray-2: #E0E0E0;
-  --gradient-gray-3: #C0C0C0;
-  --gradient-gray-4: #A0A0A0;
-  --gradient-gray-5: #808080;
+  /* Legacy aliases (keep for backward compat) */
+  --color-black:     #000000;
+  --color-dark-gray: #0C0F14;
+  --color-gray:      #161B26;
+  --color-white:     #FFFFFF;
+  --surface-glass:   rgba(16, 20, 28, 0.8);
+  --surface-card:    var(--surface-2);
+  --surface-overlay: rgba(6, 7, 10, 0.92);
 
-  /* Enhanced UI gradients with TigerPay orange - Balanced */
-  --gradient-primary: linear-gradient(135deg, #FF6B35 0%, #FF8C5A 100%);
-  --gradient-secondary: linear-gradient(135deg, #E85A28 0%, #FF6B35 100%);
-  --gradient-accent: linear-gradient(135deg, #FF6B35 0%, #FFFFFF 100%);
-  /* Orange fade to white */
-  --gradient-dark: linear-gradient(135deg, #050505 0%, #151515 100%);
-  --gradient-card: linear-gradient(180deg, rgba(20, 20, 20, 0.6) 0%, rgba(10, 10, 10, 0.4) 100%);
-  --gradient-glass: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+  /* ─── Text ───────────────────────────────────── */
+  --text-primary:   #F5F5F7;   /* Warm white, not harsh */
+  --text-secondary: rgba(245, 245, 247, 0.6);
+  --text-tertiary:  rgba(245, 245, 247, 0.38);
+  --text-disabled:  rgba(245, 245, 247, 0.22);
+  --text-highlight: var(--accent);
 
-  /* Status colors with enhanced visibility */
-  --color-success: #DDDDDD;
-  --color-error: #777777;
-  --color-warning: #AAAAAA;
-  --color-info: #BBBBBB;
+  /* ─── Borders — mostly transparent, accent-driven ─── */
+  --border-light:    transparent;                    /* Default: no border */
+  --border-subtle:   rgba(255, 255, 255, 0.05);     /* Only when needed */
+  --border-medium:   rgba(255, 255, 255, 0.08);
+  --border-highlight: var(--accent);
+  --border-glow:     rgba(var(--accent-rgb), 0.35);
 
-  /* Background and surface variations - Anvil Style */
-  --bg-black: #000000;
-  --bg-dark: #020202;
-  /* Deepest black */
-  --surface-1: #0A0A0A;
-  --surface-2: #141414;
-  --surface-3: #1A1A1A;
-  --surface-glass: rgba(10, 10, 10, 0.6);
-  /* Darker glass */
-  --surface-card: rgba(15, 15, 15, 0.8);
-  --surface-overlay: rgba(0, 0, 0, 0.9);
+  /* ─── Accent (default orange, overridden per-page) ─── */
+  --accent:       #FF6B35;
+  --accent-light: #FF8C5A;
+  --accent-dark:  #E85A28;
+  --accent-rgb:   255, 107, 53;
+  --accent-glow:  0 0 60px rgba(var(--accent-rgb), 0.15);
 
-  /* Aurora Glows (TigerPay Orange) */
-  --glow-aurora-primary: radial-gradient(50% 50% at 50% 100%, rgba(255, 107, 53, 0.15) 0%, rgba(255, 107, 53, 0) 100%);
+  /* ─── Gradients ─────────────────────────────── */
+  --gradient-primary:   linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+  --gradient-dark:      linear-gradient(135deg, #06070A 0%, #0C0F14 100%);
+  --gradient-card:      linear-gradient(180deg, rgba(16, 20, 28, 0.95) 0%, rgba(12, 15, 20, 0.9) 100%);
+  --gradient-glass:     linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+  --gradient-gray-1:    #F5F5F7;
+  --gradient-gray-2:    #C8C8CC;
+  --gradient-gray-3:    #9A9AA0;
 
-  /* Text colors - Restored balance */
-  --text-primary: var(--color-white);
-  --text-secondary: rgba(255, 255, 255, 0.7);
-  --text-tertiary: rgba(255, 255, 255, 0.5);
-  --text-disabled: rgba(255, 255, 255, 0.3);
-  --text-highlight: var(--color-orange);
+  /* ─── Aurora glow (bottom ambient) ─────────── */
+  --glow-aurora-primary: radial-gradient(
+    ellipse 80% 40% at 50% 110%,
+    rgba(var(--accent-rgb), 0.10) 0%,
+    transparent 70%
+  );
 
-  /* Border colors - Sleeker and more subtle */
-  --border-light: rgba(255, 255, 255, 0.08);
-  /* Thinner/lighter */
-  --border-medium: rgba(255, 255, 255, 0.12);
-  --border-highlight: var(--color-orange-dark);
-  /* Subtle orange usage */
-  --border-glow: rgba(255, 107, 53, 0.4);
-
-  /* Glass effect properties */
-  --glass-blur: 20px;
-  /* Increased blur for premium feel */
-  --glass-opacity: 0.6;
-  --glass-border: 1px solid var(--border-light);
-
-  /* Shadow colors */
-  --shadow-color: rgba(0, 0, 0, 0.5);
-  --shadow-light: rgba(0, 0, 0, 0.2);
+  /* ─── Shadows ────────────────────────────────── */
+  --shadow-sm:     0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md:     0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-lg:     0 8px 40px rgba(0, 0, 0, 0.5);
+  --shadow-xl:     0 16px 60px rgba(0, 0, 0, 0.6);
+  --shadow-color:  rgba(0, 0, 0, 0.5);
+  --shadow-light:  rgba(0, 0, 0, 0.2);
   --shadow-strong: rgba(0, 0, 0, 0.7);
-  --glow-light: 0 0 15px rgba(255, 255, 255, 0.05);
-  --glow-medium: 0 0 20px rgba(255, 255, 255, 0.1);
-  --glow-strong: 0 0 25px rgba(255, 255, 255, 0.15);
+  --glow-light:    0 0 15px rgba(255, 255, 255, 0.04);
+  --glow-medium:   0 0 24px rgba(255, 255, 255, 0.07);
 
-  /* Button colors */
-  --button-primary-bg: var(--gradient-primary);
-  --button-primary-text: var(--color-black);
-  --button-primary-hover: linear-gradient(135deg, #FF8C5A 0%, #FFAA80 100%);
+  /* ─── Glass ──────────────────────────────────── */
+  --glass-blur:    25px;
+  --glass-opacity: 0.85;
+  --glass-border:  none;          /* Borderless by default */
 
-  --button-secondary-bg: rgba(255, 255, 255, 0.03);
-  --button-secondary-text: var(--color-white);
-  --button-secondary-border: var(--border-medium);
-  --button-secondary-hover: rgba(255, 255, 255, 0.1);
+  /* ─── Buttons ────────────────────────────────── */
+  --button-primary-bg:    var(--accent);
+  --button-primary-text:  #000000;
+  --button-primary-hover: var(--accent-light);
+  --button-secondary-bg:  var(--surface-3);
+  --button-secondary-text: var(--text-primary);
+  --button-secondary-hover: var(--surface-4);
 
-  /* Card and panel effects - Sleeker Rounding */
-  --card-border-radius: 20px;
-  /* Increased from 12px */
-  --panel-border-radius: 24px;
-  /* Increased from 16px */
+  /* ─── Shape ──────────────────────────────────── */
+  --card-border-radius:  16px;
+  --panel-border-radius: 20px;
+  --pill-radius:         9999px;
+
+  /* ─── Brand ──────────────────────────────────── */
+  --color-orange:       #FF6B35;
+  --color-orange-light: #FF8C5A;
+  --color-orange-dark:  #E85A28;
+  --color-success:      #22C55E;
+  --color-error:        #EF4444;
+  --color-warning:      #F59E0B;
+  --color-info:         #3B82F6;
 }

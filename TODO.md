@@ -131,6 +131,23 @@
 
 ---
 
+---
+
+## Phase 3.5: Design System & CSS Foundation ✅
+
+- [x] 3-font system: Outfit (display/headings), Inter (body), JetBrains Mono (financial data/addresses)
+- [x] Surface layer architecture: `surface-0` (#06070A) → `surface-4` (#1C2130) — borderless by default, depth via color
+- [x] Per-page accent theming via `data-theme` on `<html>`: blue (vaults), cyan (portfolio), amber (merchant), purple (pools)
+- [x] `--pill-radius: 9999px`, `--card-border-radius: 16px`, `--accent-glow` variable per theme
+- [x] All 6 page CSS modules rewritten: borderless cards, pill buttons/badges/inputs, JetBrains Mono on all financial values
+- [x] Core components updated: GlassCard (borderless + hover lift), BentoGrid (accent-aware), FloatingDock (pill + active route indicator)
+- [x] RainbowKit dark theme aligned to design system, Toaster pill-shaped, PageLoader refined
+- [x] `globals.css`: `.btn-primary`, `.btn-secondary`, `.font-mono` global utilities
+
+> **Note**: This is CSS/token-level groundwork. The component-level visual redesign (card hierarchy, gradient text, ambient glows, skeleton states) is Phase 9.
+
+---
+
 ## Phase 4: Oracle Service ✅
 
 - [x] `POST /api/v1/oracle/payment` — webhook receiver
@@ -179,22 +196,72 @@
 
 ---
 
-## Phase 7: Frontend Integration
+## Phase 7: Frontend Integration ✅ (mostly)
 
-- [ ] Remove `@solana/wallet-adapter-*` dependencies
-- [ ] Install wagmi + viem + Web3Modal (or RainbowKit)
-- [ ] Configure Base Sepolia chain (chainId: 84532)
-- [ ] Replace `lib/mockData.ts` → API calls to backend
-- [ ] Replace `lib/x402MockData.ts` → oracle health + live events
-- [ ] Wire Zustand store to real API responses
-- [ ] **Home page**: live platform stats
-- [ ] **Vaults page**: real vault list, invest flow with wallet signing
-- [ ] **VaultDetail**: waterfall chart (real), milestones, tranches, repayment history
-- [ ] **Portfolio page**: real investor data
-- [ ] **Merchant Dashboard**: real profile, vault creation form, credit score display
-- [ ] **Liquidity Pools**: real pool data, deposit/withdraw flows
-- [ ] **X402 Demo**: live payment feed from indexed events
-- [ ] Transaction UX: pending/confirmed/failed states, error messages
+- [x] Remove `@solana/wallet-adapter-*` dependencies
+- [x] Install wagmi + viem + RainbowKit, configured for Base Sepolia (chainId: 84532)
+- [x] API client (`src/api/client.ts`) wired to backend — all endpoints consumed
+- [x] **Home page**: live platform stats (TVL, pools, active vaults) from `/platform/stats`
+- [x] **Vaults page**: real vault list from chain, invest flow with wallet signing + USDC approval
+- [x] **VaultDetail**: waterfall chart (real data), milestones, tranches, repayment history
+- [x] **Portfolio page**: real investor data via `/portfolio/:address`
+- [x] **Merchant Dashboard**: real profile, vault creation form with wallet signing
+- [x] **Liquidity Pools**: real pool data, deposit/withdraw flows with USDC approval
+- [x] Transaction UX: `useContractTx` hook — pending/confirmed/failed toasts
+- [ ] **X402 Demo**: live payment feed from indexed events (currently static demo)
+- [ ] Merchant vault creation: end-to-end signing flow needs final verification
+
+---
+
+## Phase 9: Component-Level Visual Redesign ← **NEEDS OPUS**
+
+> The CSS design system is in place (Phase 3.5). Phase 9 redesigns the actual JSX + CSS together — rethinking each component's visual hierarchy from scratch to achieve a premium 1inch-level feel. **CSS variable changes alone don't get there.**
+>
+> **Why it still doesn't look like 1inch:**
+> - Numbers are not hero-sized — TVL, APY, balance blend into surrounding text
+> - Card structure is generic key-value rows, not designed around one key metric
+> - No gradient text on headings or key stats
+> - Status colors only affect the small badge — don't bleed into the card
+> - Per-page ambient glows are CSS on `<html>` but hidden under solid page backgrounds
+> - Floating elements (detail panel, modals) use solid `surface-2` not frosted glass
+> - Loading states are still `<Loader2>` spinners, not shape-matched skeleton pulses
+> - Hardcoded color values (`#FF6B35`, `#22c55e`) still in `.tsx` files
+
+### 9A. Financial number hierarchy (all pages)
+- [ ] Portfolio total value: 3rem+, centered, JetBrains Mono, with `$` prefix dimmed
+- [ ] Pool APY: dominant metric on pool card (2rem+), accent colored
+- [ ] Vault raised/target: largest element on vault card with live fill animation
+- [ ] Replace all hardcoded hex colors in `.tsx` files with CSS variables
+
+### 9B. Vault card redesign (`Vaults.tsx` + `Vaults.module.css`)
+- [ ] Redesign card JSX: merchant name → APY/amount hero metric → progress bar → status → actions
+- [ ] Status tints the card background subtly (fundraising=blue tint, defaulted=red tint)
+- [ ] Progress bar: 8px tall, full card width, fills with accent color, animated on mount
+- [ ] Card hover: `box-shadow: var(--accent-glow)` + `translateY(-3px)` together
+
+### 9C. Pool card redesign (`LiquidityPools.tsx`)
+- [ ] APY as the focal hero number on each card (2.5rem, accent colored)
+- [ ] Utilization bar: 8px tall, prominent, centered in the card
+- [ ] Treasury/Senior pool card gets a subtle accent ring (`box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.2)`)
+
+### 9D. Gradient text on key elements
+- [ ] Home page headline: `background: linear-gradient(...)` + `background-clip: text` + `-webkit-text-fill-color: transparent`
+- [ ] Portfolio value: accent gradient text
+- [ ] Page overlines: glow text-shadow matching accent
+
+### 9E. Real ambient background (z-index fix)
+- [ ] Per-page `ambientGlow` divs: set `z-index: 0`, page content `z-index: 1` — glows visible behind content
+- [ ] Verify each page's colored ambient actually renders (currently may be hidden under solid `var(--bg-dark)`)
+
+### 9F. Skeleton loading states
+- [ ] `VaultCardSkeleton` component — pulse animation, matches card dimensions
+- [ ] `StatRowSkeleton` — 5 pill-shaped blocks, matching pool stats row
+- [ ] `PortfolioSkeleton` — left column + right column skeleton
+- [ ] Replace all page-level `<Loader2>` spinners with page-specific skeletons
+
+### 9G. Frosted glass on floating elements
+- [ ] Vaults detail panel: `backdrop-filter: blur(20px)` + `background: rgba(16,20,28,0.7)`
+- [ ] All modals: frosted glass overlay + semi-transparent modal bg
 
 ---
 
