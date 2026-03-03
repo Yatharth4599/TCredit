@@ -32,11 +32,12 @@ export function useScrollAnimations() {
             const cinematicEl = document.getElementById('cinematic')
             if (cinematicEl) {
                 const content = cinematicEl.querySelector('[data-anim="cinematic-content"]')
+                if (content) gsap.set(content, { opacity: 0, y: 30 })
                 if (content) {
                     gsap.fromTo(content,
                         { opacity: 0, y: 30 },
                         {
-                            opacity: 1, y: 0, duration: 0.55, ease: 'power2.out',
+                            opacity: 1, y: 0, duration: 0.55, ease: 'power3.out',
                             scrollTrigger: { trigger: cinematicEl, start: 'top 70%', once: true },
                         }
                     )
@@ -67,21 +68,21 @@ export function useScrollAnimations() {
                 if (cards[0]) {
                     tl.fromTo(cards[0],
                         { opacity: 0, x: -220 },
-                        { opacity: 1, x: 0, duration: 0.6, ease: 'power2.out' },
+                        { opacity: 1, x: 0, duration: 0.6, ease: 'power3.out' },
                         0
                     )
                 }
                 if (cards[1]) {
                     tl.fromTo(cards[1],
                         { opacity: 0, y: 160 },
-                        { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' },
+                        { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' },
                         0.2
                     )
                 }
                 if (cards[2]) {
                     tl.fromTo(cards[2],
                         { opacity: 0, x: 220 },
-                        { opacity: 1, x: 0, duration: 0.6, ease: 'power2.out' },
+                        { opacity: 1, x: 0, duration: 0.6, ease: 'power3.out' },
                         0.4
                     )
                 }
@@ -113,11 +114,12 @@ export function useScrollAnimations() {
             const capitalEl = document.getElementById('capital')
             if (capitalEl) {
                 const header = capitalEl.querySelector('[data-anim="capital-header"]')
+                if (header) gsap.set(header, { opacity: 0, y: 30 })
                 if (header) {
                     gsap.fromTo(header,
                         { opacity: 0, y: 30 },
                         {
-                            opacity: 1, y: 0, duration: 0.45, ease: 'power2.out',
+                            opacity: 1, y: 0, duration: 0.45, ease: 'power3.out',
                             scrollTrigger: { trigger: capitalEl, start: 'top 75%', once: true },
                         }
                     )
@@ -129,11 +131,13 @@ export function useScrollAnimations() {
             if (forUsersEl) {
                 const content = forUsersEl.querySelector('[data-anim="forusers-content"]')
                 const visual = forUsersEl.querySelector('[data-anim="forusers-visual"]')
+                if (content) gsap.set(content, { opacity: 0, x: -45 })
+                if (visual) gsap.set(visual, { opacity: 0, x: 45, scale: 0.96 })
                 if (content) {
                     gsap.fromTo(content,
                         { opacity: 0, x: -45 },
                         {
-                            opacity: 1, x: 0, duration: 0.4, ease: 'power2.out',
+                            opacity: 1, x: 0, duration: 0.4, ease: 'power3.out',
                             scrollTrigger: { trigger: forUsersEl, start: 'top 72%', once: true },
                         }
                     )
@@ -142,7 +146,7 @@ export function useScrollAnimations() {
                     gsap.fromTo(visual,
                         { opacity: 0, x: 45, scale: 0.96 },
                         {
-                            opacity: 1, x: 0, scale: 1, duration: 0.4, ease: 'power2.out',
+                            opacity: 1, x: 0, scale: 1, duration: 0.4, ease: 'power3.out',
                             scrollTrigger: { trigger: forUsersEl, start: 'top 72%', once: true },
                         }
                     )
@@ -154,11 +158,13 @@ export function useScrollAnimations() {
             if (forMerchantsEl) {
                 const content = forMerchantsEl.querySelector('[data-anim="formerchants-content"]')
                 const visual = forMerchantsEl.querySelector('[data-anim="formerchants-visual"]')
+                if (content) gsap.set(content, { opacity: 0, x: 45 })
+                if (visual) gsap.set(visual, { opacity: 0, x: -45, scale: 0.96 })
                 if (content) {
                     gsap.fromTo(content,
                         { opacity: 0, x: 45 },
                         {
-                            opacity: 1, x: 0, duration: 0.4, ease: 'power2.out',
+                            opacity: 1, x: 0, duration: 0.4, ease: 'power3.out',
                             scrollTrigger: { trigger: forMerchantsEl, start: 'top 72%', once: true },
                         }
                     )
@@ -167,14 +173,14 @@ export function useScrollAnimations() {
                     gsap.fromTo(visual,
                         { opacity: 0, x: -45, scale: 0.96 },
                         {
-                            opacity: 1, x: 0, scale: 1, duration: 0.4, ease: 'power2.out',
+                            opacity: 1, x: 0, scale: 1, duration: 0.4, ease: 'power3.out',
                             scrollTrigger: { trigger: forMerchantsEl, start: 'top 72%', once: true },
                         }
                     )
                 }
             }
 
-            // ── Flywheel Section — PINNED scroll-driven card reveal ──
+            // ── Flywheel Section — PINNED scroll-driven card reveal + floating after ──
             const flywheelEl = document.getElementById('flywheel')
             if (flywheelEl) {
                 const cards = Array.from(flywheelEl.querySelectorAll('[data-anim="flywheel-card"]'))
@@ -190,6 +196,18 @@ export function useScrollAnimations() {
                         start: 'top top',
                         end: '+=80%',
                         scrub: 0.5,
+                        onLeave: () => {
+                            // After pin releases, start CSS floating animations
+                            cards.forEach((card) => {
+                                (card as HTMLElement).dataset.floating = 'true'
+                            })
+                        },
+                        onEnterBack: () => {
+                            // Remove floating when scrolling back into pinned zone
+                            cards.forEach((card) => {
+                                delete (card as HTMLElement).dataset.floating
+                            })
+                        },
                     },
                 })
 
@@ -197,7 +215,7 @@ export function useScrollAnimations() {
                     tl.fromTo(
                         card,
                         { opacity: 0, y: 55, scale: 0.9 },
-                        { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: 'power2.out' },
+                        { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: 'power3.out' },
                         i * 0.3,
                     )
                 })
@@ -206,7 +224,7 @@ export function useScrollAnimations() {
                     tl.fromTo(
                         centerText,
                         { opacity: 0, y: 25 },
-                        { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' },
+                        { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' },
                         cards.length * 0.25,
                     )
                 }
@@ -216,11 +234,12 @@ export function useScrollAnimations() {
             const whyEl = document.getElementById('why-blockchain')
             if (whyEl) {
                 const text = whyEl.querySelector('[data-anim="why-text"]')
+                if (text) gsap.set(text, { opacity: 0, y: 30 })
                 if (text) {
                     gsap.fromTo(text,
                         { opacity: 0, y: 30 },
                         {
-                            opacity: 1, y: 0, duration: 0.45, ease: 'power2.out',
+                            opacity: 1, y: 0, duration: 0.45, ease: 'power3.out',
                             scrollTrigger: { trigger: whyEl, start: 'top 72%', once: true },
                         }
                     )
@@ -235,7 +254,7 @@ export function useScrollAnimations() {
                 gsap.fromTo(el,
                     { opacity: 0, y: 20 },
                     {
-                        opacity: 1, y: 0, duration: 0.4, ease: 'power2.out',
+                        opacity: 1, y: 0, duration: 0.4, ease: 'power3.out',
                         scrollTrigger: { trigger: el, start: 'top 88%', once: true },
                     }
                 )

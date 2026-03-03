@@ -40,33 +40,33 @@ export default function Home() {
     useScrollAnimations()
 
     const flywheelCards = [
-        { num: '01', title: 'Payments generate data', desc: 'x402 transactions create verifiable payment history on-chain', color: '#2CFF05', hoverBg: '#0a2d05' },
-        { num: '02', title: 'Data unlocks credit', desc: 'FairScale scores enable access to structured credit pools', color: '#00FFF0', hoverBg: '#052d2a' },
-        { num: '03', title: 'Credit grows business', desc: 'Working capital fuels inventory, expansion, and new markets', color: '#E0115F', hoverBg: '#2d0515' },
-        { num: '04', title: 'Growth fuels payments', desc: 'Larger businesses process more volume, restarting the cycle', color: '#FF5C00', hoverBg: '#2d1505' },
+        { num: '01', title: 'Payments generate data', desc: 'Every x402 transaction creates verifiable, on-chain payment history that no bank or credit bureau can replicate.', color: '#2CFF05', hoverBg: '#0a2d05' },
+        { num: '02', title: 'Data unlocks credit', desc: 'FairScale scores — built from live revenue data — enable access to structured credit pools without collateral.', color: '#00FFF0', hoverBg: '#052d2a' },
+        { num: '03', title: 'Credit grows business', desc: 'Working capital funds inventory, expansion, and new markets. Businesses grow faster with programmatic access to capital.', color: '#E0115F', hoverBg: '#2d0515' },
+        { num: '04', title: 'Growth fuels payments', desc: 'Larger businesses process more volume through TCredit, feeding the credit engine and restarting the cycle.', color: '#FF5C00', hoverBg: '#2d1505' },
     ]
 
     const problemSlides = [
         {
             cardTitle: 'Traditional Finance',
-            cardDetail: 'Requires collateral and local presence. Weeks to months for approval. 65% of global SMEs excluded.',
+            cardDetail: '65% of global SMEs cannot access formal credit. Banks demand collateral, physical presence, and 4–6 week review cycles. Productive businesses are locked out.',
             icon: <BankIcon opacity={0.85} />,
             headline: 'Legacy credit',
             desc: 'Collateral-based systems exclude productive businesses from capital markets.',
         },
         {
-            cardTitle: 'DeFi Today',
-            cardDetail: 'Overcollateralized lending. No revenue data. Cannot evaluate real businesses.',
+            cardTitle: 'DeFi Lending Today',
+            cardDetail: 'Overcollateralized protocols cannot evaluate real businesses. 150% collateral requirements make DeFi credit pointless for working capital.',
             icon: <HourglassIcon opacity={0.85} />,
             headline: 'Broken DeFi',
             desc: 'Current protocols ignore real-world productivity and cash flow entirely.',
         },
         {
             cardTitle: 'No Enforcement Layer',
-            cardDetail: 'Capital exists but cannot verify borrower activity. Trust-based systems leak value. No repayment routing.',
+            cardDetail: 'Capital pools exist. Borrowers exist. But there is no mechanism to verify revenue, route repayment from cash flow, or enforce terms without courts.',
             icon: <ShieldIcon opacity={0.85} />,
-            headline: 'Missing layer',
-            desc: 'Capital exists but cannot follow commerce — no mechanism routes repayment from revenue.',
+            headline: 'Missing infrastructure',
+            desc: 'Capital cannot follow commerce — no protocol routes repayment from revenue.',
         },
     ]
 
@@ -234,6 +234,10 @@ export default function Home() {
                     <div className={styles.sectionHeader}>
                         <span className={styles.sectionLabel}>The Problem</span>
                         <h2 className={styles.sectionTitle}>Why existing systems <span className={styles.gradientInline}>fail</span></h2>
+                        <p className={styles.problemDesc}>
+                            $65 trillion in global SME credit demand goes unmet every year. Legacy banks require
+                            collateral. DeFi ignores revenue. Neither can underwrite a real business.
+                        </p>
                     </div>
 
                     {/* 3 square cards fly in from different directions */}
@@ -253,6 +257,9 @@ export default function Home() {
                             </div>
                         ))}
                     </div>
+                    <p className={styles.problemCallout}>
+                        TCredit solves this with a single primitive: <strong>revenue-backed, programmable credit.</strong>
+                    </p>
                 </div>
             </section>
 
@@ -262,36 +269,47 @@ export default function Home() {
                     <div className={styles.hiwHeading}>
                         <span className={styles.sectionLabel}>How It Works</span>
                         <h2 className={styles.sectionTitle}>Five steps to <span className={styles.gradientInline}>programmable credit</span></h2>
+                        <p className={styles.hiwSubtitle}>From first payment to automated repayment — every step is on-chain, verifiable, and permissionless.</p>
                     </div>
                     <div data-anim="hiw-track" className={styles.hiwTrack}>
                         <div className={styles.hiwCard} style={{ background: '#2CFF05' }}>
+                            <span className={styles.hiwStep}>01</span>
                             <span className={styles.hiwBadge}>Payment Routing</span>
                             <h3 className={styles.hiwCardTitle}>Route payments through TCredit</h3>
-                            <p className={styles.hiwCardDesc}>Businesses bill customers using TCredit x402 payment endpoints. Customers pay via local rails or stablecoins.</p>
+                            <p className={styles.hiwCardDesc}>Businesses bill customers using TCredit x402 payment endpoints. Customers pay via local rails or stablecoins. Every transaction is recorded on-chain as verifiable payment history.</p>
+                            <div className={styles.hiwCardDetail}><span>Supports USDC, local bank rails, and card payments via on-ramp partners.</span></div>
                             <button className={styles.hiwCardBtn} onClick={() => navigate('/merchant')}>Learn More</button>
                         </div>
                         <div className={styles.hiwCard} style={{ background: '#00FFF0' }}>
+                            <span className={styles.hiwStep}>02</span>
                             <span className={styles.hiwBadge}>Financial Identity</span>
                             <h3 className={styles.hiwCardTitle}>Build a live credit profile</h3>
-                            <p className={styles.hiwCardDesc}>Transaction behaviour builds a live credit profile — revenue consistency, volume, frequency, counterparty diversity.</p>
+                            <p className={styles.hiwCardDesc}>Transaction behaviour builds a live credit profile — revenue consistency, volume, frequency, counterparty diversity. Your FairScale score updates with every payment, not once a year.</p>
+                            <div className={styles.hiwCardDetail}><span>FairScale scores range 0–1000 across four credit tiers: A, B, C, D.</span></div>
                             <button className={styles.hiwCardBtn} onClick={() => navigate('/merchant')}>Learn More</button>
                         </div>
                         <div className={styles.hiwCard} style={{ background: '#FFD700' }}>
+                            <span className={styles.hiwStep}>03</span>
                             <span className={styles.hiwBadge}>Capital Advance</span>
                             <h3 className={styles.hiwCardTitle}>Access working capital instantly</h3>
-                            <p className={styles.hiwCardDesc}>Businesses request working capital, invoice financing, or trade finance against receivables. ~2% monthly cost.</p>
+                            <p className={styles.hiwCardDesc}>Request working capital, invoice financing, or trade finance against your receivables. Typical cost: ~2% monthly. No collateral needed — your revenue history is the collateral.</p>
+                            <div className={styles.hiwCardDetail}><span>Loan terms from 3–12 months. Structured vault with milestone-gated tranches.</span></div>
                             <button className={styles.hiwCardBtn} onClick={() => navigate('/vaults')}>Learn More</button>
                         </div>
                         <div className={styles.hiwCard} style={{ background: '#E0115F' }}>
+                            <span className={`${styles.hiwStep} ${styles.hiwStepLight}`}>04</span>
                             <span className={`${styles.hiwBadge} ${styles.hiwBadgeLight}`}>Liquidity Funding</span>
                             <h3 className={`${styles.hiwCardTitle} ${styles.hiwCardTitleLight}`}>Fund through structured tranches</h3>
-                            <p className={`${styles.hiwCardDesc} ${styles.hiwCardDescLight}`}>On-chain vaults fund loans via structured tranches — senior lenders, liquidity pools, and community investors.</p>
+                            <p className={`${styles.hiwCardDesc} ${styles.hiwCardDescLight}`}>On-chain vaults fund loans via structured tranches — senior lenders get priority repayment, liquidity pools provide stable backing, and community investors earn higher yield at higher risk.</p>
+                            <div className={`${styles.hiwCardDetail} ${styles.hiwCardDetailLight}`}><span>Waterfall distribution: Senior &rarr; Pool &rarr; Community &rarr; Merchant.</span></div>
                             <button className={`${styles.hiwCardBtn} ${styles.hiwCardBtnLight}`} onClick={() => navigate('/pools')}>Learn More</button>
                         </div>
                         <div className={styles.hiwCard} style={{ background: '#FFFFFF' }}>
+                            <span className={styles.hiwStep}>05</span>
                             <span className={styles.hiwBadge}>Automated Repayment</span>
                             <h3 className={styles.hiwCardTitle}>Repayment happens automatically</h3>
-                            <p className={styles.hiwCardDesc}>Incoming payments auto-split: lender repayment first, remaining merchant balance second. No manual installments.</p>
+                            <p className={styles.hiwCardDesc}>Incoming payments auto-split: lender repayment first, remaining balance to the merchant. No manual installments, no missed payments. Late fees are calculated and enforced on-chain.</p>
+                            <div className={styles.hiwCardDetail}><span>x402 settlement splits enforce repayment at the protocol layer.</span></div>
                             <button className={styles.hiwCardBtn} onClick={() => navigate('/vaults')}>Learn More</button>
                         </div>
                     </div>
@@ -305,7 +323,9 @@ export default function Home() {
                         <span className={styles.sectionLabel}>Capital Structure</span>
                         <h2 className={styles.sectionTitle}>Structured liquidity with <span className={styles.gradientInline}>waterfall repayment</span></h2>
                         <p className={styles.sectionDesc}>
-                            Each loan is funded through layered capital. Repayment flows top-down — senior first, merchant last.
+                            Each vault is funded through three layers of capital. When revenue flows in,
+                            repayment cascades top-down — senior lenders are paid first, then liquidity pools,
+                            then community investors. The merchant receives surplus only after all obligations are met.
                         </p>
                     </div>
                     <WaterfallFlow />
@@ -320,13 +340,15 @@ export default function Home() {
                             <span className={styles.sectionLabel}>For Investors</span>
                             <h2 className={styles.splitTitle}>Earn yield from <span className={styles.gradientInline}>real revenue</span></h2>
                             <p className={styles.splitDesc}>
-                                Fund merchant vaults and earn returns from actual business cash flow. Repayment is enforced by the protocol, not by borrower goodwill.
+                                Fund merchant vaults and earn returns backed by actual business cash flow.
+                                Repayment is enforced by the protocol at the smart-contract level — not by
+                                borrower goodwill, not by legal process.
                             </p>
                             <ul className={styles.featureList}>
-                                <li><span className={styles.checkIcon}>✓</span> Structured tranches — choose your risk/return</li>
-                                <li><span className={styles.checkIcon}>✓</span> Waterfall protection — senior paid first</li>
-                                <li><span className={styles.checkIcon}>✓</span> Continuous yield from x402 payment stream</li>
-                                <li><span className={styles.checkIcon}>✓</span> Transparent on-chain tracking</li>
+                                <li><span className={styles.checkIcon}>✓</span> Structured tranches — choose your risk/return profile</li>
+                                <li><span className={styles.checkIcon}>✓</span> Waterfall protection — senior tranche is always paid first</li>
+                                <li><span className={styles.checkIcon}>✓</span> Continuous yield from x402 payment stream, not periodic coupons</li>
+                                <li><span className={styles.checkIcon}>✓</span> Full transparency — every repayment auditable on BaseScan</li>
                             </ul>
                             <button className={styles.outlineBtn} onClick={() => navigate('/vaults')}>
                                 Browse Vaults
@@ -346,15 +368,36 @@ export default function Home() {
                                 <div className={styles.visualRow}>
                                     <div>
                                         <span className={styles.visualSmallValue}>$2,847</span>
-                                        <span className={styles.visualSmallLabel}>Returns</span>
+                                        <span className={styles.visualSmallLabel}>Returns Earned</span>
                                     </div>
                                     <div>
                                         <span className={styles.visualSmallValue}>+11.6%</span>
-                                        <span className={styles.visualSmallLabel}>APY</span>
+                                        <span className={styles.visualSmallLabel}>Blended APY</span>
                                     </div>
                                 </div>
                                 <div className={styles.visualBar}>
                                     <div className={styles.visualBarFill} style={{ width: '73%' }} />
+                                </div>
+                                <div className={styles.visualDivider} />
+                                <div className={styles.visualRow}>
+                                    <div>
+                                        <span className={styles.visualSmallValue}>3</span>
+                                        <span className={styles.visualSmallLabel}>Active Vaults</span>
+                                    </div>
+                                    <div>
+                                        <span className={styles.visualSmallValue}>Senior</span>
+                                        <span className={styles.visualSmallLabel}>Primary Tranche</span>
+                                    </div>
+                                </div>
+                                <div className={styles.visualRow}>
+                                    <div>
+                                        <span className={styles.visualSmallValue}>$18,200</span>
+                                        <span className={styles.visualSmallLabel}>Principal Remaining</span>
+                                    </div>
+                                    <div>
+                                        <span className={styles.visualSmallValue}>42 days</span>
+                                        <span className={styles.visualSmallLabel}>Avg. Maturity</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -370,13 +413,15 @@ export default function Home() {
                             <span className={styles.sectionLabel}>For Merchants</span>
                             <h2 className={styles.splitTitle}>Stream capital as you <span className={styles.gradientInline}>perform</span></h2>
                             <p className={styles.splitDesc}>
-                                Bill through TCredit endpoints. Your payment history becomes your credit score. Access working capital, invoice financing, or trade finance — up to 12 months.
+                                Bill through TCredit x402 endpoints. Your payment history becomes your credit score
+                                in real-time. Access working capital, invoice financing, or trade finance — up to 12 months,
+                                with rates that improve as your FairScale score grows.
                             </p>
                             <ul className={styles.featureList}>
-                                <li><span className={styles.checkIcon}>✓</span> x402 payment endpoints — plug into your billing</li>
-                                <li><span className={styles.checkIcon}>✓</span> No collateral — credit scored by revenue flow</li>
-                                <li><span className={styles.checkIcon}>✓</span> Auto-repayment from incoming payments</li>
-                                <li><span className={styles.checkIcon}>✓</span> Better rates as your credit score improves</li>
+                                <li><span className={styles.checkIcon}>✓</span> x402 payment endpoints — plug into any billing system via API</li>
+                                <li><span className={styles.checkIcon}>✓</span> No collateral required — credit scored purely by revenue flow</li>
+                                <li><span className={styles.checkIcon}>✓</span> Auto-repayment from incoming payments — no manual installments</li>
+                                <li><span className={styles.checkIcon}>✓</span> Better rates as your FairScale score improves over time</li>
                             </ul>
                             <button className={styles.outlineBtn} onClick={() => navigate('/merchant')}>
                                 Apply for Funding
@@ -386,7 +431,7 @@ export default function Home() {
                         <div data-anim="formerchants-visual" className={styles.splitVisual}>
                             <div className={styles.visualCard}>
                                 <div className={styles.visualCardHeader}>
-                                    <span>Credit Score</span>
+                                    <span>Merchant Profile</span>
                                     <span className={styles.visualBadgeGreen}>Excellent</span>
                                 </div>
                                 <div className={styles.creditScore}>
@@ -397,9 +442,12 @@ export default function Home() {
                                     </svg>
                                 </div>
                                 <div className={styles.creditDetails}>
+                                    <div><span>FairScale Score</span><span>Tier A</span></div>
                                     <div><span>Revenue Consistency</span><span>98%</span></div>
-                                    <div><span>x402 Payments</span><span>1,247</span></div>
-                                    <div><span>Total Borrowed</span><span>$185,000</span></div>
+                                    <div><span>x402 Payments Processed</span><span>1,247</span></div>
+                                    <div><span>Total Capital Accessed</span><span>$185,000</span></div>
+                                    <div><span>Current Repayment Rate</span><span>100%</span></div>
+                                    <div><span>Active Vault</span><span>1 of 2</span></div>
                                 </div>
                             </div>
                         </div>
@@ -439,7 +487,8 @@ export default function Home() {
                         <span className={styles.sectionLabel}>The Flywheel</span>
                         <h2 className={styles.sectionTitle}>Liquidity flows toward <span className={styles.gradientInline}>productivity</span></h2>
                         <p className={styles.flywheelSubtext}>
-                            Every payment through TCredit feeds the credit engine — creating a self-reinforcing cycle of access, growth, and liquidity.
+                            Every payment through TCredit feeds the credit engine. More data means better scores.
+                            Better scores unlock more capital. More capital drives more payments. The flywheel never stops.
                         </p>
                     </div>
                 </div>
@@ -530,35 +579,103 @@ export default function Home() {
                                 </span>
                             </h2>
                             <p className={styles.whyDesc}>
-                                Blockchain removes every point of failure that makes traditional credit inaccessible — geographic limits, opaque intermediaries, manual enforcement, and slow data.
+                                Blockchain removes every failure point that makes traditional credit inaccessible —
+                                geographic restrictions, opaque intermediaries, manual enforcement, and stale data.
+                                TCredit turns these into protocol-level guarantees.
                             </p>
                             <ul className={styles.stepsList}>
-                                <li className={styles.stepsListItem}><span className={styles.stepsListNum}>01</span><span>Open to any lender, anywhere in the world</span></li>
-                                <li className={styles.stepsListItem}><span className={styles.stepsListNum}>02</span><span>Every transaction fully auditable on-chain</span></li>
-                                <li className={styles.stepsListItem}><span className={styles.stepsListNum}>03</span><span>Repayment enforced by code, not courts</span></li>
-                                <li className={styles.stepsListItem}><span className={styles.stepsListNum}>04</span><span>Credit profile built from live payment data</span></li>
+                                <li className={styles.stepsListItem}>
+                                    <span className={styles.stepsListNum}>01</span>
+                                    <div>
+                                        <strong>Global liquidity access</strong>
+                                        <span className={styles.stepsListSub}>Any lender, anywhere in the world, can fund productive businesses.</span>
+                                    </div>
+                                </li>
+                                <li className={styles.stepsListItem}>
+                                    <span className={styles.stepsListNum}>02</span>
+                                    <div>
+                                        <strong>Full auditability</strong>
+                                        <span className={styles.stepsListSub}>Every transaction, repayment, and distribution is verifiable on-chain.</span>
+                                    </div>
+                                </li>
+                                <li className={styles.stepsListItem}>
+                                    <span className={styles.stepsListNum}>03</span>
+                                    <div>
+                                        <strong>Programmatic enforcement</strong>
+                                        <span className={styles.stepsListSub}>Repayment is enforced by smart contracts, not courts or legal process.</span>
+                                    </div>
+                                </li>
+                                <li className={styles.stepsListItem}>
+                                    <span className={styles.stepsListNum}>04</span>
+                                    <div>
+                                        <strong>Real-time underwriting</strong>
+                                        <span className={styles.stepsListSub}>Credit profiles update from live payment data — not annual reviews.</span>
+                                    </div>
+                                </li>
                             </ul>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* ── Footer ── */}
+            {/* ── Footer — 1inch-style ── */}
             <footer className={styles.footer}>
-                <div className={styles.footerContent}>
+                <div className={styles.footerTop}>
                     <div className={styles.footerBrand}>
                         <span className={styles.footerLogo}>TCredit</span>
-                        <p>The Programmable Credit Network</p>
                     </div>
-                    <div className={styles.footerLinks}>
-                        <a href="#">Documentation</a>
-                        <a href="#">GitHub</a>
-                        <a href="#">Twitter</a>
-                        <a href="#">Discord</a>
+                    <div className={styles.footerColumns}>
+                        <div className={styles.footerCol}>
+                            <h4>Products</h4>
+                            <a href="/vaults">Vaults</a>
+                            <a href="/pools">Liquidity Pools</a>
+                            <a href="/portfolio">Portfolio</a>
+                            <a href="/merchant">Merchant Dashboard</a>
+                            <a href="/x402">x402 Payments</a>
+                        </div>
+                        <div className={styles.footerCol}>
+                            <h4>Company</h4>
+                            <a href="#">About</a>
+                            <a href="#">Blog</a>
+                            <a href="#">Careers</a>
+                            <a href="#">Security</a>
+                        </div>
+                        <div className={styles.footerCol}>
+                            <h4>Resources</h4>
+                            <a href="#">Documentation</a>
+                            <a href="#">Litepaper</a>
+                            <a href="#">Help Center</a>
+                            <a href="#">Suggest a Feature</a>
+                        </div>
+                        <div className={styles.footerCol}>
+                            <h4>Network</h4>
+                            <a href="#">Base Sepolia</a>
+                            <a href="#">BaseScan</a>
+                            <a href="#">Governance</a>
+                        </div>
                     </div>
                 </div>
-                <div className={styles.footerBottom}>
-                    <span>© 2026 TCredit. Making real-world revenue natively lendable on-chain.</span>
+                <div className={styles.footerDivider} />
+                <div className={styles.footerBottomRow}>
+                    <div className={styles.footerSocials}>
+                        <a href="https://github.com/Yatharth4599/TCredit" target="_blank" rel="noopener" aria-label="GitHub">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                        </a>
+                        <a href="https://x.com/" target="_blank" rel="noopener" aria-label="Twitter">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        </a>
+                        <a href="#" aria-label="Discord">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189z"/></svg>
+                        </a>
+                        <a href="#" aria-label="Telegram">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                        </a>
+                    </div>
+                    <div className={styles.footerLegal}>
+                        <a href="#">Terms of Use</a>
+                        <a href="#">Privacy Policy</a>
+                        <span className={styles.footerBuilt}>Built on Base</span>
+                    </div>
                 </div>
             </footer>
         </div>

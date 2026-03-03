@@ -382,15 +382,6 @@
 .sectionHeader {
     text-align: center;
     margin-bottom: 60px;
-    opacity: 0;
-    transform: translateY(40px) translateZ(0);
-    transition: opacity 0.9s cubic-bezier(.4, 0, .2, 1), transform 0.9s cubic-bezier(.4, 0, .2, 1);
-    will-change: transform, opacity;
-}
-
-.sectionHeader.visible {
-    opacity: 1;
-    transform: translateY(0) translateZ(0);
 }
 
 .sectionLabel {
@@ -486,12 +477,6 @@
 }
 
 /* ── Problem Section — on white bg ── */
-.problemSection .sectionHeader {
-    opacity: 1;
-    transform: none;
-    transition: none;
-    will-change: auto;
-}
 .problemSection .sectionLabel { color: rgba(0, 0, 0, 0.5); }
 .problemSection .sectionTitle { color: #000000; }
 .problemSection .gradientInline {
@@ -561,7 +546,7 @@
 .hiwCard {
     flex-shrink: 0;
     width: calc(50vw - 48px);
-    height: 75vh;
+    height: 60vh;
     border-radius: 0;
     padding: 48px 40px;
     display: flex;
@@ -638,6 +623,43 @@
 .hiwCardBtnInvert {
     background: #fff;
     color: #000;
+}
+
+.hiwStep {
+    font-family: var(--font-mono);
+    font-size: 4rem;
+    font-weight: 800;
+    color: rgba(0, 0, 0, 0.08);
+    line-height: 1;
+    margin-bottom: 16px;
+}
+
+.hiwStepLight {
+    color: rgba(255, 255, 255, 0.1);
+}
+
+.hiwCardDetail {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    font-size: 0.85rem;
+    color: rgba(0, 0, 0, 0.45);
+    line-height: 1.6;
+}
+
+.hiwCardDetailLight {
+    border-top-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.hiwSubtitle {
+    font-size: 0.95rem;
+    color: var(--text-tertiary);
+    margin-top: 12px;
+    text-align: center;
+    max-width: 560px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .cardSwapWrapper {
@@ -758,8 +780,8 @@
    ============================================ */
 
 .forUsers {
-    padding: 100px 24px;
-    min-height: 100vh;
+    padding: 80px 24px;
+    min-height: auto;
     background: #2CFF05;
     position: relative;
 }
@@ -773,8 +795,8 @@
 }
 
 .forMerchants {
-    padding: 100px 24px;
-    min-height: 100vh;
+    padding: 80px 24px;
+    min-height: auto;
     background: #E0115F;
     position: relative;
 }
@@ -802,25 +824,7 @@
     direction: ltr;
 }
 
-.splitContent {
-    opacity: 0;
-    transform: translateX(-40px) translateZ(0);
-    transition: opacity 1s cubic-bezier(.4, 0, .2, 1), transform 1s cubic-bezier(.4, 0, .2, 1);
-    will-change: transform, opacity;
-}
-
-.splitContent.visible {
-    opacity: 1;
-    transform: translateX(0) translateZ(0);
-}
-
-.splitReverse .splitContent {
-    transform: translateX(40px) translateZ(0);
-}
-
-.splitReverse .splitContent.visible {
-    transform: translateX(0) translateZ(0);
-}
+.splitContent {}
 
 .splitTitle {
     font-size: clamp(1.5rem, 3vw, 2rem);
@@ -878,25 +882,7 @@
     transform: scale(0.97);
 }
 
-.splitVisual {
-    opacity: 0;
-    transform: translateX(40px) translateZ(0);
-    transition: opacity 1s cubic-bezier(.4, 0, .2, 1) 0.15s, transform 1s cubic-bezier(.4, 0, .2, 1) 0.15s;
-    will-change: transform, opacity;
-}
-
-.splitVisual.visible {
-    opacity: 1;
-    transform: translateX(0) translateZ(0);
-}
-
-.splitReverse .splitVisual {
-    transform: translateX(-40px) translateZ(0);
-}
-
-.splitReverse .splitVisual.visible {
-    transform: translateX(0) translateZ(0);
-}
+.splitVisual {}
 
 /* Visual Card Styles */
 .visualCard {
@@ -905,12 +891,6 @@
     padding: 28px;
     position: relative;
     overflow: hidden;
-    transform: scale(0.95);
-    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s;
-}
-
-.splitVisual.visible .visualCard {
-    transform: scale(1);
 }
 
 .visualCardHeader {
@@ -992,6 +972,15 @@
     transition: width 1s ease;
 }
 
+.visualDivider {
+    height: 1px;
+    background: rgba(0, 0, 0, 0.08);
+    margin: 16px 0;
+}
+.forMerchants .visualDivider {
+    background: rgba(255, 255, 255, 0.1);
+}
+
 /* Credit Score Styles */
 .creditScore {
     position: relative;
@@ -1042,8 +1031,8 @@
    ============================================ */
 
 .security {
-    padding: 100px 24px;
-    min-height: 100vh;
+    padding: 80px 24px;
+    min-height: auto;
     background: #FFFFFF;
     position: relative;
 }
@@ -1068,17 +1057,7 @@
     padding-top: 40px;
 }
 
-.whyText {
-    opacity: 0;
-    transform: translateY(40px) translateZ(0);
-    transition: opacity 1s cubic-bezier(.4, 0, .2, 1), transform 1s cubic-bezier(.4, 0, .2, 1);
-    will-change: transform, opacity;
-}
-
-.whyText.visible {
-    opacity: 1;
-    transform: translateY(0) translateZ(0);
-}
+.whyText {}
 
 .whyText .sectionLabel,
 .whyText .sectionTitle {
@@ -1127,6 +1106,19 @@
     flex-shrink: 0;
 }
 
+.stepsListSub {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 400;
+    margin-top: 2px;
+    opacity: 0.65;
+}
+
+.stepsListItem strong {
+    font-weight: 600;
+    display: block;
+}
+
 .secondaryBtn {
     display: inline-flex;
     align-items: center;
@@ -1152,66 +1144,119 @@
    FOOTER
    ============================================ */
 
+/* ── Footer — 1inch-style ── */
 .footer {
     padding: 60px 24px 24px;
-    background: #030408;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    background: #FFFFFF;
 }
 
-.footerContent {
-    max-width: 1100px;
+.footerTop {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 60px;
+    margin-bottom: 48px;
+}
+
+.footerBrand {
+    flex-shrink: 0;
+}
+
+.footerLogo {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 800;
+    color: #000;
+    letter-spacing: -0.03em;
+}
+
+.footerColumns {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 48px;
+}
+
+.footerCol h4 {
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #000;
+    margin-bottom: 16px;
+}
+
+.footerCol a {
+    display: block;
+    font-size: 0.85rem;
+    color: rgba(0, 0, 0, 0.5);
+    text-decoration: none;
+    padding: 4px 0;
+    transition: color 0.15s ease;
+}
+
+.footerCol a:hover {
+    color: #000;
+}
+
+.footerDivider {
+    max-width: 1200px;
+    margin: 0 auto;
+    height: 1px;
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.footerBottomRow {
+    max-width: 1200px;
     margin: 0 auto;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 40px;
+    padding: 24px 0;
 }
 
-.footerBrand {
+.footerSocials {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
+    gap: 12px;
 }
 
-.footerLogo {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #fff;
-}
-
-.footerBrand p {
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.4);
-}
-
-.footerLinks {
+.footerSocials a {
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
-    gap: 32px;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 10px;
+    color: #000;
+    transition: background 0.15s ease;
 }
 
-.footerLinks a {
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.5);
+.footerSocials a:hover {
+    background: rgba(0, 0, 0, 0.12);
+}
+
+.footerLegal {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.footerLegal a {
+    font-size: 0.82rem;
+    color: #3B82F6;
     text-decoration: none;
-    transition: color 0.3s ease;
+    font-weight: 500;
+    transition: opacity 0.15s ease;
 }
 
-.footerLinks a:hover {
-    color: #fff;
+.footerLegal a:hover {
+    opacity: 0.7;
 }
 
-.footerBottom {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding-top: 24px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    text-align: center;
-}
-
-.footerBottom span {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.3);
+.footerBuilt {
+    font-size: 0.82rem;
+    color: rgba(0, 0, 0, 0.35);
 }
 
 /* ============================================
@@ -1219,11 +1264,35 @@
    ============================================ */
 
 .problemSection {
-    padding: 100px 24px;
-    min-height: 100vh;
+    padding: 80px 24px;
+    min-height: auto;
     background: #FFFFFF;
     position: relative;
     overflow: hidden;
+}
+
+.problemSection .sectionHeader {
+    margin-bottom: 40px;
+}
+
+.problemDesc {
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: rgba(0, 0, 0, 0.55);
+    max-width: 640px;
+    margin: 12px auto 0;
+    text-align: center;
+}
+
+.problemCallout {
+    text-align: center;
+    font-size: 1rem;
+    color: rgba(0, 0, 0, 0.45);
+    margin-top: 40px;
+}
+
+.problemCallout strong {
+    color: #FF5C00;
 }
 
 /* Problem showcase — 3 square cards side by side */
@@ -1303,92 +1372,6 @@
 }
 
 /* Problem footer: text + nav */
-.problemFooter {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 40px;
-    opacity: 0;
-    transform: translateY(30px) translateZ(0);
-    transition: opacity 0.9s cubic-bezier(.4, 0, .2, 1) 0.15s, transform 0.9s cubic-bezier(.4, 0, .2, 1) 0.15s;
-    will-change: transform, opacity;
-}
-
-.problemFooter.visible {
-    opacity: 1;
-    transform: translateY(0) translateZ(0);
-}
-
-.problemTextBlock {
-    max-width: 500px;
-}
-
-.problemTextBlock .sectionLabel {
-    text-align: left;
-}
-
-.problemHeadline {
-    font-family: var(--font-heading);
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: #FFFFFF;
-    margin: 8px 0 12px;
-    line-height: 1.2;
-}
-
-.problemSubtext {
-    font-size: 1rem;
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.45);
-}
-
-.problemNav {
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    flex-shrink: 0;
-}
-
-.problemIndicators {
-    display: flex;
-    gap: 12px;
-}
-
-.problemIndicator {
-    font-family: var(--font-heading);
-    font-size: 1rem;
-    font-weight: 400;
-    color: rgba(255, 255, 255, 0.25);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    user-select: none;
-}
-
-.problemIndicatorActive {
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: #FFFFFF;
-}
-
-.problemCta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 24px;
-    background: #FFFFFF;
-    color: #0a0b10;
-    border: none;
-    border-radius: 40px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.problemCta:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 20px rgba(255, 255, 255, 0.15);
-}
 
 /* ============================================
    CINEMATIC BRAND SECTION
@@ -1446,15 +1429,6 @@
     flex-direction: column;
     justify-content: space-between;
     padding: 120px 60px 48px;
-    opacity: 0;
-    transform: translateY(40px) translateZ(0);
-    transition: opacity 1.2s cubic-bezier(.4, 0, .2, 1), transform 1.2s cubic-bezier(.4, 0, .2, 1);
-    will-change: transform, opacity;
-}
-
-.cinematicContent.visible {
-    opacity: 1;
-    transform: translateY(0) translateZ(0);
 }
 
 .cinematicTextBlock {
@@ -1571,8 +1545,8 @@
    ============================================ */
 
 .capitalSection {
-    padding: 100px 24px;
-    min-height: 100vh;
+    padding: 80px 24px;
+    min-height: auto;
     background: #06070A;
     position: relative;
 }
@@ -1603,7 +1577,7 @@
 
 .flywheelScatter {
     position: relative;
-    min-height: 560px;
+    min-height: 620px;
     max-width: 1200px;
     margin: 0 auto;
     display: flex;
@@ -1616,15 +1590,6 @@
     position: relative;
     z-index: 2;
     max-width: 560px;
-    opacity: 0;
-    transform: translateY(30px) translateZ(0);
-    transition: opacity 1s cubic-bezier(.4, 0, .2, 1) 0.2s, transform 1s cubic-bezier(.4, 0, .2, 1) 0.2s;
-    will-change: transform, opacity;
-}
-
-.flywheelCenterText.visible {
-    opacity: 1;
-    transform: translateY(0);
 }
 
 .flywheelSubtext {
@@ -1634,17 +1599,7 @@
     margin-top: 20px;
 }
 
-@keyframes scatterFloatIn {
-    from {
-        opacity: 0;
-        transform: translateY(80px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
+/* Floating keyframes — triggered via data-floating attribute after GSAP reveal */
 @keyframes cardFloat0 {
     0%, 100% { transform: translateY(0) rotate(-1deg); }
     50% { transform: translateY(-12px) rotate(1deg); }
@@ -1667,8 +1622,8 @@
 
 .scatterCard {
     position: absolute;
-    width: 220px;
-    padding: 24px;
+    width: 280px;
+    padding: 28px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 0;
     backdrop-filter: blur(12px);
@@ -1676,19 +1631,14 @@
     z-index: 3;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     opacity: 0;
     transform: translateY(80px) translateZ(0);
-    transition: border-color 0.5s cubic-bezier(.4, 0, .2, 1), box-shadow 0.5s cubic-bezier(.4, 0, .2, 1), filter 0.5s cubic-bezier(.4, 0, .2, 1);
-    will-change: transform, opacity;
+    transition: filter 0.2s cubic-bezier(.4, 0, .2, 1);
 }
 
 .scatterCard:hover {
     filter: brightness(1.15);
-}
-
-.scatterVisible {
-    animation: scatterFloatIn 1s cubic-bezier(.4, 0, .2, 1) forwards;
 }
 
 .scatterDimmed {
@@ -1696,20 +1646,22 @@
 }
 
 /* Card 0 — Orange solid */
-.scatterPos0 { top: 8%; left: 3%; background: #FF5C00; border-color: transparent; }
-.scatterPos0.scatterVisible { animation: scatterFloatIn 1s cubic-bezier(.4, 0, .2, 1) 0.1s forwards, cardFloat0 5s ease-in-out 1.2s infinite; }
+.scatterPos0 { top: 6%; left: 2%; background: #FF5C00; border-color: transparent; }
 
 /* Card 1 — Cyan solid */
-.scatterPos1 { top: 4%; right: 5%; background: #00FFF0; border-color: transparent; }
-.scatterPos1.scatterVisible { animation: scatterFloatIn 1s cubic-bezier(.4, 0, .2, 1) 0.25s forwards, cardFloat1 6s ease-in-out 1.4s infinite; }
+.scatterPos1 { top: 3%; right: 2%; background: #00FFF0; border-color: transparent; }
 
 /* Card 2 — Green solid */
-.scatterPos2 { bottom: 8%; left: 6%; background: #2CFF05; border-color: transparent; }
-.scatterPos2.scatterVisible { animation: scatterFloatIn 1s cubic-bezier(.4, 0, .2, 1) 0.4s forwards, cardFloat2 5.5s ease-in-out 1.6s infinite; }
+.scatterPos2 { bottom: 6%; left: 3%; background: #2CFF05; border-color: transparent; }
 
 /* Card 3 — Ruby solid */
-.scatterPos3 { bottom: 4%; right: 3%; background: #E0115F; border-color: transparent; }
-.scatterPos3.scatterVisible { animation: scatterFloatIn 1s cubic-bezier(.4, 0, .2, 1) 0.55s forwards, cardFloat3 6.5s ease-in-out 1.8s infinite; }
+.scatterPos3 { bottom: 3%; right: 2%; background: #E0115F; border-color: transparent; }
+
+/* Floating animation — triggered by GSAP after scroll-lock reveal */
+.scatterPos0[data-floating="true"] { animation: cardFloat0 5s ease-in-out infinite; }
+.scatterPos1[data-floating="true"] { animation: cardFloat1 6s ease-in-out infinite; }
+.scatterPos2[data-floating="true"] { animation: cardFloat2 5.5s ease-in-out infinite; }
+.scatterPos3[data-floating="true"] { animation: cardFloat3 6.5s ease-in-out infinite; }
 
 /* Text color overrides — dark text for bright cards, white for ruby */
 .scatterPos0 .scatterCardNum,
@@ -1729,21 +1681,21 @@
 .scatterPos3 .scatterCardDesc { color: rgba(255, 255, 255, 0.7); }
 
 .scatterCardNum {
-    font-size: 0.65rem;
+    font-size: 0.75rem;
     font-weight: 700;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
 }
 
 .scatterCardTitle {
-    font-size: 0.95rem;
+    font-size: 1.1rem;
     font-weight: 600;
     color: #FFFFFF;
     line-height: 1.3;
 }
 
 .scatterCardDesc {
-    font-size: 0.8rem;
-    line-height: 1.5;
+    font-size: 0.88rem;
+    line-height: 1.55;
     color: rgba(255, 255, 255, 0.5);
 }
 
@@ -1786,17 +1738,12 @@
     }
 
     .flywheelScatter {
-        min-height: 480px;
+        min-height: 520px;
     }
 
     .scatterCard {
-        width: 190px;
-        padding: 20px;
-    }
-
-    .problemFooter {
-        flex-direction: column;
-        align-items: flex-start;
+        width: 240px;
+        padding: 24px;
     }
 
     .exampleGrid {
@@ -1868,16 +1815,25 @@
         display: none;
     }
 
-    .footerContent {
+    .footerTop {
         flex-direction: column;
         gap: 32px;
-        text-align: center;
     }
 
-    .footerLinks {
-        flex-wrap: wrap;
-        justify-content: center;
+    .footerColumns {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 32px;
+    }
+
+    .footerBottomRow {
+        flex-direction: column;
         gap: 20px;
+        align-items: flex-start;
+    }
+
+    .footerLegal {
+        flex-wrap: wrap;
+        gap: 16px;
     }
 
     .step {
@@ -1906,16 +1862,6 @@
     .showcaseCard {
         width: 100%;
         padding: 36px 24px;
-    }
-
-    .problemHeadline {
-        font-size: 1.4rem;
-    }
-
-    .problemFooter {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 24px;
     }
 
     .exampleValue {
@@ -1967,8 +1913,4 @@
         min-height: 300px;
     }
 
-    .problemNav {
-        width: 100%;
-        justify-content: space-between;
-    }
 }
