@@ -3,6 +3,7 @@ import { listAllVaults } from '../../services/vault.service.js';
 import { getTotalDeposits } from '../../chain/liquidityPool.js';
 import { addresses } from '../../config/contracts.js';
 import { getIndexerHealth } from '../../services/indexer.service.js';
+import { getKeeperHealth } from '../../services/keeper.service.js';
 
 const router = Router();
 
@@ -36,6 +37,16 @@ router.get('/stats', async (_req, res, next) => {
 router.get('/indexer', async (_req, res, next) => {
   try {
     const health = await getIndexerHealth();
+    res.json(health);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/v1/platform/keeper — keeper service health
+router.get('/keeper', async (_req, res, next) => {
+  try {
+    const health = await getKeeperHealth();
     res.json(health);
   } catch (err) {
     next(err);

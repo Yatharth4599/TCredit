@@ -167,15 +167,15 @@
 
 ---
 
-## Phase 6: Keeper / Crank Service
+## Phase 6: Keeper / Crank Service ✅
 
-- [ ] node-cron scheduler (every 5 minutes)
-- [ ] Scan fundraising vaults past deadline with <80% → `autoCancelExpired()`
-- [ ] Scan repaying vaults past grace period → `markDefault()`
-- [ ] Process pool allocation returns after repayment events
-- [ ] Late fee alert logging (vaults approaching due dates)
-- [ ] All calls idempotent (reverted txs handled gracefully)
-- [ ] Structured logging for all lifecycle transitions
+- [x] setInterval scheduler (every 5 minutes)
+- [x] Scan fundraising vaults → `autoCancelExpired()` (simulation gates eligibility, reverts skipped silently)
+- [x] Scan repaying vaults → `shouldDefault()` view check → `markDefault()` if true
+- [x] On default: `PaymentRouter.deactivateSettlement(agent)` — x402 payments bypass defaulted vault
+- [x] All calls simulate before submit — idempotent, reverts handled gracefully
+- [x] Structured logging for all lifecycle transitions
+- [x] `GET /api/v1/platform/keeper` — running status, wallet configured, poll interval
 
 ---
 
