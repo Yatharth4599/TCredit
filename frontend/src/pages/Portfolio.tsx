@@ -7,6 +7,7 @@ import type { ApiPortfolioInvestment, ApiPortfolioSummary } from '../api/types'
 import { formatUSDC, weiToNumber, truncateAddress } from '../lib/format'
 import { useContractTx } from '../hooks/useContractTx'
 import { Loader2, Wallet } from 'lucide-react'
+import { Skeleton } from '../components/ui/Skeleton'
 import styles from './Portfolio.module.css'
 
 const STATUS_CONFIG: Record<string, { label: string; class: string }> = {
@@ -120,8 +121,22 @@ export default function Portfolio() {
                             <span className={styles.liveBadge}>Live</span>
                         </div>
                         {loading ? (
-                            <div className={styles.loadingInline}>
-                                <Loader2 size={20} className={styles.spinner} />
+                            <div style={{ padding: '8px 0' }}>
+                                <Skeleton width="50%" height={48} borderRadius={8} style={{ margin: '0 auto 20px' }} />
+                                <div style={{ display: 'flex', justifyContent: 'space-around' }}>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <Skeleton width={80} height={18} borderRadius={6} style={{ marginBottom: 6 }} />
+                                        <Skeleton width={50} height={11} borderRadius={4} />
+                                    </div>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <Skeleton width={80} height={18} borderRadius={6} style={{ marginBottom: 6 }} />
+                                        <Skeleton width={50} height={11} borderRadius={4} />
+                                    </div>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <Skeleton width={40} height={18} borderRadius={6} style={{ marginBottom: 6 }} />
+                                        <Skeleton width={50} height={11} borderRadius={4} />
+                                    </div>
+                                </div>
                             </div>
                         ) : (
                             <>
@@ -236,9 +251,27 @@ export default function Portfolio() {
 
                         <div className={styles.investmentsList}>
                             {loading ? (
-                                <div className={styles.emptyState}>
-                                    <Loader2 size={24} className={styles.spinner} />
-                                    <p>Loading investments...</p>
+                                <div style={{ padding: '8px 0' }}>
+                                    {Array.from({ length: 3 }).map((_, i) => (
+                                        <div key={i} className={styles.investmentItem}>
+                                            <div className={styles.investmentMain}>
+                                                <div className={styles.investmentInfo}>
+                                                    <Skeleton width={100} height={16} borderRadius={6} style={{ marginBottom: 8 }} />
+                                                    <Skeleton width={160} height={12} borderRadius={4} />
+                                                </div>
+                                                <div style={{ display: 'flex', gap: 20 }}>
+                                                    <div>
+                                                        <Skeleton width={80} height={18} borderRadius={6} style={{ marginBottom: 4 }} />
+                                                        <Skeleton width={50} height={11} borderRadius={4} />
+                                                    </div>
+                                                    <div>
+                                                        <Skeleton width={80} height={18} borderRadius={6} style={{ marginBottom: 4 }} />
+                                                        <Skeleton width={50} height={11} borderRadius={4} />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             ) : filteredInvestments.length === 0 ? (
                                 <div className={styles.emptyState}>

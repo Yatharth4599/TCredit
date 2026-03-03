@@ -6,7 +6,7 @@
     min-height: 100vh;
     background: var(--bg-dark);
     position: relative;
-    overflow: hidden;
+    overflow-x: hidden;
     z-index: 1;
 }
 
@@ -52,6 +52,11 @@
     50% { opacity: 1; transform: translateX(-50%) scale(1.1); }
 }
 
+@keyframes sectionGlowPulse {
+    0%, 100% { opacity: 0.7; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+}
+
 /* ============================================
    HERO SECTION
    ============================================ */
@@ -64,11 +69,28 @@
     justify-content: center;
     padding: 100px 24px 60px;
     position: relative;
+    background: #06070A;
+    overflow: hidden;
+}
+
+.hero::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 800px;
+    height: 600px;
+    background: radial-gradient(ellipse, rgba(255, 92, 0, 0.08) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
 }
 
 .heroContent {
     text-align: center;
     max-width: 900px;
+    position: relative;
+    z-index: 1;
 }
 
 /* Overline */
@@ -82,13 +104,14 @@
     color: var(--text-tertiary);
     margin-bottom: 28px;
     opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateY(24px) translateZ(0);
+    transition: opacity 0.9s cubic-bezier(.4, 0, .2, 1), transform 0.9s cubic-bezier(.4, 0, .2, 1);
+    will-change: transform, opacity;
 }
 
 .overline.visible {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) translateZ(0);
 }
 
 /* Main Headline */
@@ -109,13 +132,14 @@
     font-weight: 800;
     line-height: 1.08;
     letter-spacing: -0.04em;
-    transform: translateY(100%);
-    transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateY(100%) translateZ(0);
+    transition: transform 1s cubic-bezier(.4, 0, .2, 1);
+    will-change: transform;
 }
 
 .line.visible .word,
 .line.visible .gradientText {
-    transform: translateY(0);
+    transform: translateY(0) translateZ(0);
 }
 
 .line2 .gradientText {
@@ -130,11 +154,11 @@
 .gradientText {
     background: linear-gradient(
         135deg,
-        #ff6b35 0%,
-        #ff8f6b 25%,
+        #FF5C00 0%,
+        #FF8533 25%,
         #fff 50%,
-        #ff8f6b 75%,
-        #ff6b35 100%
+        #FF8533 75%,
+        #FF5C00 100%
     );
     background-size: 200% auto;
     -webkit-background-clip: text;
@@ -150,8 +174,8 @@
 
 /* Encrypted/scrambled characters during DecryptedText animation */
 .encryptedChar {
-    color: rgba(255, 107, 53, 0.5);
-    -webkit-text-fill-color: rgba(255, 107, 53, 0.5);
+    color: rgba(255, 92, 0, 0.5);
+    -webkit-text-fill-color: rgba(255, 92, 0, 0.5);
     font-style: normal;
 }
 
@@ -175,11 +199,11 @@
     letter-spacing: -0.04em;
     background: linear-gradient(
         135deg,
-        #ff6b35 0%,
-        #ff8f6b 25%,
+        #FF5C00 0%,
+        #FF8533 25%,
         #fff 50%,
-        #ff8f6b 75%,
-        #ff6b35 100%
+        #FF8533 75%,
+        #FF5C00 100%
     );
     background-size: 200% auto;
     -webkit-background-clip: text;
@@ -192,34 +216,41 @@
 .subtitle {
     font-size: 1.15rem;
     line-height: 1.7;
-    color: rgba(255, 255, 255, 0.5);
+    font-weight: 700;
+    background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, #FF8533 50%, rgba(255,255,255,0.7) 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradientShift 6s ease-in-out infinite;
     margin-bottom: 40px;
     opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s;
+    transform: translateY(24px) translateZ(0);
+    transition: opacity 0.9s cubic-bezier(.4, 0, .2, 1) 0.2s, transform 0.9s cubic-bezier(.4, 0, .2, 1) 0.2s;
+    will-change: transform, opacity;
 }
 
 .subtitle.visible {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) translateZ(0);
 }
 
 .subtitleHighlight {
-    color: rgba(255, 255, 255, 0.8);
-    font-weight: 500;
+    -webkit-text-fill-color: inherit;
 }
 
 /* CTA Button */
 .cta {
     margin-bottom: 60px;
     opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s;
+    transform: translateY(24px) translateZ(0);
+    transition: opacity 0.9s cubic-bezier(.4, 0, .2, 1) 0.3s, transform 0.9s cubic-bezier(.4, 0, .2, 1) 0.3s;
+    will-change: transform, opacity;
 }
 
 .cta.visible {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) translateZ(0);
 }
 
 .primaryBtn {
@@ -271,13 +302,14 @@
     justify-content: center;
     gap: 40px;
     opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.5s;
+    transform: translateY(24px) translateZ(0);
+    transition: opacity 0.9s cubic-bezier(.4, 0, .2, 1) 0.4s, transform 0.9s cubic-bezier(.4, 0, .2, 1) 0.4s;
+    will-change: transform, opacity;
 }
 
 .stats.visible {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) translateZ(0);
 }
 
 .stat {
@@ -326,7 +358,7 @@
     height: 60px;
     background: linear-gradient(
         to bottom,
-        rgba(255, 107, 53, 0.6),
+        rgba(255, 92, 0, 0.6),
         transparent
     );
     animation: scrollPulse 2s ease-in-out infinite;
@@ -351,13 +383,14 @@
     text-align: center;
     margin-bottom: 60px;
     opacity: 0;
-    transform: translateY(30px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateY(40px) translateZ(0);
+    transition: opacity 0.9s cubic-bezier(.4, 0, .2, 1), transform 0.9s cubic-bezier(.4, 0, .2, 1);
+    will-change: transform, opacity;
 }
 
 .sectionHeader.visible {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) translateZ(0);
 }
 
 .sectionLabel {
@@ -388,143 +421,223 @@
 }
 
 .gradientInline {
-    background: linear-gradient(135deg, #ff6b35 0%, #ff8f6b 100%);
+    background: linear-gradient(135deg, #FF5C00 0%, #FF8533 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
 
 /* ============================================
-   HOW IT WORKS SECTION
+   PER-SECTION COLOR OVERRIDES
    ============================================ */
 
-.howItWorks {
-    padding: 100px 24px;
+
+/* ── For Investors — on bright green bg ── */
+.forUsers .sectionLabel { color: rgba(0, 0, 0, 0.5); }
+.forUsers .splitTitle { color: #000000; }
+.forUsers .gradientInline {
+    background: linear-gradient(135deg, #000000 0%, rgba(0, 0, 0, 0.7) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.forUsers .splitDesc { color: rgba(0, 0, 0, 0.55); }
+.forUsers .featureList li { color: rgba(0, 0, 0, 0.7); }
+.forUsers .checkIcon { color: #000000; }
+.forUsers .visualBarFill { background: linear-gradient(90deg, #000000, #333333); }
+.forUsers .outlineBtn { background: #000000; color: #2CFF05; border: none; }
+.forUsers .outlineBtn:hover { background: #1a1a1a; }
+.forUsers .visualBadge { background: rgba(0, 0, 0, 0.15); color: #000000; }
+.forUsers .visualCard { background: rgba(0, 0, 0, 0.12); }
+.forUsers .visualCardHeader { color: rgba(0, 0, 0, 0.6); }
+.forUsers .visualStatValue { color: #000000; }
+.forUsers .visualStatLabel { color: rgba(0, 0, 0, 0.5); }
+.forUsers .visualSmallValue { color: #000000; }
+.forUsers .visualSmallLabel { color: rgba(0, 0, 0, 0.5); }
+
+/* ── For Merchants — on ruby red bg ── */
+.forMerchants .sectionLabel { color: rgba(255, 255, 255, 0.6); }
+.forMerchants .splitTitle { color: #FFFFFF; }
+.forMerchants .gradientInline {
+    background: linear-gradient(135deg, #FFFFFF 0%, rgba(255, 255, 255, 0.85) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.forMerchants .splitDesc { color: rgba(255, 255, 255, 0.7); }
+.forMerchants .featureList li { color: rgba(255, 255, 255, 0.85); }
+.forMerchants .checkIcon { color: #FFFFFF; }
+.forMerchants .outlineBtn { background: #FFFFFF; color: #E0115F; border: none; }
+.forMerchants .outlineBtn:hover { background: rgba(255, 255, 255, 0.9); }
+.forMerchants .visualBadgeGreen { background: rgba(255, 255, 255, 0.2); color: #FFFFFF; }
+.forMerchants .visualCard { background: rgba(0, 0, 0, 0.15); }
+.forMerchants .creditValue { color: #FFFFFF; }
+.forMerchants .creditDetails span:first-child { color: rgba(255, 255, 255, 0.7); }
+.forMerchants .creditDetails span:last-child { color: #FFFFFF; }
+
+/* ── Flywheel — orange accent on dark ── */
+.flywheelSection .sectionLabel { color: #FF5C00; }
+.flywheelSection .sectionTitle { color: #FFFFFF; }
+.flywheelSection .gradientInline {
+    background: linear-gradient(135deg, #FF5C00 0%, #CC4A00 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ── Problem Section — on white bg ── */
+.problemSection .sectionHeader {
+    opacity: 1;
+    transform: none;
+    transition: none;
+    will-change: auto;
+}
+.problemSection .sectionLabel { color: rgba(0, 0, 0, 0.5); }
+.problemSection .sectionTitle { color: #000000; }
+.problemSection .gradientInline {
+    background: linear-gradient(135deg, #FF5C00 0%, #E0115F 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ── Why Blockchain — on bright cyan bg ── */
+.security .sectionLabel { color: rgba(0, 0, 0, 0.5); }
+.security .sectionTitle { color: #000000; }
+.security .gradientInline {
+    background: linear-gradient(135deg, #000000 0%, rgba(0, 0, 0, 0.7) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.security .whyDesc { color: rgba(0, 0, 0, 0.55); }
+.security .stepsListItem {
+    background: rgba(0, 0, 0, 0.08);
+    color: rgba(0, 0, 0, 0.8);
+}
+.security .stepsListItem:hover {
+    background: rgba(0, 0, 0, 0.15);
+    color: #000000;
+}
+.security .stepsListNum { color: #000000; }
+
+/* ============================================
+   SECTION DIVIDERS
+   ============================================ */
+
+/* Section transitions — clean edge-to-edge, no gradient fades */
+.dividerBottom { position: relative; }
+.dividerBottom::after { display: none; }
+.dividerToOrange, .dividerToDark, .dividerToGreen, .dividerToPurple,
+.dividerToOrangeDark, .dividerToCharcoal, .dividerToCyan { /* no-op */ }
+
+/* ============================================
+   HOW IT WORKS — 1inch Horizontal Card Carousel
+   ============================================ */
+
+.hiwSection {
+    min-height: 100vh;
+    overflow: hidden;
     position: relative;
+    background: var(--bg-dark);
+    padding: 80px 0 0 0;
 }
 
-.stepsGrid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 20px;
+.hiwInner {
+    width: 100%;
 }
 
-.step {
+.hiwHeading {
     text-align: center;
-    padding: 36px 24px;
-    background: var(--surface-2);
-    border-radius: var(--card-border-radius);
-    position: relative;
-    opacity: 0;
-    transform: translateY(30px);
-    transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 0 24px 48px;
 }
 
-.step.visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.step:hover {
-    background: var(--surface-3);
-    transform: translateY(-3px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
-
-.stepIcon {
-    width: 56px;
-    height: 56px;
-    margin: 0 auto 20px;
+.hiwTrack {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 107, 53, 0.1);
-    border-radius: 12px;
-    color: #ff6b35;
+    gap: 24px;
+    padding: 0 48px;
 }
 
-.stepNumber {
-    display: block;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: rgba(255, 107, 53, 0.5);
-    letter-spacing: 1px;
-    margin-bottom: 12px;
-}
-
-.step h3 {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #fff;
-    margin-bottom: 12px;
-}
-
-.step p {
-    font-size: 0.9rem;
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.45);
-}
-
-/* CardSwap wrapper for How It Works */
-.howItWorksSplit {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 60px;
-    align-items: center;
-}
-
-.howItWorksText {
-    opacity: 0;
-    transform: translateY(30px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.howItWorksText.visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.howItWorksText .sectionLabel,
-.howItWorksText .sectionTitle {
-    text-align: left;
-}
-
-.howItWorksDesc {
-    font-size: 1rem;
-    line-height: 1.7;
-    color: rgba(255, 255, 255, 0.5);
-    margin: 20px 0 32px;
-}
-
-.stepsList {
+.hiwCard {
+    flex-shrink: 0;
+    width: calc(50vw - 48px);
+    height: 75vh;
+    border-radius: 0;
+    padding: 48px 40px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    justify-content: flex-start;
+    position: relative;
 }
 
-.stepsListItem {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    font-size: 0.92rem;
-    color: var(--text-secondary);
-    padding: 12px 16px;
-    border-radius: 12px;
-    background: var(--surface-2);
-    transition: all 0.2s ease;
+.hiwBadge {
+    display: inline-block;
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #000;
+    margin-bottom: 32px;
+    width: fit-content;
 }
 
-.stepsListItem:hover {
-    background: var(--surface-3);
-    color: var(--text-primary);
+.hiwBadgeLight {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
 }
 
-.stepsListNum {
-    font-size: 0.7rem;
+.hiwCardTitle {
+    font-size: clamp(1.8rem, 3vw, 2.5rem);
     font-weight: 700;
-    color: #FF6B35;
-    letter-spacing: 1.5px;
-    min-width: 24px;
+    color: #000;
+    margin-bottom: 16px;
+    line-height: 1.2;
+}
+
+.hiwCardTitleLight {
+    color: #fff;
+}
+
+.hiwCardDesc {
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: rgba(0, 0, 0, 0.6);
+    max-width: 480px;
+}
+
+.hiwCardDescLight {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.hiwCardBtn {
+    margin-top: auto;
+    padding: 16px 32px;
+    background: #000;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    width: fit-content;
+    transition: transform 0.2s, opacity 0.2s;
+}
+
+.hiwCardBtn:hover {
+    transform: scale(1.04);
+    opacity: 0.9;
+}
+
+.hiwCardBtnLight {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.hiwCardBtnInvert {
+    background: #fff;
+    color: #000;
 }
 
 .cardSwapWrapper {
@@ -543,8 +656,8 @@
     justify-content: center;
     background: linear-gradient(
         145deg,
-        #FF6B35 0%,
-        #E85A28 100%
+        #FF5C00 0%,
+        #CC4A00 100%
     );
 }
 
@@ -588,8 +701,8 @@
 }
 
 .swapCardAlt .swapCardIcon {
-    background: rgba(255, 107, 53, 0.1);
-    color: #FF6B35;
+    background: rgba(255, 92, 0, 0.1);
+    color: #FF5C00;
 }
 
 .swapCardTitle {
@@ -615,25 +728,6 @@
 }
 
 @media (max-width: 1024px) {
-    .howItWorksSplit {
-        grid-template-columns: 1fr;
-        gap: 40px;
-    }
-
-    .problemSplit {
-        grid-template-columns: 1fr;
-        gap: 40px;
-    }
-
-    .howItWorksText .sectionLabel,
-    .howItWorksText .sectionTitle {
-        text-align: center;
-    }
-
-    .howItWorksDesc {
-        text-align: center;
-    }
-
     .problemText .sectionLabel,
     .problemText .sectionTitle {
         text-align: center;
@@ -645,6 +739,15 @@
 }
 
 @media (max-width: 768px) {
+    .hiwTrack {
+        flex-direction: column;
+        padding: 0 16px;
+    }
+    .hiwCard {
+        width: 100%;
+        height: auto;
+        min-height: 60vh;
+    }
     .cardSwapWrapper {
         min-height: 360px;
     }
@@ -654,9 +757,34 @@
    FOR USERS / FOR MERCHANTS SECTIONS
    ============================================ */
 
-.forUsers,
+.forUsers {
+    padding: 100px 24px;
+    min-height: 100vh;
+    background: #2CFF05;
+    position: relative;
+}
+.forUsers::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 70% 40%, rgba(255, 255, 255, 0.15) 0%, transparent 55%);
+    pointer-events: none;
+    animation: sectionGlowPulse 8s ease-in-out infinite;
+}
+
 .forMerchants {
     padding: 100px 24px;
+    min-height: 100vh;
+    background: #E0115F;
+    position: relative;
+}
+.forMerchants::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 30% 60%, rgba(255, 255, 255, 0.12) 0%, transparent 55%);
+    pointer-events: none;
+    animation: sectionGlowPulse 8s ease-in-out infinite 2s;
 }
 
 .splitSection {
@@ -676,21 +804,22 @@
 
 .splitContent {
     opacity: 0;
-    transform: translateX(-30px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateX(-40px) translateZ(0);
+    transition: opacity 1s cubic-bezier(.4, 0, .2, 1), transform 1s cubic-bezier(.4, 0, .2, 1);
+    will-change: transform, opacity;
 }
 
 .splitContent.visible {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateX(0) translateZ(0);
 }
 
 .splitReverse .splitContent {
-    transform: translateX(30px);
+    transform: translateX(40px) translateZ(0);
 }
 
 .splitReverse .splitContent.visible {
-    transform: translateX(0);
+    transform: translateX(0) translateZ(0);
 }
 
 .splitTitle {
@@ -724,7 +853,7 @@
 }
 
 .checkIcon {
-    color: #ff6b35;
+    color: #FF5C00;
     font-weight: 600;
 }
 
@@ -751,21 +880,22 @@
 
 .splitVisual {
     opacity: 0;
-    transform: translateX(30px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
+    transform: translateX(40px) translateZ(0);
+    transition: opacity 1s cubic-bezier(.4, 0, .2, 1) 0.15s, transform 1s cubic-bezier(.4, 0, .2, 1) 0.15s;
+    will-change: transform, opacity;
 }
 
 .splitVisual.visible {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateX(0) translateZ(0);
 }
 
 .splitReverse .splitVisual {
-    transform: translateX(-30px);
+    transform: translateX(-40px) translateZ(0);
 }
 
 .splitReverse .splitVisual.visible {
-    transform: translateX(0);
+    transform: translateX(0) translateZ(0);
 }
 
 /* Visual Card Styles */
@@ -775,6 +905,12 @@
     padding: 28px;
     position: relative;
     overflow: hidden;
+    transform: scale(0.95);
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s;
+}
+
+.splitVisual.visible .visualCard {
+    transform: scale(1);
 }
 
 .visualCardHeader {
@@ -789,8 +925,8 @@
 
 .visualBadge {
     padding: 4px 10px;
-    background: rgba(255, 107, 53, 0.15);
-    color: #ff6b35;
+    background: rgba(255, 92, 0, 0.15);
+    color: #FF5C00;
     font-size: 0.7rem;
     font-weight: 600;
     border-radius: 100px;
@@ -851,7 +987,7 @@
 
 .visualBarFill {
     height: 100%;
-    background: linear-gradient(90deg, #ff6b35, #ff8f6b);
+    background: linear-gradient(90deg, #FF5C00, #FF8533);
     border-radius: 3px;
     transition: width 1s ease;
 }
@@ -907,7 +1043,16 @@
 
 .security {
     padding: 100px 24px;
-    background: rgba(255, 255, 255, 0.01);
+    min-height: 100vh;
+    background: #FFFFFF;
+    position: relative;
+}
+.security::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 60% 30%, rgba(0, 0, 0, 0.03) 0%, transparent 55%);
+    pointer-events: none;
 }
 
 .whySplit {
@@ -925,13 +1070,14 @@
 
 .whyText {
     opacity: 0;
-    transform: translateY(30px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateY(40px) translateZ(0);
+    transition: opacity 1s cubic-bezier(.4, 0, .2, 1), transform 1s cubic-bezier(.4, 0, .2, 1);
+    will-change: transform, opacity;
 }
 
 .whyText.visible {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) translateZ(0);
 }
 
 .whyText .sectionLabel,
@@ -946,136 +1092,39 @@
     margin: 20px 0 32px;
 }
 
-/* ============================================
-   INTEGRATIONS SECTION
-   ============================================ */
-
-.integrations {
-    padding: 80px 24px;
-}
-
-.marqueeOuter {
-    width: 100%;
-    overflow: hidden;
+.stepsList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%);
-    mask-image: linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%);
+    gap: 10px;
 }
 
-.marqueeOuter:hover .marqueeTrack {
-    animation-play-state: paused;
-}
-
-.marqueeTrack {
-    display: flex;
-    width: max-content;
-    gap: 16px;
-}
-
-.marqueeLeft {
-    animation: marqueeLeft 28s linear infinite;
-}
-
-.marqueeRight {
-    animation: marqueeRight 28s linear infinite;
-}
-
-@keyframes marqueeLeft {
-    from { transform: translateX(0); }
-    to   { transform: translateX(-50%); }
-}
-
-@keyframes marqueeRight {
-    from { transform: translateX(-50%); }
-    to   { transform: translateX(0); }
-}
-
-.marqueePill {
+.stepsListItem {
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 14px 24px;
-    background: var(--surface-2);
-    border-radius: 12px;
-    white-space: nowrap;
-    flex-shrink: 0;
-    transition: background 0.2s ease;
-}
-
-.marqueePill:hover {
-    background: var(--surface-3);
-}
-
-.marqueePillIcon {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 107, 53, 0.12);
-    border-radius: 8px;
-    color: #FF6B35;
-    flex-shrink: 0;
-}
-
-.marqueePillName {
+    padding: 14px 18px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     font-size: 0.95rem;
-    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+.stepsListItem:hover {
+    background: rgba(255, 255, 255, 0.08);
     color: #fff;
 }
 
-.marqueePillRole {
-    font-size: 0.72rem;
-    color: rgba(255, 255, 255, 0.38);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    padding: 3px 8px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
-}
-
-/* ============================================
-   FINAL CTA SECTION
-   ============================================ */
-
-.finalCta {
-    padding: 100px 24px;
-}
-
-.ctaContent {
-    text-align: center;
-    max-width: 600px;
-    margin: 0 auto;
-    opacity: 0;
-    transform: translateY(30px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.ctaContent.visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.ctaTitle {
-    font-size: clamp(1.75rem, 4vw, 2.5rem);
+.stepsListNum {
+    font-size: 0.7rem;
     font-weight: 700;
-    color: #fff;
-    margin-bottom: 16px;
-}
-
-.ctaDesc {
-    font-size: 1rem;
-    color: rgba(255, 255, 255, 0.5);
-    margin-bottom: 32px;
-}
-
-.ctaButtons {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
+    color: rgba(255, 255, 255, 0.35);
+    letter-spacing: 1.5px;
+    flex-shrink: 0;
 }
 
 .secondaryBtn {
@@ -1105,7 +1154,8 @@
 
 .footer {
     padding: 60px 24px 24px;
-    border-top: 1px solid rgba(245, 245, 247, 0.05);
+    background: #030408;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .footerContent {
@@ -1170,126 +1220,350 @@
 
 .problemSection {
     padding: 100px 24px;
+    min-height: 100vh;
+    background: #FFFFFF;
+    position: relative;
+    overflow: hidden;
 }
 
-.problemSplit {
+/* Problem showcase — 3 square cards side by side */
+.problemShowcase {
+    position: relative;
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 60px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-bottom: 48px;
+}
+
+.showcaseCard {
+    aspect-ratio: 1;
+    padding: 28px;
+    background: #000000;
+    border: 1px solid transparent;
+    border-radius: 0;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
     align-items: center;
+    justify-content: center;
+    gap: 16px;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
 }
 
-.problemText {
+.showcaseCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+
+.showcaseCardActive {
+    outline: 2px solid #FF5C00;
+}
+
+.showcaseCardPixel {
+    position: relative;
+    width: 100%;
+    height: 120px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.showcaseCardPixel svg {
+    width: 96px;
+    height: 96px;
+}
+
+.showcaseCardTitle {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #FFFFFF;
+}
+
+.showcaseCardDesc {
+    font-size: 0.85rem;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+@media (max-width: 768px) {
+    .problemShowcase {
+        grid-template-columns: 1fr;
+        max-width: 360px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .showcaseCard {
+        aspect-ratio: auto;
+        padding: 24px;
+    }
+}
+
+/* Problem footer: text + nav */
+.problemFooter {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 40px;
     opacity: 0;
-    transform: translateY(30px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateY(30px) translateZ(0);
+    transition: opacity 0.9s cubic-bezier(.4, 0, .2, 1) 0.15s, transform 0.9s cubic-bezier(.4, 0, .2, 1) 0.15s;
+    will-change: transform, opacity;
 }
 
-.problemText.visible {
+.problemFooter.visible {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) translateZ(0);
 }
 
-.problemText .sectionLabel,
-.problemText .sectionTitle {
+.problemTextBlock {
+    max-width: 500px;
+}
+
+.problemTextBlock .sectionLabel {
     text-align: left;
 }
 
-.problemDesc {
-    font-size: 1rem;
-    line-height: 1.7;
-    color: rgba(255, 255, 255, 0.5);
-    margin: 20px 0 32px;
+.problemHeadline {
+    font-family: var(--font-heading);
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin: 8px 0 12px;
+    line-height: 1.2;
 }
 
-.problemHighlights {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+.problemSubtext {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.problemNav {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    flex-shrink: 0;
+}
+
+.problemIndicators {
+    display: flex;
     gap: 12px;
 }
 
-.problemHighlights li {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    font-size: 0.92rem;
-    color: var(--text-secondary);
-    padding: 12px 16px;
-    border-radius: 12px;
-    background: var(--surface-2);
-    transition: all 0.2s ease;
+.problemIndicator {
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.25);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
 }
 
-.problemHighlights li:hover {
-    background: var(--surface-3);
-    color: var(--text-primary);
+.problemIndicatorActive {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #FFFFFF;
+}
+
+.problemCta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: #FFFFFF;
+    color: #0a0b10;
+    border: none;
+    border-radius: 40px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.problemCta:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(255, 255, 255, 0.15);
 }
 
 /* ============================================
-   x402 INSIGHT SECTION
+   CINEMATIC BRAND SECTION
    ============================================ */
 
-.insightSection {
-    padding: 100px 24px;
-    background: rgba(255, 255, 255, 0.01);
-}
-
-.carouselWrapper {
+.cinematicSection {
+    position: relative;
+    min-height: 90vh;
     display: flex;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #06070A;
+}
+
+.cinematicImageWrap {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+}
+
+.cinematicImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 60%;
+    filter: saturate(1.1) contrast(1.05);
+}
+
+.cinematicOverlay {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(180deg,
+            rgba(6, 7, 10, 0.5) 0%,
+            rgba(6, 7, 10, 0.12) 25%,
+            rgba(6, 7, 10, 0.08) 50%,
+            rgba(6, 7, 10, 0.3) 75%,
+            rgba(6, 7, 10, 0.85) 100%
+        ),
+        linear-gradient(90deg,
+            rgba(6, 7, 10, 0.4) 0%,
+            transparent 25%,
+            transparent 75%,
+            rgba(6, 7, 10, 0.25) 100%
+        );
+}
+
+.cinematicContent {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    min-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 120px 60px 48px;
     opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
+    transform: translateY(40px) translateZ(0);
+    transition: opacity 1.2s cubic-bezier(.4, 0, .2, 1), transform 1.2s cubic-bezier(.4, 0, .2, 1);
+    will-change: transform, opacity;
 }
 
-.carouselWrapper.visible {
+.cinematicContent.visible {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) translateZ(0);
 }
 
-.stepperWrapper {
-    max-width: 640px;
-    margin: 40px auto;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
+.cinematicTextBlock {
+    max-width: 550px;
+    text-align: left;
 }
 
-.stepperWrapper.visible {
-    opacity: 1;
-    transform: translateY(0);
+.cinematicLabel {
+    display: inline-block;
+    font-family: var(--font-body);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
 }
 
-.stepperTitle {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: #FF6B35;
-    margin-bottom: 8px;
+.cinematicHeadline {
+    font-family: var(--font-display);
+    font-size: clamp(1.3rem, 2.5vw, 1.75rem);
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.55;
+    margin: 0;
 }
 
-.insightQuote {
-    text-align: center;
-    max-width: 700px;
-    margin: 0 auto;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s;
+.cinematicAccent {
+    color: rgba(255, 255, 255, 0.92);
+    font-weight: 600;
 }
 
-.insightQuote.visible {
-    opacity: 1;
-    transform: translateY(0);
+.cinematicStats {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    width: 100%;
+    gap: 0;
+    flex-wrap: nowrap;
 }
 
-.insightQuote p {
-    font-size: 1.15rem;
-    line-height: 1.8;
-    color: rgba(255, 255, 255, 0.55);
-    font-style: italic;
+.cinematicStat {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+
+.cinematicStatValue {
+    font-family: var(--font-display);
+    font-size: clamp(3rem, 8vw, 5.5rem);
+    font-weight: 800;
+    color: #FFFFFF;
+    letter-spacing: -0.04em;
+    line-height: 1;
+}
+
+.cinematicStatLabel {
+    font-family: var(--font-body);
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.cinematicStatDivider {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .cinematicSection {
+        min-height: 70vh;
+    }
+
+    .cinematicContent {
+        padding: 80px 24px 32px;
+    }
+
+    .cinematicImage {
+        object-position: 65% 60%;
+    }
+
+    .cinematicStats {
+        flex-wrap: wrap;
+        gap: 24px;
+    }
+
+    .cinematicStat {
+        flex: 0 0 45%;
+    }
+
+    .cinematicStatValue {
+        font-size: clamp(2rem, 10vw, 3.5rem);
+    }
+}
+
+@media (max-width: 480px) {
+    .cinematicSection {
+        min-height: 60vh;
+    }
+
+    .cinematicStat {
+        flex: 0 0 100%;
+    }
+
+    .cinematicStatValue {
+        font-size: clamp(2.5rem, 12vw, 4rem);
+    }
 }
 
 /* ============================================
@@ -1298,6 +1572,19 @@
 
 .capitalSection {
     padding: 100px 24px;
+    min-height: 100vh;
+    background: #06070A;
+    position: relative;
+}
+.capitalSection::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse at 20% 20%, rgba(255, 92, 0, 0.05) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 50%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 90%, rgba(52, 211, 153, 0.05) 0%, transparent 50%);
+    pointer-events: none;
 }
 
 /* ============================================
@@ -1306,193 +1593,158 @@
 
 .flywheelSection {
     padding: 80px 24px;
-    background: rgba(255, 255, 255, 0.01);
-}
-
-.flywheelSplit {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 60px;
-    align-items: center;
-}
-
-/* ── Orbital Animation ── */
-
-.orbitContainer {
+    min-height: 100vh;
+    background: #0a0b10;
     position: relative;
-    width: 420px;
-    height: 420px;
+    transition: background-color 0.8s cubic-bezier(.4, 0, .2, 1);
+}
+
+/* ── Scattered Cards Layout ── */
+
+.flywheelScatter {
+    position: relative;
+    min-height: 560px;
+    max-width: 1200px;
     margin: 0 auto;
-    opacity: 0;
-    transform: scale(0.9);
-    transition: all 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
-}
-
-.orbitContainer.visible {
-    opacity: 1;
-    transform: scale(1);
-}
-
-.orbitHub {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 107, 53, 0.15) 0%, rgba(255, 107, 53, 0.04) 70%);
-    border: 1px solid rgba(255, 107, 53, 0.3);
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    z-index: 10;
-    box-shadow: 0 0 40px rgba(255, 107, 53, 0.1);
 }
 
-.orbitHubText {
-    font-size: 0.6rem;
-    font-weight: 800;
-    color: #FF6B35;
-    letter-spacing: 2px;
-    line-height: 1.3;
-}
-
-.orbitRing {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 320px;
-    height: 320px;
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    border: 1px dashed rgba(255, 107, 53, 0.15);
-}
-
-.orbitGlow {
-    display: none;
-}
-
-/* Single orbit keyframe: rotate position, then counter-rotate content back upright */
-@keyframes orbitCard {
-    from { transform: translate(-50%, -50%) rotate(0deg)   translateY(-160px) rotate(0deg); }
-    to   { transform: translate(-50%, -50%) rotate(360deg) translateY(-160px) rotate(-360deg); }
-}
-
-/* Cards positioned directly in orbitContainer, each with a delay for 90° offsets */
-.orbitCard {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 120px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    padding: 14px 12px;
-    background: linear-gradient(145deg, #FF6B35 0%, #E85A28 100%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
+.flywheelCenterText {
     text-align: center;
-    animation: orbitCard 20s linear infinite;
-    box-shadow: 0 4px 20px rgba(255, 107, 53, 0.3);
-    color: #fff;
-}
-
-.orbitPos0 { animation-delay: 0s; }
-.orbitPos1 { animation-delay: -5s; }
-.orbitPos2 { animation-delay: -10s; }
-.orbitPos3 { animation-delay: -15s; }
-
-.orbitCardInner {
-    display: contents;
-}
-
-@keyframes counterSpin {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(-360deg); }
-}
-
-.orbitCardNum {
-    font-size: 0.65rem;
-    font-weight: 700;
-    color: rgba(0, 0, 0, 0.5);
-}
-
-.orbitCardTitle {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: #fff;
-    line-height: 1.3;
-}
-
-/* ── Flywheel Text (right side) ── */
-
-.flywheelText {
+    position: relative;
+    z-index: 2;
+    max-width: 560px;
     opacity: 0;
-    transform: translateY(30px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateY(30px) translateZ(0);
+    transition: opacity 1s cubic-bezier(.4, 0, .2, 1) 0.2s, transform 1s cubic-bezier(.4, 0, .2, 1) 0.2s;
+    will-change: transform, opacity;
 }
 
-.flywheelText.visible {
+.flywheelCenterText.visible {
     opacity: 1;
     transform: translateY(0);
 }
 
-.flywheelDesc {
+.flywheelSubtext {
     font-size: 1rem;
     line-height: 1.7;
-    color: rgba(255, 255, 255, 0.5);
-    margin-bottom: 32px;
+    color: rgba(255, 255, 255, 0.45);
+    margin-top: 20px;
 }
 
-.flywheelSteps {
+@keyframes scatterFloatIn {
+    from {
+        opacity: 0;
+        transform: translateY(80px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes cardFloat0 {
+    0%, 100% { transform: translateY(0) rotate(-1deg); }
+    50% { transform: translateY(-12px) rotate(1deg); }
+}
+
+@keyframes cardFloat1 {
+    0%, 100% { transform: translateY(-6px) rotate(1deg); }
+    50% { transform: translateY(6px) rotate(-1deg); }
+}
+
+@keyframes cardFloat2 {
+    0%, 100% { transform: translateY(4px) rotate(0.5deg); }
+    50% { transform: translateY(-10px) rotate(-0.5deg); }
+}
+
+@keyframes cardFloat3 {
+    0%, 100% { transform: translateY(-4px) rotate(-0.5deg); }
+    50% { transform: translateY(8px) rotate(0.5deg); }
+}
+
+.scatterCard {
+    position: absolute;
+    width: 220px;
+    padding: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0;
+    backdrop-filter: blur(12px);
+    cursor: pointer;
+    z-index: 3;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 8px;
+    opacity: 0;
+    transform: translateY(80px) translateZ(0);
+    transition: border-color 0.5s cubic-bezier(.4, 0, .2, 1), box-shadow 0.5s cubic-bezier(.4, 0, .2, 1), filter 0.5s cubic-bezier(.4, 0, .2, 1);
+    will-change: transform, opacity;
 }
 
-.flywheelStep {
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    padding: 16px;
-    border-radius: 12px;
-    background: var(--surface-2);
-    transition: background 0.2s ease;
+.scatterCard:hover {
+    filter: brightness(1.15);
 }
 
-.flywheelStep:hover {
-    background: var(--surface-3);
+.scatterVisible {
+    animation: scatterFloatIn 1s cubic-bezier(.4, 0, .2, 1) forwards;
 }
 
-.flywheelStepNum {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 107, 53, 0.12);
-    border: 1px solid rgba(255, 107, 53, 0.3);
-    color: #FF6B35;
-    font-size: 0.8rem;
+.scatterDimmed {
+    filter: brightness(0.35) saturate(0.5);
+}
+
+/* Card 0 — Orange solid */
+.scatterPos0 { top: 8%; left: 3%; background: #FF5C00; border-color: transparent; }
+.scatterPos0.scatterVisible { animation: scatterFloatIn 1s cubic-bezier(.4, 0, .2, 1) 0.1s forwards, cardFloat0 5s ease-in-out 1.2s infinite; }
+
+/* Card 1 — Cyan solid */
+.scatterPos1 { top: 4%; right: 5%; background: #00FFF0; border-color: transparent; }
+.scatterPos1.scatterVisible { animation: scatterFloatIn 1s cubic-bezier(.4, 0, .2, 1) 0.25s forwards, cardFloat1 6s ease-in-out 1.4s infinite; }
+
+/* Card 2 — Green solid */
+.scatterPos2 { bottom: 8%; left: 6%; background: #2CFF05; border-color: transparent; }
+.scatterPos2.scatterVisible { animation: scatterFloatIn 1s cubic-bezier(.4, 0, .2, 1) 0.4s forwards, cardFloat2 5.5s ease-in-out 1.6s infinite; }
+
+/* Card 3 — Ruby solid */
+.scatterPos3 { bottom: 4%; right: 3%; background: #E0115F; border-color: transparent; }
+.scatterPos3.scatterVisible { animation: scatterFloatIn 1s cubic-bezier(.4, 0, .2, 1) 0.55s forwards, cardFloat3 6.5s ease-in-out 1.8s infinite; }
+
+/* Text color overrides — dark text for bright cards, white for ruby */
+.scatterPos0 .scatterCardNum,
+.scatterPos1 .scatterCardNum,
+.scatterPos2 .scatterCardNum { color: rgba(0, 0, 0, 0.45); }
+
+.scatterPos0 .scatterCardTitle,
+.scatterPos1 .scatterCardTitle,
+.scatterPos2 .scatterCardTitle { color: #000; }
+
+.scatterPos0 .scatterCardDesc,
+.scatterPos1 .scatterCardDesc,
+.scatterPos2 .scatterCardDesc { color: rgba(0, 0, 0, 0.6); }
+
+.scatterPos3 .scatterCardNum { color: rgba(255, 255, 255, 0.6); }
+.scatterPos3 .scatterCardTitle { color: #fff; }
+.scatterPos3 .scatterCardDesc { color: rgba(255, 255, 255, 0.7); }
+
+.scatterCardNum {
+    font-size: 0.65rem;
     font-weight: 700;
-    border-radius: 50%;
-    flex-shrink: 0;
+    letter-spacing: 1px;
 }
 
-.flywheelStepTitle {
-    font-size: 0.9rem;
+.scatterCardTitle {
+    font-size: 0.95rem;
     font-weight: 600;
-    color: #fff;
-    margin-bottom: 4px;
+    color: #FFFFFF;
+    line-height: 1.3;
 }
 
-.flywheelStepDesc {
+.scatterCardDesc {
     font-size: 0.8rem;
     line-height: 1.5;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(255, 255, 255, 0.5);
 }
 
 /* ============================================
@@ -1533,24 +1785,18 @@
         text-align: center;
     }
 
-    .flywheelSplit {
-        grid-template-columns: 1fr;
-        gap: 40px;
+    .flywheelScatter {
+        min-height: 480px;
     }
 
-    .orbitContainer {
-        width: 340px;
-        height: 340px;
+    .scatterCard {
+        width: 190px;
+        padding: 20px;
     }
 
-    .orbitRing {
-        width: 270px;
-        height: 270px;
-    }
-
-    @keyframes orbitCard {
-        from { transform: translate(-50%, -50%) rotate(0deg)   translateY(-135px) rotate(0deg); }
-        to   { transform: translate(-50%, -50%) rotate(360deg) translateY(-135px) rotate(-360deg); }
+    .problemFooter {
+        flex-direction: column;
+        align-items: flex-start;
     }
 
     .exampleGrid {
@@ -1559,6 +1805,10 @@
 }
 
 @media (max-width: 768px) {
+    .dividerBottom::after {
+        height: 40px;
+    }
+
     .hero {
         padding: 100px 20px 40px;
     }
@@ -1588,13 +1838,11 @@
         height: 30px;
     }
 
-    .howItWorks,
+    .hiwSection,
     .forUsers,
     .forMerchants,
     .security,
-    .finalCta,
     .problemSection,
-    .insightSection,
     .capitalSection,
     .flywheelSection {
         padding: 60px 20px;
@@ -1620,10 +1868,6 @@
         display: none;
     }
 
-    .ctaButtons {
-        flex-direction: column;
-    }
-
     .footerContent {
         flex-direction: column;
         gap: 32px;
@@ -1640,32 +1884,39 @@
         padding: 24px 16px;
     }
 
-    .orbitContainer {
-        width: 300px;
-        height: 300px;
+    .flywheelScatter {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        min-height: auto;
+        padding: 0;
     }
 
-    .orbitRing {
-        width: 240px;
-        height: 240px;
+    .flywheelCenterText {
+        grid-column: 1 / -1;
+        order: -1;
+        margin-bottom: 16px;
     }
 
-    .orbitCard {
-        width: 110px;
+    .scatterCard {
+        position: static;
+        width: auto;
     }
 
-    .orbitCardInner {
-        padding: 10px 8px;
+    .showcaseCard {
+        width: 100%;
+        padding: 36px 24px;
     }
 
-    .orbitCardTitle {
-        font-size: 0.65rem;
+    .problemHeadline {
+        font-size: 1.4rem;
     }
 
-    .orbitPos0 { transform: translate(-50%, -50%) rotate(0deg) translateY(-120px); }
-    .orbitPos1 { transform: translate(-50%, -50%) rotate(90deg) translateY(-120px); }
-    .orbitPos2 { transform: translate(-50%, -50%) rotate(180deg) translateY(-120px); }
-    .orbitPos3 { transform: translate(-50%, -50%) rotate(270deg) translateY(-120px); }
+    .problemFooter {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 24px;
+    }
 
     .exampleValue {
         font-size: 1.2rem;
@@ -1708,36 +1959,16 @@
         grid-template-columns: 1fr;
     }
 
-    .orbitContainer {
-        width: 260px;
-        height: 260px;
+    .flywheelScatter {
+        grid-template-columns: 1fr;
     }
 
-    .orbitRing {
-        width: 210px;
-        height: 210px;
+    .problemShowcase {
+        min-height: 300px;
     }
 
-    .orbitCard {
-        width: 95px;
+    .problemNav {
+        width: 100%;
+        justify-content: space-between;
     }
-
-    .orbitCardInner {
-        padding: 8px 6px;
-        gap: 4px;
-    }
-
-    .orbitCardTitle {
-        font-size: 0.6rem;
-    }
-
-    .orbitHub {
-        width: 60px;
-        height: 60px;
-    }
-
-    .orbitPos0 { transform: translate(-50%, -50%) rotate(0deg) translateY(-105px); }
-    .orbitPos1 { transform: translate(-50%, -50%) rotate(90deg) translateY(-105px); }
-    .orbitPos2 { transform: translate(-50%, -50%) rotate(180deg) translateY(-105px); }
-    .orbitPos3 { transform: translate(-50%, -50%) rotate(270deg) translateY(-105px); }
 }

@@ -8,6 +8,7 @@ import { useContractTx } from '../hooks/useContractTx'
 import { useUSDCApproval } from '../hooks/useUSDCApproval'
 import { AnimatedNumber } from '../components/ui/AnimatedNumber'
 import { Loader2 } from 'lucide-react'
+import { Skeleton } from '../components/ui/Skeleton'
 import styles from './LiquidityPools.module.css'
 
 export default function LiquidityPools() {
@@ -108,9 +109,14 @@ export default function LiquidityPools() {
                 transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
             >
                 {loading ? (
-                    <div className={styles.statCard}>
-                        <Loader2 size={20} className={styles.spinner} />
-                    </div>
+                    <>
+                        {Array.from({ length: 4 }).map((_, i) => (
+                            <div key={i} className={styles.statCard}>
+                                <Skeleton width={80} height={11} borderRadius={4} style={{ marginBottom: 10 }} />
+                                <Skeleton width={120} height={22} borderRadius={6} />
+                            </div>
+                        ))}
+                    </>
                 ) : (
                     <>
                         <div className={styles.statCard}>
@@ -141,10 +147,33 @@ export default function LiquidityPools() {
             {/* Pool Cards */}
             <div className={styles.poolGrid}>
                 {loading ? (
-                    <div className={styles.loadingState}>
-                        <Loader2 size={24} className={styles.spinner} />
-                        <span>Loading pools...</span>
-                    </div>
+                    Array.from({ length: 2 }).map((_, i) => (
+                        <div key={i} className={styles.poolCard}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                                <div>
+                                    <Skeleton width={72} height={11} borderRadius={4} style={{ marginBottom: 8 }} />
+                                    <Skeleton width={140} height={20} borderRadius={6} />
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <Skeleton width={52} height={28} borderRadius={6} style={{ marginBottom: 4 }} />
+                                    <Skeleton width={30} height={11} borderRadius={4} />
+                                </div>
+                            </div>
+                            <Skeleton width="100%" height={8} borderRadius={999} style={{ marginBottom: 20 }} />
+                            <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
+                                {Array.from({ length: 3 }).map((_, j) => (
+                                    <div key={j}>
+                                        <Skeleton width={80} height={18} borderRadius={6} style={{ marginBottom: 6 }} />
+                                        <Skeleton width={60} height={11} borderRadius={4} />
+                                    </div>
+                                ))}
+                            </div>
+                            <div style={{ display: 'flex', gap: 10 }}>
+                                <Skeleton width={90} height={36} borderRadius={999} />
+                                <Skeleton width={90} height={36} borderRadius={999} />
+                            </div>
+                        </div>
+                    ))
                 ) : pools.length === 0 ? (
                     <div className={styles.emptyState}>No pools available.</div>
                 ) : (

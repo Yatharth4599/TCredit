@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { motion } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
 import { useAccount } from 'wagmi'
 import { merchantApi, vaultsApi, oracleApi } from '../api/client'
@@ -112,16 +113,21 @@ export default function MerchantDashboard() {
           { icon: <CreditCard size={16} />, label: 'Total Borrowed', value: totalBorrowed, sub: `${activeLoanCount} active loans` },
           { icon: <DollarSign size={16} />, label: 'Total Repaid', value: totalRepaid, sub: merchant?.creditValid ? 'Score valid' : 'Score expired' },
           { icon: <Zap size={16} />, label: 'Total Vaults', value: String(merchant?.totalVaults ?? 0), sub: 'All time' },
-        ].map((stat) => (
+        ].map((stat, i) => (
           <BentoCard key={stat.label}>
-            <div className={styles.bentoStat}>
+            <motion.div
+              className={styles.bentoStat}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1], delay: i * 0.08 }}
+            >
               <div className={styles.bentoStatHeader}>
                 <span className={styles.bentoStatIcon}>{stat.icon}</span>
                 <span className={styles.bentoStatLabel}>{stat.label}</span>
               </div>
               <div className={styles.bentoStatValue}>{stat.value}</div>
               <div className={styles.bentoStatSub}>{stat.sub}</div>
-            </div>
+            </motion.div>
           </BentoCard>
         ))}
       </BentoGrid>
@@ -237,7 +243,7 @@ export default function MerchantDashboard() {
                           className={styles.vaultProgressFill}
                           style={{
                             width: `${vault.percentFunded}%`,
-                            background: vault.state === 'active' || vault.state === 'repaying' ? '#22c55e' : 'var(--gradient-primary)',
+                            background: status.color,
                           }}
                         />
                       </div>

@@ -9,6 +9,7 @@ import { STATUS_CONFIG } from '../lib/statusConfig'
 import { AnimatedNumber } from '../components/ui/AnimatedNumber'
 import { WaterfallChart } from '../components/charts/WaterfallChart'
 import { X, ExternalLink, Loader2 } from 'lucide-react'
+import { Skeleton } from '../components/ui/Skeleton'
 import styles from './Vaults.module.css'
 
 const FILTERS = [
@@ -82,10 +83,27 @@ export default function Vaults() {
       <div className={styles.layout}>
         <div className={styles.grid}>
           {loading ? (
-            <div className={styles.empty}>
-              <Loader2 size={24} className={styles.spinner} />
-              <span>Loading vaults...</span>
-            </div>
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className={styles.vaultCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                  <div>
+                    <Skeleton width={52} height={34} borderRadius={6} style={{ marginBottom: 4 }} />
+                    <Skeleton width={32} height={12} borderRadius={4} />
+                  </div>
+                  <Skeleton width={80} height={22} borderRadius={999} />
+                </div>
+                <Skeleton width="55%" height={15} borderRadius={6} style={{ marginBottom: 14 }} />
+                <Skeleton width="100%" height={6} borderRadius={999} style={{ marginBottom: 10 }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <Skeleton width={70} height={12} borderRadius={4} />
+                  <Skeleton width={50} height={12} borderRadius={4} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Skeleton width={40} height={12} borderRadius={4} />
+                  <Skeleton width={80} height={12} borderRadius={4} />
+                </div>
+              </div>
+            ))
           ) : filtered.length === 0 ? (
             <div className={styles.empty}>No vaults match your search.</div>
           ) : (

@@ -213,19 +213,39 @@
 
 ---
 
-## Phase 9: Component-Level Visual Redesign ← **NEEDS OPUS**
+## Phase 9: Visual Redesign ← **IN PROGRESS (partially broken)**
 
-> The CSS design system is in place (Phase 3.5). Phase 9 redesigns the actual JSX + CSS together — rethinking each component's visual hierarchy from scratch to achieve a premium 1inch-level feel. **CSS variable changes alone don't get there.**
->
-> **Why it still doesn't look like 1inch:**
-> - Numbers are not hero-sized — TVL, APY, balance blend into surrounding text
-> - Card structure is generic key-value rows, not designed around one key metric
-> - No gradient text on headings or key stats
-> - Status colors only affect the small badge — don't bleed into the card
-> - Per-page ambient glows are CSS on `<html>` but hidden under solid page backgrounds
-> - Floating elements (detail panel, modals) use solid `surface-2` not frosted glass
-> - Loading states are still `<Loader2>` spinners, not shape-matched skeleton pulses
-> - Hardcoded color values (`#FF6B35`, `#22c55e`) still in `.tsx` files
+> Home page redesign started. Some CSS work done, but tiger mascot and scroll-locking are broken. Component-level redesign (9A-9G) not yet started.
+
+### 9-HOME. Home Page Visual Overhaul
+
+#### Done ✅
+- [x] Section background colors: Insight=#00FFF0, HowItWorks=#FF5C00, ForUsers=#2CFF05, ForMerchants=#E0115F, WhyBlockchain=#FFFFFF
+- [x] Global accent swaps: #FF6B35→#FF5C00, #4bf1e5→#00FFF0, #fb4173→#E0115F
+- [x] Text color adapts per section (dark on bright/white bg, white on red bg)
+- [x] Divider gradients removed (display: none)
+- [x] Easing updated to cubic-bezier(.4, 0, .2, 1) on all reveals
+- [x] GPU hints (will-change, translateZ) on section transitions
+- [x] Flywheel cards solid colors: #2CFF05, #00FFF0, #E0115F, #FF5C00
+- [x] All sections min-height: 100vh
+- [x] Problem section: basic SVG pixel icons (`PixelIcons.tsx` — BankIcon, HourglassIcon, ShieldIcon)
+
+#### BROKEN — Needs Redo ❌
+- [ ] **Tiger mascot** — `TigerCanvas.tsx` renders a raccoon, not a tiger. Needs complete redo.
+  - Spec: 192x192 grid, 3x3px cells, 576x576 canvas, retina support
+  - Programmatic layered drawing: accent splash → base silhouette → shading → stripes → features → highlights → edge dissolve
+  - Full anatomy: rounded ears, 4-5 forehead stripes, fierce cyan (#00CED1) eyes, pink nose, OPEN ROAR mouth (white upper fangs, gold #DAA520 lower fangs, hot pink #FF4080 tongue, #1A1A1A void)
+  - Thick cheek stripes, grey shading for 3D volume, jawline, chin
+  - Edge dissolve: scattered pixels, watercolor-style orange/coral (left) + teal/cyan (right) accents
+  - Two-canvas animation: static core + animated overlay (edge drift, 25 particles, eye glow, accent shimmer)
+  - Reference image provided — white tiger, front-facing, shield/diamond silhouette, aggressive roar
+  - `TigerSVG.tsx` also exists and is bad — should be deleted
+- [ ] **Scroll-locking sections** — GSAP ScrollTrigger pin:true was attempted but broke page (set opacity:0 on all content). Reverted to IntersectionObserver. Needs proper implementation:
+  - User wants 1inch.com-style: section pins while animations play, scroll unlocks after animations complete
+  - GSAP v3.14.2 already installed
+  - Must work with existing CSS .visible classes + internal component animation triggers (Stepper, CardSwap, DecryptedText)
+  - Previous approach failed because CSS module class names are hashed — querySelectorAll with `.${styles.xxx}` doesn't work reliably in GSAP context
+- [ ] **Problem section icons** — Working but too basic/rough. Spec calls for 32x32 grid, 4px rects, 4-tone palette per icon with proper shading
 
 ### 9A. Financial number hierarchy (all pages)
 - [ ] Portfolio total value: 3rem+, centered, JetBrains Mono, with `$` prefix dimmed

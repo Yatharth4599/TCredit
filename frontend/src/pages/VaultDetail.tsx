@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import { motion } from 'motion/react'
 import { useAccount } from 'wagmi'
 import { vaultsApi, investApi } from '../api/client'
 import type { ApiVaultDetail, ApiInvestor, ApiTrancheResponse, ApiMilestone, ApiVaultEvent } from '../api/types'
@@ -8,6 +9,7 @@ import { useContractTx } from '../hooks/useContractTx'
 import { useUSDCApproval } from '../hooks/useUSDCApproval'
 import { WaterfallChart } from '../components/charts/WaterfallChart'
 import { ArrowLeft, Loader2, CheckCircle, Clock, AlertTriangle, Users, Layers, TrendingUp } from 'lucide-react'
+import { Skeleton } from '../components/ui/Skeleton'
 import { STATUS_CONFIG } from '../lib/statusConfig'
 import styles from './VaultDetail.module.css'
 
@@ -67,9 +69,39 @@ export default function VaultDetail() {
     if (loading) {
         return (
             <div className={styles.vaultDetail}>
-                <div className={styles.loadingState}>
-                    <Loader2 size={28} className={styles.spinner} />
-                    <span>Loading vault...</span>
+                <div className="container">
+                    <Skeleton width={120} height={34} borderRadius={999} style={{ marginBottom: 28 }} />
+                    <div className={styles.content}>
+                        <div className={styles.main}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+                                <div>
+                                    <Skeleton width={220} height={32} borderRadius={8} style={{ marginBottom: 8 }} />
+                                    <Skeleton width={280} height={14} borderRadius={6} />
+                                </div>
+                                <Skeleton width={90} height={26} borderRadius={999} />
+                            </div>
+                            <div style={{ marginBottom: 28 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                    <Skeleton width={120} height={14} borderRadius={6} />
+                                    <Skeleton width={120} height={14} borderRadius={6} />
+                                </div>
+                                <Skeleton width="100%" height={6} borderRadius={999} style={{ marginBottom: 8 }} />
+                                <Skeleton width={160} height={12} borderRadius={4} />
+                            </div>
+                            <div className={styles.statsGrid}>
+                                {Array.from({ length: 4 }).map((_, i) => (
+                                    <div key={i} className={styles.statCard}>
+                                        <Skeleton width={20} height={20} borderRadius={4} style={{ marginBottom: 10 }} />
+                                        <Skeleton width="60%" height={12} borderRadius={4} style={{ marginBottom: 6 }} />
+                                        <Skeleton width="80%" height={20} borderRadius={6} />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className={styles.sidebar}>
+                            <Skeleton width="100%" height={280} borderRadius={16} />
+                        </div>
+                    </div>
                 </div>
             </div>
         )
@@ -96,7 +128,12 @@ export default function VaultDetail() {
 
                 <div className={styles.content}>
                     <div className={styles.main}>
-                        <header className={styles.header}>
+                        <motion.header
+                            className={styles.header}
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                        >
                             <div>
                                 <h1>{truncateAddress(vault.agent, 6)}</h1>
                                 <p className={styles.category}>{truncateAddress(vault.address)}</p>
@@ -107,9 +144,14 @@ export default function VaultDetail() {
                             >
                                 {status.label}
                             </span>
-                        </header>
+                        </motion.header>
 
-                        <div className={styles.progressSection}>
+                        <motion.div
+                            className={styles.progressSection}
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.08 }}
+                        >
                             <div className={styles.progressHeader}>
                                 <span>{formatUSDC(vault.totalRaised)} raised</span>
                                 <span>{formatUSDC(vault.targetAmount)} goal</span>
@@ -120,9 +162,14 @@ export default function VaultDetail() {
                             <p className={styles.progressText}>
                                 {vault.percentFunded}% funded · {formatUSDC(String(Math.round(remaining * 1e6)))} remaining
                             </p>
-                        </div>
+                        </motion.div>
 
-                        <div className={styles.statsGrid}>
+                        <motion.div
+                            className={styles.statsGrid}
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.16 }}
+                        >
                             <div className={styles.statCard}>
                                 <TrendingUp size={16} />
                                 <span className={styles.statLabel}>Interest Rate</span>
@@ -143,23 +190,35 @@ export default function VaultDetail() {
                                 <span className={styles.statLabel}>Tranches</span>
                                 <span className={styles.statValue}>{vault.tranchesReleased}/{vault.numTranches}</span>
                             </div>
-                        </div>
+                        </motion.div>
 
                         {/* Waterfall Chart */}
                         {(vault.state === 'active' || vault.state === 'repaying') && vault.waterfall && (
-                            <div className={styles.section}>
+                            <motion.div
+                                className={styles.section}
+                                initial={{ opacity: 0, y: 16 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true, margin: '-40px' }}
+                                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                            >
                                 <WaterfallChart
                                     totalAmount={weiToNumber(vault.totalRaised)}
                                     seniorPayment={weiToNumber(vault.waterfall.seniorRepaid)}
                                     poolPayment={weiToNumber(vault.waterfall.poolRepaid)}
                                     userPayment={weiToNumber(vault.waterfall.communityRepaid)}
                                 />
-                            </div>
+                            </motion.div>
                         )}
 
                         {/* Tranches */}
                         {tranches && (
-                            <div className={styles.section}>
+                            <motion.div
+                                className={styles.section}
+                                initial={{ opacity: 0, y: 16 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true, margin: '-40px' }}
+                                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                            >
                                 <h2 className={styles.sectionTitle}>Tranches</h2>
                                 <div className={styles.trancheGrid}>
                                     {tranches.tranches.map((t) => (
@@ -174,12 +233,18 @@ export default function VaultDetail() {
                                         </div>
                                     ))}
                                 </div>
-                            </div>
+                            </motion.div>
                         )}
 
                         {/* Milestones */}
                         {milestones.length > 0 && (
-                            <div className={styles.section}>
+                            <motion.div
+                                className={styles.section}
+                                initial={{ opacity: 0, y: 16 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true, margin: '-40px' }}
+                                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                            >
                                 <h2 className={styles.sectionTitle}>Milestones</h2>
                                 {milestones.map((m) => (
                                     <div key={m.trancheIndex} className={styles.milestoneItem}>
@@ -195,12 +260,18 @@ export default function VaultDetail() {
                                         </div>
                                     </div>
                                 ))}
-                            </div>
+                            </motion.div>
                         )}
 
                         {/* Investors */}
                         {investors.length > 0 && (
-                            <div className={styles.section}>
+                            <motion.div
+                                className={styles.section}
+                                initial={{ opacity: 0, y: 16 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true, margin: '-40px' }}
+                                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                            >
                                 <h2 className={styles.sectionTitle}>Investors ({investors.length})</h2>
                                 <div className={styles.investorList}>
                                     {investors.slice(0, 10).map((inv) => (
@@ -211,12 +282,18 @@ export default function VaultDetail() {
                                         </div>
                                     ))}
                                 </div>
-                            </div>
+                            </motion.div>
                         )}
 
                         {/* Repayment History */}
                         {repayments.length > 0 && (
-                            <div className={styles.section}>
+                            <motion.div
+                                className={styles.section}
+                                initial={{ opacity: 0, y: 16 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true, margin: '-40px' }}
+                                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                            >
                                 <h2 className={styles.sectionTitle}>Repayment History</h2>
                                 {repayments.slice(0, 10).map((evt) => (
                                     <div key={evt.id} className={styles.repaymentItem}>
@@ -232,7 +309,7 @@ export default function VaultDetail() {
                                         </a>
                                     </div>
                                 ))}
-                            </div>
+                            </motion.div>
                         )}
                     </div>
 

@@ -22,6 +22,7 @@ export function AnimatedNumber({
 }: AnimatedNumberProps) {
   const ref = useRef<HTMLSpanElement>(null)
   const [active, setActive] = useState(false)
+  const safeValue = typeof value === 'number' && !isNaN(value) ? value : 0
 
   useEffect(() => {
     const el = ref.current
@@ -36,7 +37,7 @@ export function AnimatedNumber({
 
   useEffect(() => {
     if (!active || !ref.current) return
-    const ctrl = animate(0, value, {
+    const ctrl = animate(0, safeValue, {
       duration,
       ease: [0.16, 1, 0.3, 1],
       onUpdate: (v) => {
@@ -48,11 +49,11 @@ export function AnimatedNumber({
       },
     })
     return () => ctrl.stop()
-  }, [active, value, decimals, prefix, suffix, format, duration])
+  }, [active, safeValue, decimals, prefix, suffix, format, duration])
 
   const initialText = format
-    ? format(value)
-    : `${prefix ?? ''}${value.toFixed(decimals)}${suffix ?? ''}`
+    ? format(safeValue)
+    : `${prefix ?? ''}${safeValue.toFixed(decimals)}${suffix ?? ''}`
 
   return (
     <span ref={ref} className={className}>
