@@ -622,6 +622,7 @@ export default function Home() {
             <footer className={styles.footer}>
                 <div className={styles.footerTop}>
                     <div className={styles.footerBrand}>
+                        <img src="/images/logo.png" alt="TCredit" className={styles.footerLogoImg} />
                         <span className={styles.footerLogo}>TCredit</span>
                     </div>
                     <div className={styles.footerColumns}>
