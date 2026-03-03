@@ -152,15 +152,18 @@
 
 ---
 
-## Phase 5: Event Indexer
+## Phase 5: Event Indexer ✅
 
-- [ ] WebSocket subscription to all contract events (ethers.js/viem)
-- [ ] Event parser: decode each event type into structured data
-- [ ] Events: VaultCreated, InvestmentReceived, TrancheReleased, RepaymentProcessed, WaterfallDistributed, VaultDefaulted, VaultCompleted, PoolAllocated, CreditScoreUpdated, MilestoneSubmitted, MilestoneApproved
-- [ ] Store in PostgreSQL `VaultEvent` table (eventType, data JSON, blockNumber, txHash)
-- [ ] Update denormalized tables (Vault, Merchant, Investment amounts)
-- [ ] Backfill capability: replay from deployment block
-- [ ] Health check: last indexed block, lag detection
+- [x] Poll-based event indexer via `publicClient.getLogs()` (HTTP, 15s interval, 2000 blocks/poll)
+- [x] Event parser: decode 12 event types across all 6 contracts
+- [x] Events: VaultCreated, Invested, TrancheReleased, RepaymentProcessed, WaterfallDistributed, VaultDefaulted, VaultStateChanged, AllocatedToVault, CreditScoreUpdated, MilestoneSubmitted, MilestoneApproved, PaymentExecuted
+- [x] Store in PostgreSQL `VaultEvent` table (eventType, data JSON, blockNumber, txHash, logIndex)
+- [x] Unique constraint on `[txHash, logIndex]` — idempotent ingestion, safe to replay
+- [x] Update denormalized tables: Vault (totalRaised, totalRepaid, state, tranchesReleased), Merchant (creditScore, tier), Investment (upsert on Invested)
+- [x] Backfill from DEPLOYMENT_BLOCK (38,200,000) — catches up at 2000 blocks/poll
+- [x] IndexerState table tracks lastIndexedBlock across restarts
+- [x] `GET /api/v1/platform/indexer` — running status, lastBlock, latestBlock, lag, eventCounts
+- [x] `GET /api/v1/vaults/:address/repayments` — now reads from VaultEvent DB (no longer a stub)
 
 ---
 

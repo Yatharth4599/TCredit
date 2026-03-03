@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import type { Address } from 'viem';
+import { PrismaClient } from '@prisma/client';
 import { listAllVaults, getVaultDetail } from '../../services/vault.service.js';
 import { getInvestors, getClaimable, getWaterfallState } from '../../chain/merchantVault.js';
 import { getMilestone } from '../../chain/milestoneRegistry.js';
@@ -8,6 +9,8 @@ import { addresses } from '../../config/contracts.js';
 import { VaultFactoryABI, MerchantVaultABI } from '../../config/abis.js';
 import { encodeFunctionData } from 'viem';
 import { publicClient } from '../../chain/client.js';
+
+const prisma = new PrismaClient();
 
 const router = Router();
 
@@ -110,9 +113,32 @@ router.get('/:address/milestones', async (req, res, next) => {
   }
 });
 
-// GET /api/v1/vaults/:address/repayments — from VaultEvent in DB (Phase 5 fills this)
-router.get('/:address/repayments', async (_req, res) => {
-  res.json({ repayments: [], total: 0 });
+// GET /api/v1/vaults/:address/repayments — indexed from chain events
+router.get('/:address/repayments', async (req, res, next) => {
+  try {
+    const vaultAddr = req.params.address.toLowerCase();
+    const events = await prisma.vaultEvent.findMany({
+      where: {
+        vaultAddr,
+        eventType: { in: ['RepaymentProcessed', 'WaterfallDistributed', 'LateFeeApplied'] },
+      },
+      orderBy: { blockNumber: 'desc' },
+      take: 50,
+    });
+    res.json({
+      repayments: events.map((e) => ({
+        id: e.id,
+        eventType: e.eventType,
+        data: e.data,
+        blockNumber: e.blockNumber.toString(),
+        txHash: e.txHash,
+        timestamp: e.timestamp.toISOString(),
+      })),
+      total: events.length,
+    });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // GET /api/v1/vaults/:address/tranches

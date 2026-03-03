@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { listAllVaults } from '../../services/vault.service.js';
 import { getTotalDeposits } from '../../chain/liquidityPool.js';
 import { addresses } from '../../config/contracts.js';
+import { getIndexerHealth } from '../../services/indexer.service.js';
 
 const router = Router();
 
@@ -26,6 +27,16 @@ router.get('/stats', async (_req, res, next) => {
       totalRepaid: totalRepaid.toString(),
       poolLiquidity: poolLiquidity.toString(),
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/v1/platform/indexer — event indexer health + sync status
+router.get('/indexer', async (_req, res, next) => {
+  try {
+    const health = await getIndexerHealth();
+    res.json(health);
   } catch (err) {
     next(err);
   }

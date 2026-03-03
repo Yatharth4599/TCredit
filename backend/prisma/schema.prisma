@@ -58,13 +58,24 @@ model Investment {
 
 model VaultEvent {
   id          String   @id @default(uuid())
-  vault       Vault    @relation(fields: [vaultAddr], references: [address])
-  vaultAddr   String
+  vault       Vault?   @relation(fields: [vaultAddr], references: [address])
+  vaultAddr   String?
   eventType   String
   data        Json
   blockNumber BigInt
   txHash      String
+  logIndex    Int      @default(0)
   timestamp   DateTime
+
+  @@unique([txHash, logIndex])
+  @@index([vaultAddr, eventType])
+  @@index([eventType])
+}
+
+model IndexerState {
+  id        String   @id @default("singleton")
+  lastBlock BigInt   @default(0)
+  updatedAt DateTime @updatedAt
 }
 
 model MilestoneRecord {
@@ -77,6 +88,8 @@ model MilestoneRecord {
   approvalCount Int       @default(0)
   submittedAt   DateTime?
   approvedAt    DateTime?
+
+  @@unique([vaultAddr, milestoneId])
 }
 
 model Pool {
