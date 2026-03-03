@@ -18,7 +18,7 @@
     height: 600px;
     background: radial-gradient(
         ellipse at center,
-        rgba(255, 107, 53, 0.06) 0%,
+        rgba(var(--accent-rgb), 0.06) 0%,
         transparent 60%
     );
     filter: blur(80px);
@@ -114,8 +114,8 @@
 
 .liveBadge {
     padding: 4px 10px;
-    background: rgba(255, 107, 53, 0.15);
-    color: #ff6b35;
+    background: rgba(var(--accent-rgb), 0.15);
+    color: var(--accent);
     font-size: 0.7rem;
     font-weight: 600;
     border-radius: 100px;
@@ -203,8 +203,8 @@
     justify-content: space-between;
     margin-top: 20px;
     padding: 16px;
-    background: rgba(255, 107, 53, 0.08);
-    border: 1px solid rgba(255, 107, 53, 0.2);
+    background: rgba(var(--accent-rgb), 0.08);
+    border: 1px solid rgba(var(--accent-rgb), 0.2);
     border-radius: 12px;
 }
 
@@ -222,12 +222,12 @@
 .claimValue {
     font-size: 1.25rem;
     font-weight: 700;
-    color: #ff6b35;
+    color: var(--accent);
 }
 
 .claimBtn {
     padding: 10px 20px;
-    background: linear-gradient(135deg, #ff6b35, #ff8f6b);
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
     color: #000;
     font-size: 0.85rem;
     font-weight: 600;
@@ -239,7 +239,7 @@
 
 .claimBtn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(255, 107, 53, 0.3);
+    box-shadow: 0 8px 24px rgba(var(--accent-rgb), 0.3);
 }
 
 /* ============================================
@@ -420,7 +420,7 @@
     display: block;
     font-size: 0.85rem;
     font-weight: 600;
-    color: #ff6b35;
+    color: var(--accent);
     margin-bottom: 2px;
 }
 
@@ -492,8 +492,8 @@
 }
 
 .tabActive {
-    background: rgba(255, 107, 53, 0.15);
-    color: #ff6b35;
+    background: rgba(var(--accent-rgb), 0.15);
+    color: var(--accent);
 }
 
 .investmentsList {
@@ -619,7 +619,7 @@
 
 .progressFill {
     height: 100%;
-    background: linear-gradient(90deg, #ff6b35, #ff8f6b);
+    background: linear-gradient(90deg, var(--accent), var(--accent-light));
     border-radius: 2px;
     transition: width 0.8s ease;
 }
@@ -632,7 +632,7 @@
 
 .claimSmallBtn {
     padding: 8px 16px;
-    background: linear-gradient(135deg, #ff6b35, #ff8f6b);
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
     color: #000;
     font-size: 0.8rem;
     font-weight: 600;
@@ -644,7 +644,7 @@
 
 .claimSmallBtn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(255, 107, 53, 0.3);
+    box-shadow: 0 4px 16px rgba(var(--accent-rgb), 0.3);
 }
 
 .detailsBtn {
@@ -682,6 +682,49 @@
 
 .emptyState p {
     font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* ============================================
+   LOADING & CONNECT STATES
+   ============================================ */
+
+.spinner {
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.connectPrompt {
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    color: rgba(255, 255, 255, 0.4);
+    text-align: center;
+}
+
+.connectPrompt h2 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+}
+
+.connectPrompt p {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0;
+}
+
+.loadingInline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 0;
     color: rgba(255, 255, 255, 0.4);
 }
 

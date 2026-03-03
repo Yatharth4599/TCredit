@@ -1,56 +1,125 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAccount } from 'wagmi'
+import { merchantApi, vaultsApi, oracleApi } from '../api/client'
+import type { ApiMerchantStats, ApiVault, ApiOraclePayment, CreateVaultParams } from '../api/types'
+import { formatUSDC, weiToNumber, truncateAddress, parseUSDCToWei } from '../lib/format'
+import { useContractTx } from '../hooks/useContractTx'
 import { BentoGrid, BentoCard } from '../components/ui/BentoGrid'
 import { WaterfallChart } from '../components/charts/WaterfallChart'
-import { DollarSign, Star, CreditCard, Zap, ChevronRight, Plus, Activity } from 'lucide-react'
+import { DollarSign, Star, CreditCard, Zap, ChevronRight, Plus, Activity, Wallet, Loader2 } from 'lucide-react'
 import styles from './MerchantDashboard.module.css'
 
-// Mock data — will be replaced with API hooks
-const MERCHANT = {
-  businessName: 'Dubai Electronics Store',
-  creditScore: 785,
-  creditRating: 'Excellent',
-  totalBorrowed: 185000,
-  activeLoanCount: 2,
-  totalRepaid: 142500,
-  onTimePayments: 100,
-  availableCredit: 75000,
-}
-
-const VAULTS = [
-  { id: '1', name: 'Q1 Inventory Financing', targetAmount: 50000, raisedAmount: 50000, repaidAmount: 28500, interestRate: 12, duration: 6, status: 'active', investorCount: 24, nextPayment: 'Mar 15, 2026' },
-  { id: '2', name: 'Equipment Upgrade', targetAmount: 30000, raisedAmount: 15000, repaidAmount: 0, interestRate: 10, duration: 4, status: 'fundraising', investorCount: 12, nextPayment: null },
-]
-
-// Mock live x402 payment stream
-const LIVE_PAYMENTS = [
-  { id: 'p1', source: '9xPq...3kRt', amount: 420, vault: 'Q1 Inventory', split: { senior: 210, pool: 126, merchant: 84 }, ts: '08:22:11' },
-  { id: 'p2', source: '7mBf...8sNw', amount: 680, vault: 'Q1 Inventory', split: { senior: 340, pool: 204, merchant: 136 }, ts: '08:19:03' },
-  { id: 'p3', source: '2rKv...1zTp', amount: 150, vault: 'Q1 Inventory', split: { senior: 75, pool: 45, merchant: 30 }, ts: '08:14:57' },
-]
-
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  active: { label: 'Active', color: '#22c55e' },
   fundraising: { label: 'Fundraising', color: '#FF6B35' },
+  active: { label: 'Active', color: '#22c55e' },
+  repaying: { label: 'Repaying', color: '#3b82f6' },
   completed: { label: 'Completed', color: '#888' },
-}
-
-function fmt(n: number) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(n)
+  defaulted: { label: 'Defaulted', color: '#ef4444' },
+  cancelled: { label: 'Cancelled', color: '#666' },
 }
 
 export default function MerchantDashboard() {
+  const navigate = useNavigate()
+  const { address: walletAddress } = useAccount()
+  const { execute: executeTx } = useContractTx()
+
+  const [merchant, setMerchant] = useState<ApiMerchantStats | null>(null)
+  const [vaults, setVaults] = useState<ApiVault[]>([])
+  const [payments, setPayments] = useState<ApiOraclePayment[]>([])
+  const [loading, setLoading] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [activePayment, setActivePayment] = useState(LIVE_PAYMENTS[0])
+  const [creating, setCreating] = useState(false)
+
+  // Create vault form state
+  const [form, setForm] = useState({
+    targetAmount: '',
+    interestRate: '12',
+    durationMonths: '6',
+    numTranches: '3',
+    lateFeeBps: '100',
+    gracePeriodDays: '7',
+  })
+
+  // Fetch merchant data
+  useEffect(() => {
+    if (!walletAddress) {
+      setMerchant(null)
+      setVaults([])
+      setPayments([])
+      return
+    }
+    setLoading(true)
+    Promise.all([
+      merchantApi.stats(walletAddress).then(r => setMerchant(r.data)).catch(() => setMerchant(null)),
+      merchantApi.vaults(walletAddress).then(r => setVaults(r.data.vaults)).catch(() => setVaults([])),
+      oracleApi.payments({ limit: 10 }).then(r => setPayments(r.data.payments)).catch(() => setPayments([])),
+    ]).finally(() => setLoading(false))
+  }, [walletAddress])
+
+  const handleCreateVault = async () => {
+    if (!walletAddress || !form.targetAmount) return
+    setCreating(true)
+    try {
+      const params: CreateVaultParams = {
+        agent: walletAddress,
+        targetAmount: parseUSDCToWei(form.targetAmount),
+        interestRateBps: Math.round(parseFloat(form.interestRate) * 100),
+        durationSeconds: Math.round(parseFloat(form.durationMonths) * 30 * 24 * 3600),
+        numTranches: parseInt(form.numTranches),
+        lateFeeBps: parseInt(form.lateFeeBps),
+        gracePeriodSeconds: parseInt(form.gracePeriodDays) * 86400,
+      }
+      const { data: unsignedTx } = await vaultsApi.create(params)
+      await executeTx(unsignedTx)
+      setShowCreateModal(false)
+      // Refresh vaults
+      merchantApi.vaults(walletAddress).then(r => setVaults(r.data.vaults)).catch(() => {})
+    } catch {
+      // Error handled by toast
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  if (!walletAddress) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.connectPrompt}>
+          <Wallet size={48} strokeWidth={1} />
+          <h2>Connect Your Wallet</h2>
+          <p>Connect your wallet to access the merchant dashboard</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.loadingState}>
+          <Loader2 size={28} className={styles.spinner} />
+          <span>Loading dashboard...</span>
+        </div>
+      </div>
+    )
+  }
+
+  const creditScore = merchant?.creditTier ?? '—'
+  const creditRating = merchant?.creditRating ?? 'Unknown'
+  const totalBorrowed = merchant ? formatUSDC(merchant.totalBorrowed) : '$0'
+  const totalRepaid = merchant ? formatUSDC(merchant.totalRepaid) : '$0'
+  const activeLoanCount = merchant?.activeLoanCount ?? 0
 
   return (
     <div className={styles.page}>
-      {/* Stats Row as Bento Cards */}
+      {/* Stats Row */}
       <BentoGrid columns={4} gap={14}>
         {[
-          { icon: <Star size={16} />, label: 'Credit Score', value: MERCHANT.creditScore, sub: MERCHANT.creditRating, trend: '+12 pts' },
-          { icon: <CreditCard size={16} />, label: 'Total Borrowed', value: fmt(MERCHANT.totalBorrowed), sub: `${MERCHANT.activeLoanCount} active loans` },
-          { icon: <DollarSign size={16} />, label: 'Total Repaid', value: fmt(MERCHANT.totalRepaid), sub: `${MERCHANT.onTimePayments}% on-time`, trend: '100%' },
-          { icon: <Zap size={16} />, label: 'Available Credit', value: fmt(MERCHANT.availableCredit), sub: 'Instant approval' },
+          { icon: <Star size={16} />, label: 'Credit Tier', value: creditScore, sub: creditRating },
+          { icon: <CreditCard size={16} />, label: 'Total Borrowed', value: totalBorrowed, sub: `${activeLoanCount} active loans` },
+          { icon: <DollarSign size={16} />, label: 'Total Repaid', value: totalRepaid, sub: merchant?.creditValid ? 'Score valid' : 'Score expired' },
+          { icon: <Zap size={16} />, label: 'Total Vaults', value: String(merchant?.totalVaults ?? 0), sub: 'All time' },
         ].map((stat) => (
           <BentoCard key={stat.label}>
             <div className={styles.bentoStat}>
@@ -59,24 +128,21 @@ export default function MerchantDashboard() {
                 <span className={styles.bentoStatLabel}>{stat.label}</span>
               </div>
               <div className={styles.bentoStatValue}>{stat.value}</div>
-              <div className={styles.bentoStatSub}>
-                {stat.sub}
-                {stat.trend && <span className={styles.bentoStatTrend}>{stat.trend}</span>}
-              </div>
+              <div className={styles.bentoStatSub}>{stat.sub}</div>
             </div>
           </BentoCard>
         ))}
       </BentoGrid>
 
-      {/* Main Content as Bento Grid */}
+      {/* Main Content */}
       <BentoGrid columns={3} gap={14}>
-        {/* Live x402 Payments — tall card */}
+        {/* Live Oracle Payments */}
         <BentoCard colSpan="span 1" rowSpan="span 2">
           <div className={styles.bentoInner}>
             <div className={styles.sectionHeader}>
               <div className={styles.sectionTitle}>
                 <Activity size={15} className={styles.sectionIcon} />
-                Live x402 Payments
+                Oracle Payments
               </div>
               <span className={styles.liveBadge}>
                 <span className={styles.liveDot} />
@@ -85,40 +151,46 @@ export default function MerchantDashboard() {
             </div>
 
             <div className={styles.paymentList}>
-              {LIVE_PAYMENTS.map((p) => (
-                <div
-                  key={p.id}
-                  className={`${styles.paymentRow} ${activePayment.id === p.id ? styles.paymentRowActive : ''}`}
-                  onClick={() => setActivePayment(p)}
-                >
-                  <div className={styles.paymentLeft}>
-                    <span className={styles.paymentSource}>{p.source}</span>
-                    <span className={styles.paymentVault}>{p.vault}</span>
+              {payments.length === 0 ? (
+                <div className={styles.emptyPayments}>No payments yet</div>
+              ) : (
+                payments.map((p) => (
+                  <div key={p.id} className={styles.paymentRow}>
+                    <div className={styles.paymentLeft}>
+                      <span className={styles.paymentSource}>{truncateAddress(p.from)}</span>
+                      <span className={styles.paymentVault}>{truncateAddress(p.vault)}</span>
+                    </div>
+                    <div className={styles.paymentRight}>
+                      <span className={styles.paymentAmount}>{formatUSDC(p.amount)}</span>
+                      <span className={styles.paymentTime}>{p.status}</span>
+                    </div>
+                    <ChevronRight size={14} className={styles.paymentChevron} />
                   </div>
-                  <div className={styles.paymentRight}>
-                    <span className={styles.paymentAmount}>{fmt(p.amount)}</span>
-                    <span className={styles.paymentTime}>{p.ts}</span>
-                  </div>
-                  <ChevronRight size={14} className={styles.paymentChevron} />
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </BentoCard>
 
-        {/* Waterfall Breakdown */}
+        {/* Waterfall Breakdown — show first vault's waterfall if active */}
         <BentoCard colSpan="span 2">
           <div className={styles.bentoInner}>
-            <WaterfallChart
-              totalAmount={activePayment.amount}
-              seniorPayment={activePayment.split.senior}
-              poolPayment={activePayment.split.pool}
-              userPayment={activePayment.split.merchant}
-            />
+            {vaults.length > 0 && weiToNumber(vaults[0].totalRaised) > 0 ? (
+              <WaterfallChart
+                totalAmount={weiToNumber(vaults[0].totalRaised)}
+                seniorPayment={0}
+                poolPayment={0}
+                userPayment={0}
+              />
+            ) : (
+              <div className={styles.emptyChart}>
+                <p>Create a vault to see waterfall distribution</p>
+              </div>
+            )}
           </div>
         </BentoCard>
 
-        {/* Vault Management — wide card */}
+        {/* Vault Management */}
         <BentoCard colSpan="span 2">
           <div className={styles.bentoInner}>
             <div className={styles.sectionHeader}>
@@ -130,71 +202,66 @@ export default function MerchantDashboard() {
             </div>
 
             <div className={styles.vaultList}>
-              {VAULTS.map((vault) => {
-                const status = STATUS_CONFIG[vault.status] ?? STATUS_CONFIG.active
-                const fundProgress = (vault.raisedAmount / vault.targetAmount) * 100
-                const repayProgress = vault.status === 'active'
-                  ? (vault.repaidAmount / (vault.targetAmount * 1.12)) * 100
-                  : 0
+              {vaults.length === 0 ? (
+                <div className={styles.emptyVaults}>
+                  <p>No vaults yet. Create one to get started.</p>
+                </div>
+              ) : (
+                vaults.map((vault) => {
+                  const status = STATUS_CONFIG[vault.state] ?? STATUS_CONFIG.fundraising
 
-                return (
-                  <div key={vault.id} className={styles.vaultItem}>
-                    <div className={styles.vaultTop}>
-                      <div>
-                        <h4 className={styles.vaultName}>{vault.name}</h4>
-                        <div className={styles.vaultMeta}>
-                          {vault.interestRate}% APY · {vault.duration}mo · {vault.investorCount} investors
+                  return (
+                    <div key={vault.address} className={styles.vaultItem}>
+                      <div className={styles.vaultTop}>
+                        <div>
+                          <h4 className={styles.vaultName}>{truncateAddress(vault.address, 6)}</h4>
+                          <div className={styles.vaultMeta}>
+                            {vault.interestRate}% APY · {vault.durationMonths}mo · {vault.numTranches} tranches
+                          </div>
                         </div>
+                        <span
+                          className={styles.vaultStatus}
+                          style={{ color: status.color, borderColor: `${status.color}33`, background: `${status.color}12` }}
+                        >
+                          {status.label}
+                        </span>
                       </div>
-                      <span
-                        className={styles.vaultStatus}
-                        style={{ color: status.color, borderColor: `${status.color}33`, background: `${status.color}12` }}
-                      >
-                        {status.label}
-                      </span>
-                    </div>
 
-                    <div className={styles.vaultAmounts}>
-                      <div className={styles.vaultAmt}>
-                        <span className={styles.vaultAmtVal}>{fmt(vault.raisedAmount)}</span>
-                        <span className={styles.vaultAmtLbl}>Raised</span>
-                      </div>
-                      {vault.status === 'active' && (
+                      <div className={styles.vaultAmounts}>
                         <div className={styles.vaultAmt}>
-                          <span className={styles.vaultAmtVal}>{fmt(vault.repaidAmount)}</span>
-                          <span className={styles.vaultAmtLbl}>Repaid</span>
+                          <span className={styles.vaultAmtVal}>{formatUSDC(vault.totalRaised)}</span>
+                          <span className={styles.vaultAmtLbl}>Raised</span>
                         </div>
-                      )}
-                    </div>
+                        {(vault.state === 'active' || vault.state === 'repaying') && (
+                          <div className={styles.vaultAmt}>
+                            <span className={styles.vaultAmtVal}>{formatUSDC(vault.totalRepaid)}</span>
+                            <span className={styles.vaultAmtLbl}>Repaid</span>
+                          </div>
+                        )}
+                      </div>
 
-                    <div className={styles.vaultProgressBar}>
-                      <div
-                        className={styles.vaultProgressFill}
-                        style={{
-                          width: `${vault.status === 'active' ? repayProgress : fundProgress}%`,
-                          background: vault.status === 'active' ? '#22c55e' : 'var(--gradient-primary)',
-                        }}
-                      />
-                    </div>
-                    <div className={styles.vaultProgressMeta}>
-                      {vault.status === 'active' ? (
-                        <span>Next payment: {vault.nextPayment}</span>
-                      ) : (
-                        <span>{fundProgress.toFixed(0)}% funded</span>
-                      )}
-                    </div>
+                      <div className={styles.vaultProgressBar}>
+                        <div
+                          className={styles.vaultProgressFill}
+                          style={{
+                            width: `${vault.percentFunded}%`,
+                            background: vault.state === 'active' || vault.state === 'repaying' ? '#22c55e' : 'var(--gradient-primary)',
+                          }}
+                        />
+                      </div>
+                      <div className={styles.vaultProgressMeta}>
+                        <span>{vault.percentFunded}% funded</span>
+                      </div>
 
-                    <div className={styles.vaultActions}>
-                      {vault.status === 'active' && (
-                        <button className={styles.repayBtn}>Make Payment</button>
-                      )}
-                      <button className={styles.manageBtn}>
-                        {vault.status === 'fundraising' ? 'Edit' : 'Details'}
-                      </button>
+                      <div className={styles.vaultActions}>
+                        <button className={styles.manageBtn} onClick={() => navigate(`/vaults/${vault.address}`)}>
+                          Details
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                })
+              )}
             </div>
           </div>
         </BentoCard>
@@ -209,24 +276,82 @@ export default function MerchantDashboard() {
               <button className={styles.modalClose} onClick={() => setShowCreateModal(false)}>✕</button>
             </div>
             <div className={styles.modalBody}>
-              <label className={styles.formLabel}>Vault Name</label>
-              <input className={styles.formInput} type="text" placeholder="e.g. Q2 Inventory Expansion" />
-              <label className={styles.formLabel}>Purpose</label>
-              <textarea className={styles.formInput} placeholder="Describe what the funds will be used for..." rows={3} />
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Target (USDC)</label>
-                  <input className={styles.formInput} type="number" placeholder="50000" />
+                  <label className={styles.formLabel}>Target Amount (USDC)</label>
+                  <input
+                    className={styles.formInput}
+                    type="number"
+                    placeholder="50000"
+                    value={form.targetAmount}
+                    onChange={(e) => setForm(f => ({ ...f, targetAmount: e.target.value }))}
+                  />
                 </div>
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Term (Months)</label>
-                  <input className={styles.formInput} type="number" placeholder="6" />
+                  <label className={styles.formLabel}>Interest Rate (%)</label>
+                  <input
+                    className={styles.formInput}
+                    type="number"
+                    placeholder="12"
+                    value={form.interestRate}
+                    onChange={(e) => setForm(f => ({ ...f, interestRate: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Duration (Months)</label>
+                  <input
+                    className={styles.formInput}
+                    type="number"
+                    placeholder="6"
+                    value={form.durationMonths}
+                    onChange={(e) => setForm(f => ({ ...f, durationMonths: e.target.value }))}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Number of Tranches</label>
+                  <input
+                    className={styles.formInput}
+                    type="number"
+                    placeholder="3"
+                    value={form.numTranches}
+                    onChange={(e) => setForm(f => ({ ...f, numTranches: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Late Fee (BPS)</label>
+                  <input
+                    className={styles.formInput}
+                    type="number"
+                    placeholder="100"
+                    value={form.lateFeeBps}
+                    onChange={(e) => setForm(f => ({ ...f, lateFeeBps: e.target.value }))}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Grace Period (Days)</label>
+                  <input
+                    className={styles.formInput}
+                    type="number"
+                    placeholder="7"
+                    value={form.gracePeriodDays}
+                    onChange={(e) => setForm(f => ({ ...f, gracePeriodDays: e.target.value }))}
+                  />
                 </div>
               </div>
             </div>
             <div className={styles.modalFooter}>
               <button className={styles.cancelBtn} onClick={() => setShowCreateModal(false)}>Cancel</button>
-              <button className={styles.submitBtn}>Create Vault</button>
+              <button
+                className={styles.submitBtn}
+                onClick={handleCreateVault}
+                disabled={creating || !form.targetAmount}
+              >
+                {creating ? <><Loader2 size={14} className={styles.spinner} /> Creating...</> : 'Create Vault'}
+              </button>
             </div>
           </div>
         </div>

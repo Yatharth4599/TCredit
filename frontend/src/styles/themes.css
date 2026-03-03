@@ -1,0 +1,76 @@
+/* ============================================
+   PER-PAGE ACCENT THEMING (1inch-inspired)
+   Each route gets its own accent palette.
+   ============================================ */
+
+/* Default: Orange (Home, Merchant, X402) */
+:root {
+  --accent: #FF6B35;
+  --accent-light: #FF8C5A;
+  --accent-dark: #E85A28;
+  --accent-rgb: 255, 107, 53;
+}
+
+/* Home: Monochrome — clean black/white/gray */
+[data-theme="home"] {
+  --accent: #FFFFFF;
+  --accent-light: #E0E0E0;
+  --accent-dark: #CCCCCC;
+  --accent-rgb: 255, 255, 255;
+  --glow-aurora-primary: radial-gradient(50% 50% at 50% 100%, rgba(255, 255, 255, 0.04) 0%, transparent 100%);
+}
+
+/* Vaults: Blue — trust, financial stability */
+[data-theme="vaults"] {
+  --accent: #2563EB;
+  --accent-light: #60A5FA;
+  --accent-dark: #1D4ED8;
+  --accent-rgb: 37, 99, 235;
+  --gradient-primary: linear-gradient(135deg, #2563EB 0%, #60A5FA 100%);
+  --glow-aurora-primary: radial-gradient(50% 50% at 50% 100%, rgba(37, 99, 235, 0.12) 0%, transparent 100%);
+  --text-highlight: #60A5FA;
+  --border-highlight: #1D4ED8;
+  --border-glow: rgba(37, 99, 235, 0.4);
+}
+
+/* Portfolio: Mint/Cyan — growth, returns */
+[data-theme="portfolio"] {
+  --accent: #06B6D4;
+  --accent-light: #22D3EE;
+  --accent-dark: #0891B2;
+  --accent-rgb: 6, 182, 212;
+  --gradient-primary: linear-gradient(135deg, #06B6D4 0%, #22D3EE 100%);
+  --glow-aurora-primary: radial-gradient(50% 50% at 50% 100%, rgba(6, 182, 212, 0.12) 0%, transparent 100%);
+  --text-highlight: #22D3EE;
+  --border-highlight: #0891B2;
+  --border-glow: rgba(6, 182, 212, 0.4);
+}
+
+/* Merchant: Orange/Amber — energy, commerce */
+[data-theme="merchant"] {
+  --accent: #FF6B35;
+  --accent-light: #FF8C5A;
+  --accent-dark: #E85A28;
+  --accent-rgb: 255, 107, 53;
+}
+
+/* Pools: Purple — premium, institutional */
+[data-theme="pools"] {
+  --accent: #8B5CF6;
+  --accent-light: #A78BFA;
+  --accent-dark: #7C3AED;
+  --accent-rgb: 139, 92, 246;
+  --gradient-primary: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%);
+  --glow-aurora-primary: radial-gradient(50% 50% at 50% 100%, rgba(139, 92, 246, 0.12) 0%, transparent 100%);
+  --text-highlight: #A78BFA;
+  --border-highlight: #7C3AED;
+  --border-glow: rgba(139, 92, 246, 0.4);
+}
+
+/* X402: Keep default orange */
+[data-theme="x402"] {
+  --accent: #FF6B35;
+  --accent-light: #FF8C5A;
+  --accent-dark: #E85A28;
+  --accent-rgb: 255, 107, 53;
+}

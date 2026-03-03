@@ -11,6 +11,7 @@ import {
   addresses,
 } from '../config/contracts.js';
 import { getAllVaults } from '../chain/vaultFactory.js';
+import { dispatchWebhook } from './webhook.service.js';
 
 const prisma = new PrismaClient();
 
@@ -125,6 +126,16 @@ async function storeEvent(params: {
       });
     }
   }
+
+  // Fire-and-forget webhook dispatch — never block indexing
+  dispatchWebhook(params.eventType, {
+    vaultAddress: params.vaultAddr,
+    blockNumber: params.blockNumber.toString(),
+    txHash: params.txHash,
+    ...serializeArgs(params.args),
+  }).catch((err) => {
+    console.error(`[Webhooks] Dispatch error for ${params.eventType}:`, err);
+  });
 }
 
 // ---------------------------------------------------------------------------

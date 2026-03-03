@@ -1,8 +1,14 @@
 import { useNavigate } from 'react-router-dom'
+import { useAccount, useDisconnect } from 'wagmi'
+import { useConnectModal } from '@rainbow-me/rainbowkit'
 import FloatingDock, { DockItem } from '../ui/FloatingDock'
+import { truncateAddress } from '../../lib/format'
 
 export default function Navbar() {
   const navigate = useNavigate()
+  const { address, isConnected } = useAccount()
+  const { disconnect } = useDisconnect()
+  const { openConnectModal } = useConnectModal()
 
   const items: DockItem[] = [
     {
@@ -84,13 +90,24 @@ export default function Navbar() {
       href: 'https://github.com/',
     },
     {
-      title: 'Connect Wallet',
-      icon: (
+      title: isConnected ? truncateAddress(address!, 4) : 'Connect Wallet',
+      icon: isConnected ? (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="1.8">
+          <path d="M3 7V5a2 2 0 012-2h12a2 2 0 012 2v2" /><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M2 11h6a2 2 0 012 2v0a2 2 0 01-2 2H2" /><circle cx="7" cy="13" r="1" fill="#22c55e" />
+        </svg>
+      ) : (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
           <path d="M3 7V5a2 2 0 012-2h12a2 2 0 012 2v2" /><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M2 11h6a2 2 0 012 2v0a2 2 0 01-2 2H2" /><circle cx="7" cy="13" r="0.5" fill="currentColor" />
         </svg>
       ),
       href: '#',
+      onClick: () => {
+        if (isConnected) {
+          disconnect()
+        } else {
+          openConnectModal?.()
+        }
+      },
     },
   ]
 
@@ -102,4 +119,3 @@ export default function Navbar() {
     </nav>
   )
 }
-

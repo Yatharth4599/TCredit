@@ -162,8 +162,8 @@
 
 .statusBadge {
     padding: 4px 12px;
-    background: rgba(255, 107, 53, 0.2);
-    color: var(--color-orange-light);
+    background: rgba(var(--accent-rgb), 0.2);
+    color: var(--accent-light);
     border-radius: 6px;
     font-size: 0.85rem;
     font-weight: 600;
@@ -370,6 +370,200 @@
     align-items: center;
     justify-content: center;
     gap: 20px;
+}
+
+/* Loading & Spinner */
+.spinner {
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loadingState {
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    color: var(--text-tertiary);
+    font-size: 0.9rem;
+}
+
+/* Section containers */
+.section {
+    padding: 30px;
+    background: var(--surface-glass);
+    border: 1px solid var(--border-light);
+    border-radius: var(--card-border-radius);
+    backdrop-filter: blur(var(--glass-blur));
+}
+
+.sectionTitle {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 20px;
+}
+
+/* Tranches Grid */
+.trancheGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+.trancheItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.trancheIndex {
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+/* Milestones */
+.milestoneItem {
+    padding: 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+.milestoneItem:last-child {
+    margin-bottom: 0;
+}
+
+.milestoneHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.milestoneStatus {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.milestoneDetail {
+    display: flex;
+    gap: 16px;
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+}
+
+/* Investors */
+.investorList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.investorItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.investorAddr {
+    font-family: monospace;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.claimable {
+    font-size: 0.78rem;
+    color: #22c55e;
+    font-weight: 600;
+}
+
+/* Repayments */
+.repaymentItem {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+}
+
+.repaymentItem:last-child {
+    margin-bottom: 0;
+}
+
+.repaymentType {
+    font-weight: 600;
+    color: var(--text-primary);
+    text-transform: capitalize;
+    min-width: 120px;
+}
+
+.repaymentDate {
+    color: var(--text-tertiary);
+    font-size: 0.8rem;
+}
+
+.txLink {
+    font-family: monospace;
+    font-size: 0.78rem;
+    color: rgba(var(--accent-rgb), 0.8);
+    text-decoration: none;
+    margin-left: auto;
+    transition: color 0.2s;
+}
+
+.txLink:hover {
+    color: var(--accent);
+}
+
+/* Sidebar status messages */
+.statusMessage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+    padding: 20px 0;
+}
+
+.statusMessage h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.statusMessage p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin: 0;
 }
 
 @media (max-width: 1024px) {

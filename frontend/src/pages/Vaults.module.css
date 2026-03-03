@@ -25,7 +25,7 @@
   transition: border-color 0.2s;
 }
 .search::placeholder { color: var(--text-tertiary); }
-.search:focus { outline: none; border-color: rgba(255,107,53,0.3); }
+.search:focus { outline: none; border-color: rgba(var(--accent-rgb),0.3); }
 
 .filters {
   display: flex;
@@ -44,11 +44,11 @@
   cursor: pointer;
   transition: all 0.2s;
 }
-.pill:hover { border-color: rgba(255,107,53,0.3); color: var(--text-primary); }
+.pill:hover { border-color: rgba(var(--accent-rgb),0.3); color: var(--text-primary); }
 .pillActive {
-  background: rgba(255,107,53,0.12);
-  border-color: rgba(255,107,53,0.4);
-  color: var(--color-orange);
+  background: rgba(var(--accent-rgb),0.12);
+  border-color: rgba(var(--accent-rgb),0.4);
+  color: var(--accent);
 }
 
 .layout {
@@ -171,7 +171,7 @@
   transition: all 0.2s;
   flex-shrink: 0;
 }
-.closeBtn:hover { border-color: var(--border-highlight); color: var(--color-orange); }
+.closeBtn:hover { border-color: var(--border-highlight); color: var(--accent); }
 .detailDesc { font-size: 0.82rem; color: var(--text-secondary); margin: 0 0 16px; line-height: 1.5; }
 .detailStats {
   display: grid;
@@ -246,3 +246,11 @@
 .investBtn:disabled { opacity: 0.4; cursor: not-allowed; }
 .investBtn:not(:disabled):hover { opacity: 0.9; }
 .minNote { font-size: 0.7rem; color: var(--text-tertiary); text-align: center; margin: 8px 0 0; }
+
+/* Spinner */
+.spinner {
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

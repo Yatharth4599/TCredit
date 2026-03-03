@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import { platformApi } from '../api/client'
+import { formatUSDCCompact } from '../lib/format'
 import DecryptedText from '../components/ui/DecryptedText'
 import Carousel, { type CarouselItem } from '../components/ui/Carousel'
 import Stepper, { Step } from '../components/ui/Stepper'
@@ -13,6 +15,11 @@ export default function Home() {
     const navigate = useNavigate()
     const [mounted, setMounted] = useState(false)
     const [visibleSections, setVisibleSections] = useState<Set<string>>(new Set())
+    const [liveStats, setLiveStats] = useState<{ tvl: string; poolLiquidity: string; activeVaults: number } | null>(null)
+
+    useEffect(() => {
+        platformApi.stats().then(({ data }) => setLiveStats(data)).catch(() => {})
+    }, [])
 
     useEffect(() => {
         setMounted(true)
@@ -98,18 +105,18 @@ export default function Home() {
 
                     <div className={`${styles.stats} ${mounted ? styles.visible : ''}`}>
                         <div className={styles.stat}>
-                            <span className={styles.statValue}>$4M+</span>
+                            <span className={styles.statValue}>{liveStats ? formatUSDCCompact(liveStats.tvl) : '$—'}</span>
+                            <span className={styles.statLabel}>TVL</span>
+                        </div>
+                        <div className={styles.statDivider} />
+                        <div className={styles.stat}>
+                            <span className={styles.statValue}>{liveStats ? formatUSDCCompact(liveStats.poolLiquidity) : '$—'}</span>
                             <span className={styles.statLabel}>Pool Liquidity</span>
                         </div>
                         <div className={styles.statDivider} />
                         <div className={styles.stat}>
-                            <span className={styles.statValue}>~2%</span>
-                            <span className={styles.statLabel}>Monthly Cost</span>
-                        </div>
-                        <div className={styles.statDivider} />
-                        <div className={styles.stat}>
-                            <span className={styles.statValue}>400ms</span>
-                            <span className={styles.statLabel}>Finality</span>
+                            <span className={styles.statValue}>{liveStats ? liveStats.activeVaults : '—'}</span>
+                            <span className={styles.statLabel}>Active Vaults</span>
                         </div>
                         <div className={styles.statDivider} />
                         <div className={styles.stat}>

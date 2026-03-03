@@ -17,7 +17,7 @@
     height: 600px;
     background: radial-gradient(
         ellipse at center,
-        rgba(255, 107, 53, 0.05) 0%,
+        rgba(var(--accent-rgb), 0.05) 0%,
         transparent 60%
     );
     filter: blur(80px);
@@ -45,7 +45,7 @@
     font-weight: 600;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: rgba(255, 107, 53, 0.8);
+    color: rgba(var(--accent-rgb), 0.8);
     display: block;
     margin-bottom: 8px;
 }
@@ -107,7 +107,7 @@
 }
 
 .apyValue {
-    color: #ff6b35;
+    color: var(--accent);
 }
 
 /* ============================================
@@ -146,9 +146,9 @@
 }
 
 .filterActive {
-    background: rgba(255, 107, 53, 0.15);
-    border-color: rgba(255, 107, 53, 0.3);
-    color: #ff6b35;
+    background: rgba(var(--accent-rgb), 0.15);
+    border-color: rgba(var(--accent-rgb), 0.3);
+    color: var(--accent);
 }
 
 /* ============================================
@@ -183,12 +183,12 @@
 }
 
 .treasuryCard {
-    border-color: rgba(255, 107, 53, 0.15);
-    background: rgba(255, 107, 53, 0.02);
+    border-color: rgba(var(--accent-rgb), 0.15);
+    background: rgba(var(--accent-rgb), 0.02);
 }
 
 .treasuryCard:hover {
-    border-color: rgba(255, 107, 53, 0.25);
+    border-color: rgba(var(--accent-rgb), 0.25);
 }
 
 /* Pool header */
@@ -255,7 +255,7 @@
 
 .utilizationFill {
     height: 100%;
-    background: linear-gradient(90deg, #ff6b35, #ff8f6b);
+    background: linear-gradient(90deg, var(--accent), var(--accent-light));
     border-radius: 3px;
     transition: width 0.8s ease;
 }
@@ -398,6 +398,199 @@
 
 .statusCompleted {
     color: rgba(255, 255, 255, 0.4);
+}
+
+/* ============================================
+   LOADING & EMPTY STATES
+   ============================================ */
+
+.spinner {
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loadingState {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 60px 20px;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.9rem;
+}
+
+.emptyState {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.9rem;
+}
+
+/* ============================================
+   POOL ACTION BUTTONS
+   ============================================ */
+
+.poolActions {
+    display: flex;
+    gap: 8px;
+}
+
+.depositBtn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    border: none;
+    color: #000;
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.depositBtn:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.depositBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.withdrawBtn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 600;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.withdrawBtn:hover:not(:disabled) {
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.withdrawBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ============================================
+   MODAL
+   ============================================ */
+
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modalContent {
+    background: #141414;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 28px;
+    width: 420px;
+    max-width: 90vw;
+}
+
+.modalContent h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 20px;
+}
+
+.modalInput {
+    margin-bottom: 20px;
+}
+
+.modalInput label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.4);
+    margin-bottom: 8px;
+}
+
+.modalInput input {
+    width: 100%;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+}
+
+.modalInput input:focus {
+    outline: none;
+    border-color: rgba(255, 107, 53, 0.4);
+}
+
+.modalActions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.cancelBtn {
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancelBtn:hover {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.confirmBtn {
+    padding: 10px 24px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    border: none;
+    color: #000;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.confirmBtn:hover:not(:disabled) {
+    opacity: 0.9;
+}
+
+.confirmBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
 /* ============================================

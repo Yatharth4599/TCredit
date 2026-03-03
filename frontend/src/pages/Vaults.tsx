@@ -1,11 +1,13 @@
-import { useState } from 'react'
-import { mockVaults } from '../lib/mockData'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAccount } from 'wagmi'
+import { vaultsApi } from '../api/client'
+import type { ApiVault, ApiVaultDetail } from '../api/types'
+import { formatUSDC, weiToNumber, truncateAddress, bpsToPercent } from '../lib/format'
 import { GlassCard } from '../components/ui/GlassCard'
 import { WaterfallChart } from '../components/charts/WaterfallChart'
-import { TrendingUp, Users, Clock, Shield, X } from 'lucide-react'
+import { TrendingUp, Users, Clock, Layers, X, ExternalLink, Loader2 } from 'lucide-react'
 import styles from './Vaults.module.css'
-
-type Vault = typeof mockVaults[0]
 
 const FILTERS = [
   { id: 'all', label: 'All Vaults' },
@@ -19,30 +21,49 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   active: { label: 'Active', color: '#22c55e' },
   repaying: { label: 'Repaying', color: '#3b82f6' },
   completed: { label: 'Completed', color: '#888' },
-}
-
-function fmt(n: number) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(n)
+  defaulted: { label: 'Defaulted', color: '#ef4444' },
+  cancelled: { label: 'Cancelled', color: '#666' },
 }
 
 export default function Vaults() {
+  const navigate = useNavigate()
+  const { address: walletAddress } = useAccount()
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
-  const [selected, setSelected] = useState<Vault | null>(null)
+  const [vaults, setVaults] = useState<ApiVault[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selected, setSelected] = useState<ApiVaultDetail | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
   const [investAmount, setInvestAmount] = useState('')
 
-  const filtered = mockVaults.filter((v) => {
-    const matchFilter = filter === 'all' || v.status === filter
-    const matchSearch = v.merchant.toLowerCase().includes(search.toLowerCase()) ||
-      v.category.toLowerCase().includes(search.toLowerCase())
-    return matchFilter && matchSearch
-  })
+  // Fetch vaults from API
+  useEffect(() => {
+    setLoading(true)
+    const params = filter !== 'all' ? { state: filter } : undefined
+    vaultsApi.list(params)
+      .then(({ data }) => setVaults(data.vaults))
+      .catch(() => setVaults([]))
+      .finally(() => setLoading(false))
+  }, [filter])
 
-  const handleInvest = () => {
-    if (!selected || !investAmount) return
-    alert(`Investment of $${investAmount} in ${selected.merchant} submitted!`)
-    setInvestAmount('')
+  // Fetch vault detail when selected
+  const selectVault = async (vault: ApiVault) => {
+    setDetailLoading(true)
+    try {
+      const { data } = await vaultsApi.detail(vault.address)
+      setSelected(data)
+    } catch {
+      setSelected(null)
+    } finally {
+      setDetailLoading(false)
+    }
   }
+
+  const filtered = vaults.filter((v) => {
+    const matchSearch = v.agent.toLowerCase().includes(search.toLowerCase()) ||
+      v.address.toLowerCase().includes(search.toLowerCase())
+    return matchSearch
+  })
 
   return (
     <div className={styles.page}>
@@ -50,7 +71,7 @@ export default function Vaults() {
         <input
           className={styles.search}
           type="text"
-          placeholder="Search vaults or categories..."
+          placeholder="Search by address..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -69,142 +90,164 @@ export default function Vaults() {
 
       <div className={styles.layout}>
         <div className={styles.grid}>
-          {filtered.map((vault) => {
-            const status = STATUS_CONFIG[vault.status] ?? STATUS_CONFIG.fundraising
-            const progress = Math.min((vault.totalRaised / vault.targetAmount) * 100, 100)
-            const isSelected = selected?.id === vault.id
-
-            return (
-              <GlassCard
-                key={vault.id}
-                variant={isSelected ? 'highlight' : 'interactive'}
-                onClick={() => setSelected(vault)}
-              >
-                <div className={styles.cardTop}>
-                  <div>
-                    <h3 className={styles.merchant}>{vault.merchant}</h3>
-                    <span className={styles.category}>{vault.category}</span>
-                  </div>
-                  <span
-                    className={styles.statusBadge}
-                    style={{ color: status.color, borderColor: `${status.color}33`, background: `${status.color}12` }}
-                  >
-                    {status.label}
-                  </span>
-                </div>
-
-                <p className={styles.desc}>{vault.description}</p>
-
-                <div className={styles.stats}>
-                  <div className={styles.stat}>
-                    <TrendingUp size={12} />
-                    <span className={styles.statVal}>{vault.interestRate}%</span>
-                    <span className={styles.statLbl}>APY</span>
-                  </div>
-                  <div className={styles.stat}>
-                    <Clock size={12} />
-                    <span className={styles.statVal}>{vault.duration}mo</span>
-                    <span className={styles.statLbl}>Term</span>
-                  </div>
-                  <div className={styles.stat}>
-                    <Users size={12} />
-                    <span className={styles.statVal}>{vault.investorCount}</span>
-                    <span className={styles.statLbl}>Investors</span>
-                  </div>
-                  <div className={styles.stat}>
-                    <Shield size={12} />
-                    <span className={styles.statVal}>{vault.riskScore}</span>
-                    <span className={styles.statLbl}>Risk</span>
-                  </div>
-                </div>
-
-                <div className={styles.progress}>
-                  <div className={styles.progressHeader}>
-                    <span>{fmt(vault.totalRaised)}</span>
-                    <span className={styles.progressTarget}>of {fmt(vault.targetAmount)}</span>
-                  </div>
-                  <div className={styles.progressBar}>
-                    <div className={styles.progressFill} style={{ width: `${progress}%` }} />
-                  </div>
-                </div>
-              </GlassCard>
-            )
-          })}
-          {filtered.length === 0 && (
+          {loading ? (
+            <div className={styles.empty}>
+              <Loader2 size={24} className={styles.spinner} />
+              <span>Loading vaults...</span>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className={styles.empty}>No vaults match your search.</div>
+          ) : (
+            filtered.map((vault) => {
+              const status = STATUS_CONFIG[vault.state] ?? STATUS_CONFIG.fundraising
+              const isSelected = selected?.address === vault.address
+
+              return (
+                <GlassCard
+                  key={vault.address}
+                  variant={isSelected ? 'highlight' : 'interactive'}
+                  onClick={() => selectVault(vault)}
+                >
+                  <div className={styles.cardTop}>
+                    <div>
+                      <h3 className={styles.merchant}>{truncateAddress(vault.agent, 6)}</h3>
+                      <span className={styles.category}>{truncateAddress(vault.address)}</span>
+                    </div>
+                    <span
+                      className={styles.statusBadge}
+                      style={{ color: status.color, borderColor: `${status.color}33`, background: `${status.color}12` }}
+                    >
+                      {status.label}
+                    </span>
+                  </div>
+
+                  <p className={styles.desc}>
+                    {vault.numTranches} tranches · {vault.durationMonths}mo term · {bpsToPercent(vault.interestRateBps)} APY
+                  </p>
+
+                  <div className={styles.stats}>
+                    <div className={styles.stat}>
+                      <TrendingUp size={12} />
+                      <span className={styles.statVal}>{vault.interestRate}%</span>
+                      <span className={styles.statLbl}>APY</span>
+                    </div>
+                    <div className={styles.stat}>
+                      <Clock size={12} />
+                      <span className={styles.statVal}>{vault.durationMonths}mo</span>
+                      <span className={styles.statLbl}>Term</span>
+                    </div>
+                    <div className={styles.stat}>
+                      <Layers size={12} />
+                      <span className={styles.statVal}>{vault.tranchesReleased}/{vault.numTranches}</span>
+                      <span className={styles.statLbl}>Tranches</span>
+                    </div>
+                    <div className={styles.stat}>
+                      <Users size={12} />
+                      <span className={styles.statVal}>{vault.percentFunded}%</span>
+                      <span className={styles.statLbl}>Funded</span>
+                    </div>
+                  </div>
+
+                  <div className={styles.progress}>
+                    <div className={styles.progressHeader}>
+                      <span>{formatUSDC(vault.totalRaised)}</span>
+                      <span className={styles.progressTarget}>of {formatUSDC(vault.targetAmount)}</span>
+                    </div>
+                    <div className={styles.progressBar}>
+                      <div className={styles.progressFill} style={{ width: `${vault.percentFunded}%` }} />
+                    </div>
+                  </div>
+                </GlassCard>
+              )
+            })
           )}
         </div>
 
-        {selected && (
+        {(selected || detailLoading) && (
           <aside className={styles.detail}>
             <GlassCard variant="highlight">
-              <div className={styles.detailHeader}>
-                <div>
-                  <h2 className={styles.detailTitle}>{selected.merchant}</h2>
-                  <span className={styles.detailCategory}>{selected.category}</span>
+              {detailLoading ? (
+                <div className={styles.empty}>
+                  <Loader2 size={20} className={styles.spinner} />
+                  <span>Loading details...</span>
                 </div>
-                <button className={styles.closeBtn} onClick={() => setSelected(null)}>
-                  <X size={16} />
-                </button>
-              </div>
-
-              <p className={styles.detailDesc}>{selected.description}</p>
-
-              <div className={styles.detailStats}>
-                {[
-                  { label: 'APY', value: `${selected.interestRate}%` },
-                  { label: 'Term', value: `${selected.duration} mo` },
-                  { label: 'Risk', value: selected.riskScore },
-                  { label: 'Investors', value: String(selected.investorCount) },
-                ].map((s) => (
-                  <div key={s.label} className={styles.detailStat}>
-                    <span className={styles.detailStatVal}>{s.value}</span>
-                    <span className={styles.detailStatLbl}>{s.label}</span>
+              ) : selected && (
+                <>
+                  <div className={styles.detailHeader}>
+                    <div>
+                      <h2 className={styles.detailTitle}>{truncateAddress(selected.agent, 6)}</h2>
+                      <span className={styles.detailCategory}>{truncateAddress(selected.address)}</span>
+                    </div>
+                    <button className={styles.closeBtn} onClick={() => setSelected(null)}>
+                      <X size={16} />
+                    </button>
                   </div>
-                ))}
-              </div>
 
-              {(selected.status === 'active' || selected.status === 'repaying') && (
-                <div className={styles.waterfallSection}>
-                  <WaterfallChart
-                    totalAmount={selected.totalRaised}
-                    seniorPayment={Math.round(selected.totalRaised * 0.5)}
-                    poolPayment={Math.round(selected.totalRaised * 0.3)}
-                    userPayment={Math.round(selected.totalRaised * 0.2)}
-                  />
-                </div>
-              )}
-
-              {selected.status === 'fundraising' && (
-                <div className={styles.investSection}>
-                  <h4 className={styles.investTitle}>Invest</h4>
-                  <div className={styles.investInput}>
-                    <span className={styles.inputPrefix}>USDC</span>
-                    <input
-                      type="number"
-                      placeholder="100"
-                      value={investAmount}
-                      onChange={(e) => setInvestAmount(e.target.value)}
-                      min="100"
-                    />
+                  <div className={styles.detailStats}>
+                    {[
+                      { label: 'APY', value: `${selected.interestRate}%` },
+                      { label: 'Term', value: `${selected.durationMonths} mo` },
+                      { label: 'Tranches', value: `${selected.tranchesReleased}/${selected.numTranches}` },
+                      { label: 'Investors', value: String(selected.investorCount) },
+                    ].map((s) => (
+                      <div key={s.label} className={styles.detailStat}>
+                        <span className={styles.detailStatVal}>{s.value}</span>
+                        <span className={styles.detailStatLbl}>{s.label}</span>
+                      </div>
+                    ))}
                   </div>
-                  {investAmount && parseFloat(investAmount) >= 100 && (
-                    <div className={styles.returnPreview}>
-                      <span>Expected return</span>
-                      <span className={styles.returnVal}>
-                        +{fmt(parseFloat(investAmount) * selected.interestRate / 100)}
-                      </span>
+
+                  {(selected.state === 'active' || selected.state === 'repaying') && selected.waterfall && (
+                    <div className={styles.waterfallSection}>
+                      <WaterfallChart
+                        totalAmount={weiToNumber(selected.totalRaised)}
+                        seniorPayment={weiToNumber(selected.waterfall.seniorRepaid)}
+                        poolPayment={weiToNumber(selected.waterfall.poolRepaid)}
+                        userPayment={weiToNumber(selected.waterfall.communityRepaid)}
+                      />
                     </div>
                   )}
+
+                  {selected.state === 'fundraising' && (
+                    <div className={styles.investSection}>
+                      <h4 className={styles.investTitle}>Invest</h4>
+                      <div className={styles.investInput}>
+                        <span className={styles.inputPrefix}>USDC</span>
+                        <input
+                          type="number"
+                          placeholder="100"
+                          value={investAmount}
+                          onChange={(e) => setInvestAmount(e.target.value)}
+                          min="1"
+                        />
+                      </div>
+                      {investAmount && parseFloat(investAmount) >= 1 && (
+                        <div className={styles.returnPreview}>
+                          <span>Expected return</span>
+                          <span className={styles.returnVal}>
+                            +{formatUSDC(String(Math.round(parseFloat(investAmount) * selected.interestRate / 100 * 1e6)))}
+                          </span>
+                        </div>
+                      )}
+                      <button
+                        className={styles.investBtn}
+                        disabled={!walletAddress || !investAmount || parseFloat(investAmount) < 1}
+                        onClick={() => navigate(`/vaults/${selected.address}`)}
+                      >
+                        {walletAddress ? 'Invest Now' : 'Connect Wallet'}
+                      </button>
+                    </div>
+                  )}
+
                   <button
                     className={styles.investBtn}
-                    disabled={!investAmount || parseFloat(investAmount) < 100}
-                    onClick={handleInvest}
+                    style={{ marginTop: 8, background: 'transparent', border: '1px solid rgba(255,255,255,0.15)' }}
+                    onClick={() => navigate(`/vaults/${selected.address}`)}
                   >
-                    Invest Now
+                    <ExternalLink size={14} />
+                    <span style={{ marginLeft: 6 }}>View Full Details</span>
                   </button>
-                  <p className={styles.minNote}>Min. $100 · Max. $10,000 USDC</p>
-                </div>
+                </>
               )}
             </GlassCard>
           </aside>

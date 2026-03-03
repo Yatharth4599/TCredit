@@ -1,57 +1,103 @@
 import { useState, useEffect } from 'react'
-import { mockInvestments, mockVaults } from '../lib/mockData'
+import { useNavigate } from 'react-router-dom'
+import { useAccount } from 'wagmi'
+import { investApi } from '../api/client'
+import type { ApiPortfolioInvestment, ApiPortfolioSummary } from '../api/types'
+import { formatUSDC, weiToNumber, truncateAddress } from '../lib/format'
+import { useContractTx } from '../hooks/useContractTx'
+import { Loader2, Wallet } from 'lucide-react'
 import styles from './Portfolio.module.css'
 
+const STATUS_CONFIG: Record<string, { label: string; class: string }> = {
+    fundraising: { label: 'Fundraising', class: styles.statusActive },
+    active: { label: 'Active', class: styles.statusActive },
+    repaying: { label: 'Repaying', class: styles.statusRepaying },
+    completed: { label: 'Completed', class: styles.statusCompleted },
+    defaulted: { label: 'Defaulted', class: styles.statusCompleted },
+    cancelled: { label: 'Cancelled', class: styles.statusCompleted },
+}
+
 export default function Portfolio() {
+    const navigate = useNavigate()
+    const { address: walletAddress } = useAccount()
     const [mounted, setMounted] = useState(false)
     const [activeTab, setActiveTab] = useState<'all' | 'active' | 'completed'>('all')
+    const [investments, setInvestments] = useState<ApiPortfolioInvestment[]>([])
+    const [summary, setSummary] = useState<ApiPortfolioSummary | null>(null)
+    const [loading, setLoading] = useState(false)
+    const [claimingVault, setClaimingVault] = useState<string | null>(null)
+
+    const { execute: executeTx } = useContractTx()
 
     useEffect(() => {
         setMounted(true)
     }, [])
 
-    // Calculate portfolio stats
-    const totalInvested = mockInvestments.reduce((sum, inv) => sum + inv.amountInvested, 0)
-    const totalReturns = mockInvestments.reduce((sum, inv) => sum + inv.totalReturns, 0)
-    const totalClaimed = mockInvestments.reduce((sum, inv) => sum + inv.claimedReturns, 0)
-    const claimable = totalReturns - totalClaimed
-    const profitPercent = ((totalReturns - totalInvested) / totalInvested * 100).toFixed(1)
+    // Fetch portfolio when wallet connects
+    useEffect(() => {
+        if (!walletAddress) {
+            setInvestments([])
+            setSummary(null)
+            return
+        }
+        setLoading(true)
+        investApi.portfolio(walletAddress)
+            .then(({ data }) => {
+                setInvestments(data.investments)
+                setSummary(data.summary)
+            })
+            .catch(() => {
+                setInvestments([])
+                setSummary(null)
+            })
+            .finally(() => setLoading(false))
+    }, [walletAddress])
 
-    // Filter investments by tab
-    const filteredInvestments = mockInvestments.filter(inv => {
+    const handleClaim = async (vaultAddress: string) => {
+        setClaimingVault(vaultAddress)
+        try {
+            const { data: unsignedTx } = await investApi.claim({ vaultAddress })
+            await executeTx(unsignedTx)
+            // Refresh portfolio
+            if (walletAddress) {
+                const { data } = await investApi.portfolio(walletAddress)
+                setInvestments(data.investments)
+                setSummary(data.summary)
+            }
+        } catch {
+            // Error handled by toast
+        } finally {
+            setClaimingVault(null)
+        }
+    }
+
+    const totalInvested = summary ? weiToNumber(summary.totalInvested) : 0
+    const totalClaimable = summary ? weiToNumber(summary.totalClaimable) : 0
+
+    const filteredInvestments = investments.filter(inv => {
         if (activeTab === 'all') return true
-        if (activeTab === 'active') return inv.status === 'active' || inv.status === 'repaying'
-        return inv.status === 'completed'
+        if (activeTab === 'active') return inv.state === 'active' || inv.state === 'repaying' || inv.state === 'fundraising'
+        return inv.state === 'completed'
     })
 
-    // Get vault details for an investment
-    const getVaultDetails = (vaultId: string) => {
-        return mockVaults.find(v => v.id === vaultId)
-    }
-
-    const formatDate = (timestamp: number) => {
-        return new Date(timestamp).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        })
-    }
-
-    const getStatusConfig = (status: string) => {
-        const configs: Record<string, { label: string; class: string }> = {
-            active: { label: 'Active', class: styles.statusActive },
-            repaying: { label: 'Repaying', class: styles.statusRepaying },
-            completed: { label: 'Completed', class: styles.statusCompleted },
-        }
-        return configs[status] || configs.active
+    // Wallet not connected state
+    if (!walletAddress) {
+        return (
+            <div className={styles.portfolio}>
+                <div className={styles.ambientGlow} />
+                <div className={styles.connectPrompt}>
+                    <Wallet size={48} strokeWidth={1} />
+                    <h2>Connect Your Wallet</h2>
+                    <p>Connect your wallet to view your investment portfolio</p>
+                </div>
+            </div>
+        )
     }
 
     return (
         <div className={styles.portfolio}>
-            {/* Ambient Effects */}
             <div className={styles.ambientGlow} />
 
-            {/* Header */}
             <header className={`${styles.header} ${mounted ? styles.visible : ''}`}>
                 <div className={styles.headerContent}>
                     <span className={styles.overline}>Investor Dashboard</span>
@@ -59,149 +105,99 @@ export default function Portfolio() {
                 </div>
             </header>
 
-            {/* Main Content */}
             <div className={styles.content}>
-                {/* Left Column - Stats & Activity */}
+                {/* Left Column - Stats */}
                 <div className={styles.leftColumn}>
-                    {/* Portfolio Overview Card */}
                     <div className={`${styles.overviewCard} ${mounted ? styles.visible : ''}`}>
                         <div className={styles.overviewHeader}>
                             <span>Portfolio Value</span>
                             <span className={styles.liveBadge}>Live</span>
                         </div>
-                        <div className={styles.overviewValue}>
-                            <span className={styles.currency}>$</span>
-                            <span className={styles.amount}>{totalReturns.toLocaleString()}</span>
-                        </div>
-                        <div className={styles.overviewChange}>
-                            <span className={styles.profit}>+${(totalReturns - totalInvested).toLocaleString()}</span>
-                            <span className={styles.percent}>+{profitPercent}%</span>
-                        </div>
-
-                        <div className={styles.overviewStats}>
-                            <div className={styles.overviewStat}>
-                                <span className={styles.overviewStatValue}>${totalInvested.toLocaleString()}</span>
-                                <span className={styles.overviewStatLabel}>Invested</span>
+                        {loading ? (
+                            <div className={styles.loadingInline}>
+                                <Loader2 size={20} className={styles.spinner} />
                             </div>
-                            <div className={styles.overviewStatDivider} />
-                            <div className={styles.overviewStat}>
-                                <span className={styles.overviewStatValue}>${totalClaimed.toLocaleString()}</span>
-                                <span className={styles.overviewStatLabel}>Claimed</span>
-                            </div>
-                            <div className={styles.overviewStatDivider} />
-                            <div className={styles.overviewStat}>
-                                <span className={styles.overviewStatValue}>{mockInvestments.length}</span>
-                                <span className={styles.overviewStatLabel}>Positions</span>
-                            </div>
-                        </div>
-
-                        {claimable > 0 && (
-                            <div className={styles.claimSection}>
-                                <div className={styles.claimInfo}>
-                                    <span className={styles.claimLabel}>Available to Claim</span>
-                                    <span className={styles.claimValue}>${claimable.toLocaleString()}</span>
+                        ) : (
+                            <>
+                                <div className={styles.overviewValue}>
+                                    <span className={styles.currency}>$</span>
+                                    <span className={styles.amount}>{totalInvested.toLocaleString()}</span>
                                 </div>
-                                <button className={styles.claimBtn}>Claim All</button>
-                            </div>
+
+                                <div className={styles.overviewStats}>
+                                    <div className={styles.overviewStat}>
+                                        <span className={styles.overviewStatValue}>{formatUSDC(summary?.totalInvested || '0')}</span>
+                                        <span className={styles.overviewStatLabel}>Invested</span>
+                                    </div>
+                                    <div className={styles.overviewStatDivider} />
+                                    <div className={styles.overviewStat}>
+                                        <span className={styles.overviewStatValue}>{formatUSDC(summary?.totalClaimable || '0')}</span>
+                                        <span className={styles.overviewStatLabel}>Claimable</span>
+                                    </div>
+                                    <div className={styles.overviewStatDivider} />
+                                    <div className={styles.overviewStat}>
+                                        <span className={styles.overviewStatValue}>{investments.length}</span>
+                                        <span className={styles.overviewStatLabel}>Positions</span>
+                                    </div>
+                                </div>
+
+                                {totalClaimable > 0 && (
+                                    <div className={styles.claimSection}>
+                                        <div className={styles.claimInfo}>
+                                            <span className={styles.claimLabel}>Available to Claim</span>
+                                            <span className={styles.claimValue}>{formatUSDC(summary?.totalClaimable || '0')}</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
 
                     {/* Allocation Breakdown */}
-                    <div className={`${styles.allocationCard} ${mounted ? styles.visible : ''}`} style={{ transitionDelay: '0.1s' }}>
-                        <h3 className={styles.cardTitle}>Allocation by Status</h3>
-                        <div className={styles.allocationList}>
-                            {['active', 'repaying', 'completed'].map((status) => {
-                                const statusInvestments = mockInvestments.filter(inv => inv.status === status)
-                                const statusTotal = statusInvestments.reduce((sum, inv) => sum + inv.amountInvested, 0)
-                                const percentage = totalInvested > 0 ? (statusTotal / totalInvested * 100).toFixed(0) : 0
+                    {investments.length > 0 && (
+                        <div className={`${styles.allocationCard} ${mounted ? styles.visible : ''}`} style={{ transitionDelay: '0.1s' }}>
+                            <h3 className={styles.cardTitle}>Allocation by Status</h3>
+                            <div className={styles.allocationList}>
+                                {['active', 'repaying', 'completed'].map((status) => {
+                                    const statusInvestments = investments.filter(inv => inv.state === status)
+                                    const statusTotal = statusInvestments.reduce((sum, inv) => sum + weiToNumber(inv.amountInvested), 0)
+                                    const percentage = totalInvested > 0 ? (statusTotal / totalInvested * 100).toFixed(0) : '0'
 
-                                if (statusTotal === 0) return null
+                                    if (statusTotal === 0) return null
 
-                                return (
-                                    <div key={status} className={styles.allocationItem}>
-                                        <div className={styles.allocationInfo}>
-                                            <span className={`${styles.allocationDot} ${styles[`dot${status.charAt(0).toUpperCase() + status.slice(1)}`]}`} />
-                                            <span className={styles.allocationName}>{status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                                    return (
+                                        <div key={status} className={styles.allocationItem}>
+                                            <div className={styles.allocationInfo}>
+                                                <span className={`${styles.allocationDot} ${styles[`dot${status.charAt(0).toUpperCase() + status.slice(1)}`]}`} />
+                                                <span className={styles.allocationName}>{status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                                            </div>
+                                            <div className={styles.allocationRight}>
+                                                <span className={styles.allocationAmount}>${statusTotal.toLocaleString()}</span>
+                                                <span className={styles.allocationPercent}>{percentage}%</span>
+                                            </div>
                                         </div>
-                                        <div className={styles.allocationRight}>
-                                            <span className={styles.allocationAmount}>${statusTotal.toLocaleString()}</span>
-                                            <span className={styles.allocationPercent}>{percentage}%</span>
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                        <div className={styles.allocationBar}>
-                            {['active', 'repaying', 'completed'].map((status) => {
-                                const statusInvestments = mockInvestments.filter(inv => inv.status === status)
-                                const statusTotal = statusInvestments.reduce((sum, inv) => sum + inv.amountInvested, 0)
-                                const percentage = totalInvested > 0 ? (statusTotal / totalInvested * 100) : 0
-
-                                if (percentage === 0) return null
-
-                                return (
-                                    <div
-                                        key={status}
-                                        className={`${styles.allocationBarSegment} ${styles[`bar${status.charAt(0).toUpperCase() + status.slice(1)}`]}`}
-                                        style={{ width: `${percentage}%` }}
-                                    />
-                                )
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Recent Activity */}
-                    <div className={`${styles.activityCard} ${mounted ? styles.visible : ''}`} style={{ transitionDelay: '0.2s' }}>
-                        <h3 className={styles.cardTitle}>Recent Activity</h3>
-                        <div className={styles.activityList}>
-                            <div className={styles.activityItem}>
-                                <div className={styles.activityIcon}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                                    </svg>
-                                </div>
-                                <div className={styles.activityInfo}>
-                                    <span className={styles.activityTitle}>Claimed Returns</span>
-                                    <span className={styles.activityDesc}>JBR Fitness Center</span>
-                                </div>
-                                <div className={styles.activityRight}>
-                                    <span className={styles.activityAmount}>+$500</span>
-                                    <span className={styles.activityTime}>2 days ago</span>
-                                </div>
+                                    )
+                                })}
                             </div>
-                            <div className={styles.activityItem}>
-                                <div className={styles.activityIcon}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <circle cx="12" cy="12" r="10" />
-                                        <path d="M12 6v6l4 2" />
-                                    </svg>
-                                </div>
-                                <div className={styles.activityInfo}>
-                                    <span className={styles.activityTitle}>Investment Matured</span>
-                                    <span className={styles.activityDesc}>Downtown Cafe Chain</span>
-                                </div>
-                                <div className={styles.activityRight}>
-                                    <span className={styles.activityAmountGreen}>Completed</span>
-                                    <span className={styles.activityTime}>1 week ago</span>
-                                </div>
-                            </div>
-                            <div className={styles.activityItem}>
-                                <div className={styles.activityIcon}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                                    </svg>
-                                </div>
-                                <div className={styles.activityInfo}>
-                                    <span className={styles.activityTitle}>New Investment</span>
-                                    <span className={styles.activityDesc}>Al Barsha Restaurant</span>
-                                </div>
-                                <div className={styles.activityRight}>
-                                    <span className={styles.activityAmount}>$5,000</span>
-                                    <span className={styles.activityTime}>Dec 15</span>
-                                </div>
+                            <div className={styles.allocationBar}>
+                                {['active', 'repaying', 'completed'].map((status) => {
+                                    const statusInvestments = investments.filter(inv => inv.state === status)
+                                    const statusTotal = statusInvestments.reduce((sum, inv) => sum + weiToNumber(inv.amountInvested), 0)
+                                    const percentage = totalInvested > 0 ? (statusTotal / totalInvested * 100) : 0
+
+                                    if (percentage === 0) return null
+
+                                    return (
+                                        <div
+                                            key={status}
+                                            className={`${styles.allocationBarSegment} ${styles[`bar${status.charAt(0).toUpperCase() + status.slice(1)}`]}`}
+                                            style={{ width: `${percentage}%` }}
+                                        />
+                                    )
+                                })}
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* Right Column - Investments List */}
@@ -223,80 +219,72 @@ export default function Portfolio() {
                         </div>
 
                         <div className={styles.investmentsList}>
-                            {filteredInvestments.map((inv) => {
-                                const vault = getVaultDetails(inv.vaultId)
-                                const status = getStatusConfig(inv.status)
-                                const returnPercent = ((inv.totalReturns - inv.amountInvested) / inv.amountInvested * 100).toFixed(1)
-
-                                return (
-                                    <div key={inv.vaultId} className={styles.investmentItem}>
-                                        <div className={styles.investmentMain}>
-                                            <div className={styles.investmentInfo}>
-                                                <h4>{inv.merchant}</h4>
-                                                <div className={styles.investmentMeta}>
-                                                    <span className={status.class}>{status.label}</span>
-                                                    <span className={styles.investmentCategory}>{vault?.category}</span>
-                                                    <span className={styles.investmentDate}>{formatDate(inv.investedAt)}</span>
-                                                </div>
-                                            </div>
-                                            <div className={styles.investmentStats}>
-                                                <div className={styles.investmentStat}>
-                                                    <span className={styles.investmentStatValue}>${inv.amountInvested.toLocaleString()}</span>
-                                                    <span className={styles.investmentStatLabel}>Invested</span>
-                                                </div>
-                                                <div className={styles.investmentStat}>
-                                                    <span className={styles.investmentStatValue}>${inv.totalReturns.toLocaleString()}</span>
-                                                    <span className={styles.investmentStatLabel}>Returns</span>
-                                                </div>
-                                                <div className={styles.investmentStat}>
-                                                    <span className={`${styles.investmentStatValue} ${styles.profitValue}`}>+{returnPercent}%</span>
-                                                    <span className={styles.investmentStatLabel}>Profit</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {vault && (
-                                            <div className={styles.investmentProgress}>
-                                                <div className={styles.progressInfo}>
-                                                    <span>Vault Progress</span>
-                                                    <span>{vault.interestRate}% APY · {vault.duration} months</span>
-                                                </div>
-                                                <div className={styles.progressBar}>
-                                                    <div
-                                                        className={styles.progressFill}
-                                                        style={{ width: `${(inv.claimedReturns / inv.totalReturns) * 100}%` }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        <div className={styles.investmentActions}>
-                                            {inv.status === 'completed' ? (
-                                                <span className={styles.completedBadge}>
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                        <path d="M20 6L9 17l-5-5" />
-                                                    </svg>
-                                                    Fully Claimed
-                                                </span>
-                                            ) : (
-                                                <>
-                                                    {inv.totalReturns - inv.claimedReturns > 0 && (
-                                                        <button className={styles.claimSmallBtn}>
-                                                            Claim ${(inv.totalReturns - inv.claimedReturns).toLocaleString()}
-                                                        </button>
-                                                    )}
-                                                    <button className={styles.detailsBtn}>View Details</button>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                )
-                            })}
-
-                            {filteredInvestments.length === 0 && (
+                            {loading ? (
                                 <div className={styles.emptyState}>
-                                    <p>No investments found</p>
+                                    <Loader2 size={24} className={styles.spinner} />
+                                    <p>Loading investments...</p>
                                 </div>
+                            ) : filteredInvestments.length === 0 ? (
+                                <div className={styles.emptyState}>
+                                    <p>{investments.length === 0 ? 'No investments yet' : 'No investments in this category'}</p>
+                                    {investments.length === 0 && (
+                                        <button className={styles.claimSmallBtn} onClick={() => navigate('/vaults')}>
+                                            Browse Vaults
+                                        </button>
+                                    )}
+                                </div>
+                            ) : (
+                                filteredInvestments.map((inv) => {
+                                    const status = STATUS_CONFIG[inv.state] || STATUS_CONFIG.active
+                                    const invested = weiToNumber(inv.amountInvested)
+                                    const claimable = weiToNumber(inv.claimable)
+
+                                    return (
+                                        <div key={inv.vaultAddress} className={styles.investmentItem}>
+                                            <div className={styles.investmentMain}>
+                                                <div className={styles.investmentInfo}>
+                                                    <h4>{truncateAddress(inv.agent, 6)}</h4>
+                                                    <div className={styles.investmentMeta}>
+                                                        <span className={status.class}>{status.label}</span>
+                                                        <span className={styles.investmentDate}>{inv.interestRate}% APY · {inv.durationMonths}mo</span>
+                                                    </div>
+                                                </div>
+                                                <div className={styles.investmentStats}>
+                                                    <div className={styles.investmentStat}>
+                                                        <span className={styles.investmentStatValue}>{formatUSDC(inv.amountInvested)}</span>
+                                                        <span className={styles.investmentStatLabel}>Invested</span>
+                                                    </div>
+                                                    <div className={styles.investmentStat}>
+                                                        <span className={styles.investmentStatValue}>{formatUSDC(inv.claimable)}</span>
+                                                        <span className={styles.investmentStatLabel}>Claimable</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className={styles.investmentActions}>
+                                                {claimable > 0 && (
+                                                    <button
+                                                        className={styles.claimSmallBtn}
+                                                        onClick={() => handleClaim(inv.vaultAddress)}
+                                                        disabled={claimingVault === inv.vaultAddress}
+                                                    >
+                                                        {claimingVault === inv.vaultAddress ? (
+                                                            <><Loader2 size={14} className={styles.spinner} /> Claiming...</>
+                                                        ) : (
+                                                            `Claim ${formatUSDC(inv.claimable)}`
+                                                        )}
+                                                    </button>
+                                                )}
+                                                <button
+                                                    className={styles.detailsBtn}
+                                                    onClick={() => navigate(`/vaults/${inv.vaultAddress}`)}
+                                                >
+                                                    View Details
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )
+                                })
                             )}
                         </div>
                     </div>

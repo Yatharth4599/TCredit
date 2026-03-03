@@ -1,15 +1,87 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
-import { mockVaults } from '../lib/mockData'
+import { useState, useEffect } from 'react'
+import { useAccount } from 'wagmi'
+import { vaultsApi, investApi } from '../api/client'
+import type { ApiVaultDetail, ApiInvestor, ApiTrancheResponse, ApiMilestone, ApiVaultEvent } from '../api/types'
+import { formatUSDC, weiToNumber, truncateAddress, parseUSDCToWei } from '../lib/format'
+import { useContractTx } from '../hooks/useContractTx'
+import { useUSDCApproval } from '../hooks/useUSDCApproval'
+import { WaterfallChart } from '../components/charts/WaterfallChart'
+import { ArrowLeft, Loader2, CheckCircle, Clock, AlertTriangle, Users, Layers, TrendingUp } from 'lucide-react'
 import styles from './VaultDetail.module.css'
 
-export default function VaultDetail() {
-    const { id } = useParams()
-    const navigate = useNavigate()
-    const [investAmount, setInvestAmount] = useState('')
-    const [showInvestModal, setShowInvestModal] = useState(false)
+const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+    fundraising: { label: 'Fundraising', color: '#FF6B35' },
+    active: { label: 'Active', color: '#22c55e' },
+    repaying: { label: 'Repaying', color: '#3b82f6' },
+    completed: { label: 'Completed', color: '#888' },
+    defaulted: { label: 'Defaulted', color: '#ef4444' },
+    cancelled: { label: 'Cancelled', color: '#666' },
+}
 
-    const vault = mockVaults.find(v => v.id === id)
+export default function VaultDetail() {
+    const { address } = useParams<{ address: string }>()
+    const navigate = useNavigate()
+    const { address: walletAddress } = useAccount()
+    const [vault, setVault] = useState<ApiVaultDetail | null>(null)
+    const [investors, setInvestors] = useState<ApiInvestor[]>([])
+    const [tranches, setTranches] = useState<ApiTrancheResponse | null>(null)
+    const [milestones, setMilestones] = useState<ApiMilestone[]>([])
+    const [repayments, setRepayments] = useState<ApiVaultEvent[]>([])
+    const [loading, setLoading] = useState(true)
+    const [investAmount, setInvestAmount] = useState('')
+    const [investing, setInvesting] = useState(false)
+
+    const { execute: executeTx } = useContractTx()
+    const { needsApproval, approve } = useUSDCApproval(address || '')
+
+    useEffect(() => {
+        if (!address) return
+        setLoading(true)
+
+        Promise.all([
+            vaultsApi.detail(address).then(r => setVault(r.data)),
+            vaultsApi.investors(address).then(r => setInvestors(r.data.investors)).catch(() => {}),
+            vaultsApi.tranches(address).then(r => setTranches(r.data)).catch(() => {}),
+            vaultsApi.milestones(address).then(r => setMilestones(r.data.milestones)).catch(() => {}),
+            vaultsApi.repayments(address).then(r => setRepayments(r.data.repayments)).catch(() => {}),
+        ]).finally(() => setLoading(false))
+    }, [address])
+
+    const handleInvest = async () => {
+        if (!address || !investAmount || !walletAddress) return
+        setInvesting(true)
+        try {
+            const weiAmount = parseUSDCToWei(investAmount)
+            const amountBigInt = BigInt(weiAmount)
+
+            // Step 1: Approve USDC if needed
+            if (needsApproval(amountBigInt)) {
+                const approved = await approve(amountBigInt)
+                if (!approved) { setInvesting(false); return }
+            }
+
+            // Step 2: Build + sign invest tx
+            const { data: unsignedTx } = await investApi.invest({ vaultAddress: address, amount: weiAmount })
+            await executeTx(unsignedTx)
+            setInvestAmount('')
+        } catch {
+            // Error handled by hook toasts
+        } finally {
+            setInvesting(false)
+        }
+    }
+
+    if (loading) {
+        return (
+            <div className={styles.vaultDetail}>
+                <div className={styles.loadingState}>
+                    <Loader2 size={28} className={styles.spinner} />
+                    <span>Loading vault...</span>
+                </div>
+            </div>
+        )
+    }
 
     if (!vault) {
         return (
@@ -20,158 +92,231 @@ export default function VaultDetail() {
         )
     }
 
-    const progress = Math.min((vault.totalRaised / vault.targetAmount) * 100, 100)
-    const remaining = vault.targetAmount - vault.totalRaised
-
-    const handleInvest = () => {
-        // Mock investment
-        alert(`Investment of $${investAmount} successful! You'll receive ${investAmount} debt tokens.`)
-        setShowInvestModal(false)
-        setInvestAmount('')
-    }
+    const status = STATUS_CONFIG[vault.state] ?? STATUS_CONFIG.fundraising
+    const remaining = weiToNumber(vault.targetAmount) - weiToNumber(vault.totalRaised)
 
     return (
         <div className={styles.vaultDetail}>
             <div className="container">
                 <button className={styles.backButton} onClick={() => navigate('/vaults')}>
-                    ← Back to Vaults
+                    <ArrowLeft size={16} /> Back to Vaults
                 </button>
 
                 <div className={styles.content}>
                     <div className={styles.main}>
                         <header className={styles.header}>
                             <div>
-                                <h1 className="animate-fade-in">{vault.merchant}</h1>
-                                <p className={styles.category}>{vault.category}</p>
+                                <h1>{truncateAddress(vault.agent, 6)}</h1>
+                                <p className={styles.category}>{truncateAddress(vault.address)}</p>
                             </div>
-                            <div className={styles.riskBadge}>
-                                Risk Score: {vault.riskScore}
-                            </div>
+                            <span
+                                className={styles.statusBadge}
+                                style={{ color: status.color, borderColor: `${status.color}33`, background: `${status.color}12` }}
+                            >
+                                {status.label}
+                            </span>
                         </header>
-
-                        <p className={styles.description}>{vault.description}</p>
 
                         <div className={styles.progressSection}>
                             <div className={styles.progressHeader}>
-                                <span>${vault.totalRaised.toLocaleString()} raised</span>
-                                <span>${vault.targetAmount.toLocaleString()} goal</span>
+                                <span>{formatUSDC(vault.totalRaised)} raised</span>
+                                <span>{formatUSDC(vault.targetAmount)} goal</span>
                             </div>
                             <div className={styles.progressBar}>
-                                <div className={styles.progressFill} style={{ width: `${progress}%` }} />
+                                <div className={styles.progressFill} style={{ width: `${vault.percentFunded}%` }} />
                             </div>
                             <p className={styles.progressText}>
-                                {progress.toFixed(1)}% funded • ${remaining.toLocaleString()} remaining
+                                {vault.percentFunded}% funded · {formatUSDC(String(Math.round(remaining * 1e6)))} remaining
                             </p>
                         </div>
 
                         <div className={styles.statsGrid}>
                             <div className={styles.statCard}>
+                                <TrendingUp size={16} />
                                 <span className={styles.statLabel}>Interest Rate</span>
                                 <span className={styles.statValue}>{vault.interestRate}% APY</span>
                             </div>
                             <div className={styles.statCard}>
+                                <Clock size={16} />
                                 <span className={styles.statLabel}>Duration</span>
-                                <span className={styles.statValue}>{vault.duration} months</span>
+                                <span className={styles.statValue}>{vault.durationMonths} months</span>
                             </div>
                             <div className={styles.statCard}>
+                                <Users size={16} />
                                 <span className={styles.statLabel}>Investors</span>
                                 <span className={styles.statValue}>{vault.investorCount}</span>
                             </div>
-                        </div>
-
-                        <div className={styles.details}>
-                            <h2>Vault Details</h2>
-                            <div className={styles.detailItem}>
-                                <span>Status</span>
-                                <span className={styles.statusBadge}>{vault.status}</span>
-                            </div>
-                            <div className={styles.detailItem}>
-                                <span>Investment Range</span>
-                                <span>$100 - $10,000</span>
+                            <div className={styles.statCard}>
+                                <Layers size={16} />
+                                <span className={styles.statLabel}>Tranches</span>
+                                <span className={styles.statValue}>{vault.tranchesReleased}/{vault.numTranches}</span>
                             </div>
                         </div>
-                    </div>
 
-                    <div className={styles.sidebar}>
-                        <div className={styles.investCard}>
-                            <h3>Invest in this Vault</h3>
-                            <p>Earn {vault.interestRate}% APY on your investment</p>
-
-                            <div className={styles.inputGroup}>
-                                <label>Investment Amount (USDC)</label>
-                                <input
-                                    type="number"
-                                    placeholder="Enter amount"
-                                    value={investAmount}
-                                    onChange={(e) => setInvestAmount(e.target.value)}
-                                    min="100"
-                                    max="10000"
+                        {/* Waterfall Chart */}
+                        {(vault.state === 'active' || vault.state === 'repaying') && vault.waterfall && (
+                            <div className={styles.section}>
+                                <WaterfallChart
+                                    totalAmount={weiToNumber(vault.totalRaised)}
+                                    seniorPayment={weiToNumber(vault.waterfall.seniorRepaid)}
+                                    poolPayment={weiToNumber(vault.waterfall.poolRepaid)}
+                                    userPayment={weiToNumber(vault.waterfall.communityRepaid)}
                                 />
                             </div>
+                        )}
 
-                            {investAmount && (
-                                <div className={styles.returns}>
-                                    <div className={styles.returnItem}>
-                                        <span>You'll receive</span>
-                                        <span>{investAmount} Debt Tokens</span>
+                        {/* Tranches */}
+                        {tranches && (
+                            <div className={styles.section}>
+                                <h2 className={styles.sectionTitle}>Tranches</h2>
+                                <div className={styles.trancheGrid}>
+                                    {tranches.tranches.map((t) => (
+                                        <div key={t.index} className={styles.trancheItem}>
+                                            <span className={styles.trancheIndex}>#{t.index + 1}</span>
+                                            {t.released ? (
+                                                <CheckCircle size={16} color="#22c55e" />
+                                            ) : (
+                                                <Clock size={16} color="#888" />
+                                            )}
+                                            <span>{t.released ? 'Released' : 'Locked'}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Milestones */}
+                        {milestones.length > 0 && (
+                            <div className={styles.section}>
+                                <h2 className={styles.sectionTitle}>Milestones</h2>
+                                {milestones.map((m) => (
+                                    <div key={m.trancheIndex} className={styles.milestoneItem}>
+                                        <div className={styles.milestoneHeader}>
+                                            <span>Tranche #{m.trancheIndex + 1}</span>
+                                            <span className={styles.milestoneStatus} style={{
+                                                color: m.status === 'approved' ? '#22c55e' : m.status === 'submitted' ? '#3b82f6' : '#888'
+                                            }}>
+                                                {m.status}
+                                            </span>
+                                        </div>
+                                        <div className={styles.milestoneDetail}>
+                                            <span>Approvals: {m.approvalCount}</span>
+                                            {m.submittedAt && <span>Submitted: {new Date(m.submittedAt).toLocaleDateString()}</span>}
+                                        </div>
                                     </div>
-                                    <div className={styles.returnItem}>
-                                        <span>Estimated returns</span>
-                                        <span>
-                                            ${(parseFloat(investAmount) * (1 + vault.interestRate / 100)).toFixed(2)}
-                                        </span>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Investors */}
+                        {investors.length > 0 && (
+                            <div className={styles.section}>
+                                <h2 className={styles.sectionTitle}>Investors ({investors.length})</h2>
+                                <div className={styles.investorList}>
+                                    {investors.slice(0, 10).map((inv) => (
+                                        <div key={inv.investor} className={styles.investorItem}>
+                                            <span className={styles.investorAddr}>{truncateAddress(inv.investor)}</span>
+                                            <span>{formatUSDC(inv.balance)}</span>
+                                            <span className={styles.claimable}>{formatUSDC(inv.claimable)} claimable</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Repayment History */}
+                        {repayments.length > 0 && (
+                            <div className={styles.section}>
+                                <h2 className={styles.sectionTitle}>Repayment History</h2>
+                                {repayments.slice(0, 10).map((evt) => (
+                                    <div key={evt.id} className={styles.repaymentItem}>
+                                        <span className={styles.repaymentType}>{evt.eventType}</span>
+                                        <span className={styles.repaymentDate}>{new Date(evt.timestamp).toLocaleDateString()}</span>
+                                        <a
+                                            href={`https://sepolia.basescan.org/tx/${evt.txHash}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={styles.txLink}
+                                        >
+                                            {truncateAddress(evt.txHash)}
+                                        </a>
                                     </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Sidebar: Invest panel */}
+                    <div className={styles.sidebar}>
+                        <div className={styles.investCard}>
+                            {vault.state === 'fundraising' ? (
+                                <>
+                                    <h3>Invest in this Vault</h3>
+                                    <p>Earn {vault.interestRate}% APY on your investment</p>
+
+                                    <div className={styles.inputGroup}>
+                                        <label>Investment Amount (USDC)</label>
+                                        <input
+                                            type="number"
+                                            placeholder="Enter amount"
+                                            value={investAmount}
+                                            onChange={(e) => setInvestAmount(e.target.value)}
+                                            min="1"
+                                        />
+                                    </div>
+
+                                    {investAmount && parseFloat(investAmount) > 0 && (
+                                        <div className={styles.returns}>
+                                            <div className={styles.returnItem}>
+                                                <span>Expected returns</span>
+                                                <span>
+                                                    {formatUSDC(String(Math.round(parseFloat(investAmount) * (1 + vault.interestRate / 100) * 1e6)))}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <button
+                                        className={styles.investButton}
+                                        onClick={handleInvest}
+                                        disabled={!walletAddress || !investAmount || parseFloat(investAmount) < 1 || investing}
+                                    >
+                                        {investing ? (
+                                            <><Loader2 size={16} className={styles.spinner} /> Processing...</>
+                                        ) : !walletAddress ? (
+                                            'Connect Wallet'
+                                        ) : (
+                                            'Invest Now'
+                                        )}
+                                    </button>
+
+                                    <p className={styles.disclaimer}>
+                                        Returns are not guaranteed. Review vault details carefully.
+                                    </p>
+                                </>
+                            ) : vault.state === 'defaulted' ? (
+                                <div className={styles.statusMessage}>
+                                    <AlertTriangle size={24} color="#ef4444" />
+                                    <h3>Vault Defaulted</h3>
+                                    <p>This vault has been marked as defaulted.</p>
+                                </div>
+                            ) : vault.state === 'completed' ? (
+                                <div className={styles.statusMessage}>
+                                    <CheckCircle size={24} color="#22c55e" />
+                                    <h3>Vault Completed</h3>
+                                    <p>This vault has been fully repaid.</p>
+                                </div>
+                            ) : (
+                                <div className={styles.statusMessage}>
+                                    <Clock size={24} color="#3b82f6" />
+                                    <h3>Vault {status.label}</h3>
+                                    <p>Repaid: {formatUSDC(vault.totalRepaid)} of {formatUSDC(vault.totalToRepay)}</p>
                                 </div>
                             )}
-
-                            <button
-                                className={styles.investButton}
-                                onClick={() => setShowInvestModal(true)}
-                                disabled={!investAmount || parseFloat(investAmount) < 100}
-                            >
-                                Invest Now
-                            </button>
-
-                            <p className={styles.disclaimer}>
-                                * Returns are not guaranteed. Please review vault details carefully.
-                            </p>
                         </div>
                     </div>
                 </div>
             </div>
-
-            {showInvestModal && (
-                <div className={styles.modal} onClick={() => setShowInvestModal(false)}>
-                    <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                        <h2>Confirm Investment</h2>
-                        <p>You're about to invest ${investAmount} in {vault.merchant}</p>
-                        <div className={styles.modalStats}>
-                            <div>
-                                <span>Amount</span>
-                                <span>${investAmount}</span>
-                            </div>
-                            <div>
-                                <span>Debt Tokens</span>
-                                <span>{investAmount}</span>
-                            </div>
-                            <div>
-                                <span>Expected Returns</span>
-                                <span>
-                                    ${(parseFloat(investAmount) * (1 + vault.interestRate / 100)).toFixed(2)}
-                                </span>
-                            </div>
-                        </div>
-                        <div className={styles.modalActions}>
-                            <button onClick={handleInvest} className={styles.confirmButton}>
-                                Confirm Investment
-                            </button>
-                            <button onClick={() => setShowInvestModal(false)} className={styles.cancelButton}>
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     )
 }

@@ -111,6 +111,34 @@ model ApiKey {
   active    Boolean  @default(true)
 }
 
+model WebhookEndpoint {
+  id         String             @id @default(uuid())
+  url        String
+  secret     String
+  events     String[]           // e.g. ["VaultCreated", "RepaymentProcessed"]
+  active     Boolean            @default(true)
+  createdAt  DateTime           @default(now())
+  deliveries WebhookDelivery[]
+}
+
+model WebhookDelivery {
+  id          String           @id @default(uuid())
+  endpoint    WebhookEndpoint  @relation(fields: [endpointId], references: [id])
+  endpointId  String
+  eventType   String
+  payload     Json
+  status      String           @default("pending") // pending | delivered | failed
+  statusCode  Int?
+  attempts    Int              @default(0)
+  nextRetryAt DateTime?
+  lastError   String?
+  createdAt   DateTime         @default(now())
+  deliveredAt DateTime?
+
+  @@index([endpointId, status])
+  @@index([status, nextRetryAt])
+}
+
 model OraclePayment {
   id          String    @id @default(uuid())
   from        String

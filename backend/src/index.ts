@@ -3,6 +3,7 @@ import { env } from './config/env.js';
 import { startRetryProcessor, stopRetryProcessor } from './services/oracle.service.js';
 import { startEventIndexer, stopEventIndexer } from './services/indexer.service.js';
 import { startKeeper, stopKeeper } from './services/keeper.service.js';
+import { startWebhookProcessor, stopWebhookProcessor } from './services/webhook.service.js';
 
 const server = app.listen(env.PORT, () => {
   console.log(`[TCredit] Server running on port ${env.PORT}`);
@@ -11,6 +12,7 @@ const server = app.listen(env.PORT, () => {
   startRetryProcessor();
   startEventIndexer();
   startKeeper();
+  startWebhookProcessor();
 });
 
 function shutdown() {
@@ -18,6 +20,7 @@ function shutdown() {
   stopRetryProcessor();
   stopEventIndexer();
   stopKeeper();
+  stopWebhookProcessor();
   server.close(() => {
     console.log('[TCredit] Server closed');
     process.exit(0);
