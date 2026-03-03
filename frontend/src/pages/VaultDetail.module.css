@@ -3,6 +3,12 @@
   padding: 100px 0 50px;
 }
 
+/* ─── Icon color utilities ───────────────────── */
+.iconSuccess { color: var(--color-success); }
+.iconError   { color: var(--color-error); }
+.iconInfo    { color: var(--color-info); }
+.iconMuted   { color: var(--text-tertiary); }
+
 .backButton {
   display: inline-flex;
   align-items: center;

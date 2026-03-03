@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAccount } from 'wagmi'
+import { motion } from 'motion/react'
 import { investApi } from '../api/client'
 import type { ApiPortfolioInvestment, ApiPortfolioSummary } from '../api/types'
 import { formatUSDC, weiToNumber, truncateAddress } from '../lib/format'
@@ -20,7 +21,6 @@ const STATUS_CONFIG: Record<string, { label: string; class: string }> = {
 export default function Portfolio() {
     const navigate = useNavigate()
     const { address: walletAddress } = useAccount()
-    const [mounted, setMounted] = useState(false)
     const [activeTab, setActiveTab] = useState<'all' | 'active' | 'completed'>('all')
     const [investments, setInvestments] = useState<ApiPortfolioInvestment[]>([])
     const [summary, setSummary] = useState<ApiPortfolioSummary | null>(null)
@@ -28,10 +28,6 @@ export default function Portfolio() {
     const [claimingVault, setClaimingVault] = useState<string | null>(null)
 
     const { execute: executeTx } = useContractTx()
-
-    useEffect(() => {
-        setMounted(true)
-    }, [])
 
     // Fetch portfolio when wallet connects
     useEffect(() => {
@@ -98,17 +94,27 @@ export default function Portfolio() {
         <div className={styles.portfolio}>
             <div className={styles.ambientGlow} />
 
-            <header className={`${styles.header} ${mounted ? styles.visible : ''}`}>
+            <motion.header
+                className={styles.header}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            >
                 <div className={styles.headerContent}>
                     <span className={styles.overline}>Investor Dashboard</span>
                     <h1 className={styles.title}>My Portfolio</h1>
                 </div>
-            </header>
+            </motion.header>
 
             <div className={styles.content}>
                 {/* Left Column - Stats */}
                 <div className={styles.leftColumn}>
-                    <div className={`${styles.overviewCard} ${mounted ? styles.visible : ''}`}>
+                    <motion.div
+                        className={styles.overviewCard}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+                    >
                         <div className={styles.overviewHeader}>
                             <span>Portfolio Value</span>
                             <span className={styles.liveBadge}>Live</span>
@@ -151,11 +157,16 @@ export default function Portfolio() {
                                 )}
                             </>
                         )}
-                    </div>
+                    </motion.div>
 
                     {/* Allocation Breakdown */}
                     {investments.length > 0 && (
-                        <div className={`${styles.allocationCard} ${mounted ? styles.visible : ''}`} style={{ transitionDelay: '0.1s' }}>
+                        <motion.div
+                            className={styles.allocationCard}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.18 }}
+                        >
                             <h3 className={styles.cardTitle}>Allocation by Status</h3>
                             <div className={styles.allocationList}>
                                 {['active', 'repaying', 'completed'].map((status) => {
@@ -196,13 +207,18 @@ export default function Portfolio() {
                                     )
                                 })}
                             </div>
-                        </div>
+                        </motion.div>
                     )}
                 </div>
 
                 {/* Right Column - Investments List */}
                 <div className={styles.rightColumn}>
-                    <div className={`${styles.investmentsCard} ${mounted ? styles.visible : ''}`} style={{ transitionDelay: '0.15s' }}>
+                    <motion.div
+                        className={styles.investmentsCard}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+                    >
                         <div className={styles.investmentsHeader}>
                             <h2>Your Investments</h2>
                             <div className={styles.tabs}>
@@ -287,7 +303,7 @@ export default function Portfolio() {
                                 })
                             )}
                         </div>
-                    </div>
+                    </motion.div>
                 </div>
             </div>
         </div>

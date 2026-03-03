@@ -8,16 +8,8 @@ import { useContractTx } from '../hooks/useContractTx'
 import { BentoGrid, BentoCard } from '../components/ui/BentoGrid'
 import { WaterfallChart } from '../components/charts/WaterfallChart'
 import { DollarSign, Star, CreditCard, Zap, ChevronRight, Plus, Activity, Wallet, Loader2 } from 'lucide-react'
+import { STATUS_CONFIG } from '../lib/statusConfig'
 import styles from './MerchantDashboard.module.css'
-
-const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  fundraising: { label: 'Fundraising', color: '#FF6B35' },
-  active: { label: 'Active', color: '#22c55e' },
-  repaying: { label: 'Repaying', color: '#3b82f6' },
-  completed: { label: 'Completed', color: '#888' },
-  defaulted: { label: 'Defaulted', color: '#ef4444' },
-  cancelled: { label: 'Cancelled', color: '#666' },
-}
 
 export default function MerchantDashboard() {
   const navigate = useNavigate()

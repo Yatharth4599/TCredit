@@ -7,21 +7,23 @@
     margin: 0 auto;
     padding: 104px 24px 60px;
     position: relative;
+    z-index: 1;
 }
 
 .ambientGlow {
     position: fixed;
     top: -20%;
     left: -10%;
-    width: 900px;
-    height: 900px;
+    width: 1100px;
+    height: 1100px;
     background: radial-gradient(
         ellipse at center,
-        rgba(var(--accent-rgb), 0.08) 0%,
+        rgba(var(--accent-rgb), 0.12) 0%,
         transparent 55%
     );
     filter: blur(100px);
     pointer-events: none;
+    z-index: 0;
 }
 
 /* ============================================
@@ -30,14 +32,6 @@
 
 .header {
     margin-bottom: 32px;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.header.visible {
-    opacity: 1;
-    transform: translateY(0);
 }
 
 .overline {
@@ -74,14 +68,6 @@
     grid-template-columns: repeat(5, 1fr);
     gap: 12px;
     margin-bottom: 24px;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.statsRow.visible {
-    opacity: 1;
-    transform: translateY(0);
 }
 
 .statCard {
@@ -120,14 +106,6 @@
     display: flex;
     gap: 6px;
     margin-bottom: 24px;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.filters.visible {
-    opacity: 1;
-    transform: translateY(0);
 }
 
 .filterBtn {
@@ -168,14 +146,7 @@
     background: var(--surface-2);
     border-radius: var(--card-border-radius);
     padding: 24px;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.poolCard.visible {
-    opacity: 1;
-    transform: translateY(0);
+    transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .poolCard:hover {
@@ -195,7 +166,31 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
+}
+
+/* Pool APY hero block */
+.poolApyBlock {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.poolApyVal {
+    font-family: var(--font-mono);
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+}
+
+.poolApyLabel {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-tertiary);
 }
 
 .poolType {
@@ -233,25 +228,13 @@
     color: var(--color-warning);
 }
 
-/* Utilization */
-.utilizationSection {
-    margin-bottom: 20px;
-}
-
-.utilizationInfo {
-    display: flex;
-    justify-content: space-between;
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--text-tertiary);
-    margin-bottom: 8px;
-}
-
+/* Utilization bar — no label, just visual */
 .utilizationBar {
-    height: 4px;
+    height: 8px;
     background: var(--surface-4);
     border-radius: var(--pill-radius);
     overflow: hidden;
+    margin-bottom: 20px;
 }
 
 .utilizationFill {

@@ -7,6 +7,7 @@
     background: var(--bg-dark);
     padding: 100px 24px 60px;
     position: relative;
+    z-index: 1;
 }
 
 /* Ambient Background */
@@ -14,15 +15,16 @@
     position: fixed;
     top: -20%;
     right: -10%;
-    width: 900px;
-    height: 900px;
+    width: 1100px;
+    height: 1100px;
     background: radial-gradient(
         ellipse at center,
-        rgba(var(--accent-rgb), 0.08) 0%,
+        rgba(var(--accent-rgb), 0.12) 0%,
         transparent 55%
     );
     filter: blur(100px);
     pointer-events: none;
+    z-index: 0;
 }
 
 /* ============================================
@@ -32,14 +34,6 @@
 .header {
     max-width: 1280px;
     margin: 0 auto 40px;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.header.visible {
-    opacity: 1;
-    transform: translateY(0);
 }
 
 .headerContent {
@@ -94,14 +88,6 @@
     background: var(--surface-2);
     border-radius: var(--card-border-radius);
     padding: 24px;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.overviewCard.visible {
-    opacity: 1;
-    transform: translateY(0);
 }
 
 .overviewHeader {
@@ -140,7 +126,10 @@
     font-family: var(--font-mono);
     font-size: 2.5rem;
     font-weight: 700;
-    color: var(--text-primary);
+    background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .overviewChange {
@@ -257,15 +246,6 @@
     background: var(--surface-2);
     border-radius: var(--card-border-radius);
     padding: 20px;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.allocationCard.visible,
-.activityCard.visible {
-    opacity: 1;
-    transform: translateY(0);
 }
 
 .cardTitle {
@@ -455,14 +435,6 @@
     background: var(--surface-2);
     border-radius: var(--card-border-radius);
     overflow: hidden;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.investmentsCard.visible {
-    opacity: 1;
-    transform: translateY(0);
 }
 
 .investmentsHeader {

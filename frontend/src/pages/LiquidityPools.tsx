@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useAccount } from 'wagmi'
+import { motion } from 'motion/react'
 import { poolsApi } from '../api/client'
 import type { ApiPool, ApiPoolsSummary } from '../api/types'
 import { formatUSDC, weiToNumber, parseUSDCToWei } from '../lib/format'
 import { useContractTx } from '../hooks/useContractTx'
 import { useUSDCApproval } from '../hooks/useUSDCApproval'
+import { AnimatedNumber } from '../components/ui/AnimatedNumber'
 import { Loader2 } from 'lucide-react'
 import styles from './LiquidityPools.module.css'
 
 export default function LiquidityPools() {
     const { address: walletAddress } = useAccount()
     const { execute: executeTx } = useContractTx()
-    const [mounted, setMounted] = useState(false)
     const [pools, setPools] = useState<ApiPool[]>([])
     const [summary, setSummary] = useState<ApiPoolsSummary | null>(null)
     const [loading, setLoading] = useState(true)
@@ -23,7 +24,6 @@ export default function LiquidityPools() {
 
     const { needsApproval, approve } = useUSDCApproval(actionModal?.pool.address || '')
 
-    useEffect(() => { setMounted(true) }, [])
 
     useEffect(() => {
         setLoading(true)
@@ -85,7 +85,12 @@ export default function LiquidityPools() {
         <div className={styles.page}>
             <div className={styles.ambientGlow} />
 
-            <header className={`${styles.header} ${mounted ? styles.visible : ''}`}>
+            <motion.header
+                className={styles.header}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            >
                 <div className={styles.headerContent}>
                     <span className={styles.overline}>Liquidity Infrastructure</span>
                     <h1 className={styles.title}>Liquidity Pools</h1>
@@ -93,10 +98,15 @@ export default function LiquidityPools() {
                         Capital pools that fill vault shortfalls — powering programmable credit at scale.
                     </p>
                 </div>
-            </header>
+            </motion.header>
 
             {/* Stats Row */}
-            <div className={`${styles.statsRow} ${mounted ? styles.visible : ''}`} style={{ transitionDelay: '0.1s' }}>
+            <motion.div
+                className={styles.statsRow}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+            >
                 {loading ? (
                     <div className={styles.statCard}>
                         <Loader2 size={20} className={styles.spinner} />
@@ -117,11 +127,16 @@ export default function LiquidityPools() {
                         </div>
                         <div className={styles.statCard}>
                             <span className={styles.statLabel}>Utilization</span>
-                            <span className={styles.statValue}>{utilization}%</span>
+                            <AnimatedNumber
+                                value={parseFloat(utilization)}
+                                suffix="%"
+                                decimals={1}
+                                className={`${styles.statValue} ${styles.apyValue}`}
+                            />
                         </div>
                     </>
                 )}
-            </div>
+            </motion.div>
 
             {/* Pool Cards */}
             <div className={styles.poolGrid}>
@@ -134,10 +149,14 @@ export default function LiquidityPools() {
                     <div className={styles.emptyState}>No pools available.</div>
                 ) : (
                     pools.map((pool, i) => (
-                        <div
+                        <motion.div
                             key={pool.address}
-                            className={`${styles.poolCard} ${pool.isAlpha ? styles.treasuryCard : ''} ${mounted ? styles.visible : ''}`}
-                            style={{ transitionDelay: `${0.2 + i * 0.08}s` }}
+                            className={`${styles.poolCard} ${pool.isAlpha ? styles.treasuryCard : ''}`}
+                            initial={{ opacity: 0, y: 24 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true, margin: '-40px' }}
+                            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.2 + i * 0.08 }}
+                            whileHover={{ y: -3, transition: { duration: 0.2 } }}
                         >
                             <div className={styles.poolHeader}>
                                 <div>
@@ -146,23 +165,26 @@ export default function LiquidityPools() {
                                     </div>
                                     <h3 className={styles.poolName}>{pool.name}</h3>
                                 </div>
-                                <div className={`${styles.statusBadge} ${styles.activeBadge}`}>
-                                    {pool.utilizationPct > 80 ? 'High Utilization' : 'Active'}
+                                <div className={styles.poolApyBlock}>
+                                    <AnimatedNumber
+                                        value={pool.utilizationPct}
+                                        suffix="%"
+                                        decimals={1}
+                                        className={styles.poolApyVal}
+                                    />
+                                    <span className={styles.poolApyLabel}>Util.</span>
                                 </div>
                             </div>
 
-                            {/* Utilization bar */}
-                            <div className={styles.utilizationSection}>
-                                <div className={styles.utilizationInfo}>
-                                    <span>Utilization</span>
-                                    <span>{pool.utilizationPct}%</span>
-                                </div>
-                                <div className={styles.utilizationBar}>
-                                    <div
-                                        className={styles.utilizationFill}
-                                        style={{ width: `${pool.utilizationPct}%` }}
-                                    />
-                                </div>
+                            {/* Utilization bar — animated, no label */}
+                            <div className={styles.utilizationBar}>
+                                <motion.div
+                                    className={styles.utilizationFill}
+                                    initial={{ width: 0 }}
+                                    whileInView={{ width: `${pool.utilizationPct}%` }}
+                                    viewport={{ once: true }}
+                                    transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.3 + i * 0.08 }}
+                                />
                             </div>
 
                             {/* Pool Stats */}
@@ -199,7 +221,7 @@ export default function LiquidityPools() {
                                     </button>
                                 </div>
                             </div>
-                        </div>
+                        </motion.div>
                     ))
                 )}
             </div>

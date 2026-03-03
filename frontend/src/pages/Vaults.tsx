@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAccount } from 'wagmi'
+import { motion, AnimatePresence } from 'motion/react'
 import { vaultsApi } from '../api/client'
 import type { ApiVault, ApiVaultDetail } from '../api/types'
-import { formatUSDC, weiToNumber, truncateAddress, bpsToPercent } from '../lib/format'
-import { GlassCard } from '../components/ui/GlassCard'
+import { formatUSDC, weiToNumber, truncateAddress } from '../lib/format'
+import { STATUS_CONFIG } from '../lib/statusConfig'
+import { AnimatedNumber } from '../components/ui/AnimatedNumber'
 import { WaterfallChart } from '../components/charts/WaterfallChart'
-import { TrendingUp, Users, Clock, Layers, X, ExternalLink, Loader2 } from 'lucide-react'
+import { X, ExternalLink, Loader2 } from 'lucide-react'
 import styles from './Vaults.module.css'
 
 const FILTERS = [
@@ -15,15 +17,6 @@ const FILTERS = [
   { id: 'active', label: 'Active' },
   { id: 'repaying', label: 'Repaying' },
 ]
-
-const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  fundraising: { label: 'Fundraising', color: '#FF6B35' },
-  active: { label: 'Active', color: '#22c55e' },
-  repaying: { label: 'Repaying', color: '#3b82f6' },
-  completed: { label: 'Completed', color: '#888' },
-  defaulted: { label: 'Defaulted', color: '#ef4444' },
-  cancelled: { label: 'Cancelled', color: '#666' },
-}
 
 export default function Vaults() {
   const navigate = useNavigate()
@@ -36,7 +29,6 @@ export default function Vaults() {
   const [detailLoading, setDetailLoading] = useState(false)
   const [investAmount, setInvestAmount] = useState('')
 
-  // Fetch vaults from API
   useEffect(() => {
     setLoading(true)
     const params = filter !== 'all' ? { state: filter } : undefined
@@ -46,7 +38,6 @@ export default function Vaults() {
       .finally(() => setLoading(false))
   }, [filter])
 
-  // Fetch vault detail when selected
   const selectVault = async (vault: ApiVault) => {
     setDetailLoading(true)
     try {
@@ -98,160 +89,166 @@ export default function Vaults() {
           ) : filtered.length === 0 ? (
             <div className={styles.empty}>No vaults match your search.</div>
           ) : (
-            filtered.map((vault) => {
+            filtered.map((vault, index) => {
               const status = STATUS_CONFIG[vault.state] ?? STATUS_CONFIG.fundraising
               const isSelected = selected?.address === vault.address
 
               return (
-                <GlassCard
+                <motion.div
                   key={vault.address}
-                  variant={isSelected ? 'highlight' : 'interactive'}
+                  className={`${styles.vaultCard} ${isSelected ? styles.selected : ''}`}
+                  style={{ '--status-color': status.color } as React.CSSProperties}
+                  initial={{ opacity: 0, y: 24 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-40px' }}
+                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: index * 0.06 }}
+                  whileHover={{ y: -4, transition: { duration: 0.2 } }}
                   onClick={() => selectVault(vault)}
                 >
-                  <div className={styles.cardTop}>
-                    <div>
-                      <h3 className={styles.merchant}>{truncateAddress(vault.agent, 6)}</h3>
-                      <span className={styles.category}>{truncateAddress(vault.address)}</span>
+                  <div className={styles.vaultCardTop}>
+                    <div className={styles.vaultApy}>
+                      <AnimatedNumber
+                        value={vault.interestRate}
+                        suffix="%"
+                        decimals={1}
+                        className={styles.vaultApyVal}
+                      />
+                      <span className={styles.vaultApyLabel}>APY</span>
                     </div>
                     <span
-                      className={styles.statusBadge}
-                      style={{ color: status.color, borderColor: `${status.color}33`, background: `${status.color}12` }}
+                      className={styles.vaultStatusBadge}
+                      style={{ color: status.color, background: `${status.color}18` }}
                     >
                       {status.label}
                     </span>
                   </div>
 
-                  <p className={styles.desc}>
-                    {vault.numTranches} tranches · {vault.durationMonths}mo term · {bpsToPercent(vault.interestRateBps)} APY
-                  </p>
+                  <h3 className={styles.vaultMerchant}>{truncateAddress(vault.agent, 6)}</h3>
 
-                  <div className={styles.stats}>
-                    <div className={styles.stat}>
-                      <TrendingUp size={12} />
-                      <span className={styles.statVal}>{vault.interestRate}%</span>
-                      <span className={styles.statLbl}>APY</span>
-                    </div>
-                    <div className={styles.stat}>
-                      <Clock size={12} />
-                      <span className={styles.statVal}>{vault.durationMonths}mo</span>
-                      <span className={styles.statLbl}>Term</span>
-                    </div>
-                    <div className={styles.stat}>
-                      <Layers size={12} />
-                      <span className={styles.statVal}>{vault.tranchesReleased}/{vault.numTranches}</span>
-                      <span className={styles.statLbl}>Tranches</span>
-                    </div>
-                    <div className={styles.stat}>
-                      <Users size={12} />
-                      <span className={styles.statVal}>{vault.percentFunded}%</span>
-                      <span className={styles.statLbl}>Funded</span>
+                  <div className={styles.vaultProgressWrap}>
+                    <div className={styles.vaultProgressTrack}>
+                      <motion.div
+                        className={styles.vaultProgressFill}
+                        style={{ background: status.color }}
+                        initial={{ width: 0 }}
+                        whileInView={{ width: `${vault.percentFunded}%` }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.2 + index * 0.06 }}
+                      />
                     </div>
                   </div>
 
-                  <div className={styles.progress}>
-                    <div className={styles.progressHeader}>
-                      <span>{formatUSDC(vault.totalRaised)}</span>
-                      <span className={styles.progressTarget}>of {formatUSDC(vault.targetAmount)}</span>
-                    </div>
-                    <div className={styles.progressBar}>
-                      <div className={styles.progressFill} style={{ width: `${vault.percentFunded}%` }} />
-                    </div>
+                  <div className={styles.vaultMeta}>
+                    <span className={styles.vaultRaised}>{formatUSDC(vault.totalRaised)}</span>
+                    <span className={styles.vaultTarget}>of {formatUSDC(vault.targetAmount)}</span>
                   </div>
-                </GlassCard>
+
+                  <div className={styles.vaultFooter}>
+                    <span className={styles.vaultTerm}>{vault.durationMonths}mo</span>
+                    <span className={styles.vaultTranches}>{vault.tranchesReleased}/{vault.numTranches} tranches</span>
+                  </div>
+                </motion.div>
               )
             })
           )}
         </div>
 
-        {(selected || detailLoading) && (
-          <aside className={styles.detail}>
-            <GlassCard variant="highlight">
-              {detailLoading ? (
-                <div className={styles.empty}>
-                  <Loader2 size={20} className={styles.spinner} />
-                  <span>Loading details...</span>
-                </div>
-              ) : selected && (
-                <>
-                  <div className={styles.detailHeader}>
-                    <div>
-                      <h2 className={styles.detailTitle}>{truncateAddress(selected.agent, 6)}</h2>
-                      <span className={styles.detailCategory}>{truncateAddress(selected.address)}</span>
-                    </div>
-                    <button className={styles.closeBtn} onClick={() => setSelected(null)}>
-                      <X size={16} />
-                    </button>
+        <AnimatePresence>
+          {(selected || detailLoading) && (
+            <motion.aside
+              className={styles.detail}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <div className={styles.detailPanel}>
+                {detailLoading ? (
+                  <div className={styles.empty}>
+                    <Loader2 size={20} className={styles.spinner} />
+                    <span>Loading details...</span>
                   </div>
-
-                  <div className={styles.detailStats}>
-                    {[
-                      { label: 'APY', value: `${selected.interestRate}%` },
-                      { label: 'Term', value: `${selected.durationMonths} mo` },
-                      { label: 'Tranches', value: `${selected.tranchesReleased}/${selected.numTranches}` },
-                      { label: 'Investors', value: String(selected.investorCount) },
-                    ].map((s) => (
-                      <div key={s.label} className={styles.detailStat}>
-                        <span className={styles.detailStatVal}>{s.value}</span>
-                        <span className={styles.detailStatLbl}>{s.label}</span>
+                ) : selected && (
+                  <>
+                    <div className={styles.detailHeader}>
+                      <div>
+                        <h2 className={styles.detailTitle}>{truncateAddress(selected.agent, 6)}</h2>
+                        <span className={styles.detailCategory}>{truncateAddress(selected.address)}</span>
                       </div>
-                    ))}
-                  </div>
-
-                  {(selected.state === 'active' || selected.state === 'repaying') && selected.waterfall && (
-                    <div className={styles.waterfallSection}>
-                      <WaterfallChart
-                        totalAmount={weiToNumber(selected.totalRaised)}
-                        seniorPayment={weiToNumber(selected.waterfall.seniorRepaid)}
-                        poolPayment={weiToNumber(selected.waterfall.poolRepaid)}
-                        userPayment={weiToNumber(selected.waterfall.communityRepaid)}
-                      />
-                    </div>
-                  )}
-
-                  {selected.state === 'fundraising' && (
-                    <div className={styles.investSection}>
-                      <h4 className={styles.investTitle}>Invest</h4>
-                      <div className={styles.investInput}>
-                        <span className={styles.inputPrefix}>USDC</span>
-                        <input
-                          type="number"
-                          placeholder="100"
-                          value={investAmount}
-                          onChange={(e) => setInvestAmount(e.target.value)}
-                          min="1"
-                        />
-                      </div>
-                      {investAmount && parseFloat(investAmount) >= 1 && (
-                        <div className={styles.returnPreview}>
-                          <span>Expected return</span>
-                          <span className={styles.returnVal}>
-                            +{formatUSDC(String(Math.round(parseFloat(investAmount) * selected.interestRate / 100 * 1e6)))}
-                          </span>
-                        </div>
-                      )}
-                      <button
-                        className={styles.investBtn}
-                        disabled={!walletAddress || !investAmount || parseFloat(investAmount) < 1}
-                        onClick={() => navigate(`/vaults/${selected.address}`)}
-                      >
-                        {walletAddress ? 'Invest Now' : 'Connect Wallet'}
+                      <button className={styles.closeBtn} onClick={() => setSelected(null)}>
+                        <X size={16} />
                       </button>
                     </div>
-                  )}
 
-                  <button
-                    className={styles.investBtn}
-                    style={{ marginTop: 8, background: 'transparent', border: '1px solid rgba(255,255,255,0.15)' }}
-                    onClick={() => navigate(`/vaults/${selected.address}`)}
-                  >
-                    <ExternalLink size={14} />
-                    <span style={{ marginLeft: 6 }}>View Full Details</span>
-                  </button>
-                </>
-              )}
-            </GlassCard>
-          </aside>
-        )}
+                    <div className={styles.detailStats}>
+                      {[
+                        { label: 'APY', value: `${selected.interestRate}%` },
+                        { label: 'Term', value: `${selected.durationMonths} mo` },
+                        { label: 'Tranches', value: `${selected.tranchesReleased}/${selected.numTranches}` },
+                        { label: 'Investors', value: String(selected.investorCount) },
+                      ].map((s) => (
+                        <div key={s.label} className={styles.detailStat}>
+                          <span className={styles.detailStatVal}>{s.value}</span>
+                          <span className={styles.detailStatLbl}>{s.label}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {(selected.state === 'active' || selected.state === 'repaying') && selected.waterfall && (
+                      <div className={styles.waterfallSection}>
+                        <WaterfallChart
+                          totalAmount={weiToNumber(selected.totalRaised)}
+                          seniorPayment={weiToNumber(selected.waterfall.seniorRepaid)}
+                          poolPayment={weiToNumber(selected.waterfall.poolRepaid)}
+                          userPayment={weiToNumber(selected.waterfall.communityRepaid)}
+                        />
+                      </div>
+                    )}
+
+                    {selected.state === 'fundraising' && (
+                      <div className={styles.investSection}>
+                        <h4 className={styles.investTitle}>Invest</h4>
+                        <div className={styles.investInput}>
+                          <span className={styles.inputPrefix}>USDC</span>
+                          <input
+                            type="number"
+                            placeholder="100"
+                            value={investAmount}
+                            onChange={(e) => setInvestAmount(e.target.value)}
+                            min="1"
+                          />
+                        </div>
+                        {investAmount && parseFloat(investAmount) >= 1 && (
+                          <div className={styles.returnPreview}>
+                            <span>Expected return</span>
+                            <span className={styles.returnVal}>
+                              +{formatUSDC(String(Math.round(parseFloat(investAmount) * selected.interestRate / 100 * 1e6)))}
+                            </span>
+                          </div>
+                        )}
+                        <button
+                          className={styles.investBtn}
+                          disabled={!walletAddress || !investAmount || parseFloat(investAmount) < 1}
+                          onClick={() => navigate(`/vaults/${selected.address}`)}
+                        >
+                          {walletAddress ? 'Invest Now' : 'Connect Wallet'}
+                        </button>
+                      </div>
+                    )}
+
+                    <button
+                      className={styles.viewDetailBtn}
+                      onClick={() => navigate(`/vaults/${selected.address}`)}
+                    >
+                      <ExternalLink size={14} />
+                      <span>View Full Details</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )

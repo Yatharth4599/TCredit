@@ -138,6 +138,14 @@ input, textarea, select {
   font-feature-settings: 'tnum' 1;
 }
 
+/* ─── Gradient text utility ──────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 /* ─── Scrollbar ──────────────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;

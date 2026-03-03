@@ -8,16 +8,8 @@ import { useContractTx } from '../hooks/useContractTx'
 import { useUSDCApproval } from '../hooks/useUSDCApproval'
 import { WaterfallChart } from '../components/charts/WaterfallChart'
 import { ArrowLeft, Loader2, CheckCircle, Clock, AlertTriangle, Users, Layers, TrendingUp } from 'lucide-react'
+import { STATUS_CONFIG } from '../lib/statusConfig'
 import styles from './VaultDetail.module.css'
-
-const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-    fundraising: { label: 'Fundraising', color: '#FF6B35' },
-    active: { label: 'Active', color: '#22c55e' },
-    repaying: { label: 'Repaying', color: '#3b82f6' },
-    completed: { label: 'Completed', color: '#888' },
-    defaulted: { label: 'Defaulted', color: '#ef4444' },
-    cancelled: { label: 'Cancelled', color: '#666' },
-}
 
 export default function VaultDetail() {
     const { address } = useParams<{ address: string }>()
@@ -174,9 +166,9 @@ export default function VaultDetail() {
                                         <div key={t.index} className={styles.trancheItem}>
                                             <span className={styles.trancheIndex}>#{t.index + 1}</span>
                                             {t.released ? (
-                                                <CheckCircle size={16} color="#22c55e" />
+                                                <CheckCircle size={16} className={styles.iconSuccess} />
                                             ) : (
-                                                <Clock size={16} color="#888" />
+                                                <Clock size={16} className={styles.iconMuted} />
                                             )}
                                             <span>{t.released ? 'Released' : 'Locked'}</span>
                                         </div>
@@ -193,9 +185,7 @@ export default function VaultDetail() {
                                     <div key={m.trancheIndex} className={styles.milestoneItem}>
                                         <div className={styles.milestoneHeader}>
                                             <span>Tranche #{m.trancheIndex + 1}</span>
-                                            <span className={styles.milestoneStatus} style={{
-                                                color: m.status === 'approved' ? '#22c55e' : m.status === 'submitted' ? '#3b82f6' : '#888'
-                                            }}>
+                                            <span className={`${styles.milestoneStatus} ${m.status === 'approved' ? styles.iconSuccess : m.status === 'submitted' ? styles.iconInfo : styles.iconMuted}`}>
                                                 {m.status}
                                             </span>
                                         </div>
@@ -296,19 +286,19 @@ export default function VaultDetail() {
                                 </>
                             ) : vault.state === 'defaulted' ? (
                                 <div className={styles.statusMessage}>
-                                    <AlertTriangle size={24} color="#ef4444" />
+                                    <AlertTriangle size={24} className={styles.iconError} />
                                     <h3>Vault Defaulted</h3>
                                     <p>This vault has been marked as defaulted.</p>
                                 </div>
                             ) : vault.state === 'completed' ? (
                                 <div className={styles.statusMessage}>
-                                    <CheckCircle size={24} color="#22c55e" />
+                                    <CheckCircle size={24} className={styles.iconSuccess} />
                                     <h3>Vault Completed</h3>
                                     <p>This vault has been fully repaid.</p>
                                 </div>
                             ) : (
                                 <div className={styles.statusMessage}>
-                                    <Clock size={24} color="#3b82f6" />
+                                    <Clock size={24} className={styles.iconInfo} />
                                     <h3>Vault {status.label}</h3>
                                     <p>Repaid: {formatUSDC(vault.totalRepaid)} of {formatUSDC(vault.totalToRepay)}</p>
                                 </div>
