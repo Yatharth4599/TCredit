@@ -28,8 +28,8 @@ export default function Navbar() {
           <rect x="2" y="4" width="20" height="16" rx="2" /><circle cx="12" cy="12" r="3" /><line x1="12" y1="9" x2="12" y2="7" /><line x1="12" y1="17" x2="12" y2="15" /><line x1="9" y1="12" x2="7" y2="12" /><line x1="17" y1="12" x2="15" y2="12" /><rect x="18" y="8" width="2" height="3" rx="0.5" />
         </svg>
       ),
-      href: '/vaults',
-      onClick: () => navigate('/vaults'),
+      href: '/waitlist',
+      onClick: () => navigate('/waitlist'),
     },
     {
       title: 'Pools',
@@ -38,8 +38,8 @@ export default function Navbar() {
           <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
         </svg>
       ),
-      href: '/pools',
-      onClick: () => navigate('/pools'),
+      href: '/waitlist',
+      onClick: () => navigate('/waitlist'),
     },
     {
       title: 'Portfolio',
@@ -48,8 +48,8 @@ export default function Navbar() {
           <path d="M2 20h20M6 20V10M10 20V4M14 20V8M18 20V14" />
         </svg>
       ),
-      href: '/portfolio',
-      onClick: () => navigate('/portfolio'),
+      href: '/waitlist',
+      onClick: () => navigate('/waitlist'),
     },
     {
       title: 'Merchant',
@@ -58,8 +58,8 @@ export default function Navbar() {
           <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 01-8 0" />
         </svg>
       ),
-      href: '/merchant',
-      onClick: () => navigate('/merchant'),
+      href: '/waitlist',
+      onClick: () => navigate('/waitlist'),
     },
     {
       title: 'x402 Demo',

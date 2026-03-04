@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { lazy, Suspense, useEffect } from 'react'
 import { Toaster } from 'react-hot-toast'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -6,13 +6,8 @@ import Navbar from './components/layout/Navbar'
 import styles from './App.module.css'
 
 const Home = lazy(() => import('./pages/Home'))
-const Vaults = lazy(() => import('./pages/Vaults'))
-const Portfolio = lazy(() => import('./pages/Portfolio'))
-const MerchantDashboard = lazy(() => import('./pages/MerchantDashboard'))
-const LiquidityPools = lazy(() => import('./pages/LiquidityPools'))
-const VaultDetail = lazy(() => import('./pages/VaultDetail'))
+const Waitlist = lazy(() => import('./pages/Waitlist'))
 const X402Demo = lazy(() => import('./pages/X402Demo'))
-const NotFound = lazy(() => import('./pages/NotFound'))
 
 function getThemeFromPath(pathname: string): string {
   if (pathname === '/') return 'home'
@@ -69,13 +64,14 @@ function App() {
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<Home />} />
-                <Route path="/vaults" element={<Vaults />} />
-                <Route path="/vaults/:address" element={<VaultDetail />} />
-                <Route path="/portfolio" element={<Portfolio />} />
-                <Route path="/pools" element={<LiquidityPools />} />
-                <Route path="/merchant" element={<MerchantDashboard />} />
+                <Route path="/waitlist" element={<Waitlist />} />
+                <Route path="/vaults" element={<Navigate to="/waitlist" replace />} />
+                <Route path="/vaults/:address" element={<Navigate to="/waitlist" replace />} />
+                <Route path="/portfolio" element={<Navigate to="/waitlist" replace />} />
+                <Route path="/pools" element={<Navigate to="/waitlist" replace />} />
+                <Route path="/merchant" element={<Navigate to="/waitlist" replace />} />
                 <Route path="/x402" element={<X402Demo />} />
-                <Route path="*" element={<NotFound />} />
+                <Route path="*" element={<Navigate to="/waitlist" replace />} />
               </Routes>
             </Suspense>
           </div>

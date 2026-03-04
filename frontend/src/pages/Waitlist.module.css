@@ -1,0 +1,226 @@
+.page {
+    min-height: 100vh;
+    background: #06070A;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 120px 24px 60px;
+    position: relative;
+    overflow: hidden;
+}
+
+.page::before {
+    content: '';
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 800px;
+    height: 600px;
+    background: radial-gradient(ellipse, rgba(255, 92, 0, 0.06) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    max-width: 560px;
+    width: 100%;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 48px;
+}
+
+.logoImg {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.logoText {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #FFFFFF;
+    letter-spacing: -0.03em;
+}
+
+.headline {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 800;
+    color: #FFFFFF;
+    line-height: 1.1;
+    letter-spacing: -0.04em;
+    margin-bottom: 16px;
+}
+
+.headlineAccent {
+    background: linear-gradient(135deg, #FF5C00 0%, #FF8533 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.subtitle {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 40px;
+}
+
+.form {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.emailInput {
+    flex: 1;
+    padding: 14px 20px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 9999px;
+    color: #FFFFFF;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.emailInput::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.emailInput:focus {
+    border-color: rgba(255, 92, 0, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.submitBtn {
+    padding: 14px 32px;
+    background: #FF5C00;
+    color: #FFFFFF;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: transform 0.15s ease, opacity 0.2s ease;
+    white-space: nowrap;
+}
+
+.submitBtn:hover {
+    transform: scale(0.97);
+    opacity: 0.9;
+}
+
+.submitBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.walletSection {
+    margin-bottom: 32px;
+}
+
+.walletConnected {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(44, 255, 5, 0.08);
+    border: 1px solid rgba(44, 255, 5, 0.2);
+    border-radius: 9999px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: #2CFF05;
+}
+
+.walletDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #2CFF05;
+}
+
+.successMessage {
+    padding: 16px 24px;
+    background: rgba(44, 255, 5, 0.08);
+    border: 1px solid rgba(44, 255, 5, 0.15);
+    border-radius: 16px;
+    color: #2CFF05;
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin-bottom: 32px;
+}
+
+.errorMessage {
+    color: #FF2A55;
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+}
+
+.socials {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 48px;
+}
+
+.socials a {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.socials a:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #FFFFFF;
+}
+
+.backLink {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 24px;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.backLink:hover {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+@media (max-width: 480px) {
+    .form {
+        flex-direction: column;
+    }
+
+    .submitBtn {
+        width: 100%;
+    }
+
+    .headline {
+        font-size: clamp(1.8rem, 8vw, 2.5rem);
+    }
+}

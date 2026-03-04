@@ -7,6 +7,7 @@ import platformRoutes from './platform.js';
 import investmentRoutes from './investments.js';
 import paymentRoutes from './payments.js';
 import oracleRoutes from './oracle.js';
+import waitlistRoutes from './waitlist.js';
 
 const router = Router();
 
@@ -23,6 +24,9 @@ router.use('/oracle', oracleRoutes);
 
 // Investment endpoints
 router.use('/', investmentRoutes);
+
+// Waitlist
+router.use('/waitlist', waitlistRoutes);
 
 // Backward-compat: frontend client.ts calls /merchant/:id/stats (singular, no /v1)
 // Mirror /merchants under /merchant so both paths work

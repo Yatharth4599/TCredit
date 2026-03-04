@@ -159,3 +159,10 @@ model OraclePayment {
   @@index([status])
   @@index([from, nonce])
 }
+
+model WaitlistEntry {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  walletAddress String?
+  createdAt     DateTime @default(now())
+}
