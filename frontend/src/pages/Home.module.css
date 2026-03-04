@@ -389,21 +389,32 @@
 .sectionLabel {
     display: inline-block;
     font-family: var(--font-body);
-    font-size: 0.7rem;
-    font-weight: 600;
-    letter-spacing: 0.15em;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--accent);
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 }
 
 .sectionTitle {
     font-family: var(--font-display);
-    font-size: clamp(1.75rem, 4vw, 2.5rem);
-    font-weight: 700;
+    font-size: clamp(2.2rem, 5vw, 3.4rem);
+    font-weight: 800;
     color: var(--text-primary);
-    line-height: 1.15;
-    letter-spacing: -0.03em;
+    line-height: 1.08;
+    letter-spacing: -0.04em;
+}
+
+/* Flywheel center heading — larger for impact */
+.flywheelSection .sectionTitle {
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    line-height: 1.06;
+}
+
+/* HIW heading */
+.hiwHeading .sectionTitle {
+    font-size: clamp(2.5rem, 5.5vw, 3.8rem);
 }
 
 .sectionDesc {
@@ -426,7 +437,7 @@
 
 
 /* ── For Investors — on bright green bg ── */
-.forUsers .sectionLabel { color: rgba(0, 0, 0, 0.5); }
+.forUsers .sectionLabel { color: rgba(0, 0, 0, 0.55); }
 .forUsers .splitTitle { color: #000000; }
 .forUsers .gradientInline {
     background: linear-gradient(135deg, #000000 0%, rgba(0, 0, 0, 0.7) 100%);
@@ -447,14 +458,14 @@
     50% { opacity: 0.5; box-shadow: 0 0 6px 3px rgba(0, 0, 0, 0.15); }
 }
 .forUsers .visualCard { background: rgba(0, 0, 0, 0.12); }
-.forUsers .visualCardHeader { color: rgba(0, 0, 0, 0.6); }
+.forUsers .visualCardHeader { color: rgba(0, 0, 0, 0.55); }
 .forUsers .visualStatValue { color: #000000; }
-.forUsers .visualStatLabel { color: rgba(0, 0, 0, 0.5); }
+.forUsers .visualStatLabel { color: rgba(0, 0, 0, 0.55); }
 .forUsers .visualSmallValue { color: #000000; }
-.forUsers .visualSmallLabel { color: rgba(0, 0, 0, 0.5); }
+.forUsers .visualSmallLabel { color: rgba(0, 0, 0, 0.55); }
 
 /* ── For Merchants — on ruby red bg ── */
-.forMerchants .sectionLabel { color: rgba(255, 255, 255, 0.6); }
+.forMerchants .sectionLabel { color: rgba(255, 255, 255, 0.55); }
 .forMerchants .splitTitle { color: #FFFFFF; }
 .forMerchants .gradientInline {
     background: linear-gradient(135deg, #FFFFFF 0%, rgba(255, 255, 255, 0.85) 100%);
@@ -465,7 +476,7 @@
 .forMerchants .splitDesc { color: rgba(255, 255, 255, 0.7); }
 .forMerchants .featureList li { color: rgba(255, 255, 255, 0.85); }
 .forMerchants .checkIcon { color: #FFFFFF; }
-.forMerchants .outlineBtn { background: #FFFFFF; color: #E0115F; border: none; }
+.forMerchants .outlineBtn { background: #FFFFFF; color: #FF2A55; border: none; }
 .forMerchants .outlineBtn:hover { background: rgba(255, 255, 255, 0.9); }
 .forMerchants .visualBadgeGreen { background: rgba(255, 255, 255, 0.2); color: #FFFFFF; }
 .forMerchants .visualCard { background: rgba(0, 0, 0, 0.15); }
@@ -484,17 +495,17 @@
 }
 
 /* ── Problem Section — on white bg ── */
-.problemSection .sectionLabel { color: rgba(0, 0, 0, 0.5); }
+.problemSection .sectionLabel { color: rgba(0, 0, 0, 0.55); }
 .problemSection .sectionTitle { color: #000000; }
 .problemSection .gradientInline {
-    background: linear-gradient(135deg, #FF5C00 0%, #E0115F 100%);
+    background: linear-gradient(135deg, #FF5C00 0%, #FF2A55 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
 
 /* ── Why Blockchain — on bright cyan bg ── */
-.security .sectionLabel { color: rgba(0, 0, 0, 0.5); }
+.security .sectionLabel { color: rgba(0, 0, 0, 0.55); }
 .security .sectionTitle { color: #000000; }
 .security .gradientInline {
     background: linear-gradient(135deg, #000000 0%, rgba(0, 0, 0, 0.7) 100%);
@@ -505,7 +516,7 @@
 .security .whyDesc { color: rgba(0, 0, 0, 0.55); }
 .security .stepsListItem {
     background: rgba(0, 0, 0, 0.08);
-    color: rgba(0, 0, 0, 0.8);
+    color: rgba(0, 0, 0, 0.7);
 }
 .security .stepsListItem:hover {
     background: rgba(0, 0, 0, 0.15);
@@ -581,10 +592,11 @@
 
 .hiwCardTitle {
     font-size: clamp(1.8rem, 3vw, 2.5rem);
-    font-weight: 700;
+    font-weight: 800;
     color: #000;
     margin-bottom: 16px;
-    line-height: 1.2;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
 }
 
 .hiwCardTitleLight {
@@ -650,7 +662,7 @@
     padding-top: 16px;
     border-top: 1px solid rgba(0, 0, 0, 0.08);
     font-size: 0.85rem;
-    color: rgba(0, 0, 0, 0.45);
+    color: rgba(0, 0, 0, 0.55);
     line-height: 1.6;
 }
 
@@ -715,7 +727,7 @@
 }
 
 .swapCardAlt .swapCardNumber {
-    color: rgba(0, 0, 0, 0.4);
+    color: rgba(0, 0, 0, 0.55);
 }
 
 .swapCardIcon {
@@ -736,9 +748,10 @@
 
 .swapCardTitle {
     font-size: 1.3rem;
-    font-weight: 600;
+    font-weight: 700;
     color: #fff;
     margin-bottom: 12px;
+    letter-spacing: -0.02em;
 }
 
 .swapCardAlt .swapCardTitle {
@@ -746,14 +759,14 @@
 }
 
 .swapCardDesc {
-    font-size: 0.92rem;
+    font-size: 0.95rem;
     line-height: 1.65;
     color: rgba(255, 255, 255, 0.85);
     margin: 0;
 }
 
 .swapCardAlt .swapCardDesc {
-    color: rgba(0, 0, 0, 0.6);
+    color: rgba(0, 0, 0, 0.55);
 }
 
 @media (max-width: 1024px) {
@@ -824,7 +837,7 @@
 .forMerchants {
     padding: 80px 24px;
     min-height: auto;
-    background: #E0115F;
+    background: #FF2A55;
     position: relative;
 }
 .forMerchants::before {
@@ -854,10 +867,11 @@
 .splitContent {}
 
 .splitTitle {
-    font-size: clamp(1.5rem, 3vw, 2rem);
-    font-weight: 700;
+    font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+    font-weight: 800;
     color: #fff;
-    line-height: 1.2;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
     margin-bottom: 16px;
 }
 
@@ -1091,7 +1105,7 @@
     inset: -8px;
     border-radius: 50%;
     opacity: 0;
-    box-shadow: 0 0 20px rgba(52, 211, 153, 0.4), 0 0 40px rgba(52, 211, 153, 0.2);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.4), 0 0 40px rgba(255, 255, 255, 0.2);
     transition: opacity 0.8s ease 0.6s;
     pointer-events: none;
 }
@@ -1112,7 +1126,7 @@
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.3), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
     opacity: 0;
     pointer-events: none;
     z-index: 2;
@@ -1249,10 +1263,10 @@
 
 .stepsListSub {
     display: block;
-    font-size: 0.82rem;
+    font-size: 0.85rem;
     font-weight: 400;
     margin-top: 2px;
-    opacity: 0.65;
+    color: rgba(0, 0, 0, 0.55);
 }
 
 .stepsListItem strong {
@@ -1340,7 +1354,7 @@
 .footerCol a {
     display: block;
     font-size: 0.85rem;
-    color: rgba(0, 0, 0, 0.5);
+    color: rgba(0, 0, 0, 0.55);
     text-decoration: none;
     padding: 4px 0;
     transition: color 0.15s ease;
@@ -1394,20 +1408,20 @@
 }
 
 .footerLegal a {
-    font-size: 0.82rem;
-    color: #3B82F6;
+    font-size: 0.85rem;
+    color: rgba(0, 0, 0, 0.55);
     text-decoration: none;
     font-weight: 500;
-    transition: opacity 0.15s ease;
+    transition: color 0.15s ease;
 }
 
 .footerLegal a:hover {
-    opacity: 0.7;
+    color: #000;
 }
 
 .footerBuilt {
-    font-size: 0.82rem;
-    color: rgba(0, 0, 0, 0.35);
+    font-size: 0.85rem;
+    color: rgba(0, 0, 0, 0.4);
 }
 
 /* ============================================
@@ -1438,7 +1452,7 @@
 .problemCallout {
     text-align: center;
     font-size: 1rem;
-    color: rgba(0, 0, 0, 0.45);
+    color: rgba(0, 0, 0, 0.55);
     margin-top: 40px;
 }
 
@@ -1524,9 +1538,10 @@
 }
 
 .showcaseCardTitle {
-    font-size: 1.3rem;
-    font-weight: 600;
+    font-size: 1.35rem;
+    font-weight: 700;
     color: #FFFFFF;
+    letter-spacing: -0.02em;
 }
 
 .showcaseCardDesc {
@@ -1643,7 +1658,7 @@
     font-family: var(--font-body);
     font-size: 0.7rem;
     font-weight: 600;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.15em;
     text-transform: uppercase;
     color: var(--accent);
     margin-bottom: 20px;
@@ -1651,11 +1666,12 @@
 
 .cinematicHeadline {
     font-family: var(--font-display);
-    font-size: clamp(1.3rem, 2.5vw, 1.75rem);
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.6);
-    line-height: 1.55;
+    font-size: clamp(1.4rem, 2.5vw, 1.9rem);
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.65);
+    line-height: 1.5;
     margin: 0;
+    letter-spacing: -0.02em;
 }
 
 .cinematicAccent {
@@ -1666,7 +1682,7 @@
 .cinematicStats {
     display: flex;
     align-items: flex-end;
-    justify-content: space-between;
+    justify-content: flex-start;
     width: 100%;
     gap: 0;
     flex-wrap: nowrap;
@@ -1676,7 +1692,13 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    flex: 1;
+    flex: 0 0 auto;
+    padding-right: 48px;
+}
+
+.cinematicStat + .cinematicStat {
+    border-left: 1px solid rgba(255, 255, 255, 0.15);
+    padding-left: 48px;
 }
 
 .cinematicStatValue {
@@ -1690,11 +1712,11 @@
 
 .cinematicStatLabel {
     font-family: var(--font-body);
-    font-size: 0.7rem;
-    font-weight: 500;
-    letter-spacing: 0.12em;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(255, 255, 255, 0.5);
 }
 
 .cinematicStatDivider {
@@ -1707,7 +1729,7 @@
     }
 
     .cinematicContent {
-        padding: 80px 24px 32px;
+        padding: 60px 16px 24px;
     }
 
     .cinematicImage {
@@ -1716,11 +1738,18 @@
 
     .cinematicStats {
         flex-wrap: wrap;
-        gap: 24px;
+        gap: 20px;
+        justify-content: flex-start;
     }
 
     .cinematicStat {
-        flex: 0 0 45%;
+        flex: 0 0 calc(50% - 10px);
+        padding-right: 0;
+    }
+
+    .cinematicStat + .cinematicStat {
+        border-left: none;
+        padding-left: 0;
     }
 
     .cinematicStatValue {
@@ -1735,6 +1764,7 @@
 
     .cinematicStat {
         flex: 0 0 100%;
+        padding-right: 0;
     }
 
     .cinematicStatValue {
@@ -1795,9 +1825,9 @@
 }
 
 .flywheelSubtext {
-    font-size: 1rem;
+    font-size: 1.1rem;
     line-height: 1.7;
-    color: rgba(255, 255, 255, 0.45);
+    color: rgba(255, 255, 255, 0.55);
     margin-top: 20px;
 }
 
@@ -1857,7 +1887,7 @@
 .scatterPos2 { bottom: 6%; left: 3%; background: #2CFF05; border-color: transparent; }
 
 /* Card 3 — Ruby solid */
-.scatterPos3 { bottom: 3%; right: 2%; background: #E0115F; border-color: transparent; }
+.scatterPos3 { bottom: 3%; right: 2%; background: #FF2A55; border-color: transparent; }
 
 /* Floating animation — triggered by GSAP after scroll-lock reveal */
 .scatterPos0[data-floating="true"] { animation: cardFloat0 5s ease-in-out infinite; }
@@ -1865,20 +1895,21 @@
 .scatterPos2[data-floating="true"] { animation: cardFloat2 5.5s ease-in-out infinite; }
 .scatterPos3[data-floating="true"] { animation: cardFloat3 6.5s ease-in-out infinite; }
 
-/* Text color overrides — dark text for bright cards, white for ruby */
-.scatterPos0 .scatterCardNum,
+/* Text color overrides — dark text for cyan/green cards, white for orange/ruby */
 .scatterPos1 .scatterCardNum,
-.scatterPos2 .scatterCardNum { color: rgba(0, 0, 0, 0.45); }
+.scatterPos2 .scatterCardNum { color: rgba(0, 0, 0, 0.55); }
 
-.scatterPos0 .scatterCardTitle,
 .scatterPos1 .scatterCardTitle,
 .scatterPos2 .scatterCardTitle { color: #000; }
 
-.scatterPos0 .scatterCardDesc,
 .scatterPos1 .scatterCardDesc,
-.scatterPos2 .scatterCardDesc { color: rgba(0, 0, 0, 0.6); }
+.scatterPos2 .scatterCardDesc { color: rgba(0, 0, 0, 0.55); }
 
-.scatterPos3 .scatterCardNum { color: rgba(255, 255, 255, 0.6); }
+.scatterPos0 .scatterCardNum { color: rgba(255, 255, 255, 0.6); }
+.scatterPos0 .scatterCardTitle { color: #fff; }
+.scatterPos0 .scatterCardDesc { color: rgba(255, 255, 255, 0.75); }
+
+.scatterPos3 .scatterCardNum { color: rgba(255, 255, 255, 0.55); }
 .scatterPos3 .scatterCardTitle { color: #fff; }
 .scatterPos3 .scatterCardDesc { color: rgba(255, 255, 255, 0.7); }
 
@@ -1889,16 +1920,17 @@
 }
 
 .scatterCardTitle {
-    font-size: 1.1rem;
-    font-weight: 600;
+    font-size: 1.15rem;
+    font-weight: 700;
     color: #FFFFFF;
-    line-height: 1.3;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
 }
 
 .scatterCardDesc {
     font-size: 0.88rem;
     line-height: 1.55;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.55);
 }
 
 /* ============================================
@@ -1995,6 +2027,25 @@
     .capitalSection,
     .flywheelSection {
         padding: 60px 20px;
+    }
+
+    .flywheelSection {
+        min-height: auto;
+    }
+
+    .hiwCard {
+        min-height: 400px;
+        height: auto;
+    }
+
+    .sectionTitle,
+    .flywheelSection .sectionTitle,
+    .hiwHeading .sectionTitle {
+        font-size: clamp(2rem, 8vw, 2.8rem);
+    }
+
+    .flywheelCenterText {
+        max-width: 100%;
     }
 
     .stepsGrid {
