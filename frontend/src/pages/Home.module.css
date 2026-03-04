@@ -1315,9 +1315,9 @@
 
 .problemBg {
     position: absolute;
-    inset: -40px -60px;
-    width: calc(100% + 120px);
-    height: calc(100% + 80px);
+    inset: -60px -120px;
+    width: calc(100% + 240px);
+    height: calc(100% + 120px);
     pointer-events: none;
     z-index: 0;
 }
