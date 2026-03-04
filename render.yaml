@@ -1,0 +1,47 @@
+databases:
+  - name: tcredit-db
+    databaseName: tcredit
+    user: tcredit
+    plan: free
+
+services:
+  - type: web
+    name: tcredit-backend
+    env: node
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate && npx tsc
+    startCommand: npx prisma migrate deploy && node dist/index.js
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tcredit-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      - key: BASE_RPC_URL
+        value: https://sepolia.base.org
+      - key: CHAIN_ID
+        value: "84532"
+      - key: AGENT_REGISTRY_ADDRESS
+        value: "0xAEa7C5CCACebB1423b163b765d3214752f1496A4"
+      - key: PAYMENT_ROUTER_ADDRESS
+        value: "0xf8A5ED433222dFfb9514637243C3599cCE87f977"
+      - key: VAULT_FACTORY_ADDRESS
+        value: "0xf8fDa17F877dEFFCD80784E0465F33d585644360"
+      - key: SENIOR_POOL_ADDRESS
+        value: "0xDf980d0734b00888e4Ac350027515B4D6E473bBa"
+      - key: GENERAL_POOL_ADDRESS
+        value: "0x7E7D8082572C0AD2f51074D272A501180Db06Fb2"
+      - key: MILESTONE_REGISTRY_ADDRESS
+        value: "0x48a471eEB88f84a867bEBC0f6DFF848660BC8c84"
+      - key: USDC_ADDRESS
+        value: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+      - key: ORACLE_PRIVATE_KEY
+        sync: false   # Set manually in Render dashboard
+      - key: CORS_ORIGIN
+        sync: false   # Set to your Vercel URL after frontend deploy, e.g. https://tcredit.vercel.app
+      - key: PORT
+        value: "3001"

@@ -15,6 +15,7 @@ const envSchema = z.object({
   USDC_ADDRESS: z.string().startsWith('0x'),
 
   ORACLE_PRIVATE_KEY: z.string().optional().default(''),
+  CORS_ORIGIN: z.string().optional().default(''),
 
   PORT: z.coerce.number().default(3001),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
