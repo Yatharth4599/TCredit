@@ -85,6 +85,22 @@
   --panel-border-radius: 20px;
   --pill-radius:         9999px;
 
+  /* ─── Section Colors (Home page bright backgrounds) ─── */
+  --section-green:  #2CFF05;
+  --section-cyan:   #00FFF0;
+  --section-ruby:   #E0115F;
+  --section-orange: #FF5C00;
+  --section-gold:   #FFD700;
+
+  /* ─── Standardized Opacity Tiers ─────────────── */
+  /* heavy: emphasized body | body: standard | muted: descriptions */
+  /* subtle: labels/tertiary | ghost: decorative watermarks        */
+  --opacity-heavy:  0.85;
+  --opacity-body:   0.7;
+  --opacity-muted:  0.55;
+  --opacity-subtle: 0.4;
+  --opacity-ghost:  0.25;
+
   /* ─── Brand ──────────────────────────────────── */
   --color-orange:       #FF6B35;
   --color-orange-light: #FF8C5A;

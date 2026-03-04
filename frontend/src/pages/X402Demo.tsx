@@ -109,7 +109,7 @@ export default function X402Demo() {
 
       {/* Header */}
       <header className={`${s.header} ${mounted ? s.visible : ''}`}>
-        <span className={s.overline}>TCredit x402 Demo · Powered by Base</span>
+        <span className={s.overline}>Kora x402 Demo · Powered by Base</span>
         <h1 className={s.title}>
           Programmable Credit in Action
         </h1>
@@ -206,7 +206,7 @@ export default function X402Demo() {
                   <span className={s.cardIcon}><SearchIcon size={28} color="#FF6B35" /></span>
                   <div>
                     <h2 className={s.cardTitle}>AI Credit Assessment</h2>
-                    <p className={s.cardDesc}>TCredit AI analyzes TranslateBot's on-chain payment history, revenue patterns, and subscriber base</p>
+                    <p className={s.cardDesc}>Kora AI analyzes TranslateBot's on-chain payment history, revenue patterns, and subscriber base</p>
                   </div>
                 </div>
 
