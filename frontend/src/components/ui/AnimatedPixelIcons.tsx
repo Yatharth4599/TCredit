@@ -26,45 +26,60 @@ function drawPixelGrid(
     }
 }
 
-const COIN_PALETTE: Record<string, string> = {
-    'B': '#000000',
-    'G': '#FFD700',
-    'Y': '#CCAA00',
-    'D': '#997700',
-    'S': '#664400',
-}
+function drawCoin3D(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number) {
+    const hw = w / 2
+    const thickness = 3
 
-const COIN_ROW_TOP = 'BGGGGGGGGB'
-const COIN_ROW_MID = 'BGYYYYYGB.'
-const COIN_ROW_BOT = 'BDDDDDDDB.'
-const COIN_ROW_RIM = 'BBBBBBBBBB'
+    ctx.fillStyle = '#997700'
+    ctx.beginPath()
+    ctx.ellipse(cx, cy + thickness, hw, h / 2, 0, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.strokeStyle = '#664400'
+    ctx.lineWidth = 1
+    ctx.stroke()
 
-function drawCoin(ctx: CanvasRenderingContext2D, cx: number, cy: number, tilt = 0) {
-    const w = 10
-    ctx.save()
-    ctx.translate(cx, cy)
-    ctx.rotate(tilt)
-
-    ctx.fillStyle = '#000000'
-    ctx.fillRect(-w / 2 * PX, -1 * PX, w * PX, PX)
+    ctx.fillStyle = '#CCAA00'
+    ctx.fillRect(cx - hw, cy, w, thickness)
+    ctx.fillStyle = '#997700'
+    ctx.fillRect(cx - hw, cy + 1, 1, thickness)
+    ctx.fillRect(cx + hw - 1, cy + 1, 1, thickness)
 
     ctx.fillStyle = '#FFD700'
-    ctx.fillRect((-w / 2 + 1) * PX, -1 * PX, (w - 2) * PX, PX)
+    ctx.beginPath()
+    ctx.ellipse(cx, cy, hw, h / 2, 0, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.strokeStyle = '#CCAA00'
+    ctx.lineWidth = 1
+    ctx.stroke()
 
-    ctx.fillStyle = '#000000'
-    ctx.fillRect(-w / 2 * PX, 0, w * PX, PX)
+    ctx.fillStyle = '#FFEE66'
+    ctx.beginPath()
+    ctx.ellipse(cx, cy - 1, hw * 0.5, h * 0.2, 0, 0, Math.PI * 2)
+    ctx.fill()
+
+    ctx.strokeStyle = '#CCAA00'
+    ctx.lineWidth = 0.8
+    ctx.beginPath()
+    ctx.ellipse(cx, cy, hw * 0.65, h * 0.3, 0, 0, Math.PI * 2)
+    ctx.stroke()
+
     ctx.fillStyle = '#CCAA00'
-    ctx.fillRect((-w / 2 + 1) * PX, 0, (w - 2) * PX, PX)
+    ctx.font = 'bold 5px monospace'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('$', cx, cy + 0.5)
+}
 
-    ctx.fillStyle = '#000000'
-    ctx.fillRect(-w / 2 * PX, PX, w * PX, PX)
-    ctx.fillStyle = '#997700'
-    ctx.fillRect((-w / 2 + 1) * PX, PX, (w - 2) * PX, PX)
+function drawStack(ctx: CanvasRenderingContext2D, baseX: number, baseY: number, count: number, coinW: number, coinH: number, spacing: number, wobbleOffset: number, wobbleAmt: number) {
+    for (let i = 0; i < count; i++) {
+        const y = baseY - i * spacing
+        const xOff = Math.sin(wobbleOffset + i * 0.4) * wobbleAmt * (i / Math.max(count - 1, 1))
+        drawCoin3D(ctx, baseX + xOff, y, coinW, coinH)
+    }
+}
 
-    ctx.fillStyle = '#000000'
-    ctx.fillRect(-w / 2 * PX, 2 * PX, w * PX, PX)
-
-    ctx.restore()
+interface FallenCoin3D {
+    x: number; y: number; vx: number; vy: number; rot: number; vrot: number; w: number; h: number
 }
 
 export function AnimatedCoinStackIcon({ size = 96, className, style }: AnimatedIconProps) {
@@ -82,80 +97,138 @@ export function AnimatedCoinStackIcon({ size = 96, className, style }: AnimatedI
         let frame = 0
         let animId: number
 
-        interface FallenCoin {
-            x: number; y: number; vx: number; vy: number; tilt: number; vtilt: number
-        }
+        const stacks = [
+            { x: 30, count: 4, coinW: 22, coinH: 10 },
+            { x: 64, count: 6, coinW: 24, coinH: 11 },
+            { x: 98, count: 3, coinW: 20, coinH: 9 },
+        ]
+        const baseY = 112
+        const spacing = 8
 
-        let fallenCoins: FallenCoin[] = []
+        let fallenCoins: FallenCoin3D[] = []
+        let dustParticles: { x: number; y: number; vx: number; vy: number; life: number; alpha: number }[] = []
 
         function animate() {
             frame++
             ctx!.clearRect(0, 0, 128, 128)
 
-            const cycle = frame % 360
+            const cycle = frame % 400
 
-            const coinCount = 6
-            const baseX = 64
-            const baseY = 108
-            const coinH = 4 * PX
+            if (cycle < 140) {
+                const wobbleAmt = Math.sin(cycle * 0.06) * Math.min(cycle / 70, 1) * 1.2
+                const wobblePhase = cycle * 0.12
 
-            if (cycle < 120) {
-                const wobble = Math.sin(cycle * 0.08) * Math.min(cycle / 60, 1) * 0.5
-                for (let i = 0; i < coinCount; i++) {
-                    const y = baseY - i * coinH
-                    const tiltFactor = (i / coinCount) * wobble * 0.06
-                    drawCoin(ctx!, baseX + Math.sin(cycle * 0.1 + i * 0.3) * wobble * i * 0.5, y, tiltFactor)
+                for (const st of stacks) {
+                    drawStack(ctx!, st.x, baseY, st.count, st.coinW, st.coinH, spacing, wobblePhase, wobbleAmt)
                 }
-            } else if (cycle === 120) {
+
+                if (cycle > 80) {
+                    const shakeIntensity = ((cycle - 80) / 60) * 0.5
+                    ctx!.save()
+                    ctx!.translate(
+                        Math.sin(cycle * 0.8) * shakeIntensity,
+                        Math.cos(cycle * 1.1) * shakeIntensity * 0.3
+                    )
+                    ctx!.restore()
+                }
+            } else if (cycle === 140) {
                 fallenCoins = []
-                for (let i = 0; i < coinCount; i++) {
-                    const y = baseY - i * coinH
-                    fallenCoins.push({
-                        x: baseX,
-                        y: y,
-                        vx: (1 + Math.random() * 2) * (i % 2 === 0 ? 1 : -0.6),
-                        vy: -(2 + Math.random() * 3) - i * 0.5,
-                        tilt: 0,
-                        vtilt: (Math.random() - 0.5) * 0.15,
-                    })
+                dustParticles = []
+                for (const st of stacks) {
+                    for (let i = 0; i < st.count; i++) {
+                        const y = baseY - i * spacing
+                        const direction = st.x < 64 ? -1 : st.x > 64 ? 1 : (Math.random() > 0.5 ? 1 : -1)
+                        fallenCoins.push({
+                            x: st.x,
+                            y: y,
+                            vx: direction * (0.8 + Math.random() * 1.8) + (Math.random() - 0.5) * 0.5,
+                            vy: -(1.5 + Math.random() * 2.5) - i * 0.6,
+                            rot: 0,
+                            vrot: (Math.random() - 0.5) * 0.08,
+                            w: st.coinW,
+                            h: st.coinH,
+                        })
+                    }
+                    for (let d = 0; d < 3; d++) {
+                        dustParticles.push({
+                            x: st.x + (Math.random() - 0.5) * 10,
+                            y: baseY,
+                            vx: (Math.random() - 0.5) * 2,
+                            vy: -(1 + Math.random() * 2),
+                            life: 30 + Math.random() * 20,
+                            alpha: 0.3,
+                        })
+                    }
                 }
-            } else if (cycle < 260) {
+            } else if (cycle < 290) {
                 for (const c of fallenCoins) {
                     c.x += c.vx
                     c.y += c.vy
-                    c.vy += 0.25
-                    c.tilt += c.vtilt
+                    c.vy += 0.18
+                    c.rot += c.vrot
 
-                    if (c.y > baseY + 4) {
-                        c.y = baseY + 4
-                        c.vy = -c.vy * 0.3
-                        c.vx *= 0.7
-                        c.vtilt *= 0.5
+                    if (c.y > baseY + 2) {
+                        c.y = baseY + 2
+                        c.vy = -c.vy * 0.25
+                        c.vx *= 0.6
+                        c.vrot *= 0.4
+                        if (Math.abs(c.vy) > 0.5) {
+                            dustParticles.push({
+                                x: c.x,
+                                y: baseY,
+                                vx: (Math.random() - 0.5) * 1,
+                                vy: -(0.5 + Math.random()),
+                                life: 15 + Math.random() * 10,
+                                alpha: 0.15,
+                            })
+                        }
                     }
 
-                    drawCoin(ctx!, c.x, c.y, c.tilt)
+                    ctx!.save()
+                    ctx!.translate(c.x, c.y)
+                    ctx!.rotate(c.rot)
+                    drawCoin3D(ctx!, 0, 0, c.w, c.h)
+                    ctx!.restore()
                 }
-            } else if (cycle < 320) {
-                const t = (cycle - 260) / 60
+
+                for (let i = dustParticles.length - 1; i >= 0; i--) {
+                    const p = dustParticles[i]
+                    p.x += p.vx
+                    p.y += p.vy
+                    p.vy += 0.05
+                    p.life--
+                    if (p.life <= 0) { dustParticles.splice(i, 1); continue }
+                    ctx!.globalAlpha = p.alpha * (p.life / 30)
+                    ctx!.fillStyle = '#CCAA00'
+                    ctx!.fillRect(p.x - 1, p.y - 1, 2, 2)
+                }
+                ctx!.globalAlpha = 1
+            } else if (cycle < 360) {
+                const t = (cycle - 290) / 70
                 const fadeAlpha = 1 - t
                 ctx!.globalAlpha = fadeAlpha
                 for (const c of fallenCoins) {
-                    drawCoin(ctx!, c.x, c.y, c.tilt)
+                    ctx!.save()
+                    ctx!.translate(c.x, c.y)
+                    ctx!.rotate(c.rot)
+                    drawCoin3D(ctx!, 0, 0, c.w, c.h)
+                    ctx!.restore()
                 }
                 ctx!.globalAlpha = 1
 
                 const buildAlpha = t
                 ctx!.globalAlpha = buildAlpha
-                const visibleCoins = Math.floor(t * coinCount)
-                for (let i = 0; i < visibleCoins; i++) {
-                    const y = baseY - i * coinH
-                    drawCoin(ctx!, baseX, y, 0)
+                for (const st of stacks) {
+                    const visibleCoins = Math.floor(t * st.count)
+                    for (let i = 0; i < visibleCoins; i++) {
+                        const y = baseY - i * spacing
+                        drawCoin3D(ctx!, st.x, y, st.coinW, st.coinH)
+                    }
                 }
                 ctx!.globalAlpha = 1
             } else {
-                for (let i = 0; i < coinCount; i++) {
-                    const y = baseY - i * coinH
-                    drawCoin(ctx!, baseX, y, 0)
+                for (const st of stacks) {
+                    drawStack(ctx!, st.x, baseY, st.count, st.coinW, st.coinH, spacing, 0, 0)
                 }
             }
 
@@ -349,41 +422,6 @@ export function AnimatedVaultIcon({ size = 96, className, style }: AnimatedIconP
     )
 }
 
-const LOCK_PALETTE: Record<string, string> = {
-    'B': '#000000',
-    'L': '#FF7EB3',
-    'M': '#E6457A',
-    'D': '#B8255A',
-    'S': '#7A1038',
-    'G': '#FFD700',
-    'Y': '#CCAA00',
-}
-
-const LOCK_ROWS = [
-    '................................',
-    '................................',
-    '...........BBBBBBB.............',
-    '..........BMMMMMMB.............',
-    '.........BMBB..BBMB............',
-    '.........BMB....BMB............',
-    '.........BMB....BMB............',
-    '.........BMB....BMB............',
-    '........BBBBBBBBBBBB...........',
-    '........BMMMMMMMMMMMB..........',
-    '........BMMMMMMMMMMMMB.........',
-    '........BMMMMMMMMMMMMB.........',
-    '........BMMMMMBBMMMMMB.........',
-    '........BMMMMB$$BMMMMB.........',
-    '........BMMMMB$$BMMMMB.........',
-    '........BMMMMMBBMMMMMB.........',
-    '........BMMMMMMMMMMMMB.........',
-    '........BMMMMMMMMMMMMB.........',
-    '........BDDDDDDDDDDDB.........',
-    '........BBBBBBBBBBBBBB.........',
-    '................................',
-    '................................',
-]
-
 export function AnimatedLockIcon({ size = 96, className, style }: AnimatedIconProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -399,61 +437,194 @@ export function AnimatedLockIcon({ size = 96, className, style }: AnimatedIconPr
         let frame = 0
         let animId: number
 
+        function drawShackle(cx: number, topY: number, w: number, h: number, liftAmount: number) {
+            const outerW = w
+            const outerH = h
+            const thickness = 4
+
+            ctx!.strokeStyle = '#888899'
+            ctx!.lineWidth = thickness + 2
+            ctx!.beginPath()
+            ctx!.arc(cx, topY + outerH - liftAmount, outerW / 2, Math.PI, 0)
+            ctx!.stroke()
+
+            ctx!.strokeStyle = '#AAAABB'
+            ctx!.lineWidth = thickness
+            ctx!.beginPath()
+            ctx!.arc(cx, topY + outerH - liftAmount, outerW / 2, Math.PI, 0)
+            ctx!.stroke()
+
+            ctx!.fillStyle = '#AAAABB'
+            ctx!.fillRect(cx - outerW / 2 - thickness / 2, topY + outerH - liftAmount, thickness, liftAmount + 2)
+            ctx!.fillRect(cx + outerW / 2 - thickness / 2, topY + outerH - liftAmount, thickness, liftAmount + 2)
+
+            ctx!.fillStyle = '#666677'
+            ctx!.fillRect(cx - outerW / 2 - thickness / 2 - 1, topY + outerH - liftAmount, 1, liftAmount + 2)
+            ctx!.fillRect(cx + outerW / 2 + thickness / 2, topY + outerH - liftAmount, 1, liftAmount + 2)
+        }
+
+        function drawBody(cx: number, topY: number, w: number, h: number) {
+            ctx!.fillStyle = '#333344'
+            ctx!.fillRect(cx - w / 2 + 1, topY + 1, w - 2, h)
+
+            ctx!.fillStyle = '#555566'
+            ctx!.fillRect(cx - w / 2, topY, w, h)
+
+            ctx!.fillStyle = '#666677'
+            ctx!.fillRect(cx - w / 2, topY, w, 3)
+            ctx!.fillRect(cx - w / 2, topY, 2, h)
+
+            ctx!.fillStyle = '#444455'
+            ctx!.fillRect(cx - w / 2, topY + h - 3, w, 3)
+            ctx!.fillRect(cx + w / 2 - 2, topY, 2, h)
+
+            ctx!.fillStyle = '#777788'
+            ctx!.fillRect(cx - w / 2 + 2, topY + 2, w - 4, 1)
+        }
+
+        function drawKeyhole(cx: number, cy: number, pulsePhase: number) {
+            const glow = 0.15 + Math.sin(pulsePhase) * 0.1
+            ctx!.globalAlpha = glow
+            ctx!.fillStyle = '#FF5C00'
+            ctx!.beginPath()
+            ctx!.arc(cx, cy - 2, 10, 0, Math.PI * 2)
+            ctx!.fill()
+            ctx!.globalAlpha = 1
+
+            ctx!.fillStyle = '#222233'
+            ctx!.beginPath()
+            ctx!.arc(cx, cy - 2, 5, 0, Math.PI * 2)
+            ctx!.fill()
+
+            ctx!.fillStyle = '#222233'
+            ctx!.fillRect(cx - 2, cy + 1, 4, 10)
+
+            ctx!.fillStyle = '#111122'
+            ctx!.beginPath()
+            ctx!.arc(cx, cy - 2, 3, 0, Math.PI * 2)
+            ctx!.fill()
+            ctx!.fillRect(cx - 1, cy + 2, 2, 8)
+
+            ctx!.fillStyle = '#FF5C00'
+            ctx!.globalAlpha = 0.4 + Math.sin(pulsePhase * 2) * 0.2
+            ctx!.beginPath()
+            ctx!.arc(cx, cy - 2, 2, 0, Math.PI * 2)
+            ctx!.fill()
+            ctx!.globalAlpha = 1
+        }
+
+        function drawScrews(cx: number, bodyTop: number, bodyW: number, bodyH: number) {
+            const screwPositions = [
+                { x: cx - bodyW / 2 + 6, y: bodyTop + 6 },
+                { x: cx + bodyW / 2 - 6, y: bodyTop + 6 },
+                { x: cx - bodyW / 2 + 6, y: bodyTop + bodyH - 6 },
+                { x: cx + bodyW / 2 - 6, y: bodyTop + bodyH - 6 },
+            ]
+            for (const s of screwPositions) {
+                ctx!.fillStyle = '#888899'
+                ctx!.beginPath()
+                ctx!.arc(s.x, s.y, 2.5, 0, Math.PI * 2)
+                ctx!.fill()
+                ctx!.strokeStyle = '#666677'
+                ctx!.lineWidth = 0.5
+                ctx!.beginPath()
+                ctx!.moveTo(s.x - 1.5, s.y - 1.5)
+                ctx!.lineTo(s.x + 1.5, s.y + 1.5)
+                ctx!.stroke()
+            }
+        }
+
         function animate() {
             frame++
             ctx!.clearRect(0, 0, 128, 128)
 
-            const cycle = frame % 240
+            const cycle = frame % 300
 
-            const currentPalette = { ...LOCK_PALETTE }
+            const lockCX = 64
+            const bodyW = 52
+            const bodyH = 40
+            const bodyTop = 60
+            const shackleW = 30
+            const shackleH = 20
+            const shackleTopY = 28
 
-            const pulsePhase = Math.sin(frame * 0.04)
-            const keyR = Math.floor(255 * (0.8 + pulsePhase * 0.2))
-            const keyG = Math.floor(215 * (0.8 + pulsePhase * 0.2))
-            currentPalette['$'] = `rgb(${keyR}, ${keyG}, 0)`
+            let shackleLift = 0
+            let glitchX = 0
+            let glitchY = 0
+            let glitchIntensity = 0
 
-            let glitchOffsetX = 0
-            let glitchOffsetY = 0
+            if (cycle < 60) {
+                shackleLift = 0
+            } else if (cycle < 90) {
+                const t = (cycle - 60) / 30
+                shackleLift = t * t * 18
+                glitchIntensity = t * 0.3
+            } else if (cycle < 130) {
+                shackleLift = 18
+                glitchIntensity = 0.6 + Math.sin(cycle * 0.3) * 0.3
+            } else if (cycle < 160) {
+                const t = (cycle - 130) / 30
+                shackleLift = 18 * (1 - t * t)
+                glitchIntensity = (1 - t) * 0.5
+            } else if (cycle < 240) {
+                shackleLift = 0
+            } else if (cycle < 270) {
+                const t = (cycle - 240) / 30
+                glitchIntensity = Math.sin(t * Math.PI) * 0.8
+            } else {
+                shackleLift = 0
+            }
 
-            if (cycle > 120 && cycle < 160) {
-                const intensity = Math.sin((cycle - 120) / 40 * Math.PI)
-                glitchOffsetX = Math.floor(Math.sin(frame * 2.7) * 3 * intensity)
-                glitchOffsetY = Math.floor(Math.cos(frame * 1.9) * 1.5 * intensity)
+            if (glitchIntensity > 0.05) {
+                glitchX = Math.floor(Math.sin(frame * 2.7) * 3 * glitchIntensity)
+                glitchY = Math.floor(Math.cos(frame * 1.9) * 1.5 * glitchIntensity)
             }
 
             ctx!.save()
-            ctx!.translate(glitchOffsetX, glitchOffsetY)
+            ctx!.translate(glitchX, glitchY)
 
-            drawPixelGrid(ctx!, LOCK_ROWS, currentPalette)
-
-            if (cycle > 120 && cycle < 160) {
-                const t = (cycle - 120) / 40
-                const intensity = Math.sin(t * Math.PI)
-
-                ctx!.globalAlpha = intensity * 0.3
-                ctx!.fillStyle = '#FF2266'
-                const sliceY = 8 * PX + Math.floor(Math.sin(frame * 0.7) * 3) * PX
-                ctx!.fillRect(8 * PX + glitchOffsetX * 0.5, sliceY, 14 * PX, 2 * PX)
-
-                ctx!.globalAlpha = intensity * 0.2
-                ctx!.fillStyle = '#00FFFF'
-                ctx!.fillRect(8 * PX - glitchOffsetX * 0.3, sliceY + 4 * PX, 14 * PX, 1 * PX)
-                ctx!.globalAlpha = 1
-
-                const scanlineY = ((frame * 2) % 88) + 8
-                ctx!.globalAlpha = 0.08 * intensity
-                ctx!.fillStyle = '#FFFFFF'
-                ctx!.fillRect(0, scanlineY, 128, 2)
-                ctx!.globalAlpha = 1
-            }
+            drawShackle(lockCX, shackleTopY, shackleW, shackleH, shackleLift)
+            drawBody(lockCX, bodyTop, bodyW, bodyH)
+            drawKeyhole(lockCX, bodyTop + bodyH * 0.45, frame * 0.04)
+            drawScrews(lockCX, bodyTop, bodyW, bodyH)
 
             ctx!.restore()
 
-            ctx!.globalAlpha = 0.06 + Math.sin(frame * 0.03) * 0.03
-            ctx!.fillStyle = '#E6457A'
-            const glowX = 13 * PX
-            const glowY = 13 * PX
-            ctx!.fillRect(glowX - 3 * PX, glowY - 3 * PX, 8 * PX, 8 * PX)
+            if (glitchIntensity > 0.1) {
+                ctx!.globalAlpha = glitchIntensity * 0.25
+                ctx!.fillStyle = '#FF2266'
+                const sliceY1 = 50 + Math.floor(Math.sin(frame * 0.7) * 15)
+                ctx!.fillRect(glitchX * 2, sliceY1, 128, 3)
+
+                ctx!.fillStyle = '#00FFFF'
+                const sliceY2 = 70 + Math.floor(Math.cos(frame * 0.5) * 12)
+                ctx!.fillRect(-glitchX, sliceY2, 128, 2)
+
+                for (let sl = 0; sl < 128; sl += 4) {
+                    if (Math.random() < glitchIntensity * 0.15) {
+                        ctx!.globalAlpha = glitchIntensity * 0.06
+                        ctx!.fillStyle = '#FFFFFF'
+                        ctx!.fillRect(0, sl, 128, 1)
+                    }
+                }
+                ctx!.globalAlpha = 1
+
+                const sparkCount = Math.floor(glitchIntensity * 6)
+                for (let i = 0; i < sparkCount; i++) {
+                    ctx!.fillStyle = ['#FF5C00', '#FF2266', '#00FFFF', '#FFD700'][i % 4]
+                    ctx!.globalAlpha = 0.3 + Math.random() * 0.4
+                    const sx = Math.random() * 128
+                    const sy = Math.random() * 128
+                    ctx!.fillRect(sx, sy, 2 + Math.random() * 3, 2)
+                }
+                ctx!.globalAlpha = 1
+            }
+
+            ctx!.globalAlpha = 0.04 + Math.sin(frame * 0.03) * 0.02
+            ctx!.fillStyle = '#FF5C00'
+            ctx!.beginPath()
+            ctx!.arc(lockCX, bodyTop + bodyH * 0.45, 18, 0, Math.PI * 2)
+            ctx!.fill()
             ctx!.globalAlpha = 1
 
             animId = requestAnimationFrame(animate)
