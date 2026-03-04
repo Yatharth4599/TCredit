@@ -26,36 +26,47 @@ function drawPixelGrid(
     }
 }
 
-const SKULL_PALETTE: Record<string, string> = {
+const BANK_PALETTE: Record<string, string> = {
     'B': '#000000',
-    'W': '#E8E8E8',
-    'G': '#C0C0C0',
-    'D': '#888888',
+    'L': '#E8E8EE',
+    'M': '#C8CED6',
+    'D': '#888899',
+    'S': '#556677',
+    'T': '#7DFFD4',
     'R': '#FF3333',
-    'O': '#CC2222',
 }
 
-const SKULL_ROWS = [
+const BANK_ROWS = [
     '................................',
     '................................',
-    '..........BBBBBBBBBB...........',
-    '.........BWWWWWWWWWWB..........',
-    '........BWWWWWWWWWWWWB.........',
-    '.......BWWWWWWWWWWWWWWB........',
-    '.......BWWWWWWWWWWWWWWB........',
-    '......BWWWWWWWWWWWWWWWB........',
-    '......BWWWWWWWWWWWWWWWWB.......',
-    '......BWWBBBBWWWWBBBBWWB.......',
-    '......BWWB%%BWWWWB%%BWWB.......',
-    '......BWWB%%BWWWWB%%BWWB.......',
-    '......BWWBBBBWWWWBBBBWWB.......',
-    '......BWWWWWWWWWWWWWWWWB.......',
-    '.......BWWWWWWBBWWWWWWB........',
-    '.......BWWWWWWBBWWWWWWB........',
-    '........BWWWWWWWWWWWWB.........',
-    '........BWGWBWBWBWGWB..........',
-    '.........BGWBWBWBWGB...........',
-    '..........BBBBBBBBBB...........',
+    '...............BB...............',
+    '..............BLLB..............',
+    '.............BLLLLB.............',
+    '............BLLMMLLB............',
+    '...........BLMMMMMMLB..........',
+    '..........BLMMMMMMMMBLB........',
+    '.........BLMMMMMMMMMMLB........',
+    '........BLMMMMMMMMMMMMMLB......',
+    '.......BLMMMMMMMMMMMMMMLB.....',
+    '......BLMMMMMMMMMMMMMMMMMLB....',
+    '.....BBBBBBBBBBBBBBBBBBBBBB....',
+    '.....BDDDDDDDDDDDDDDDDDDDB....',
+    '.....BBBBBBBBBBBBBBBBBBBBBB....',
+    '.....BLB.BLB..BLB..BLB.BLB....',
+    '.....BMB.BMB..BMB..BMB.BMB....',
+    '.....BMB.BMB..BMB..BMB.BMB....',
+    '.....BMB.BMB..BMB..BMB.BMB....',
+    '.....BMB.BMB.BSSB..BMB.BMB....',
+    '.....BMB.BMB.BSSB..BMB.BMB....',
+    '.....BMB.BMB.BSSB..BMB.BMB....',
+    '.....BMB.BMB.BSSB..BMB.BMB....',
+    '.....BDB.BDB.BSSB..BDB.BDB....',
+    '.....BDB.BDB.BSSB..BDB.BDB....',
+    '.....BBBBBBBBBBBBBBBBBBBBBB....',
+    '.....BMMMMMMMMMMMMMMMMMMMMB....',
+    '.....BDDDDDDDDDDDDDDDDDDDB....',
+    '.....BBBBBBBBBBBBBBBBBBBBBB....',
+    '................................',
     '................................',
     '................................',
 ]
@@ -153,7 +164,7 @@ const LOCK_ROWS = [
     '................................',
 ]
 
-export function AnimatedSkullIcon({ size = 96, className, style }: AnimatedIconProps) {
+export function AnimatedBankIcon({ size = 96, className, style }: AnimatedIconProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
 
     useEffect(() => {
@@ -168,53 +179,63 @@ export function AnimatedSkullIcon({ size = 96, className, style }: AnimatedIconP
         let frame = 0
         let animId: number
 
-        const eyePositions = [
-            { x: 9, y: 9, w: 4, h: 4 },
-            { x: 17, y: 9, w: 4, h: 4 },
-        ]
-
         function animate() {
             frame++
             ctx!.clearRect(0, 0, 128, 128)
 
-            const blinkCycle = frame % 180
-            const isBlinking = blinkCycle > 170 && blinkCycle <= 178
+            const cycle = frame % 300
 
-            const breathScale = Math.sin(frame * 0.03) * 0.5
-            const bobY = Math.sin(frame * 0.02) * 1.5
+            let shakeX = 0
+            let shakeY = 0
+            let crackAlpha = 0
 
-            ctx!.save()
-            ctx!.translate(0, bobY)
-
-            const currentPalette = { ...SKULL_PALETTE }
-
-            if (isBlinking) {
-                currentPalette['%'] = '#000000'
-            } else {
-                const glowPhase = Math.sin(frame * 0.05)
-                const r = Math.floor(255 - glowPhase * 30)
-                const g = Math.floor(50 + glowPhase * 20)
-                currentPalette['%'] = `rgb(${r}, ${g}, 50)`
+            if (cycle > 160 && cycle < 220) {
+                const t = (cycle - 160) / 60
+                const intensity = Math.sin(t * Math.PI)
+                shakeX = Math.sin(frame * 3.5) * 2.5 * intensity
+                shakeY = Math.cos(frame * 2.1) * 1.5 * intensity
+                crackAlpha = intensity * 0.7
             }
 
-            drawPixelGrid(ctx!, SKULL_ROWS, currentPalette)
+            ctx!.save()
+            ctx!.translate(shakeX, shakeY)
 
-            if (!isBlinking) {
-                const glowIntensity = (Math.sin(frame * 0.05) + 1) * 0.5
-                ctx!.globalAlpha = 0.15 + glowIntensity * 0.15
-                eyePositions.forEach(eye => {
-                    ctx!.fillStyle = '#FF3333'
-                    ctx!.fillRect(
-                        (eye.x - 0.5) * PX,
-                        (eye.y - 0.5 + breathScale * 0.3) * PX,
-                        (eye.w + 1) * PX,
-                        (eye.h + 1) * PX
-                    )
-                })
+            drawPixelGrid(ctx!, BANK_ROWS, BANK_PALETTE)
+
+            if (crackAlpha > 0) {
+                ctx!.globalAlpha = crackAlpha
+                ctx!.strokeStyle = '#FF3333'
+                ctx!.lineWidth = 2
+                ctx!.beginPath()
+                ctx!.moveTo(15 * PX, 12 * PX)
+                ctx!.lineTo(14 * PX, 16 * PX)
+                ctx!.lineTo(16 * PX, 20 * PX)
+                ctx!.lineTo(14 * PX, 24 * PX)
+                ctx!.lineTo(15 * PX, 28 * PX)
+                ctx!.stroke()
+                ctx!.globalAlpha = 1
+            }
+
+            if (cycle > 180 && cycle < 220) {
+                const t = (cycle - 180) / 40
+                const dustAlpha = Math.sin(t * Math.PI) * 0.4
+                ctx!.globalAlpha = dustAlpha
+                for (let i = 0; i < 5; i++) {
+                    const dx = 10 * PX + Math.sin(frame * 0.3 + i * 1.5) * 12
+                    const dy = 26 * PX + Math.cos(frame * 0.2 + i) * 4 + t * 8
+                    ctx!.fillStyle = '#888899'
+                    ctx!.fillRect(dx, dy, PX, PX)
+                }
                 ctx!.globalAlpha = 1
             }
 
             ctx!.restore()
+
+            const windowGlow = (Math.sin(frame * 0.04) + 1) * 0.5
+            ctx!.globalAlpha = 0.15 + windowGlow * 0.15
+            ctx!.fillStyle = '#FFD700'
+            ctx!.fillRect(13 * PX, 19 * PX, 2 * PX, 5 * PX)
+            ctx!.globalAlpha = 1
 
             animId = requestAnimationFrame(animate)
         }
