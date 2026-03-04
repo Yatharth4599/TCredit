@@ -83,8 +83,8 @@ const EYELID_COLORS = [
 
 const MOUTH_REGION = { cx: 0.495, cy: 0.510, w: 0.155, h: 0.085 }
 const NOSE_REGION = { cx: 0.470, cy: 0.440, w: 0.045, h: 0.025 }
-const EAR_LEFT = { cx: 0.330, cy: 0.170, w: 0.060, h: 0.055 }
-const EAR_RIGHT = { cx: 0.580, cy: 0.155, w: 0.060, h: 0.055 }
+const EAR_LEFT = { cx: 0.330, cy: 0.230, w: 0.070, h: 0.065 }
+const EAR_RIGHT = { cx: 0.580, cy: 0.215, w: 0.070, h: 0.065 }
 
 interface BlinkState {
     phase: 'open' | 'closing' | 'closed' | 'opening'
