@@ -55,7 +55,7 @@ function removeBackground(
     }
 }
 
-const EYE_LEFT = { cx: 0.410, cy: 0.375, w: 0.042, h: 0.024 }
+const EYE_LEFT = { cx: 0.422, cy: 0.375, w: 0.042, h: 0.024 }
 const EYE_RIGHT = { cx: 0.558, cy: 0.370, w: 0.045, h: 0.024 }
 
 const EYELID_COLORS = [
