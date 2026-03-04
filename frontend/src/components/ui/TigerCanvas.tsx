@@ -407,17 +407,18 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
         const smokeParticles: SmokeParticle[] = []
 
         function spawnSmoke(noseX: number, noseY: number, noseW: number, side: 'left' | 'right') {
-            const offsetX = side === 'left' ? -noseW * 0.6 : noseW * 0.6
-            const spreadX = (Math.random() - 0.5) * noseW * 0.8
-            const angle = Math.PI / 2 + (Math.random() - 0.5) * 1.0
+            const nostrilGap = noseW * 2.5
+            const centerX = side === 'left' ? noseX - nostrilGap : noseX + nostrilGap
+            const spreadX = (Math.random() - 0.5) * noseW * 0.5
+            const outwardDrift = side === 'left' ? -(0.4 + Math.random() * 0.8) : (0.4 + Math.random() * 0.8)
             const speed = 0.5 + Math.random() * 1.0
             const sz = 5 + Math.random() * 8
 
             smokeParticles.push({
-                x: noseX + offsetX + spreadX,
-                y: noseY + noseW * 0.2,
-                vx: Math.cos(angle) * speed * (side === 'left' ? -0.6 : 0.6) + (Math.random() - 0.5) * 0.5,
-                vy: Math.abs(Math.sin(angle)) * speed * 0.6 + 0.3 + Math.random() * 0.3,
+                x: centerX + spreadX,
+                y: noseY + noseW * 0.3,
+                vx: outwardDrift + (Math.random() - 0.5) * 0.3,
+                vy: speed * 0.6 + 0.3 + Math.random() * 0.3,
                 size: sz,
                 startSize: sz,
                 maxSize: sz * 5,
