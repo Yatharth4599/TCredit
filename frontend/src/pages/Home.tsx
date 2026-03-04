@@ -240,22 +240,34 @@ export default function Home() {
                         </p>
                     </div>
 
-                    {/* 3 square cards fly in from different directions */}
                     <div className={styles.problemShowcase}>
-                        {problemSlides.map((slide, i) => (
-                            <div
-                                key={i}
-                                data-anim="problem-card"
-                                className={`${styles.showcaseCard} ${activeProblem === i ? styles.showcaseCardActive : ''}`}
-                                onClick={() => setActiveProblem(i)}
-                            >
-                                <div className={styles.showcaseCardPixel}>
-                                    {slide.icon}
+                        <div className={styles.showcaseStage}>
+                            {problemSlides.map((slide, i) => (
+                                <div
+                                    key={i}
+                                    className={`${styles.showcaseCard} ${
+                                        activeProblem === i ? styles.showcaseCardActive :
+                                        activeProblem === (i + 1) % problemSlides.length ? styles.showcaseCardPrev :
+                                        styles.showcaseCardNext
+                                    }`}
+                                >
+                                    <div className={styles.showcaseCardPixel}>
+                                        {slide.icon}
+                                    </div>
+                                    <h3 className={styles.showcaseCardTitle}>{slide.cardTitle}</h3>
+                                    <p className={styles.showcaseCardDesc}>{slide.cardDetail}</p>
                                 </div>
-                                <h3 className={styles.showcaseCardTitle}>{slide.cardTitle}</h3>
-                                <p className={styles.showcaseCardDesc}>{slide.cardDetail}</p>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
+                        <div className={styles.showcaseDots}>
+                            {problemSlides.map((_, i) => (
+                                <button
+                                    key={i}
+                                    className={`${styles.showcaseDot} ${activeProblem === i ? styles.showcaseDotActive : ''}`}
+                                    onClick={() => setActiveProblem(i)}
+                                />
+                            ))}
+                        </div>
                     </div>
                     <p className={styles.problemCallout}>
                         TCredit solves this with a single primitive: <strong>revenue-backed, programmable credit.</strong>

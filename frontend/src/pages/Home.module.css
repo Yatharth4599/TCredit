@@ -1305,40 +1305,56 @@
     color: #FF5C00;
 }
 
-/* Problem showcase — 3 square cards side by side */
 .problemShowcase {
     position: relative;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
     margin-bottom: 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.showcaseStage {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    aspect-ratio: 0.85;
+    margin: 0 auto;
 }
 
 .showcaseCard {
-    aspect-ratio: 1;
-    padding: 28px;
+    position: absolute;
+    inset: 0;
+    padding: 40px 32px;
     background: #000000;
-    border: 1px solid transparent;
-    border-radius: 0;
+    border-radius: 16px;
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 16px;
-    position: relative;
+    gap: 20px;
     overflow: hidden;
-    cursor: pointer;
-    transition: transform 0.4s ease, box-shadow 0.4s ease;
-}
-
-.showcaseCard:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    transform: scale(0.92) translateY(30px);
+    transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
 }
 
 .showcaseCardActive {
-    outline: 2px solid #FF5C00;
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    pointer-events: auto;
+}
+
+.showcaseCardPrev {
+    opacity: 0;
+    transform: scale(0.92) translateY(-30px);
+}
+
+.showcaseCardNext {
+    opacity: 0;
+    transform: scale(0.92) translateY(30px);
 }
 
 .showcaseCardPixel {
@@ -1357,27 +1373,52 @@
 }
 
 .showcaseCardTitle {
-    font-size: 1.1rem;
+    font-size: 1.3rem;
     font-weight: 600;
     color: #FFFFFF;
 }
 
 .showcaseCardDesc {
-    font-size: 0.85rem;
-    line-height: 1.55;
-    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.95rem;
+    line-height: 1.65;
+    color: rgba(255, 255, 255, 0.55);
+    max-width: 340px;
+}
+
+.showcaseDots {
+    display: flex;
+    gap: 10px;
+    margin-top: 28px;
+    justify-content: center;
+}
+
+.showcaseDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(0, 0, 0, 0.3);
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
+}
+
+.showcaseDot:hover {
+    border-color: rgba(0, 0, 0, 0.6);
+}
+
+.showcaseDotActive {
+    background: #FF5C00;
+    border-color: #FF5C00;
+    transform: scale(1.2);
 }
 
 @media (max-width: 768px) {
-    .problemShowcase {
-        grid-template-columns: 1fr;
-        max-width: 360px;
-        margin-left: auto;
-        margin-right: auto;
+    .showcaseStage {
+        max-width: 340px;
     }
     .showcaseCard {
-        aspect-ratio: auto;
-        padding: 24px;
+        padding: 28px 24px;
     }
 }
 
