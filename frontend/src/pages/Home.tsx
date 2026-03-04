@@ -8,7 +8,8 @@ import CardSwap, { Card } from '../components/ui/CardSwap'
 import NoiseBackground from '../components/ui/NoiseBackground'
 import WaterfallFlow from '../components/ui/WaterfallFlow'
 import { BankIcon, HourglassIcon, ShieldIcon } from '../components/ui/PixelIcons'
-import { AnimatedBankIcon, AnimatedChainIcon, AnimatedLockIcon } from '../components/ui/AnimatedPixelIcons'
+import { AnimatedCoinStackIcon, AnimatedVaultIcon, AnimatedLockIcon } from '../components/ui/AnimatedPixelIcons'
+import ProblemBackground from '../components/ui/ProblemBackground'
 import TigerCanvas from '../components/ui/TigerCanvas'
 import { useScrollAnimations } from '../hooks/useScrollAnimations'
 
@@ -51,14 +52,14 @@ export default function Home() {
         {
             cardTitle: 'Traditional Finance',
             cardDetail: '65% of global SMEs cannot access formal credit. Banks demand collateral, physical presence, and 4–6 week review cycles. Productive businesses are locked out.',
-            icon: <AnimatedBankIcon size={120} />,
+            icon: <AnimatedCoinStackIcon size={120} />,
             headline: 'Legacy credit',
             desc: 'Collateral-based systems exclude productive businesses from capital markets.',
         },
         {
             cardTitle: 'DeFi Lending Today',
             cardDetail: 'Overcollateralized protocols cannot evaluate real businesses. 150% collateral requirements make DeFi credit pointless for working capital.',
-            icon: <AnimatedChainIcon size={120} />,
+            icon: <AnimatedVaultIcon size={120} />,
             headline: 'Broken DeFi',
             desc: 'Current protocols ignore real-world productivity and cash flow entirely.',
         },
@@ -242,6 +243,7 @@ export default function Home() {
                     </div>
 
                     <div className={styles.problemShowcase}>
+                        <ProblemBackground activeProblem={activeProblem} className={styles.problemBg} />
                         <div className={styles.showcaseStage}>
                             {problemSlides.map((slide, i) => (
                                 <div

@@ -26,108 +26,328 @@ function drawPixelGrid(
     }
 }
 
-const BANK_PALETTE: Record<string, string> = {
+const COIN_PALETTE: Record<string, string> = {
     'B': '#000000',
-    'L': '#E8E8EE',
-    'M': '#C8CED6',
-    'D': '#888899',
-    'S': '#556677',
-    'T': '#7DFFD4',
-    'R': '#FF3333',
+    'G': '#FFD700',
+    'Y': '#CCAA00',
+    'D': '#997700',
+    'S': '#664400',
 }
 
-const BANK_ROWS = [
-    '................................',
-    '................................',
-    '...............BB...............',
-    '..............BLLB..............',
-    '.............BLLLLB.............',
-    '............BLLMMLLB............',
-    '...........BLMMMMMMLB..........',
-    '..........BLMMMMMMMMBLB........',
-    '.........BLMMMMMMMMMMLB........',
-    '........BLMMMMMMMMMMMMMLB......',
-    '.......BLMMMMMMMMMMMMMMLB.....',
-    '......BLMMMMMMMMMMMMMMMMMLB....',
-    '.....BBBBBBBBBBBBBBBBBBBBBB....',
-    '.....BDDDDDDDDDDDDDDDDDDDB....',
-    '.....BBBBBBBBBBBBBBBBBBBBBB....',
-    '.....BLB.BLB..BLB..BLB.BLB....',
-    '.....BMB.BMB..BMB..BMB.BMB....',
-    '.....BMB.BMB..BMB..BMB.BMB....',
-    '.....BMB.BMB..BMB..BMB.BMB....',
-    '.....BMB.BMB.BSSB..BMB.BMB....',
-    '.....BMB.BMB.BSSB..BMB.BMB....',
-    '.....BMB.BMB.BSSB..BMB.BMB....',
-    '.....BMB.BMB.BSSB..BMB.BMB....',
-    '.....BDB.BDB.BSSB..BDB.BDB....',
-    '.....BDB.BDB.BSSB..BDB.BDB....',
-    '.....BBBBBBBBBBBBBBBBBBBBBB....',
-    '.....BMMMMMMMMMMMMMMMMMMMMB....',
-    '.....BDDDDDDDDDDDDDDDDDDDB....',
-    '.....BBBBBBBBBBBBBBBBBBBBBB....',
-    '................................',
-    '................................',
-    '................................',
-]
+const COIN_ROW_TOP = 'BGGGGGGGGB'
+const COIN_ROW_MID = 'BGYYYYYGB.'
+const COIN_ROW_BOT = 'BDDDDDDDB.'
+const COIN_ROW_RIM = 'BBBBBBBBBB'
 
-const CHAIN_PALETTE: Record<string, string> = {
-    'B': '#000000',
-    'L': '#FFB86C',
-    'M': '#FF8C42',
-    'D': '#D4621A',
-    'S': '#8B3E0F',
+function drawCoin(ctx: CanvasRenderingContext2D, cx: number, cy: number, tilt = 0) {
+    const w = 10
+    ctx.save()
+    ctx.translate(cx, cy)
+    ctx.rotate(tilt)
+
+    ctx.fillStyle = '#000000'
+    ctx.fillRect(-w / 2 * PX, -1 * PX, w * PX, PX)
+
+    ctx.fillStyle = '#FFD700'
+    ctx.fillRect((-w / 2 + 1) * PX, -1 * PX, (w - 2) * PX, PX)
+
+    ctx.fillStyle = '#000000'
+    ctx.fillRect(-w / 2 * PX, 0, w * PX, PX)
+    ctx.fillStyle = '#CCAA00'
+    ctx.fillRect((-w / 2 + 1) * PX, 0, (w - 2) * PX, PX)
+
+    ctx.fillStyle = '#000000'
+    ctx.fillRect(-w / 2 * PX, PX, w * PX, PX)
+    ctx.fillStyle = '#997700'
+    ctx.fillRect((-w / 2 + 1) * PX, PX, (w - 2) * PX, PX)
+
+    ctx.fillStyle = '#000000'
+    ctx.fillRect(-w / 2 * PX, 2 * PX, w * PX, PX)
+
+    ctx.restore()
 }
 
-const CHAIN_LEFT_ROWS = [
+export function AnimatedCoinStackIcon({ size = 96, className, style }: AnimatedIconProps) {
+    const canvasRef = useRef<HTMLCanvasElement>(null)
+
+    useEffect(() => {
+        const canvas = canvasRef.current
+        if (!canvas) return
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+
+        canvas.width = 128
+        canvas.height = 128
+
+        let frame = 0
+        let animId: number
+
+        interface FallenCoin {
+            x: number; y: number; vx: number; vy: number; tilt: number; vtilt: number
+        }
+
+        let fallenCoins: FallenCoin[] = []
+
+        function animate() {
+            frame++
+            ctx!.clearRect(0, 0, 128, 128)
+
+            const cycle = frame % 360
+
+            const coinCount = 6
+            const baseX = 64
+            const baseY = 108
+            const coinH = 4 * PX
+
+            if (cycle < 120) {
+                const wobble = Math.sin(cycle * 0.08) * Math.min(cycle / 60, 1) * 0.5
+                for (let i = 0; i < coinCount; i++) {
+                    const y = baseY - i * coinH
+                    const tiltFactor = (i / coinCount) * wobble * 0.06
+                    drawCoin(ctx!, baseX + Math.sin(cycle * 0.1 + i * 0.3) * wobble * i * 0.5, y, tiltFactor)
+                }
+            } else if (cycle === 120) {
+                fallenCoins = []
+                for (let i = 0; i < coinCount; i++) {
+                    const y = baseY - i * coinH
+                    fallenCoins.push({
+                        x: baseX,
+                        y: y,
+                        vx: (1 + Math.random() * 2) * (i % 2 === 0 ? 1 : -0.6),
+                        vy: -(2 + Math.random() * 3) - i * 0.5,
+                        tilt: 0,
+                        vtilt: (Math.random() - 0.5) * 0.15,
+                    })
+                }
+            } else if (cycle < 260) {
+                for (const c of fallenCoins) {
+                    c.x += c.vx
+                    c.y += c.vy
+                    c.vy += 0.25
+                    c.tilt += c.vtilt
+
+                    if (c.y > baseY + 4) {
+                        c.y = baseY + 4
+                        c.vy = -c.vy * 0.3
+                        c.vx *= 0.7
+                        c.vtilt *= 0.5
+                    }
+
+                    drawCoin(ctx!, c.x, c.y, c.tilt)
+                }
+            } else if (cycle < 320) {
+                const t = (cycle - 260) / 60
+                const fadeAlpha = 1 - t
+                ctx!.globalAlpha = fadeAlpha
+                for (const c of fallenCoins) {
+                    drawCoin(ctx!, c.x, c.y, c.tilt)
+                }
+                ctx!.globalAlpha = 1
+
+                const buildAlpha = t
+                ctx!.globalAlpha = buildAlpha
+                const visibleCoins = Math.floor(t * coinCount)
+                for (let i = 0; i < visibleCoins; i++) {
+                    const y = baseY - i * coinH
+                    drawCoin(ctx!, baseX, y, 0)
+                }
+                ctx!.globalAlpha = 1
+            } else {
+                for (let i = 0; i < coinCount; i++) {
+                    const y = baseY - i * coinH
+                    drawCoin(ctx!, baseX, y, 0)
+                }
+            }
+
+            animId = requestAnimationFrame(animate)
+        }
+
+        animate()
+        return () => cancelAnimationFrame(animId)
+    }, [])
+
+    return (
+        <canvas
+            ref={canvasRef}
+            className={className}
+            style={{ ...style, width: size, height: size, imageRendering: 'pixelated' }}
+        />
+    )
+}
+
+const VAULT_PALETTE: Record<string, string> = {
+    'B': '#000000',
+    'M': '#666677',
+    'L': '#888899',
+    'D': '#444455',
+    'S': '#222233',
+    'H': '#AAAABB',
+    'R': '#FF2222',
+    'G': '#22FF55',
+}
+
+const VAULT_BODY_ROWS = [
     '................................',
     '................................',
-    '.......BBBBB................... ',
-    '......BLLLLBB..................',
-    '.....BLLMMMLB..................',
-    '.....BLMB.BMB..................',
-    '.....BLMB.BMB..................',
-    '.....BLMB.BMB..................',
-    '.....BLLMMMLB..................',
-    '......BDDDDBB.................',
-    '.......BBBBBBB.................',
-    '..........BBBBB................',
-    '.........BLLLLBB...............',
-    '........BLLMMMLB...............',
-    '........BLMB.BMB...............',
-    '........BLMB.BMB...............',
-    '........BLMB.BMB...............',
-    '........BLLMMMLB...............',
-    '.........BDDDDBB..............',
-    '..........BBBBB................',
-    '................................',
+    '....BBBBBBBBBBBBBBBBBBBB........',
+    '....BLLLLLLLLLLLLLLLLLLB........',
+    '....BLMMMMMMMMMMMMMMMMLB.......',
+    '....BLMMMMMMMMMMMMMMMMLB.......',
+    '....BLMMMMMMMMMMMMMMMMLB.......',
+    '....BLMMMMMMMMMMMMMMMMLB.......',
+    '....BLMMMMMMMMMMMMMMMMLB.......',
+    '....BLMMMMMMMMMMMMMMMMLB.......',
+    '....BLMMMMMMMMMMMMMMMMLB.......',
+    '....BLMMMMMMMMMMMMMMMMLB.......',
+    '....BLMMMMMMMMMMMMMMMMLB.......',
+    '....BLMMMMMMMMMMMMMMMMLB.......',
+    '....BLMMMMMMMMMMMMMMMMLB.......',
+    '....BLMMMMMMMMMMMMMMMMLB.......',
+    '....BLMMMMMMMMMMMMMMMMLB.......',
+    '....BLMMMMMMMMMMMMMMMMLB.......',
+    '....BLLLLLLLLLLLLLLLLLLB........',
+    '....BDDDDDDDDDDDDDDDDDB.......',
+    '....BBBBBBBBBBBBBBBBBBBB........',
     '................................',
 ]
 
-const CHAIN_RIGHT_ROWS = [
-    '................................',
-    '................................',
-    '...............BBBBB...........',
-    '..............BLLLLBB..........',
-    '.............BLLMMMLB..........',
-    '.............BLMB.BMB..........',
-    '.............BLMB.BMB..........',
-    '.............BLMB.BMB..........',
-    '.............BLLMMMLB..........',
-    '..............BDDDDBB.........',
-    '...............BBBBBBB.........',
-    '..................BBBBB........',
-    '.................BLLLLBB.......',
-    '................BLLMMMLB.......',
-    '................BLMB.BMB.......',
-    '................BLMB.BMB.......',
-    '................BLMB.BMB.......',
-    '................BLLMMMLB.......',
-    '.................BDDDDBB......',
-    '..................BBBBB........',
-    '................................',
-    '................................',
-]
+export function AnimatedVaultIcon({ size = 96, className, style }: AnimatedIconProps) {
+    const canvasRef = useRef<HTMLCanvasElement>(null)
+
+    useEffect(() => {
+        const canvas = canvasRef.current
+        if (!canvas) return
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+
+        canvas.width = 128
+        canvas.height = 128
+
+        let frame = 0
+        let animId: number
+
+        function drawVaultBody() {
+            drawPixelGrid(ctx!, VAULT_BODY_ROWS, VAULT_PALETTE)
+        }
+
+        function drawDoor(openFrac: number) {
+            const doorLeft = 9 * PX
+            const doorTop = 4 * PX
+            const doorFullW = 14 * PX
+            const doorH = 16 * PX
+
+            const doorW = doorFullW * (1 - openFrac * 0.85)
+            const doorX = doorLeft + doorFullW - doorW
+
+            ctx!.fillStyle = '#555566'
+            ctx!.fillRect(doorX, doorTop, doorW, doorH)
+
+            ctx!.fillStyle = '#444455'
+            ctx!.fillRect(doorX, doorTop, doorW, PX)
+            ctx!.fillRect(doorX, doorTop + doorH - PX, doorW, PX)
+            ctx!.fillRect(doorX, doorTop, PX, doorH)
+
+            if (openFrac < 0.3) {
+                const handleCX = doorX + doorW * 0.5
+                const handleCY = doorTop + doorH * 0.5
+                const handleR = Math.min(doorW, doorH) * 0.22
+
+                ctx!.strokeStyle = '#AAAABB'
+                ctx!.lineWidth = 2
+                ctx!.beginPath()
+                ctx!.arc(handleCX, handleCY, handleR, 0, Math.PI * 2)
+                ctx!.stroke()
+
+                ctx!.strokeStyle = '#888899'
+                ctx!.lineWidth = 1.5
+                const spoke = handleR * 0.7
+                for (let a = 0; a < 4; a++) {
+                    const angle = (a / 4) * Math.PI * 2 + frame * 0.02
+                    ctx!.beginPath()
+                    ctx!.moveTo(handleCX, handleCY)
+                    ctx!.lineTo(handleCX + Math.cos(angle) * spoke, handleCY + Math.sin(angle) * spoke)
+                    ctx!.stroke()
+                }
+
+                const lockY = handleCY + handleR + 6
+                ctx!.fillStyle = '#FF2222'
+                ctx!.fillRect(handleCX - 2 * PX, lockY, 4 * PX, 2 * PX)
+            }
+
+            if (openFrac > 0.2) {
+                const glowAlpha = Math.min(1, (openFrac - 0.2) / 0.3) * 0.4
+                ctx!.globalAlpha = glowAlpha
+                ctx!.fillStyle = '#22FF55'
+                ctx!.fillRect(doorLeft, doorTop + 2 * PX, doorFullW * openFrac * 0.5, doorH - 4 * PX)
+                ctx!.globalAlpha = 1
+            }
+        }
+
+        function animate() {
+            frame++
+            ctx!.clearRect(0, 0, 128, 128)
+
+            const cycle = frame % 300
+
+            let openFrac = 0
+            let shakeX = 0
+            let shakeY = 0
+            let flashAlpha = 0
+
+            if (cycle < 80) {
+                openFrac = 0.8
+            } else if (cycle < 110) {
+                const t = (cycle - 80) / 30
+                const ease = t * t * t
+                openFrac = 0.8 * (1 - ease)
+            } else if (cycle === 110) {
+                flashAlpha = 0.3
+            } else if (cycle < 130) {
+                const t = (cycle - 110) / 20
+                openFrac = 0
+                shakeX = Math.sin(t * Math.PI * 6) * 3 * (1 - t)
+                shakeY = Math.cos(t * Math.PI * 4) * 1.5 * (1 - t)
+                flashAlpha = Math.max(0, 0.3 - t * 0.5)
+            } else if (cycle < 220) {
+                openFrac = 0
+            } else if (cycle < 260) {
+                const t = (cycle - 220) / 40
+                const ease = 1 - (1 - t) * (1 - t)
+                openFrac = ease * 0.8
+            } else {
+                openFrac = 0.8
+            }
+
+            ctx!.save()
+            ctx!.translate(shakeX, shakeY)
+
+            drawVaultBody()
+            drawDoor(openFrac)
+
+            if (flashAlpha > 0) {
+                ctx!.globalAlpha = flashAlpha
+                ctx!.fillStyle = '#FFFFFF'
+                ctx!.fillRect(0, 0, 128, 128)
+                ctx!.globalAlpha = 1
+            }
+
+            ctx!.restore()
+
+            animId = requestAnimationFrame(animate)
+        }
+
+        animate()
+        return () => cancelAnimationFrame(animId)
+    }, [])
+
+    return (
+        <canvas
+            ref={canvasRef}
+            className={className}
+            style={{ ...style, width: size, height: size, imageRendering: 'pixelated' }}
+        />
+    )
+}
 
 const LOCK_PALETTE: Record<string, string> = {
     'B': '#000000',
@@ -163,190 +383,6 @@ const LOCK_ROWS = [
     '................................',
     '................................',
 ]
-
-export function AnimatedBankIcon({ size = 96, className, style }: AnimatedIconProps) {
-    const canvasRef = useRef<HTMLCanvasElement>(null)
-
-    useEffect(() => {
-        const canvas = canvasRef.current
-        if (!canvas) return
-        const ctx = canvas.getContext('2d')
-        if (!ctx) return
-
-        canvas.width = 128
-        canvas.height = 128
-
-        let frame = 0
-        let animId: number
-
-        function animate() {
-            frame++
-            ctx!.clearRect(0, 0, 128, 128)
-
-            const cycle = frame % 300
-
-            let shakeX = 0
-            let shakeY = 0
-            let crackAlpha = 0
-
-            if (cycle > 160 && cycle < 220) {
-                const t = (cycle - 160) / 60
-                const intensity = Math.sin(t * Math.PI)
-                shakeX = Math.sin(frame * 3.5) * 2.5 * intensity
-                shakeY = Math.cos(frame * 2.1) * 1.5 * intensity
-                crackAlpha = intensity * 0.7
-            }
-
-            ctx!.save()
-            ctx!.translate(shakeX, shakeY)
-
-            drawPixelGrid(ctx!, BANK_ROWS, BANK_PALETTE)
-
-            if (crackAlpha > 0) {
-                ctx!.globalAlpha = crackAlpha
-                ctx!.strokeStyle = '#FF3333'
-                ctx!.lineWidth = 2
-                ctx!.beginPath()
-                ctx!.moveTo(15 * PX, 12 * PX)
-                ctx!.lineTo(14 * PX, 16 * PX)
-                ctx!.lineTo(16 * PX, 20 * PX)
-                ctx!.lineTo(14 * PX, 24 * PX)
-                ctx!.lineTo(15 * PX, 28 * PX)
-                ctx!.stroke()
-                ctx!.globalAlpha = 1
-            }
-
-            if (cycle > 180 && cycle < 220) {
-                const t = (cycle - 180) / 40
-                const dustAlpha = Math.sin(t * Math.PI) * 0.4
-                ctx!.globalAlpha = dustAlpha
-                for (let i = 0; i < 5; i++) {
-                    const dx = 10 * PX + Math.sin(frame * 0.3 + i * 1.5) * 12
-                    const dy = 26 * PX + Math.cos(frame * 0.2 + i) * 4 + t * 8
-                    ctx!.fillStyle = '#888899'
-                    ctx!.fillRect(dx, dy, PX, PX)
-                }
-                ctx!.globalAlpha = 1
-            }
-
-            ctx!.restore()
-
-            const windowGlow = (Math.sin(frame * 0.04) + 1) * 0.5
-            ctx!.globalAlpha = 0.15 + windowGlow * 0.15
-            ctx!.fillStyle = '#FFD700'
-            ctx!.fillRect(13 * PX, 19 * PX, 2 * PX, 5 * PX)
-            ctx!.globalAlpha = 1
-
-            animId = requestAnimationFrame(animate)
-        }
-
-        animate()
-        return () => cancelAnimationFrame(animId)
-    }, [])
-
-    return (
-        <canvas
-            ref={canvasRef}
-            className={className}
-            style={{ ...style, width: size, height: size, imageRendering: 'pixelated' }}
-        />
-    )
-}
-
-export function AnimatedChainIcon({ size = 96, className, style }: AnimatedIconProps) {
-    const canvasRef = useRef<HTMLCanvasElement>(null)
-
-    useEffect(() => {
-        const canvas = canvasRef.current
-        if (!canvas) return
-        const ctx = canvas.getContext('2d')
-        if (!ctx) return
-
-        canvas.width = 128
-        canvas.height = 128
-
-        let frame = 0
-        let animId: number
-
-        function animate() {
-            frame++
-            ctx!.clearRect(0, 0, 128, 128)
-
-            const cycle = frame % 300
-
-            let leftOffset = 0
-            let rightOffset = 0
-            let shakeX = 0
-            let shakeY = 0
-            let breakAlpha = 1
-
-            if (cycle < 150) {
-                const tension = Math.sin(cycle * 0.15) * Math.min(cycle / 50, 1)
-                shakeX = tension * 1.5
-                shakeY = Math.sin(cycle * 0.3) * tension * 0.5
-            } else if (cycle < 200) {
-                const t = (cycle - 150) / 50
-                const ease = t * t
-                leftOffset = -ease * 20
-                rightOffset = ease * 20
-                breakAlpha = 1 - t
-            } else if (cycle < 260) {
-                leftOffset = -20
-                rightOffset = 20
-                breakAlpha = 0
-            } else {
-                const t = (cycle - 260) / 40
-                const ease = 1 - (1 - t) * (1 - t)
-                leftOffset = -20 * (1 - ease)
-                rightOffset = 20 * (1 - ease)
-                breakAlpha = t
-            }
-
-            ctx!.save()
-            ctx!.translate(shakeX, shakeY)
-
-            ctx!.save()
-            ctx!.translate(leftOffset, 0)
-            drawPixelGrid(ctx!, CHAIN_LEFT_ROWS, CHAIN_PALETTE)
-            ctx!.restore()
-
-            ctx!.save()
-            ctx!.translate(rightOffset, 0)
-            drawPixelGrid(ctx!, CHAIN_RIGHT_ROWS, CHAIN_PALETTE)
-            ctx!.restore()
-
-            if (cycle >= 150 && cycle < 200) {
-                const sparkCount = 4
-                const t = (cycle - 150) / 50
-                for (let i = 0; i < sparkCount; i++) {
-                    const angle = (i / sparkCount) * Math.PI * 2 + frame * 0.1
-                    const dist = t * 15
-                    const sx = 64 + Math.cos(angle) * dist
-                    const sy = 48 + Math.sin(angle) * dist
-                    ctx!.globalAlpha = (1 - t) * 0.8
-                    ctx!.fillStyle = '#FFB86C'
-                    ctx!.fillRect(sx, sy, PX, PX)
-                }
-                ctx!.globalAlpha = 1
-            }
-
-            ctx!.restore()
-
-            animId = requestAnimationFrame(animate)
-        }
-
-        animate()
-        return () => cancelAnimationFrame(animId)
-    }, [])
-
-    return (
-        <canvas
-            ref={canvasRef}
-            className={className}
-            style={{ ...style, width: size, height: size, imageRendering: 'pixelated' }}
-        />
-    )
-}
 
 export function AnimatedLockIcon({ size = 96, className, style }: AnimatedIconProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null)

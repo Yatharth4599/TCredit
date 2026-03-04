@@ -57,3 +57,9 @@ The frontend uses a Vite proxy to route `/api` requests to `localhost:3001`. Thi
 - `backend/src/app.ts` - Express app setup
 - `backend/src/index.ts` - Server entry point + background services
 - `base-contracts/deployments/contracts.ts` - ABI exports (copied to backend on dev/build)
+
+## Frontend Animations
+- `frontend/src/components/ui/TigerCanvas.tsx` - Animated pixel tiger with blink, roar, nostril smoke, particles, post-roar shockwave
+- `frontend/src/components/ui/AnimatedPixelIcons.tsx` - Animated pixel-art icons for Problem section: AnimatedCoinStackIcon (toppling coins), AnimatedVaultIcon (slamming vault door), AnimatedLockIcon (glitching padlock)
+- `frontend/src/components/ui/ProblemBackground.tsx` - Themed background canvas behind problem cards: falling coins (card 0), rotating gears/rings (card 1), glitch scanlines/pixels (card 2); cross-fades between themes
+- Problem section uses a single-card carousel with auto-advance every 4s and dot navigation

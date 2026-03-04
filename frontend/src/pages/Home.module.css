@@ -1313,12 +1313,22 @@
     align-items: center;
 }
 
+.problemBg {
+    position: absolute;
+    inset: -40px -60px;
+    width: calc(100% + 120px);
+    height: calc(100% + 80px);
+    pointer-events: none;
+    z-index: 0;
+}
+
 .showcaseStage {
     position: relative;
     width: 100%;
     max-width: 420px;
     aspect-ratio: 0.85;
     margin: 0 auto;
+    z-index: 1;
 }
 
 .showcaseCard {
