@@ -406,8 +406,8 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
 
         const smokeParticles: SmokeParticle[] = []
 
-        const LEFT_NOSTRIL = { cx: 0.450, cy: 0.450 }
-        const RIGHT_NOSTRIL = { cx: 0.510, cy: 0.450 }
+        const LEFT_NOSTRIL = { cx: 0.465, cy: 0.450 }
+        const RIGHT_NOSTRIL = { cx: 0.525, cy: 0.450 }
 
         function spawnSmoke(imgOriginX: number, imgOriginY: number, scaledDrawW: number, scaledDrawH: number, side: 'left' | 'right') {
             const nostril = side === 'left' ? LEFT_NOSTRIL : RIGHT_NOSTRIL
