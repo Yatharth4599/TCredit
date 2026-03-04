@@ -15,6 +15,7 @@ interface Particle {
     color: string
     life: number; maxLife: number
     size: number
+    baseSpeed: number
 }
 
 function removeBackground(
@@ -55,6 +56,10 @@ function removeBackground(
     }
 }
 
+function smoothstep(t: number): number {
+    return t * t * (3 - 2 * t)
+}
+
 const EYE_LEFT = { cx: 0.422, cy: 0.375, w: 0.042, h: 0.024 }
 const EYE_RIGHT = { cx: 0.558, cy: 0.370, w: 0.045, h: 0.024 }
 
@@ -65,6 +70,9 @@ const EYELID_COLORS = [
 ]
 
 const MOUTH_REGION = { cx: 0.495, cy: 0.510, w: 0.155, h: 0.085 }
+const NOSE_REGION = { cx: 0.470, cy: 0.440, w: 0.045, h: 0.025 }
+const EAR_LEFT = { cx: 0.330, cy: 0.170, w: 0.060, h: 0.055 }
+const EAR_RIGHT = { cx: 0.580, cy: 0.155, w: 0.060, h: 0.055 }
 
 interface BlinkState {
     phase: 'open' | 'closing' | 'closed' | 'opening'
@@ -76,6 +84,14 @@ interface MouthState {
     phase: 'closed' | 'opening' | 'open' | 'closing'
     frame: number
     nextRoarAt: number
+}
+
+interface EarTwitchState {
+    active: boolean
+    ear: 'left' | 'right'
+    frame: number
+    totalFrames: number
+    nextTwitchAt: number
 }
 
 function drawEyelid(
@@ -117,20 +133,57 @@ function drawEyelid(
     }
 }
 
+function drawEyeGlow(
+    ctx: CanvasRenderingContext2D,
+    eyeCX: number, eyeCY: number,
+    eyeW: number, eyeH: number,
+    glowIntensity: number
+) {
+    if (glowIntensity <= 0) return
+
+    ctx.save()
+    ctx.globalAlpha = glowIntensity * 0.35
+    ctx.shadowColor = '#40E0D0'
+    ctx.shadowBlur = eyeW * 0.8
+    ctx.fillStyle = '#40E0D0'
+    ctx.fillRect(
+        eyeCX - eyeW * 0.3,
+        eyeCY - eyeH * 0.3,
+        eyeW * 0.6,
+        eyeH * 0.6
+    )
+    ctx.restore()
+
+    ctx.save()
+    ctx.globalAlpha = glowIntensity * 0.15
+    ctx.fillStyle = '#80F0E8'
+    const highlightW = eyeW * 0.2
+    const highlightH = eyeH * 0.25
+    ctx.fillRect(
+        eyeCX - highlightW / 2 + eyeW * 0.1,
+        eyeCY - highlightH / 2 - eyeH * 0.1,
+        highlightW,
+        highlightH
+    )
+    ctx.restore()
+}
+
 function drawMouthOverlay(
     ctx: CanvasRenderingContext2D,
     mouthCX: number, mouthCY: number,
     mouthW: number, mouthH: number,
-    openFraction: number
+    openFraction: number,
+    jawTremble: number
 ) {
     if (openFraction <= 0) return
 
     const px = Math.max(2, mouthW * 0.06)
     const extendY = mouthH * 0.55 * openFraction
+    const trembleOffset = jawTremble
 
     ctx.fillStyle = '#1a1a2e'
     const jawW = mouthW * (0.9 - openFraction * 0.1)
-    const jawX = mouthCX - jawW / 2
+    const jawX = mouthCX - jawW / 2 + trembleOffset
     const jawY = mouthCY + mouthH * 0.3
     ctx.fillRect(
         Math.round(jawX / px) * px,
@@ -142,7 +195,7 @@ function drawMouthOverlay(
     ctx.fillStyle = '#c43a5e'
     const tongueW = jawW * 0.65
     const tongueH = extendY * 0.6
-    const tongueX = mouthCX - tongueW / 2
+    const tongueX = mouthCX - tongueW / 2 + trembleOffset
     const tongueY = jawY + extendY * 0.1
     ctx.fillRect(
         Math.round(tongueX / px) * px,
@@ -154,7 +207,7 @@ function drawMouthOverlay(
     ctx.fillStyle = '#e75480'
     const innerW = tongueW * 0.55
     const innerH = tongueH * 0.5
-    const innerX = mouthCX - innerW / 2
+    const innerX = mouthCX - innerW / 2 + trembleOffset
     const innerY = tongueY + tongueH * 0.15
     ctx.fillRect(
         Math.round(innerX / px) * px,
@@ -167,8 +220,8 @@ function drawMouthOverlay(
         ctx.fillStyle = '#c8a84e'
         const fangW = mouthW * 0.055
         const fangH = extendY * 0.45 * openFraction
-        const fangLX = mouthCX - jawW * 0.32
-        const fangRX = mouthCX + jawW * 0.32 - fangW
+        const fangLX = mouthCX - jawW * 0.32 + trembleOffset
+        const fangRX = mouthCX + jawW * 0.32 - fangW + trembleOffset
         const fangY = jawY - px
         ctx.fillRect(
             Math.round(fangLX / px) * px,
@@ -183,6 +236,74 @@ function drawMouthOverlay(
             Math.round(fangH / px) * px
         )
     }
+}
+
+function drawNostrilFlare(
+    ctx: CanvasRenderingContext2D,
+    noseCX: number, noseCY: number,
+    noseW: number, noseH: number,
+    flareIntensity: number
+) {
+    if (flareIntensity <= 0) return
+
+    const px = Math.max(2, noseW * 0.12)
+    const expand = flareIntensity * noseW * 0.15
+
+    ctx.save()
+    ctx.globalAlpha = flareIntensity * 0.5
+    ctx.fillStyle = '#d4727a'
+    const leftNX = noseCX - noseW * 0.25 - expand * 0.5
+    const rightNX = noseCX + noseW * 0.1 + expand * 0.3
+    const nH = noseH * 0.45
+    const nW = noseW * 0.2 + expand * 0.3
+    ctx.fillRect(
+        Math.round(leftNX / px) * px,
+        Math.round((noseCY - nH / 2) / px) * px,
+        Math.round(nW / px) * px,
+        Math.round(nH / px) * px
+    )
+    ctx.fillRect(
+        Math.round(rightNX / px) * px,
+        Math.round((noseCY - nH / 2) / px) * px,
+        Math.round(nW / px) * px,
+        Math.round(nH / px) * px
+    )
+    ctx.restore()
+}
+
+function drawFurShimmer(
+    ctx: CanvasRenderingContext2D,
+    imgOriginX: number, imgOriginY: number,
+    drawW: number, drawH: number,
+    shimmerPhase: number,
+    px: number
+) {
+    const waveX = shimmerPhase * drawW
+    const bandWidth = drawW * 0.08
+
+    ctx.save()
+    for (let i = 0; i < 12; i++) {
+        const stripX = waveX + (i - 6) * (bandWidth * 0.6)
+        if (stripX < -bandWidth || stripX > drawW + bandWidth) continue
+
+        const dist = Math.abs(i - 6) / 6
+        const alpha = (1 - dist) * 0.06
+
+        ctx.globalAlpha = alpha
+        ctx.fillStyle = '#E8E8F0'
+
+        const segH = drawH * 0.04
+        for (let sy = 0; sy < drawH; sy += segH * 1.5) {
+            const wobble = Math.sin((sy / drawH) * Math.PI * 3 + shimmerPhase * Math.PI * 2) * bandWidth * 0.3
+            ctx.fillRect(
+                Math.round((imgOriginX + stripX + wobble) / px) * px,
+                Math.round((imgOriginY + sy) / px) * px,
+                Math.round((bandWidth * 0.4) / px) * px,
+                Math.round(segH / px) * px
+            )
+        }
+    }
+    ctx.restore()
 }
 
 interface TigerCanvasProps {
@@ -271,7 +392,19 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
             nextRoarAt: 200 + Math.floor(Math.random() * 120),
         }
 
+        const earTwitch: EarTwitchState = {
+            active: false,
+            ear: 'left',
+            frame: 0,
+            totalFrames: 12,
+            nextTwitchAt: 150 + Math.floor(Math.random() * 120),
+        }
+
         let frameCount = 0
+        let breathPhase = 0
+        let eyeGlowPhase = 0
+        let shimmerPhase = 0
+        let headSwayPhase = 0
 
         const BLINK_CLOSE_FRAMES = 4
         const BLINK_HOLD_FRAMES = 3
@@ -280,6 +413,11 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
         const MOUTH_OPEN_FRAMES = 18
         const MOUTH_HOLD_FRAMES = 25
         const MOUTH_CLOSE_FRAMES = 22
+
+        const BREATH_SPEED = 0.008
+        const EYE_GLOW_SPEED = 0.012
+        const SHIMMER_SPEED = 0.002
+        const HEAD_SWAY_SPEED = 0.004
 
         function updateBlink() {
             switch (blink.phase) {
@@ -366,15 +504,38 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
         function getMouthFraction(): number {
             switch (mouth.phase) {
                 case 'closed': return 0
-                case 'opening': {
-                    const t = mouth.frame / MOUTH_OPEN_FRAMES
-                    return t * t * (3 - 2 * t)
-                }
+                case 'opening': return smoothstep(mouth.frame / MOUTH_OPEN_FRAMES)
                 case 'open': return 1
-                case 'closing': {
-                    const t = mouth.frame / MOUTH_CLOSE_FRAMES
-                    return 1 - t * t * (3 - 2 * t)
+                case 'closing': return 1 - smoothstep(mouth.frame / MOUTH_CLOSE_FRAMES)
+            }
+        }
+
+        function updateEarTwitch() {
+            if (!earTwitch.active) {
+                if (frameCount >= earTwitch.nextTwitchAt) {
+                    earTwitch.active = true
+                    earTwitch.frame = 0
+                    earTwitch.ear = Math.random() < 0.5 ? 'left' : 'right'
+                    earTwitch.totalFrames = 10 + Math.floor(Math.random() * 8)
                 }
+            } else {
+                earTwitch.frame++
+                if (earTwitch.frame >= earTwitch.totalFrames) {
+                    earTwitch.active = false
+                    earTwitch.nextTwitchAt = frameCount + 180 + Math.floor(Math.random() * 200)
+                }
+            }
+        }
+
+        function getEarTwitchOffset(): { leftDx: number; leftDy: number; rightDx: number; rightDy: number } {
+            if (!earTwitch.active) return { leftDx: 0, leftDy: 0, rightDx: 0, rightDy: 0 }
+            const t = earTwitch.frame / earTwitch.totalFrames
+            const intensity = Math.sin(t * Math.PI) * Math.sin(t * Math.PI * 3)
+            const offset = intensity * 2.5
+            if (earTwitch.ear === 'left') {
+                return { leftDx: offset * 0.3, leftDy: -offset, rightDx: 0, rightDy: 0 }
+            } else {
+                return { leftDx: 0, leftDy: 0, rightDx: -offset * 0.3, rightDy: -offset }
             }
         }
 
@@ -407,6 +568,7 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
                 life: 0,
                 maxLife: 400 + rand() * 500,
                 size: 2 + rand() * 4,
+                baseSpeed: speed,
             })
         }
 
@@ -431,49 +593,133 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
             ctx.clearRect(0, 0, W, H)
             frameCount++
 
+            breathPhase += BREATH_SPEED
+            eyeGlowPhase += EYE_GLOW_SPEED
+            shimmerPhase += SHIMMER_SPEED
+            headSwayPhase += HEAD_SWAY_SPEED
+            if (shimmerPhase > 1.3) shimmerPhase = -0.3
+
+            const breathScale = 1 + Math.sin(breathPhase) * 0.008
+            const headSwayX = Math.sin(headSwayPhase) * tigerSize * 0.003
+            const headSwayY = Math.cos(headSwayPhase * 0.7) * tigerSize * 0.002
+
+            updateMouth()
+            const mouthFrac = getMouthFraction()
+            const isRoaring = mouthFrac > 0
+
             if (offscreen) {
-                const destX = tigerCX - tigerSize / 2
-                const destY = tigerCY - tigerSize / 2
+                const destX = tigerCX - (tigerSize * breathScale) / 2 + headSwayX
+                const destY = tigerCY - (tigerSize * breathScale) / 2 + headSwayY
+                const drawSize = tigerSize * breathScale
+
                 ctx.drawImage(
                     offscreen,
                     0, 0, offscreen.width, offscreen.height,
-                    destX, destY, tigerSize, tigerSize
+                    destX, destY, drawSize, drawSize
                 )
 
-                const imgOriginX = destX + tigerDrawX
-                const imgOriginY = destY + tigerDrawY
+                const scaleRatio = drawSize / tigerSize
+                const imgOriginX = destX + tigerDrawX * scaleRatio
+                const imgOriginY = destY + tigerDrawY * scaleRatio
+                const scaledDrawW = tigerDrawW * scaleRatio
+                const scaledDrawH = tigerDrawH * scaleRatio
+
+                const px = Math.max(2, scaledDrawW * 0.003)
+
+                drawFurShimmer(ctx, imgOriginX, imgOriginY, scaledDrawW, scaledDrawH, shimmerPhase, px)
+
+                updateEarTwitch()
+                const earOff = getEarTwitchOffset()
+
+                if (earOff.leftDy !== 0) {
+                    const earX = imgOriginX + EAR_LEFT.cx * scaledDrawW
+                    const earY = imgOriginY + EAR_LEFT.cy * scaledDrawH
+                    const earW = EAR_LEFT.w * scaledDrawW
+                    const earH = EAR_LEFT.h * scaledDrawH
+
+                    ctx.save()
+                    ctx.globalAlpha = Math.abs(earOff.leftDy) / 2.5 * 0.3
+                    ctx.fillStyle = '#c8c8d4'
+                    ctx.fillRect(
+                        Math.round((earX + earOff.leftDx) / px) * px,
+                        Math.round((earY + earOff.leftDy) / px) * px,
+                        Math.round(earW / px) * px,
+                        Math.round((earH * 0.3) / px) * px
+                    )
+                    ctx.restore()
+                }
+
+                if (earOff.rightDy !== 0) {
+                    const earX = imgOriginX + EAR_RIGHT.cx * scaledDrawW
+                    const earY = imgOriginY + EAR_RIGHT.cy * scaledDrawH
+                    const earW = EAR_RIGHT.w * scaledDrawW
+                    const earH = EAR_RIGHT.h * scaledDrawH
+
+                    ctx.save()
+                    ctx.globalAlpha = Math.abs(earOff.rightDy) / 2.5 * 0.3
+                    ctx.fillStyle = '#c8c8d4'
+                    ctx.fillRect(
+                        Math.round((earX + earOff.rightDx) / px) * px,
+                        Math.round((earY + earOff.rightDy) / px) * px,
+                        Math.round(earW / px) * px,
+                        Math.round((earH * 0.3) / px) * px
+                    )
+                    ctx.restore()
+                }
 
                 updateBlink()
                 const blinkFrac = getBlinkFraction()
-                if (blinkFrac > 0) {
-                    const leftEyeX = imgOriginX + EYE_LEFT.cx * tigerDrawW
-                    const leftEyeY = imgOriginY + EYE_LEFT.cy * tigerDrawH
-                    const leftEyeW = EYE_LEFT.w * tigerDrawW
-                    const leftEyeH = EYE_LEFT.h * tigerDrawH
-                    drawEyelid(ctx, leftEyeX, leftEyeY, leftEyeW, leftEyeH, blinkFrac)
 
-                    const rightEyeX = imgOriginX + EYE_RIGHT.cx * tigerDrawW
-                    const rightEyeY = imgOriginY + EYE_RIGHT.cy * tigerDrawH
-                    const rightEyeW = EYE_RIGHT.w * tigerDrawW
-                    const rightEyeH = EYE_RIGHT.h * tigerDrawH
+                const eyeGlowIntensity = blinkFrac > 0.5 ? 0 : (0.5 + Math.sin(eyeGlowPhase) * 0.5) * (1 - blinkFrac)
+
+                const leftEyeX = imgOriginX + EYE_LEFT.cx * scaledDrawW
+                const leftEyeY = imgOriginY + EYE_LEFT.cy * scaledDrawH
+                const leftEyeW = EYE_LEFT.w * scaledDrawW
+                const leftEyeH = EYE_LEFT.h * scaledDrawH
+
+                const rightEyeX = imgOriginX + EYE_RIGHT.cx * scaledDrawW
+                const rightEyeY = imgOriginY + EYE_RIGHT.cy * scaledDrawH
+                const rightEyeW = EYE_RIGHT.w * scaledDrawW
+                const rightEyeH = EYE_RIGHT.h * scaledDrawH
+
+                drawEyeGlow(ctx, leftEyeX, leftEyeY, leftEyeW, leftEyeH, eyeGlowIntensity)
+                drawEyeGlow(ctx, rightEyeX, rightEyeY, rightEyeW, rightEyeH, eyeGlowIntensity)
+
+                if (blinkFrac > 0) {
+                    drawEyelid(ctx, leftEyeX, leftEyeY, leftEyeW, leftEyeH, blinkFrac)
                     drawEyelid(ctx, rightEyeX, rightEyeY, rightEyeW, rightEyeH, blinkFrac)
                 }
 
-                updateMouth()
-                const mouthFrac = getMouthFraction()
+                const breathSin = Math.sin(breathPhase)
+                const nostrilFlare = Math.max(0, breathSin) * 0.6
+                if (nostrilFlare > 0.05) {
+                    const noseX = imgOriginX + NOSE_REGION.cx * scaledDrawW
+                    const noseY = imgOriginY + NOSE_REGION.cy * scaledDrawH
+                    const noseW = NOSE_REGION.w * scaledDrawW
+                    const noseH = NOSE_REGION.h * scaledDrawH
+                    drawNostrilFlare(ctx, noseX, noseY, noseW, noseH, nostrilFlare)
+                }
+
                 if (mouthFrac > 0) {
-                    const mouthX = imgOriginX + MOUTH_REGION.cx * tigerDrawW
-                    const mouthY = imgOriginY + MOUTH_REGION.cy * tigerDrawH
-                    const mouthW = MOUTH_REGION.w * tigerDrawW
-                    const mouthH = MOUTH_REGION.h * tigerDrawH
-                    drawMouthOverlay(ctx, mouthX, mouthY, mouthW, mouthH, mouthFrac)
+                    let jawTremble = 0
+                    if (mouthFrac > 0.6) {
+                        jawTremble = (Math.sin(frameCount * 0.8) * 0.5 + Math.sin(frameCount * 1.3) * 0.3) * scaledDrawW * 0.003 * mouthFrac
+                    }
+
+                    const mouthX = imgOriginX + MOUTH_REGION.cx * scaledDrawW
+                    const mouthY = imgOriginY + MOUTH_REGION.cy * scaledDrawH
+                    const mouthW = MOUTH_REGION.w * scaledDrawW
+                    const mouthH = MOUTH_REGION.h * scaledDrawH
+                    drawMouthOverlay(ctx, mouthX, mouthY, mouthW, mouthH, mouthFrac, jawTremble)
                 }
             }
 
+            const particleBoost = isRoaring ? 1 + mouthFrac * 0.8 : 1
+
             for (let i = particles.length - 1; i >= 0; i--) {
                 const p = particles[i]
-                p.x += p.vx
-                p.y += p.vy
+                p.x += p.vx * particleBoost
+                p.y += p.vy * particleBoost
                 p.life++
 
                 let alpha: number
@@ -495,6 +741,15 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
                 ctx.fillStyle = p.color
                 ctx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size)
             }
+
+            const maxParticles = particleCount + 80
+            if (isRoaring && mouthFrac > 0.5 && particles.length < maxParticles) {
+                const burstCount = Math.min(Math.floor(mouthFrac * 3), maxParticles - particles.length)
+                for (let b = 0; b < burstCount; b++) {
+                    spawnParticle()
+                }
+            }
+
             ctx.globalAlpha = 1
 
             animId = requestAnimationFrame(animate)
