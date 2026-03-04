@@ -407,25 +407,25 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
         const smokeParticles: SmokeParticle[] = []
 
         function spawnSmoke(noseX: number, noseY: number, noseW: number, side: 'left' | 'right') {
-            const offsetX = side === 'left' ? -noseW * 0.35 : noseW * 0.35
-            const spreadX = (Math.random() - 0.5) * noseW * 0.3
-            const angle = -Math.PI / 2 + (Math.random() - 0.5) * 0.8
-            const speed = 0.4 + Math.random() * 0.6
-            const sz = 3 + Math.random() * 4
+            const offsetX = side === 'left' ? -noseW * 0.5 : noseW * 0.5
+            const spreadX = (Math.random() - 0.5) * noseW * 0.6
+            const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.2
+            const speed = 0.6 + Math.random() * 1.2
+            const sz = 4 + Math.random() * 7
 
             smokeParticles.push({
                 x: noseX + offsetX + spreadX,
-                y: noseY - noseW * 0.1,
-                vx: Math.cos(angle) * speed * (side === 'left' ? -0.3 : 0.3) + (Math.random() - 0.5) * 0.3,
-                vy: Math.sin(angle) * speed - 0.2,
+                y: noseY - noseW * 0.15,
+                vx: Math.cos(angle) * speed * (side === 'left' ? -0.5 : 0.5) + (Math.random() - 0.5) * 0.6,
+                vy: Math.sin(angle) * speed - 0.4,
                 size: sz,
                 startSize: sz,
-                maxSize: sz * 3.5,
+                maxSize: sz * 4.5,
                 life: 0,
-                maxLife: 50 + Math.floor(Math.random() * 40),
-                alpha: 0.25 + Math.random() * 0.15,
+                maxLife: 70 + Math.floor(Math.random() * 60),
+                alpha: 0.4 + Math.random() * 0.25,
                 rotation: Math.random() * Math.PI * 2,
-                rotSpeed: (Math.random() - 0.5) * 0.06,
+                rotSpeed: (Math.random() - 0.5) * 0.08,
             })
         }
 
@@ -785,8 +785,8 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
                     drawNostrilFlare(ctx, noseX, noseY, noseW, noseH, nostrilFlare)
                 }
 
-                if (isRoaring && mouthFrac > 0.3 && smokeParticles.length < 60) {
-                    const spawnRate = Math.floor(mouthFrac * 2)
+                if (isRoaring && mouthFrac > 0.2 && smokeParticles.length < 200) {
+                    const spawnRate = 2 + Math.floor(mouthFrac * 5)
                     for (let s = 0; s < spawnRate; s++) {
                         spawnSmoke(noseX, noseY, noseW, 'left')
                         spawnSmoke(noseX, noseY, noseW, 'right')
