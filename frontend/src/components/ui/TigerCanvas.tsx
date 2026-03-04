@@ -613,7 +613,7 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
                 earTwitch.frame++
                 if (earTwitch.frame >= earTwitch.totalFrames) {
                     earTwitch.active = false
-                    earTwitch.nextTwitchAt = frameCount + 180 + Math.floor(Math.random() * 200)
+                    earTwitch.nextTwitchAt = frameCount + 90 + Math.floor(Math.random() * 120)
                 }
             }
         }
@@ -622,11 +622,11 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
             if (!earTwitch.active) return { leftDx: 0, leftDy: 0, rightDx: 0, rightDy: 0 }
             const t = earTwitch.frame / earTwitch.totalFrames
             const intensity = Math.sin(t * Math.PI) * Math.sin(t * Math.PI * 3)
-            const offset = intensity * 2.5
+            const offset = intensity * 6
             if (earTwitch.ear === 'left') {
-                return { leftDx: offset * 0.3, leftDy: -offset, rightDx: 0, rightDy: 0 }
+                return { leftDx: offset * 0.5, leftDy: -offset, rightDx: 0, rightDy: 0 }
             } else {
-                return { leftDx: 0, leftDy: 0, rightDx: -offset * 0.3, rightDy: -offset }
+                return { leftDx: 0, leftDy: 0, rightDx: -offset * 0.5, rightDy: -offset }
             }
         }
 
@@ -729,13 +729,13 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
                     const earH = EAR_LEFT.h * scaledDrawH
 
                     ctx.save()
-                    ctx.globalAlpha = Math.abs(earOff.leftDy) / 2.5 * 0.3
-                    ctx.fillStyle = '#c8c8d4'
+                    ctx.globalAlpha = Math.min(1, Math.abs(earOff.leftDy) / 6 * 0.7)
+                    ctx.fillStyle = '#b0b0c0'
                     ctx.fillRect(
                         Math.round((earX + earOff.leftDx) / px) * px,
                         Math.round((earY + earOff.leftDy) / px) * px,
                         Math.round(earW / px) * px,
-                        Math.round((earH * 0.3) / px) * px
+                        Math.round((earH * 0.6) / px) * px
                     )
                     ctx.restore()
                 }
@@ -747,13 +747,13 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
                     const earH = EAR_RIGHT.h * scaledDrawH
 
                     ctx.save()
-                    ctx.globalAlpha = Math.abs(earOff.rightDy) / 2.5 * 0.3
-                    ctx.fillStyle = '#c8c8d4'
+                    ctx.globalAlpha = Math.min(1, Math.abs(earOff.rightDy) / 6 * 0.7)
+                    ctx.fillStyle = '#b0b0c0'
                     ctx.fillRect(
                         Math.round((earX + earOff.rightDx) / px) * px,
                         Math.round((earY + earOff.rightDy) / px) * px,
                         Math.round(earW / px) * px,
-                        Math.round((earH * 0.3) / px) * px
+                        Math.round((earH * 0.6) / px) * px
                     )
                     ctx.restore()
                 }
