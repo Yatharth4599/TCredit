@@ -407,25 +407,25 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
         const smokeParticles: SmokeParticle[] = []
 
         function spawnSmoke(noseX: number, noseY: number, noseW: number, side: 'left' | 'right') {
-            const offsetX = side === 'left' ? -noseW * 0.5 : noseW * 0.5
-            const spreadX = (Math.random() - 0.5) * noseW * 0.6
-            const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.2
-            const speed = 0.6 + Math.random() * 1.2
-            const sz = 4 + Math.random() * 7
+            const offsetX = side === 'left' ? -noseW * 0.6 : noseW * 0.6
+            const spreadX = (Math.random() - 0.5) * noseW * 0.8
+            const angle = Math.PI / 2 + (Math.random() - 0.5) * 1.0
+            const speed = 0.5 + Math.random() * 1.0
+            const sz = 5 + Math.random() * 8
 
             smokeParticles.push({
                 x: noseX + offsetX + spreadX,
-                y: noseY - noseW * 0.15,
-                vx: Math.cos(angle) * speed * (side === 'left' ? -0.5 : 0.5) + (Math.random() - 0.5) * 0.6,
-                vy: Math.sin(angle) * speed - 0.4,
+                y: noseY + noseW * 0.2,
+                vx: Math.cos(angle) * speed * (side === 'left' ? -0.6 : 0.6) + (Math.random() - 0.5) * 0.5,
+                vy: Math.abs(Math.sin(angle)) * speed * 0.6 + 0.3 + Math.random() * 0.3,
                 size: sz,
                 startSize: sz,
-                maxSize: sz * 4.5,
+                maxSize: sz * 5,
                 life: 0,
-                maxLife: 70 + Math.floor(Math.random() * 60),
-                alpha: 0.4 + Math.random() * 0.25,
+                maxLife: 90 + Math.floor(Math.random() * 70),
+                alpha: 0.35 + Math.random() * 0.25,
                 rotation: Math.random() * Math.PI * 2,
-                rotSpeed: (Math.random() - 0.5) * 0.08,
+                rotSpeed: (Math.random() - 0.5) * 0.06,
             })
         }
 
@@ -434,8 +434,9 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
                 const s = smokeParticles[i]
                 s.x += s.vx
                 s.y += s.vy
-                s.vy -= 0.008
-                s.vx *= 0.995
+                s.vy += 0.005
+                s.vy *= 0.997
+                s.vx *= 0.993
                 s.life++
                 s.rotation += s.rotSpeed
 
@@ -785,8 +786,8 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
                     drawNostrilFlare(ctx, noseX, noseY, noseW, noseH, nostrilFlare)
                 }
 
-                if (isRoaring && mouthFrac > 0.2 && smokeParticles.length < 600) {
-                    const spawnRate = 6 + Math.floor(mouthFrac * 15)
+                if (isRoaring && mouthFrac > 0.15 && smokeParticles.length < 1500) {
+                    const spawnRate = 10 + Math.floor(mouthFrac * 25)
                     for (let s = 0; s < spawnRate; s++) {
                         spawnSmoke(noseX, noseY, noseW, 'left')
                         spawnSmoke(noseX, noseY, noseW, 'right')
