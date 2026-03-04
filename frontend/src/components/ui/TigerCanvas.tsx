@@ -55,7 +55,7 @@ function removeBackground(
     }
 }
 
-const EYE_LEFT = { cx: 0.383, cy: 0.375, w: 0.042, h: 0.024 }
+const EYE_LEFT = { cx: 0.398, cy: 0.375, w: 0.042, h: 0.024 }
 const EYE_RIGHT = { cx: 0.558, cy: 0.370, w: 0.045, h: 0.024 }
 
 const EYELID_COLORS = [
@@ -64,7 +64,7 @@ const EYELID_COLORS = [
     { color: '#c8c8d4', w: 0.65 },
 ]
 
-const MOUTH_REGION = { cx: 0.482, cy: 0.510, w: 0.155, h: 0.085 }
+const MOUTH_REGION = { cx: 0.495, cy: 0.510, w: 0.155, h: 0.085 }
 
 interface BlinkState {
     phase: 'open' | 'closing' | 'closed' | 'opening'
