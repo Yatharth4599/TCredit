@@ -83,8 +83,6 @@ const EYELID_COLORS = [
 
 const MOUTH_REGION = { cx: 0.495, cy: 0.510, w: 0.155, h: 0.085 }
 const NOSE_REGION = { cx: 0.470, cy: 0.440, w: 0.045, h: 0.025 }
-const EAR_LEFT = { cx: 0.330, cy: 0.230, w: 0.070, h: 0.065 }
-const EAR_RIGHT = { cx: 0.580, cy: 0.215, w: 0.070, h: 0.065 }
 
 interface BlinkState {
     phase: 'open' | 'closing' | 'closed' | 'opening'
@@ -98,13 +96,6 @@ interface MouthState {
     nextRoarAt: number
 }
 
-interface EarTwitchState {
-    active: boolean
-    ear: 'left' | 'right'
-    frame: number
-    totalFrames: number
-    nextTwitchAt: number
-}
 
 function drawEyelid(
     ctx: CanvasRenderingContext2D,
@@ -483,13 +474,7 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
             }
         }
 
-        const earTwitch: EarTwitchState = {
-            active: false,
-            ear: 'left',
-            frame: 0,
-            totalFrames: 12,
-            nextTwitchAt: 150 + Math.floor(Math.random() * 120),
-        }
+        let postRoarShockwave = { active: false, frame: 0, totalFrames: 40, cx: 0, cy: 0, maxRadius: 0 }
 
         let frameCount = 0
         let breathPhase = 0
@@ -587,6 +572,8 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
                         mouth.phase = 'closed'
                         mouth.frame = 0
                         mouth.nextRoarAt = frameCount + 200 + Math.floor(Math.random() * 150)
+                        postRoarShockwave.active = true
+                        postRoarShockwave.frame = 0
                     }
                     break
             }
@@ -601,33 +588,45 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
             }
         }
 
-        function updateEarTwitch() {
-            if (!earTwitch.active) {
-                if (frameCount >= earTwitch.nextTwitchAt) {
-                    earTwitch.active = true
-                    earTwitch.frame = 0
-                    earTwitch.ear = Math.random() < 0.5 ? 'left' : 'right'
-                    earTwitch.totalFrames = 10 + Math.floor(Math.random() * 8)
-                }
-            } else {
-                earTwitch.frame++
-                if (earTwitch.frame >= earTwitch.totalFrames) {
-                    earTwitch.active = false
-                    earTwitch.nextTwitchAt = frameCount + 90 + Math.floor(Math.random() * 120)
-                }
+        function drawPostRoarShockwave(ctx: CanvasRenderingContext2D, cx: number, cy: number, maxRadius: number) {
+            if (!postRoarShockwave.active) return
+            postRoarShockwave.frame++
+            if (postRoarShockwave.frame >= postRoarShockwave.totalFrames) {
+                postRoarShockwave.active = false
+                return
             }
-        }
 
-        function getEarTwitchOffset(): { leftDx: number; leftDy: number; rightDx: number; rightDy: number } {
-            if (!earTwitch.active) return { leftDx: 0, leftDy: 0, rightDx: 0, rightDy: 0 }
-            const t = earTwitch.frame / earTwitch.totalFrames
-            const intensity = Math.sin(t * Math.PI) * Math.sin(t * Math.PI * 3)
-            const offset = intensity * 6
-            if (earTwitch.ear === 'left') {
-                return { leftDx: offset * 0.5, leftDy: -offset, rightDx: 0, rightDy: 0 }
+            const t = postRoarShockwave.frame / postRoarShockwave.totalFrames
+            const easeOut = 1 - (1 - t) * (1 - t)
+            const radius = easeOut * maxRadius
+
+            let alpha: number
+            if (t < 0.1) {
+                alpha = t / 0.1 * 0.6
             } else {
-                return { leftDx: 0, leftDy: 0, rightDx: -offset * 0.5, rightDy: -offset }
+                alpha = (1 - t) * 0.6
             }
+
+            ctx.save()
+
+            const ringWidth = maxRadius * 0.08 * (1 - t * 0.5)
+            ctx.globalAlpha = alpha
+            ctx.strokeStyle = '#40E0D0'
+            ctx.lineWidth = ringWidth
+            ctx.beginPath()
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2)
+            ctx.stroke()
+
+            if (t < 0.5) {
+                ctx.globalAlpha = alpha * 0.3
+                ctx.strokeStyle = '#FF8C42'
+                ctx.lineWidth = ringWidth * 0.5
+                ctx.beginPath()
+                ctx.arc(cx, cy, radius * 0.7, 0, Math.PI * 2)
+                ctx.stroke()
+            }
+
+            ctx.restore()
         }
 
         function spawnParticle() {
@@ -719,44 +718,7 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
 
                 drawFurShimmer(ctx, imgOriginX, imgOriginY, scaledDrawW, scaledDrawH, shimmerPhase, px)
 
-                updateEarTwitch()
-                const earOff = getEarTwitchOffset()
-
-                if (earOff.leftDy !== 0) {
-                    const earX = imgOriginX + EAR_LEFT.cx * scaledDrawW
-                    const earY = imgOriginY + EAR_LEFT.cy * scaledDrawH
-                    const earW = EAR_LEFT.w * scaledDrawW
-                    const earH = EAR_LEFT.h * scaledDrawH
-
-                    ctx.save()
-                    ctx.globalAlpha = Math.min(1, Math.abs(earOff.leftDy) / 6 * 0.7)
-                    ctx.fillStyle = '#b0b0c0'
-                    ctx.fillRect(
-                        Math.round((earX + earOff.leftDx) / px) * px,
-                        Math.round((earY + earOff.leftDy) / px) * px,
-                        Math.round(earW / px) * px,
-                        Math.round((earH * 0.6) / px) * px
-                    )
-                    ctx.restore()
-                }
-
-                if (earOff.rightDy !== 0) {
-                    const earX = imgOriginX + EAR_RIGHT.cx * scaledDrawW
-                    const earY = imgOriginY + EAR_RIGHT.cy * scaledDrawH
-                    const earW = EAR_RIGHT.w * scaledDrawW
-                    const earH = EAR_RIGHT.h * scaledDrawH
-
-                    ctx.save()
-                    ctx.globalAlpha = Math.min(1, Math.abs(earOff.rightDy) / 6 * 0.7)
-                    ctx.fillStyle = '#b0b0c0'
-                    ctx.fillRect(
-                        Math.round((earX + earOff.rightDx) / px) * px,
-                        Math.round((earY + earOff.rightDy) / px) * px,
-                        Math.round(earW / px) * px,
-                        Math.round((earH * 0.6) / px) * px
-                    )
-                    ctx.restore()
-                }
+                drawPostRoarShockwave(ctx, tigerCX, tigerCY, tigerSize * 0.6)
 
                 updateBlink()
                 const blinkFrac = getBlinkFraction()
