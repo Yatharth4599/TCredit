@@ -18,6 +18,18 @@ interface Particle {
     baseSpeed: number
 }
 
+interface SmokeParticle {
+    x: number; y: number
+    vx: number; vy: number
+    size: number
+    startSize: number
+    maxSize: number
+    life: number; maxLife: number
+    alpha: number
+    rotation: number
+    rotSpeed: number
+}
+
 function removeBackground(
     data: Uint8ClampedArray,
     w: number,
@@ -392,6 +404,79 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
             nextRoarAt: 200 + Math.floor(Math.random() * 120),
         }
 
+        const smokeParticles: SmokeParticle[] = []
+
+        function spawnSmoke(noseX: number, noseY: number, noseW: number, side: 'left' | 'right') {
+            const offsetX = side === 'left' ? -noseW * 0.35 : noseW * 0.35
+            const spreadX = (Math.random() - 0.5) * noseW * 0.3
+            const angle = -Math.PI / 2 + (Math.random() - 0.5) * 0.8
+            const speed = 0.4 + Math.random() * 0.6
+            const sz = 3 + Math.random() * 4
+
+            smokeParticles.push({
+                x: noseX + offsetX + spreadX,
+                y: noseY - noseW * 0.1,
+                vx: Math.cos(angle) * speed * (side === 'left' ? -0.3 : 0.3) + (Math.random() - 0.5) * 0.3,
+                vy: Math.sin(angle) * speed - 0.2,
+                size: sz,
+                startSize: sz,
+                maxSize: sz * 3.5,
+                life: 0,
+                maxLife: 50 + Math.floor(Math.random() * 40),
+                alpha: 0.25 + Math.random() * 0.15,
+                rotation: Math.random() * Math.PI * 2,
+                rotSpeed: (Math.random() - 0.5) * 0.06,
+            })
+        }
+
+        function drawSmoke(ctx: CanvasRenderingContext2D) {
+            for (let i = smokeParticles.length - 1; i >= 0; i--) {
+                const s = smokeParticles[i]
+                s.x += s.vx
+                s.y += s.vy
+                s.vy -= 0.008
+                s.vx *= 0.995
+                s.life++
+                s.rotation += s.rotSpeed
+
+                const t = s.life / s.maxLife
+                s.size = s.startSize + (s.maxSize - s.startSize) * t
+
+                let alpha: number
+                if (t < 0.15) {
+                    alpha = (t / 0.15) * s.alpha
+                } else if (t > 0.6) {
+                    alpha = ((1 - t) / 0.4) * s.alpha
+                } else {
+                    alpha = s.alpha
+                }
+
+                if (s.life >= s.maxLife) {
+                    smokeParticles.splice(i, 1)
+                    continue
+                }
+
+                ctx.save()
+                ctx.globalAlpha = alpha
+                ctx.translate(s.x, s.y)
+                ctx.rotate(s.rotation)
+
+                const gray = 180 + Math.floor(t * 50)
+                ctx.fillStyle = `rgb(${gray}, ${gray}, ${gray + 10})`
+                ctx.fillRect(-s.size / 2, -s.size / 2, s.size, s.size)
+
+                if (s.size > 5) {
+                    ctx.globalAlpha = alpha * 0.4
+                    const innerGray = gray + 20
+                    ctx.fillStyle = `rgb(${innerGray}, ${innerGray}, ${innerGray + 5})`
+                    const inner = s.size * 0.5
+                    ctx.fillRect(-inner / 2, -inner / 2, inner, inner)
+                }
+
+                ctx.restore()
+            }
+        }
+
         const earTwitch: EarTwitchState = {
             active: false,
             ear: 'left',
@@ -692,13 +777,23 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
 
                 const breathSin = Math.sin(breathPhase)
                 const nostrilFlare = Math.max(0, breathSin) * 0.6
+                const noseX = imgOriginX + NOSE_REGION.cx * scaledDrawW
+                const noseY = imgOriginY + NOSE_REGION.cy * scaledDrawH
+                const noseW = NOSE_REGION.w * scaledDrawW
+                const noseH = NOSE_REGION.h * scaledDrawH
                 if (nostrilFlare > 0.05) {
-                    const noseX = imgOriginX + NOSE_REGION.cx * scaledDrawW
-                    const noseY = imgOriginY + NOSE_REGION.cy * scaledDrawH
-                    const noseW = NOSE_REGION.w * scaledDrawW
-                    const noseH = NOSE_REGION.h * scaledDrawH
                     drawNostrilFlare(ctx, noseX, noseY, noseW, noseH, nostrilFlare)
                 }
+
+                if (isRoaring && mouthFrac > 0.3 && smokeParticles.length < 60) {
+                    const spawnRate = Math.floor(mouthFrac * 2)
+                    for (let s = 0; s < spawnRate; s++) {
+                        spawnSmoke(noseX, noseY, noseW, 'left')
+                        spawnSmoke(noseX, noseY, noseW, 'right')
+                    }
+                }
+
+                drawSmoke(ctx)
 
                 if (mouthFrac > 0) {
                     let jawTremble = 0
