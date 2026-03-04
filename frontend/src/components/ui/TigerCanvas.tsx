@@ -406,17 +406,21 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
 
         const smokeParticles: SmokeParticle[] = []
 
-        function spawnSmoke(noseX: number, noseY: number, noseW: number, side: 'left' | 'right') {
-            const nostrilGap = noseW * 2.5
-            const centerX = side === 'left' ? noseX - nostrilGap : noseX + nostrilGap
-            const spreadX = (Math.random() - 0.5) * noseW * 0.5
-            const outwardDrift = side === 'left' ? -(0.4 + Math.random() * 0.8) : (0.4 + Math.random() * 0.8)
+        const LEFT_NOSTRIL = { cx: 0.450, cy: 0.450 }
+        const RIGHT_NOSTRIL = { cx: 0.490, cy: 0.450 }
+
+        function spawnSmoke(imgOriginX: number, imgOriginY: number, scaledDrawW: number, scaledDrawH: number, side: 'left' | 'right') {
+            const nostril = side === 'left' ? LEFT_NOSTRIL : RIGHT_NOSTRIL
+            const originX = imgOriginX + nostril.cx * scaledDrawW
+            const originY = imgOriginY + nostril.cy * scaledDrawH
+            const spreadX = (Math.random() - 0.5) * scaledDrawW * 0.015
+            const outwardDrift = side === 'left' ? -(0.3 + Math.random() * 0.7) : (0.3 + Math.random() * 0.7)
             const speed = 0.5 + Math.random() * 1.0
             const sz = 5 + Math.random() * 8
 
             smokeParticles.push({
-                x: centerX + spreadX,
-                y: noseY + noseW * 0.3,
+                x: originX + spreadX,
+                y: originY,
                 vx: outwardDrift + (Math.random() - 0.5) * 0.3,
                 vy: speed * 0.6 + 0.3 + Math.random() * 0.3,
                 size: sz,
@@ -790,8 +794,8 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
                 if (isRoaring && mouthFrac > 0.15 && smokeParticles.length < 1500) {
                     const spawnRate = 10 + Math.floor(mouthFrac * 25)
                     for (let s = 0; s < spawnRate; s++) {
-                        spawnSmoke(noseX, noseY, noseW, 'left')
-                        spawnSmoke(noseX, noseY, noseW, 'right')
+                        spawnSmoke(imgOriginX, imgOriginY, scaledDrawW, scaledDrawH, 'left')
+                        spawnSmoke(imgOriginX, imgOriginY, scaledDrawW, scaledDrawH, 'right')
                     }
                 }
 
