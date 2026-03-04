@@ -785,8 +785,8 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
                     drawNostrilFlare(ctx, noseX, noseY, noseW, noseH, nostrilFlare)
                 }
 
-                if (isRoaring && mouthFrac > 0.2 && smokeParticles.length < 200) {
-                    const spawnRate = 2 + Math.floor(mouthFrac * 5)
+                if (isRoaring && mouthFrac > 0.2 && smokeParticles.length < 600) {
+                    const spawnRate = 6 + Math.floor(mouthFrac * 15)
                     for (let s = 0; s < spawnRate; s++) {
                         spawnSmoke(noseX, noseY, noseW, 'left')
                         spawnSmoke(noseX, noseY, noseW, 'right')
