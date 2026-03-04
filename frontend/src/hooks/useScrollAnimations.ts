@@ -183,49 +183,59 @@ export function useScrollAnimations() {
             // ── Flywheel Section — PINNED scroll-driven card reveal + floating after ──
             const flywheelEl = document.getElementById('flywheel')
             if (flywheelEl) {
-                const cards = Array.from(flywheelEl.querySelectorAll('[data-anim="flywheel-card"]'))
+                const mainCards = Array.from(flywheelEl.querySelectorAll('[data-anim="flywheel-card"]'))
+                const accentCards = Array.from(flywheelEl.querySelectorAll('[data-anim="flywheel-accent"]'))
+                const allCards = [...accentCards, ...mainCards]
                 const centerText = flywheelEl.querySelector('[data-anim="flywheel-center"]')
 
-                gsap.set(cards, { opacity: 0, y: 55, scale: 0.9 })
-                if (centerText) gsap.set(centerText, { opacity: 0, y: 25 })
+                gsap.set(mainCards, { opacity: 0, y: 60, scale: 0.88 })
+                gsap.set(accentCards, { opacity: 0, y: 30, scale: 0.9 })
+                if (centerText) gsap.set(centerText, { opacity: 0, y: 30, scale: 0.95 })
 
                 const tl = gsap.timeline({
                     scrollTrigger: {
                         trigger: flywheelEl,
                         pin: true,
                         start: 'top top',
-                        end: '+=80%',
+                        end: '+=100%',
                         scrub: 0.5,
                         onLeave: () => {
-                            // After pin releases, start CSS floating animations
-                            cards.forEach((card) => {
+                            allCards.forEach((card) => {
                                 (card as HTMLElement).dataset.floating = 'true'
                             })
                         },
                         onEnterBack: () => {
-                            // Remove floating when scrolling back into pinned zone
-                            cards.forEach((card) => {
+                            allCards.forEach((card) => {
                                 delete (card as HTMLElement).dataset.floating
                             })
                         },
                     },
                 })
 
-                cards.forEach((card, i) => {
+                accentCards.forEach((card, i) => {
                     tl.fromTo(
                         card,
-                        { opacity: 0, y: 55, scale: 0.9 },
-                        { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: 'power3.out' },
-                        i * 0.3,
+                        { opacity: 0, y: 30, scale: 0.9 },
+                        { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: 'power2.out' },
+                        i * 0.06,
+                    )
+                })
+
+                mainCards.forEach((card, i) => {
+                    tl.fromTo(
+                        card,
+                        { opacity: 0, y: 60, scale: 0.88 },
+                        { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: 'power3.out' },
+                        accentCards.length * 0.05 + i * 0.2,
                     )
                 })
 
                 if (centerText) {
                     tl.fromTo(
                         centerText,
-                        { opacity: 0, y: 25 },
-                        { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' },
-                        cards.length * 0.25,
+                        { opacity: 0, y: 30, scale: 0.95 },
+                        { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: 'power3.out' },
+                        accentCards.length * 0.05 + mainCards.length * 0.15,
                     )
                 }
             }

@@ -42,10 +42,19 @@ export default function Home() {
     useScrollAnimations()
 
     const flywheelCards = [
-        { num: '01', title: 'Payments generate data', desc: 'Every x402 transaction creates verifiable, on-chain payment history that no bank or credit bureau can replicate.', color: '#2CFF05', hoverBg: '#0a2d05' },
-        { num: '02', title: 'Data unlocks credit', desc: 'FairScale scores — built from live revenue data — enable access to structured credit pools without collateral.', color: '#00FFF0', hoverBg: '#052d2a' },
-        { num: '03', title: 'Credit grows business', desc: 'Working capital funds inventory, expansion, and new markets. Businesses grow faster with programmatic access to capital.', color: '#E0115F', hoverBg: '#2d0515' },
-        { num: '04', title: 'Growth fuels payments', desc: 'Larger businesses process more volume through TCredit, feeding the credit engine and restarting the cycle.', color: '#FF5C00', hoverBg: '#2d1505' },
+        { num: '01', title: 'Payments generate data', desc: 'Every x402 transaction creates verifiable, on-chain payment history that no bank or credit bureau can replicate.', color: '#2CFF05', hoverBg: '#061a03', icon: '⚡' },
+        { num: '02', title: 'Data unlocks credit', desc: 'FairScale scores — built from live revenue data — enable access to structured credit pools without collateral.', color: '#00FFF0', hoverBg: '#031a18', icon: '📊' },
+        { num: '03', title: 'Credit grows business', desc: 'Working capital funds inventory, expansion, and new markets. Businesses grow faster with programmatic access to capital.', color: '#E0115F', hoverBg: '#1a030a', icon: '💰' },
+        { num: '04', title: 'Growth fuels payments', desc: 'Larger businesses process more volume through TCredit, feeding the credit engine and restarting the cycle.', color: '#FF5C00', hoverBg: '#1a0a03', icon: '🚀' },
+    ]
+
+    const flywheelAccents = [
+        { label: 'x402', posClass: 'accentPos0' },
+        { label: 'FairScale', posClass: 'accentPos1' },
+        { label: 'On-Chain', posClass: 'accentPos2' },
+        { label: 'USDC', posClass: 'accentPos3' },
+        { label: 'Vaults', posClass: 'accentPos4' },
+        { label: 'Revenue', posClass: 'accentPos5' },
     ]
 
     const problemSlides = [
@@ -470,16 +479,31 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* ── The Economic Flywheel — pinned scatter cards ── */}
+            {/* ── The Economic Flywheel — 1inch-style scattered cards ── */}
             <section
                 className={`${styles.flywheelSection} ${styles.dividerBottom} ${styles.dividerToCyan}`}
                 id="flywheel"
                 style={{
                     backgroundColor: hoveredFlywheel !== null ? flywheelCards[hoveredFlywheel].hoverBg : undefined,
-                    transition: 'background-color 0.8s cubic-bezier(.4, 0, .2, 1)',
                 }}
             >
+                {hoveredFlywheel !== null && (
+                    <div
+                        className={styles.flywheelOverlay}
+                        style={{ background: flywheelCards[hoveredFlywheel].color }}
+                    />
+                )}
                 <div className={styles.flywheelScatter}>
+                    {flywheelAccents.map((accent, i) => (
+                        <div
+                            key={`accent-${i}`}
+                            data-anim="flywheel-accent"
+                            className={`${styles.accentCard} ${styles[accent.posClass as keyof typeof styles]} ${hoveredFlywheel !== null ? styles.scatterDimmed : ''}`}
+                        >
+                            <span className={styles.accentLabel}>{accent.label}</span>
+                        </div>
+                    ))}
+
                     {flywheelCards.map((card, i) => (
                         <div
                             key={i}
@@ -489,10 +513,11 @@ export default function Home() {
                             onMouseLeave={() => setHoveredFlywheel(null)}
                             style={{
                                 borderColor: hoveredFlywheel === i ? card.color : undefined,
-                                boxShadow: hoveredFlywheel === i ? `0 0 40px ${card.color}33, 0 8px 32px rgba(0,0,0,0.3)` : undefined,
+                                boxShadow: hoveredFlywheel === i ? `0 0 60px ${card.color}44, 0 12px 40px rgba(0,0,0,0.5)` : undefined,
                             } as React.CSSProperties}
                         >
-                            <span className={styles.scatterCardNum}>{card.num}</span>
+                            <div className={styles.scatterCardIcon} style={{ color: card.color }}>{card.icon}</div>
+                            <span className={styles.scatterCardNum} style={{ color: card.color }}>{card.num}</span>
                             <h4 className={styles.scatterCardTitle}>{card.title}</h4>
                             <p className={styles.scatterCardDesc}>{card.desc}</p>
                         </div>
