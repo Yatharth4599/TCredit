@@ -55,7 +55,7 @@ function removeBackground(
     }
 }
 
-const EYE_LEFT = { cx: 0.393, cy: 0.375, w: 0.042, h: 0.024 }
+const EYE_LEFT = { cx: 0.383, cy: 0.375, w: 0.042, h: 0.024 }
 const EYE_RIGHT = { cx: 0.558, cy: 0.370, w: 0.045, h: 0.024 }
 
 const EYELID_COLORS = [
@@ -262,13 +262,13 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
         const blink: BlinkState = {
             phase: 'open',
             frame: 0,
-            nextBlinkAt: 180 + Math.floor(Math.random() * 120),
+            nextBlinkAt: 90 + Math.floor(Math.random() * 60),
         }
 
         const mouth: MouthState = {
             phase: 'closed',
             frame: 0,
-            nextRoarAt: 420 + Math.floor(Math.random() * 180),
+            nextRoarAt: 200 + Math.floor(Math.random() * 120),
         }
 
         let frameCount = 0
@@ -313,7 +313,7 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
                         if (doubleBlinkChance < 0.3) {
                             blink.nextBlinkAt = frameCount + 8 + Math.floor(Math.random() * 6)
                         } else {
-                            blink.nextBlinkAt = frameCount + 180 + Math.floor(Math.random() * 180)
+                            blink.nextBlinkAt = frameCount + 90 + Math.floor(Math.random() * 90)
                         }
                     }
                     break
@@ -357,7 +357,7 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
                     if (mouth.frame >= MOUTH_CLOSE_FRAMES) {
                         mouth.phase = 'closed'
                         mouth.frame = 0
-                        mouth.nextRoarAt = frameCount + 360 + Math.floor(Math.random() * 300)
+                        mouth.nextRoarAt = frameCount + 200 + Math.floor(Math.random() * 150)
                     }
                     break
             }
