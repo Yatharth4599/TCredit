@@ -638,7 +638,7 @@ export default function Home() {
                                 delay={1750}
                                 pauseOnHover={true}
                                 skewAmount={-4}
-                                easing="elastic"
+                                easing="linear"
                             >
                                 <Card>
                                     <div className={styles.swapCard}>

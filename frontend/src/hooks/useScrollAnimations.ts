@@ -187,7 +187,6 @@ export function useScrollAnimations() {
                 const centerText = flywheelEl.querySelector('[data-anim="flywheel-center"]')
 
                 gsap.set(cards, { opacity: 0, y: 55, scale: 0.9 })
-                if (centerText) gsap.set(centerText, { opacity: 0, y: 25 })
 
                 const tl = gsap.timeline({
                     scrollTrigger: {
@@ -217,15 +216,6 @@ export function useScrollAnimations() {
                         i * 0.3,
                     )
                 })
-
-                if (centerText) {
-                    tl.fromTo(
-                        centerText,
-                        { opacity: 0, y: 25 },
-                        { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' },
-                        cards.length * 0.25,
-                    )
-                }
             }
 
             // ── WhyBlockchain ──

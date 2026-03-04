@@ -1189,7 +1189,7 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 60px;
-    align-items: start;
+    align-items: center;
     perspective: 1200px;
     overflow: visible;
 }
@@ -1352,9 +1352,9 @@
 
 .footerDivider {
     max-width: 1200px;
-    margin: 0 auto;
+    margin: 40px auto 0;
     height: 1px;
-    background: rgba(0, 0, 0, 0.08);
+    background: rgba(0, 0, 0, 0.1);
 }
 
 .footerBottomRow {

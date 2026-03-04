@@ -312,13 +312,12 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
         if (!canvas) return
 
         const dpr = window.devicePixelRatio || 1
-        let W = window.innerWidth
-        let H = window.innerHeight
+        const parent = canvas.parentElement!
+        let W = parent.clientWidth || window.innerWidth
+        let H = parent.clientHeight || window.innerHeight
 
         canvas.width = W * dpr
         canvas.height = H * dpr
-        canvas.style.width = `${W}px`
-        canvas.style.height = `${H}px`
 
         const ctx = canvas.getContext('2d')!
         ctx.scale(dpr, dpr)
@@ -328,8 +327,8 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
 
         const tigerSize = Math.min(1050, Math.max(450, W * 0.75))
 
-        const tigerCX = W / 2
-        const tigerCY = H / 2
+        let tigerCX = W / 2
+        let tigerCY = H / 2
 
         const baseRX = tigerSize * 0.2
         const baseRY = tigerSize * 0.24
@@ -532,16 +531,17 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
         for (let i = 0; i < particleCount; i++) spawnParticle()
 
         function handleResize() {
-            W = window.innerWidth
-            H = window.innerHeight
+            W = parent.clientWidth || window.innerWidth
+            H = parent.clientHeight || window.innerHeight
             canvas.width = W * dpr
             canvas.height = H * dpr
-            canvas.style.width = `${W}px`
-            canvas.style.height = `${H}px`
             ctx.setTransform(1, 0, 0, 1, 0, 0)
             ctx.scale(dpr, dpr)
+            tigerCX = W / 2
+            tigerCY = H / 2
         }
-        window.addEventListener('resize', handleResize)
+        const ro = new ResizeObserver(() => handleResize())
+        ro.observe(parent)
 
         let animId: number
 
@@ -675,7 +675,7 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
         animId = requestAnimationFrame(animate)
         return () => {
             cancelAnimationFrame(animId)
-            window.removeEventListener('resize', handleResize)
+            ro.disconnect()
         }
     }, [])
 
