@@ -21,7 +21,7 @@ export default function Sidebar() {
     <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
       <div className={styles.logo}>
         <Zap size={22} className={styles.logoIcon} />
-        {!collapsed && <span>Kora</span>}
+        {!collapsed && <span>Krexa</span>}
       </div>
 
       <nav className={styles.nav}>

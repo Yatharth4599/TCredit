@@ -53,7 +53,7 @@ const Footer = () => {
         <p className='text-center text-sm text-white/40'>
           {`© ${new Date().getFullYear()}`}{' '}
           <a href='#' className='text-white/60 hover:text-white hover:underline transition-colors'>
-            Kora
+            Krexa
           </a>
           {' · The Programmable Credit Network'}
         </p>

@@ -5,7 +5,7 @@ const Logo = ({ className }: { className?: string }) => {
   return (
     <div className={cn('flex items-center gap-2.5', className)}>
       <LogoSvg className='size-8' />
-      <span className='text-xl font-semibold text-white'>Kora</span>
+      <span className='text-xl font-semibold text-white'>Krexa</span>
     </div>
   )
 }

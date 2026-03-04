@@ -134,7 +134,7 @@ export default function Home() {
         { num: '01', title: 'Payments generate data', desc: 'Every x402 transaction creates verifiable, on-chain payment history that no bank or credit bureau can replicate.', color: '#2CFF05', hoverBg: '#0a2d05' },
         { num: '02', title: 'Data unlocks credit', desc: 'FairScale scores — built from live revenue data — enable access to structured credit pools without collateral.', color: '#00FFF0', hoverBg: '#052d2a' },
         { num: '03', title: 'Credit grows business', desc: 'Working capital funds inventory, expansion, and new markets. Businesses grow faster with programmatic access to capital.', color: '#FF2A55', hoverBg: '#2d0515' },
-        { num: '04', title: 'Growth fuels payments', desc: 'Larger businesses process more volume through Kora, feeding the credit engine and restarting the cycle.', color: '#FF5C00', hoverBg: '#2d1505' },
+        { num: '04', title: 'Growth fuels payments', desc: 'Larger businesses process more volume through Krexa, feeding the credit engine and restarting the cycle.', color: '#FF5C00', hoverBg: '#2d1505' },
     ]
 
     const problemSlides = [
@@ -280,9 +280,9 @@ export default function Home() {
                 </div>
                 <div data-anim="cinematic-content" className={styles.cinematicContent}>
                     <div className={styles.cinematicTextBlock}>
-                        <span className={styles.cinematicLabel}>Kora powers DeFi Credit</span>
+                        <span className={styles.cinematicLabel}>Krexa powers DeFi Credit</span>
                         <p className={styles.cinematicHeadline}>
-                            From structured vaults to instant settlements — <span className={styles.cinematicAccent}>Kora is building the future of on-chain credit.</span>
+                            From structured vaults to instant settlements — <span className={styles.cinematicAccent}>Krexa is building the future of on-chain credit.</span>
                         </p>
                     </div>
                     <div className={styles.cinematicStats}>
@@ -362,7 +362,7 @@ export default function Home() {
                         </div>
                     </div>
                     <p className={styles.problemCallout}>
-                        Kora solves this with a single primitive: <strong>revenue-backed, programmable credit.</strong>
+                        Krexa solves this with a single primitive: <strong>revenue-backed, programmable credit.</strong>
                     </p>
                 </div>
             </section>
@@ -379,8 +379,8 @@ export default function Home() {
                         <div className={styles.hiwCard} style={{ background: '#2CFF05' }}>
                             <span className={styles.hiwStep}>01</span>
                             <span className={styles.hiwBadge}>Payment Routing</span>
-                            <h3 className={styles.hiwCardTitle}>Route payments through Kora</h3>
-                            <p className={styles.hiwCardDesc}>Businesses bill customers using Kora x402 payment endpoints. Customers pay via local rails or stablecoins. Every transaction is recorded on-chain as verifiable payment history.</p>
+                            <h3 className={styles.hiwCardTitle}>Route payments through Krexa</h3>
+                            <p className={styles.hiwCardDesc}>Businesses bill customers using Krexa x402 payment endpoints. Customers pay via local rails or stablecoins. Every transaction is recorded on-chain as verifiable payment history.</p>
                             <div className={styles.hiwCardDetail}><span>Supports USDC, local bank rails, and card payments via on-ramp partners.</span></div>
                             <button className={styles.hiwCardBtn} onClick={() => navigate('/waitlist')}>Learn More</button>
                         </div>
@@ -535,7 +535,7 @@ export default function Home() {
                             <span className={styles.sectionLabel}>For Merchants</span>
                             <h2 className={styles.splitTitle}>Stream capital as you <span className={styles.gradientInline}>perform</span></h2>
                             <p className={styles.splitDesc}>
-                                Bill through Kora x402 endpoints. Your payment history becomes your credit score
+                                Bill through Krexa x402 endpoints. Your payment history becomes your credit score
                                 in real-time. Access working capital, invoice financing, or trade finance — up to 12 months,
                                 with rates that improve as your FairScale score grows.
                             </p>
@@ -714,7 +714,7 @@ export default function Home() {
                             <p className={styles.whyDesc}>
                                 Blockchain removes every failure point that makes traditional credit inaccessible —
                                 geographic restrictions, opaque intermediaries, manual enforcement, and stale data.
-                                Kora turns these into protocol-level guarantees.
+                                Krexa turns these into protocol-level guarantees.
                             </p>
                             <ul className={styles.stepsList}>
                                 <li className={styles.stepsListItem}>
@@ -755,8 +755,8 @@ export default function Home() {
             <footer className={styles.footer}>
                 <div className={styles.footerTop}>
                     <div className={styles.footerBrand}>
-                        <img src="/images/logo.png" alt="Kora" className={styles.footerLogoImg} />
-                        <span className={styles.footerLogo}>Kora</span>
+                        <img src="/images/logo.png" alt="Krexa" className={styles.footerLogoImg} />
+                        <span className={styles.footerLogo}>Krexa</span>
                     </div>
                     <div className={styles.footerColumns}>
                         <div className={styles.footerCol}>
