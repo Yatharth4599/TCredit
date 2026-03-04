@@ -34,7 +34,7 @@ export default function Home() {
     useEffect(() => {
         const timer = setInterval(() => {
             setActiveProblem(prev => (prev + 1) % 3)
-        }, 4000)
+        }, 6000)
         return () => clearInterval(timer)
     }, [])
 
