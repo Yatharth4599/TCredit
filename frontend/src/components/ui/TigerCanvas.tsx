@@ -18,17 +18,6 @@ interface Particle {
     baseSpeed: number
 }
 
-interface SmokeParticle {
-    x: number; y: number
-    vx: number; vy: number
-    size: number
-    startSize: number
-    maxSize: number
-    life: number; maxLife: number
-    alpha: number
-    rotation: number
-    rotSpeed: number
-}
 
 function removeBackground(
     data: Uint8ClampedArray,
@@ -395,86 +384,6 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
             nextRoarAt: 200 + Math.floor(Math.random() * 120),
         }
 
-        const smokeParticles: SmokeParticle[] = []
-
-        const LEFT_NOSTRIL = { cx: 0.465, cy: 0.450 }
-        const RIGHT_NOSTRIL = { cx: 0.525, cy: 0.450 }
-
-        function spawnSmoke(imgOriginX: number, imgOriginY: number, scaledDrawW: number, scaledDrawH: number, side: 'left' | 'right') {
-            const nostril = side === 'left' ? LEFT_NOSTRIL : RIGHT_NOSTRIL
-            const originX = imgOriginX + nostril.cx * scaledDrawW
-            const originY = imgOriginY + nostril.cy * scaledDrawH
-            const spreadX = (Math.random() - 0.5) * scaledDrawW * 0.015
-            const outwardDrift = side === 'left' ? -(0.3 + Math.random() * 0.7) : (0.3 + Math.random() * 0.7)
-            const speed = 0.5 + Math.random() * 1.0
-            const sz = 5 + Math.random() * 8
-
-            smokeParticles.push({
-                x: originX + spreadX,
-                y: originY,
-                vx: outwardDrift + (Math.random() - 0.5) * 0.3,
-                vy: speed * 0.6 + 0.3 + Math.random() * 0.3,
-                size: sz,
-                startSize: sz,
-                maxSize: sz * 5,
-                life: 0,
-                maxLife: 90 + Math.floor(Math.random() * 70),
-                alpha: 0.35 + Math.random() * 0.25,
-                rotation: Math.random() * Math.PI * 2,
-                rotSpeed: (Math.random() - 0.5) * 0.06,
-            })
-        }
-
-        function drawSmoke(ctx: CanvasRenderingContext2D) {
-            for (let i = smokeParticles.length - 1; i >= 0; i--) {
-                const s = smokeParticles[i]
-                s.x += s.vx
-                s.y += s.vy
-                s.vy += 0.005
-                s.vy *= 0.997
-                s.vx *= 0.993
-                s.life++
-                s.rotation += s.rotSpeed
-
-                const t = s.life / s.maxLife
-                s.size = s.startSize + (s.maxSize - s.startSize) * t
-
-                let alpha: number
-                if (t < 0.15) {
-                    alpha = (t / 0.15) * s.alpha
-                } else if (t > 0.6) {
-                    alpha = ((1 - t) / 0.4) * s.alpha
-                } else {
-                    alpha = s.alpha
-                }
-
-                if (s.life >= s.maxLife) {
-                    smokeParticles.splice(i, 1)
-                    continue
-                }
-
-                ctx.save()
-                ctx.globalAlpha = alpha
-                ctx.translate(s.x, s.y)
-                ctx.rotate(s.rotation)
-
-                const gray = 180 + Math.floor(t * 50)
-                ctx.fillStyle = `rgb(${gray}, ${gray}, ${gray + 10})`
-                ctx.fillRect(-s.size / 2, -s.size / 2, s.size, s.size)
-
-                if (s.size > 5) {
-                    ctx.globalAlpha = alpha * 0.4
-                    const innerGray = gray + 20
-                    ctx.fillStyle = `rgb(${innerGray}, ${innerGray}, ${innerGray + 5})`
-                    const inner = s.size * 0.5
-                    ctx.fillRect(-inner / 2, -inner / 2, inner, inner)
-                }
-
-                ctx.restore()
-            }
-        }
-
-        let postRoarShockwave = { active: false, frame: 0, totalFrames: 40, cx: 0, cy: 0, maxRadius: 0 }
 
         let frameCount = 0
         let breathPhase = 0
@@ -572,8 +481,6 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
                         mouth.phase = 'closed'
                         mouth.frame = 0
                         mouth.nextRoarAt = frameCount + 200 + Math.floor(Math.random() * 150)
-                        postRoarShockwave.active = true
-                        postRoarShockwave.frame = 0
                     }
                     break
             }
@@ -586,47 +493,6 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
                 case 'open': return 1
                 case 'closing': return 1 - smoothstep(mouth.frame / MOUTH_CLOSE_FRAMES)
             }
-        }
-
-        function drawPostRoarShockwave(ctx: CanvasRenderingContext2D, cx: number, cy: number, maxRadius: number) {
-            if (!postRoarShockwave.active) return
-            postRoarShockwave.frame++
-            if (postRoarShockwave.frame >= postRoarShockwave.totalFrames) {
-                postRoarShockwave.active = false
-                return
-            }
-
-            const t = postRoarShockwave.frame / postRoarShockwave.totalFrames
-            const easeOut = 1 - (1 - t) * (1 - t)
-            const radius = easeOut * maxRadius
-
-            let alpha: number
-            if (t < 0.1) {
-                alpha = t / 0.1 * 0.6
-            } else {
-                alpha = (1 - t) * 0.6
-            }
-
-            ctx.save()
-
-            const ringWidth = maxRadius * 0.08 * (1 - t * 0.5)
-            ctx.globalAlpha = alpha
-            ctx.strokeStyle = '#40E0D0'
-            ctx.lineWidth = ringWidth
-            ctx.beginPath()
-            ctx.arc(cx, cy, radius, 0, Math.PI * 2)
-            ctx.stroke()
-
-            if (t < 0.5) {
-                ctx.globalAlpha = alpha * 0.3
-                ctx.strokeStyle = '#FF8C42'
-                ctx.lineWidth = ringWidth * 0.5
-                ctx.beginPath()
-                ctx.arc(cx, cy, radius * 0.7, 0, Math.PI * 2)
-                ctx.stroke()
-            }
-
-            ctx.restore()
         }
 
         function spawnParticle() {
@@ -718,8 +584,6 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
 
                 drawFurShimmer(ctx, imgOriginX, imgOriginY, scaledDrawW, scaledDrawH, shimmerPhase, px)
 
-                drawPostRoarShockwave(ctx, tigerCX, tigerCY, tigerSize * 0.6)
-
                 updateBlink()
                 const blinkFrac = getBlinkFraction()
 
@@ -752,16 +616,6 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
                 if (nostrilFlare > 0.05) {
                     drawNostrilFlare(ctx, noseX, noseY, noseW, noseH, nostrilFlare)
                 }
-
-                if (isRoaring && mouthFrac > 0.15 && smokeParticles.length < 1500) {
-                    const spawnRate = 10 + Math.floor(mouthFrac * 25)
-                    for (let s = 0; s < spawnRate; s++) {
-                        spawnSmoke(imgOriginX, imgOriginY, scaledDrawW, scaledDrawH, 'left')
-                        spawnSmoke(imgOriginX, imgOriginY, scaledDrawW, scaledDrawH, 'right')
-                    }
-                }
-
-                drawSmoke(ctx)
 
                 if (mouthFrac > 0) {
                     let jawTremble = 0
