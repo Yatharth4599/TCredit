@@ -42,6 +42,139 @@ const TIER_ICONS = [
   <svg key="2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" opacity="0.5"/></svg>,
 ]
 
+interface Particle {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  size: number
+  alpha: number
+  color: string
+  life: number
+  maxLife: number
+}
+
+function WaterfallBackground({ playing }: { playing: boolean }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const particlesRef = useRef<Particle[]>([])
+  const rafRef = useRef(0)
+  const playingRef = useRef(playing)
+  playingRef.current = playing
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const colors = ['#FF6B35', '#3b82f6', '#34d399']
+
+    const resize = () => {
+      const parent = canvas.parentElement
+      if (!parent) return
+      canvas.width = parent.offsetWidth
+      canvas.height = parent.offsetHeight
+    }
+    resize()
+    window.addEventListener('resize', resize)
+
+    for (let i = 0; i < 40; i++) {
+      particlesRef.current.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: -Math.random() * 0.4 - 0.1,
+        size: Math.random() * 2 + 1,
+        alpha: Math.random() * 0.3 + 0.05,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        life: 0,
+        maxLife: Infinity,
+      })
+    }
+
+    const draw = () => {
+      rafRef.current = requestAnimationFrame(draw)
+      if (!playingRef.current) return
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.02)'
+      ctx.lineWidth = 0.5
+      const gridSize = 60
+      for (let x = 0; x < canvas.width; x += gridSize) {
+        ctx.beginPath()
+        ctx.moveTo(x, 0)
+        ctx.lineTo(x, canvas.height)
+        ctx.stroke()
+      }
+      for (let y = 0; y < canvas.height; y += gridSize) {
+        ctx.beginPath()
+        ctx.moveTo(0, y)
+        ctx.lineTo(canvas.width, y)
+        ctx.stroke()
+      }
+
+      particlesRef.current.forEach(p => {
+        p.x += p.vx
+        p.y += p.vy
+        if (p.maxLife !== Infinity) {
+          p.life++
+          p.alpha = Math.max(0, (1 - p.life / p.maxLife) * 0.8)
+        }
+
+        if (p.y < -10) p.y = canvas.height + 10
+        if (p.x < -10) p.x = canvas.width + 10
+        if (p.x > canvas.width + 10) p.x = -10
+
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+        ctx.fillStyle = p.color
+        ctx.globalAlpha = p.alpha
+        ctx.fill()
+        ctx.globalAlpha = 1
+      })
+
+      particlesRef.current = particlesRef.current.filter(
+        p => p.maxLife === Infinity || p.life < p.maxLife
+      )
+    }
+    rafRef.current = requestAnimationFrame(draw)
+
+    return () => {
+      cancelAnimationFrame(rafRef.current)
+      window.removeEventListener('resize', resize)
+      particlesRef.current = []
+    }
+  }, [])
+
+  return <canvas ref={canvasRef} className={s.waterfallBg} />
+}
+
+function spawnBurstParticles(
+  container: HTMLElement,
+  color: string,
+  count: number = 12
+) {
+  for (let i = 0; i < count; i++) {
+    const dot = document.createElement('div')
+    const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5
+    const dist = 30 + Math.random() * 40
+    const tx = Math.cos(angle) * dist
+    const ty = Math.sin(angle) * dist
+    dot.style.cssText = `
+      position:absolute;top:50%;left:50%;width:${3 + Math.random() * 3}px;height:${3 + Math.random() * 3}px;
+      border-radius:50%;background:${color};pointer-events:none;z-index:30;
+      opacity:0.9;transform:translate(-50%,-50%);
+      transition:all ${0.4 + Math.random() * 0.3}s cubic-bezier(0.16,1,0.3,1);
+    `
+    container.appendChild(dot)
+    requestAnimationFrame(() => {
+      dot.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px))`
+      dot.style.opacity = '0'
+    })
+    setTimeout(() => dot.remove(), 800)
+  }
+}
+
 function PadlockIcon({ color }: { color: string }) {
   return (
     <svg className={s.padlock} width="32" height="36" viewBox="0 0 32 36" fill="none">
@@ -69,8 +202,10 @@ export default function WaterfallFlow() {
   const [counters, setCounters] = useState([0, 0, 0])
   const [cascade, setCascade] = useState(false)
   const [footerVisible, setFooterVisible] = useState(false)
+  const [completedCount, setCompletedCount] = useState(0)
   const timerRefs = useRef<ReturnType<typeof setTimeout>[]>([])
   const animRef = useRef(0)
+  const tierCardRefs = useRef<(HTMLDivElement | null)[]>([null, null, null])
 
   function reset() {
     timerRefs.current.forEach(clearTimeout)
@@ -84,6 +219,7 @@ export default function WaterfallFlow() {
     setCounters([0, 0, 0])
     setCascade(false)
     setFooterVisible(false)
+    setCompletedCount(0)
   }
 
   function play() {
@@ -104,6 +240,8 @@ export default function WaterfallFlow() {
 
       timerRefs.current.push(setTimeout(() => {
         setUnlockedTiers(prev => { const n = [...prev]; n[i] = true; return n })
+        const card = tierCardRefs.current[i]
+        if (card) spawnBurstParticles(card, tier.color, 14)
       }, unlockAt))
 
       timerRefs.current.push(setTimeout(() => {
@@ -112,6 +250,7 @@ export default function WaterfallFlow() {
 
       timerRefs.current.push(setTimeout(() => {
         setTierDone(prev => { const n = [...prev]; n[i] = true; return n })
+        setCompletedCount(prev => prev + 1)
         if (i < TIERS.length - 1) {
           setLitConns(prev => { const n = [...prev]; n[i] = true; return n })
         }
@@ -161,6 +300,7 @@ export default function WaterfallFlow() {
 
   return (
     <div ref={ref} className={`${s.wrap} ${phase === 'playing' ? s.playing : ''}`}>
+      <WaterfallBackground playing={phase === 'playing'} />
 
       <div className={s.left}>
         <div className={s.counterBox}>
@@ -195,6 +335,10 @@ export default function WaterfallFlow() {
       </div>
 
       <div className={s.tower}>
+        <div
+          className={`${s.ambientGlow} ${completedCount > 0 ? s.ambientGlowActive : ''}`}
+          style={{ opacity: completedCount * 0.15 }}
+        />
         {TIERS.map((tier, i) => {
           const unlocked = unlockedTiers[i]
           const done = tierDone[i]
@@ -213,6 +357,7 @@ export default function WaterfallFlow() {
               )}
 
               <div
+                ref={el => { tierCardRefs.current[i] = el }}
                 className={`${s.tierCard} ${unlocked ? s.tierUnlocked : s.tierLocked}`}
                 style={{ '--tier-color': tier.color } as React.CSSProperties}
               >
@@ -244,7 +389,7 @@ export default function WaterfallFlow() {
                       </span>
                       <div className={s.tierBadgeRow}>
                         {done && (
-                          <span className={s.tierDoneBadge} style={{ background: `${tier.color}22`, color: tier.color }}>
+                          <span className={s.tierDoneBadge} style={{ background: `${tier.color}22`, color: tier.color, boxShadow: `0 0 12px ${tier.color}55, 0 0 24px ${tier.color}33` }}>
                             ✓ PAID
                           </span>
                         )}
@@ -290,7 +435,12 @@ export default function WaterfallFlow() {
           )
         })}
 
-        {cascade && <div className={s.cascadeGlow} />}
+        {cascade && (
+          <>
+            <div className={s.cascadeFlash} />
+            <div className={s.cascadeGlow} />
+          </>
+        )}
       </div>
     </div>
   )

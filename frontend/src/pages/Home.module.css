@@ -377,6 +377,8 @@
     max-width: 1100px;
     margin: 0 auto;
     padding: 0 24px;
+    position: relative;
+    z-index: 1;
 }
 
 .sectionHeader {
@@ -439,6 +441,11 @@
 .forUsers .outlineBtn { background: #000000; color: #2CFF05; border: none; }
 .forUsers .outlineBtn:hover { background: #1a1a1a; }
 .forUsers .visualBadge { background: rgba(0, 0, 0, 0.15); color: #000000; }
+.forUsers .liveDot { background: #000000; animation-name: livePulseDark; }
+@keyframes livePulseDark {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.4); }
+    50% { opacity: 0.5; box-shadow: 0 0 6px 3px rgba(0, 0, 0, 0.15); }
+}
 .forUsers .visualCard { background: rgba(0, 0, 0, 0.12); }
 .forUsers .visualCardHeader { color: rgba(0, 0, 0, 0.6); }
 .forUsers .visualStatValue { color: #000000; }
@@ -794,6 +801,26 @@
     animation: sectionGlowPulse 8s ease-in-out infinite;
 }
 
+.investorBg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.55;
+}
+
+.merchantBg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+}
+
 .forMerchants {
     padding: 80px 24px;
     min-height: auto;
@@ -891,6 +918,56 @@
     padding: 28px;
     position: relative;
     overflow: hidden;
+}
+
+.shimmerOverlay {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.04) 40%,
+        rgba(255, 255, 255, 0.08) 50%,
+        rgba(255, 255, 255, 0.04) 60%,
+        transparent 100%
+    );
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0;
+}
+
+.visualCardAnimated .shimmerOverlay {
+    opacity: 1;
+    animation: shimmerSweep 4s ease-in-out 1.5s infinite;
+}
+
+@keyframes shimmerSweep {
+    0% { left: -100%; }
+    50% { left: 200%; }
+    100% { left: 200%; }
+}
+
+.liveDot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #2CFF05;
+    margin-right: 5px;
+    vertical-align: middle;
+    animation: livePulse 2s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(44, 255, 5, 0.5); }
+    50% { opacity: 0.5; box-shadow: 0 0 6px 3px rgba(44, 255, 5, 0.25); }
+}
+
+.visualCardAnimated .visualBarFill {
+    transition: width 1.6s cubic-bezier(0.22, 1, 0.36, 1) 0.3s;
 }
 
 .visualCardHeader {
@@ -1005,16 +1082,80 @@
     height: 100%;
 }
 
+.creditRingProgress {
+    transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.creditRingGlow {
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    opacity: 0;
+    box-shadow: 0 0 20px rgba(52, 211, 153, 0.4), 0 0 40px rgba(52, 211, 153, 0.2);
+    transition: opacity 0.8s ease 0.6s;
+    pointer-events: none;
+}
+
+.creditRingGlowActive {
+    opacity: 1;
+    animation: ringGlowPulse 3s ease-in-out infinite 1.4s;
+}
+
+@keyframes ringGlowPulse {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.06); }
+}
+
+.merchantCardScanline {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.3), transparent);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.merchantCardAnimated .merchantCardScanline {
+    animation: merchantScanline 4s ease-in-out 1.5s infinite;
+}
+
+@keyframes merchantScanline {
+    0% { top: 0; opacity: 0; }
+    5% { opacity: 0.6; }
+    95% { opacity: 0.6; }
+    100% { top: 100%; opacity: 0; }
+}
+
+.badgePopIn {
+    animation: badgePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.8s both;
+}
+
+@keyframes badgePop {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
 .creditDetails {
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
 
-.creditDetails div {
+.creditDetailRow {
     display: flex;
     justify-content: space-between;
     font-size: 0.85rem;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.creditDetailRowVisible {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .creditDetails span:first-child {

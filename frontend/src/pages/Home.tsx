@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { platformApi } from '../api/client'
 import { weiToNumber } from '../lib/format'
 import { AnimatedNumber } from '../components/ui/AnimatedNumber'
@@ -10,10 +10,39 @@ import WaterfallFlow from '../components/ui/WaterfallFlow'
 import { BankIcon, HourglassIcon, ShieldIcon } from '../components/ui/PixelIcons'
 import { AnimatedCoinStackIcon, AnimatedVaultIcon, AnimatedLockIcon } from '../components/ui/AnimatedPixelIcons'
 import ProblemBackground from '../components/ui/ProblemBackground'
+import MerchantBackground from '../components/ui/MerchantBackground'
+import InvestorBackground from '../components/ui/InvestorBackground'
 import TigerCanvas from '../components/ui/TigerCanvas'
 import { useScrollAnimations } from '../hooks/useScrollAnimations'
 
 import styles from './Home.module.css'
+
+function InvestorCounter({ visible, end, prefix = '', suffix = '', decimals = 0, duration = 1500 }: {
+    visible: boolean; end: number; prefix?: string; suffix?: string; decimals?: number; duration?: number
+}) {
+    const [value, setValue] = useState(0)
+    const rafRef = useRef<number>(0)
+
+    useEffect(() => {
+        if (!visible) { setValue(0); return }
+        const start = performance.now()
+        const tick = (now: number) => {
+            const elapsed = now - start
+            const progress = Math.min(elapsed / duration, 1)
+            const eased = 1 - Math.pow(1 - progress, 3)
+            setValue(eased * end)
+            if (progress < 1) rafRef.current = requestAnimationFrame(tick)
+        }
+        rafRef.current = requestAnimationFrame(tick)
+        return () => cancelAnimationFrame(rafRef.current)
+    }, [visible, end, duration])
+
+    const formatted = decimals > 0
+        ? value.toFixed(decimals)
+        : Math.round(value).toLocaleString()
+
+    return <>{prefix}{formatted}{suffix}</>
+}
 
 export default function Home() {
     const navigate = useNavigate()
@@ -21,6 +50,11 @@ export default function Home() {
     const [liveStats, setLiveStats] = useState<{ tvl: string; poolLiquidity: string; activeVaults: number } | null>(null)
     const [hoveredFlywheel, setHoveredFlywheel] = useState<number | null>(null)
     const [activeProblem, setActiveProblem] = useState(0)
+    const [investorCardVisible, setInvestorCardVisible] = useState(false)
+    const investorCardRef = useRef<HTMLDivElement>(null)
+    const [merchantCardVisible, setMerchantCardVisible] = useState(false)
+    const [merchantScore, setMerchantScore] = useState(0)
+    const merchantCardRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         platformApi.stats().then(({ data }) => setLiveStats(data)).catch(() => {})
@@ -37,6 +71,57 @@ export default function Home() {
         }, 6000)
         return () => clearInterval(timer)
     }, [])
+
+    useEffect(() => {
+        const node = investorCardRef.current
+        if (!node) return
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setInvestorCardVisible(true)
+                    observer.disconnect()
+                }
+            },
+            { threshold: 0.3 }
+        )
+        observer.observe(node)
+        return () => observer.disconnect()
+    }, [])
+
+    useEffect(() => {
+        const node = merchantCardRef.current
+        if (!node) return
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setMerchantCardVisible(true)
+                    observer.disconnect()
+                }
+            },
+            { threshold: 0.3 }
+        )
+        observer.observe(node)
+        return () => observer.disconnect()
+    }, [])
+
+    useEffect(() => {
+        if (!merchantCardVisible) return
+        const target = 785
+        const duration = 1200
+        const startTime = performance.now()
+        let rafId: number
+        const animate = (now: number) => {
+            const elapsed = now - startTime
+            const progress = Math.min(elapsed / duration, 1)
+            const eased = 1 - Math.pow(1 - progress, 3)
+            setMerchantScore(Math.round(eased * target))
+            if (progress < 1) {
+                rafId = requestAnimationFrame(animate)
+            }
+        }
+        rafId = requestAnimationFrame(animate)
+        return () => cancelAnimationFrame(rafId)
+    }, [merchantCardVisible])
 
     // GSAP ScrollTrigger animations for all non-hero sections
     useScrollAnimations()
@@ -349,6 +434,7 @@ export default function Home() {
 
             {/* ── For Investors ── */}
             <section className={`${styles.forUsers} ${styles.dividerBottom} ${styles.dividerToPurple}`} id="for-users">
+                <InvestorBackground className={styles.investorBg} />
                 <div className={styles.sectionContainer}>
                     <div className={styles.splitSection}>
                         <div data-anim="forusers-content" className={styles.splitContent}>
@@ -371,32 +457,44 @@ export default function Home() {
                         </div>
 
                         <div data-anim="forusers-visual" className={styles.splitVisual}>
-                            <div className={styles.visualCard}>
+                            <div ref={investorCardRef} className={`${styles.visualCard} ${investorCardVisible ? styles.visualCardAnimated : ''}`}>
+                                <div className={styles.shimmerOverlay} />
                                 <div className={styles.visualCardHeader}>
                                     <span>Portfolio Overview</span>
-                                    <span className={styles.visualBadge}>Live</span>
+                                    <span className={styles.visualBadge}>
+                                        <span className={styles.liveDot} />
+                                        Live
+                                    </span>
                                 </div>
                                 <div className={styles.visualStat}>
-                                    <span className={styles.visualStatValue}>$24,500</span>
+                                    <span className={styles.visualStatValue}>
+                                        <InvestorCounter visible={investorCardVisible} end={24500} prefix="$" duration={1800} />
+                                    </span>
                                     <span className={styles.visualStatLabel}>Total Invested</span>
                                 </div>
                                 <div className={styles.visualRow}>
                                     <div>
-                                        <span className={styles.visualSmallValue}>$2,847</span>
+                                        <span className={styles.visualSmallValue}>
+                                            <InvestorCounter visible={investorCardVisible} end={2847} prefix="$" duration={1600} />
+                                        </span>
                                         <span className={styles.visualSmallLabel}>Returns Earned</span>
                                     </div>
                                     <div>
-                                        <span className={styles.visualSmallValue}>+11.6%</span>
+                                        <span className={styles.visualSmallValue}>
+                                            <InvestorCounter visible={investorCardVisible} end={11.6} prefix="+" suffix="%" decimals={1} duration={1400} />
+                                        </span>
                                         <span className={styles.visualSmallLabel}>Blended APY</span>
                                     </div>
                                 </div>
                                 <div className={styles.visualBar}>
-                                    <div className={styles.visualBarFill} style={{ width: '73%' }} />
+                                    <div className={styles.visualBarFill} style={{ width: investorCardVisible ? '73%' : '0%' }} />
                                 </div>
                                 <div className={styles.visualDivider} />
                                 <div className={styles.visualRow}>
                                     <div>
-                                        <span className={styles.visualSmallValue}>3</span>
+                                        <span className={styles.visualSmallValue}>
+                                            <InvestorCounter visible={investorCardVisible} end={3} duration={800} />
+                                        </span>
                                         <span className={styles.visualSmallLabel}>Active Vaults</span>
                                     </div>
                                     <div>
@@ -406,11 +504,15 @@ export default function Home() {
                                 </div>
                                 <div className={styles.visualRow}>
                                     <div>
-                                        <span className={styles.visualSmallValue}>$18,200</span>
+                                        <span className={styles.visualSmallValue}>
+                                            <InvestorCounter visible={investorCardVisible} end={18200} prefix="$" duration={1600} />
+                                        </span>
                                         <span className={styles.visualSmallLabel}>Principal Remaining</span>
                                     </div>
                                     <div>
-                                        <span className={styles.visualSmallValue}>42 days</span>
+                                        <span className={styles.visualSmallValue}>
+                                            <InvestorCounter visible={investorCardVisible} end={42} suffix=" days" duration={1200} />
+                                        </span>
                                         <span className={styles.visualSmallLabel}>Avg. Maturity</span>
                                     </div>
                                 </div>
@@ -422,6 +524,7 @@ export default function Home() {
 
             {/* ── For Merchants ── */}
             <section className={`${styles.forMerchants} ${styles.dividerBottom} ${styles.dividerToDark}`} id="for-merchants">
+                <MerchantBackground className={styles.merchantBg} />
                 <div className={styles.sectionContainer}>
                     <div className={`${styles.splitSection} ${styles.splitReverse}`}>
                         <div data-anim="formerchants-content" className={styles.splitContent}>
@@ -444,25 +547,37 @@ export default function Home() {
                         </div>
 
                         <div data-anim="formerchants-visual" className={styles.splitVisual}>
-                            <div className={styles.visualCard}>
+                            <div ref={merchantCardRef} className={`${styles.visualCard} ${merchantCardVisible ? styles.merchantCardAnimated : ''}`}>
+                                <div className={styles.merchantCardScanline} />
                                 <div className={styles.visualCardHeader}>
                                     <span>Merchant Profile</span>
-                                    <span className={styles.visualBadgeGreen}>Excellent</span>
+                                    <span className={`${styles.visualBadgeGreen} ${merchantCardVisible ? styles.badgePopIn : ''}`}>Excellent</span>
                                 </div>
                                 <div className={styles.creditScore}>
-                                    <span className={styles.creditValue}>785</span>
+                                    <div className={`${styles.creditRingGlow} ${merchantCardVisible ? styles.creditRingGlowActive : ''}`} />
+                                    <span className={styles.creditValue}>{merchantScore}</span>
                                     <svg className={styles.creditRing} viewBox="0 0 100 100">
                                         <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="8" />
-                                        <circle cx="50" cy="50" r="45" fill="none" stroke="#34d399" strokeWidth="8" strokeDasharray="220" strokeDashoffset="50" strokeLinecap="round" transform="rotate(-90 50 50)" />
+                                        <circle cx="50" cy="50" r="45" fill="none" stroke="#34d399" strokeWidth="8" strokeDasharray="220" strokeDashoffset={merchantCardVisible ? 50 : 220} strokeLinecap="round" transform="rotate(-90 50 50)" className={styles.creditRingProgress} />
                                     </svg>
                                 </div>
                                 <div className={styles.creditDetails}>
-                                    <div><span>FairScale Score</span><span>Tier A</span></div>
-                                    <div><span>Revenue Consistency</span><span>98%</span></div>
-                                    <div><span>x402 Payments Processed</span><span>1,247</span></div>
-                                    <div><span>Total Capital Accessed</span><span>$185,000</span></div>
-                                    <div><span>Current Repayment Rate</span><span>100%</span></div>
-                                    <div><span>Active Vault</span><span>1 of 2</span></div>
+                                    {[
+                                        { label: 'FairScale Score', value: 'Tier A' },
+                                        { label: 'Revenue Consistency', value: '98%' },
+                                        { label: 'x402 Payments Processed', value: '1,247' },
+                                        { label: 'Total Capital Accessed', value: '$185,000' },
+                                        { label: 'Current Repayment Rate', value: '100%' },
+                                        { label: 'Active Vault', value: '1 of 2' },
+                                    ].map((row, i) => (
+                                        <div
+                                            key={i}
+                                            className={`${styles.creditDetailRow} ${merchantCardVisible ? styles.creditDetailRowVisible : ''}`}
+                                            style={{ transitionDelay: merchantCardVisible ? `${0.6 + i * 0.1}s` : '0s' }}
+                                        >
+                                            <span>{row.label}</span><span>{row.value}</span>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>

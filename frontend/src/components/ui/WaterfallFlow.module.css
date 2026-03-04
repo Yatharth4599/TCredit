@@ -3,6 +3,7 @@
    ============================================ */
 
 .wrap {
+    position: relative;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 60px;
@@ -11,11 +12,24 @@
     margin: 0 auto;
 }
 
+.waterfallBg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.6;
+    border-radius: 16px;
+}
+
 /* ══════════════════════════════════════════
    LEFT PANEL
 ══════════════════════════════════════════ */
 
 .left {
+    position: relative;
+    z-index: 1;
     opacity: 0;
     transform: translateY(24px);
     transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s,
@@ -147,6 +161,7 @@
 
 .tower {
     position: relative;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     opacity: 0;
@@ -155,6 +170,33 @@
                 transform 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s;
 }
 .playing .tower { opacity: 1; transform: translateY(0); }
+
+.ambientGlow {
+    position: absolute;
+    inset: -20px;
+    pointer-events: none;
+    z-index: -1;
+    border-radius: 24px;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(255, 107, 53, 0.06) 0%,
+        rgba(59, 130, 246, 0.04) 40%,
+        rgba(52, 211, 153, 0.03) 70%,
+        transparent 100%
+    );
+    opacity: 0;
+    transition: opacity 0.8s ease;
+    filter: blur(20px);
+}
+
+.ambientGlowActive {
+    animation: ambientPulse 3s ease-in-out infinite;
+}
+
+@keyframes ambientPulse {
+    0%, 100% { transform: scale(1); filter: blur(20px); }
+    50%      { transform: scale(1.03); filter: blur(25px); }
+}
 
 /* ══════════════════════════════════════════
    CONNECTORS
@@ -460,11 +502,13 @@
     padding: 3px 8px;
     border-radius: 6px;
     white-space: nowrap;
-    animation: donePop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation: donePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 @keyframes donePop {
-    0%   { opacity: 0; transform: scale(0.7); }
+    0%   { opacity: 0; transform: scale(0.5); }
+    50%  { opacity: 1; transform: scale(1.2); }
+    70%  { transform: scale(0.95); }
     100% { opacity: 1; transform: scale(1); }
 }
 
@@ -539,24 +583,46 @@
    CASCADE GLOW (conditionally rendered)
 ══════════════════════════════════════════ */
 
+.cascadeFlash {
+    position: absolute;
+    inset: -20px;
+    pointer-events: none;
+    border-radius: 16px;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(255, 255, 255, 0.15) 0%,
+        rgba(255, 107, 53, 0.08) 30%,
+        transparent 70%
+    );
+    animation: flashBurst 0.6s ease forwards;
+    z-index: 5;
+}
+
+@keyframes flashBurst {
+    0%   { opacity: 0; transform: scale(0.9); }
+    20%  { opacity: 1; transform: scale(1.05); }
+    100% { opacity: 0; transform: scale(1.1); }
+}
+
 .cascadeGlow {
     position: absolute;
     inset: -36px 0 0 0;
     pointer-events: none;
     background: linear-gradient(
         180deg,
-        rgba(255, 107, 53, 0.07) 0%,
-        rgba(59, 130, 246, 0.07) 50%,
-        rgba(52, 211, 153, 0.07) 100%
+        rgba(255, 107, 53, 0.12) 0%,
+        rgba(59, 130, 246, 0.10) 50%,
+        rgba(52, 211, 153, 0.12) 100%
     );
     border-radius: 16px;
-    animation: cascadeRipple 1.0s ease forwards;
+    animation: cascadeRipple 1.2s ease forwards;
 }
 
 @keyframes cascadeRipple {
-    0%   { opacity: 0; transform: scaleY(0.95); }
-    40%  { opacity: 1; }
-    100% { opacity: 0.35; transform: scaleY(1); }
+    0%   { opacity: 0; transform: scaleY(0.92); }
+    30%  { opacity: 1; transform: scaleY(1.02); }
+    50%  { opacity: 0.8; }
+    100% { opacity: 0.4; transform: scaleY(1); }
 }
 
 /* ══════════════════════════════════════════
