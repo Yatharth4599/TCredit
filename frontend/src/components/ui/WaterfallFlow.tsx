@@ -2,21 +2,44 @@ import { useEffect, useRef, useState } from 'react'
 import s from './WaterfallFlow.module.css'
 
 const TIERS = [
-  { name: 'Senior Capital',      desc: 'Institutional lending partners with priority repayment rights', color: '#FF6B35', fillPct: 80, badge: 'PAID FIRST',  delay: 0,    connDelay: 800  },
-  { name: 'Liquidity Pools',     desc: 'TigerPay Alpha + co-owned partner pools',                       color: '#3b82f6', fillPct: 64, badge: 'AUTO-SPLIT', delay: 1100, connDelay: 1900 },
-  { name: 'Community Investors', desc: 'Vault investors earning higher yield at higher risk',            color: '#34d399', fillPct: 45, badge: 'YIELD+',     delay: 2200, connDelay: null  },
+  {
+    name: 'Senior Capital',
+    desc: 'NBFC institutional lenders — priority repayment, lowest risk',
+    color: '#FF6B35',
+    principal: 25_000,
+    totalReturn: 26_500,
+    yieldRate: '1%/mo',
+    badge: 'PAID FIRST',
+    fillDuration: 1400,
+  },
+  {
+    name: 'Liquidity Pools',
+    desc: 'LP mezzanine pool — mid-risk, auto-split from revenue',
+    color: '#3b82f6',
+    principal: 15_000,
+    totalReturn: 16_128,
+    yieldRate: '1.25%/mo',
+    badge: 'PAID SECOND',
+    fillDuration: 1100,
+  },
+  {
+    name: 'Community Investors',
+    desc: 'Protocol treasury — first-loss layer, highest yield',
+    color: '#34d399',
+    principal: 10_000,
+    totalReturn: 10_900,
+    yieldRate: '1.5%/mo',
+    badge: 'PAID LAST',
+    fillDuration: 900,
+  },
 ] as const
+
+const TOTAL_OBLIGATION = TIERS.reduce((sum, t) => sum + t.totalReturn, 0)
 
 const TIER_ICONS = [
   <svg key="0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4" opacity="0.7"/></svg>,
   <svg key="1" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/><path d="M8 14a4 4 0 004 4" opacity="0.5"/></svg>,
   <svg key="2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" opacity="0.5"/></svg>,
-]
-
-const COUNTER_CONFIG = [
-  { target: 400, label: 'Senior (Jupiter)', delay: 200,  duration: 700 },
-  { target: 80,  label: 'Liquidity Pools',  delay: 1300, duration: 700 },
-  { target: 20,  label: 'Community',        delay: 2400, duration: 600 },
 ]
 
 function PadlockIcon({ color }: { color: string }) {
@@ -31,17 +54,23 @@ function PadlockIcon({ color }: { color: string }) {
   )
 }
 
+function fmtK(n: number): string {
+  if (n >= 1000) return `$${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K`
+  return `$${n}`
+}
+
 export default function WaterfallFlow() {
   const ref = useRef<HTMLDivElement>(null)
   const [phase, setPhase] = useState<'idle' | 'playing'>('idle')
   const [unlockedTiers, setUnlockedTiers] = useState([false, false, false])
   const [litConns, setLitConns] = useState([false, false])
+  const [tierFills, setTierFills] = useState([0, 0, 0])
+  const [tierDone, setTierDone] = useState([false, false, false])
   const [counters, setCounters] = useState([0, 0, 0])
   const [cascade, setCascade] = useState(false)
   const [footerVisible, setFooterVisible] = useState(false)
   const timerRefs = useRef<ReturnType<typeof setTimeout>[]>([])
   const animRef = useRef(0)
-  const startRef = useRef(0)
 
   function reset() {
     timerRefs.current.forEach(clearTimeout)
@@ -50,6 +79,8 @@ export default function WaterfallFlow() {
     setPhase('idle')
     setUnlockedTiers([false, false, false])
     setLitConns([false, false])
+    setTierFills([0, 0, 0])
+    setTierDone([false, false, false])
     setCounters([0, 0, 0])
     setCascade(false)
     setFooterVisible(false)
@@ -57,31 +88,58 @@ export default function WaterfallFlow() {
 
   function play() {
     setPhase('playing')
+
+    const unlockDelay = 300
+    const fillGap = 300
+    const tierTimings: { unlockAt: number; fillStartAt: number; fillEndAt: number }[] = []
+
+    let cursor = unlockDelay
+
     TIERS.forEach((tier, i) => {
+      const unlockAt = cursor
+      const fillStartAt = unlockAt + 400
+      const fillEndAt = fillStartAt + tier.fillDuration
+
+      tierTimings.push({ unlockAt, fillStartAt, fillEndAt })
+
       timerRefs.current.push(setTimeout(() => {
         setUnlockedTiers(prev => { const n = [...prev]; n[i] = true; return n })
-      }, tier.delay))
-      if (tier.connDelay !== null) {
-        const cd = tier.connDelay
-        timerRefs.current.push(setTimeout(() => {
-          setLitConns(prev => { const n = [...prev]; n[i] = true; return n })
-        }, cd))
-      }
-    })
-    timerRefs.current.push(setTimeout(() => setCascade(true), 3000))
-    timerRefs.current.push(setTimeout(() => setFooterVisible(true), 3200))
+      }, unlockAt))
 
-    startRef.current = performance.now()
+      timerRefs.current.push(setTimeout(() => {
+        setTierFills(prev => { const n = [...prev]; n[i] = 100; return n })
+      }, fillStartAt))
+
+      timerRefs.current.push(setTimeout(() => {
+        setTierDone(prev => { const n = [...prev]; n[i] = true; return n })
+        if (i < TIERS.length - 1) {
+          setLitConns(prev => { const n = [...prev]; n[i] = true; return n })
+        }
+      }, fillEndAt))
+
+      cursor = fillEndAt + fillGap
+    })
+
+    const lastFillEnd = tierTimings[tierTimings.length - 1].fillEndAt
+    timerRefs.current.push(setTimeout(() => setCascade(true), lastFillEnd + 300))
+    timerRefs.current.push(setTimeout(() => setFooterVisible(true), lastFillEnd + 500))
+
+    const startTime = performance.now()
     const tick = (now: number) => {
-      const elapsed = now - startRef.current
-      const next = COUNTER_CONFIG.map(({ target, delay, duration }) => {
-        const t = Math.max(0, elapsed - delay)
-        const p = Math.min(1, t / duration)
-        return Math.round(target * (1 - Math.pow(1 - p, 3)))
+      const elapsed = now - startTime
+      const next = TIERS.map((tier, i) => {
+        const { fillStartAt, fillEndAt } = tierTimings[i]
+        if (elapsed < fillStartAt) return 0
+        const t = Math.min(1, (elapsed - fillStartAt) / (fillEndAt - fillStartAt))
+        const eased = 1 - Math.pow(1 - t, 3)
+        return Math.round(tier.totalReturn * eased)
       })
       setCounters(next)
-      const lastEnd = COUNTER_CONFIG[2].delay + COUNTER_CONFIG[2].duration
-      if (elapsed < lastEnd) animRef.current = requestAnimationFrame(tick)
+      if (elapsed < lastFillEnd) {
+        animRef.current = requestAnimationFrame(tick)
+      } else {
+        setCounters(TIERS.map(t => t.totalReturn))
+      }
     }
     animRef.current = requestAnimationFrame(tick)
   }
@@ -104,36 +162,42 @@ export default function WaterfallFlow() {
   return (
     <div ref={ref} className={`${s.wrap} ${phase === 'playing' ? s.playing : ''}`}>
 
-      {/* ── Left panel ── */}
       <div className={s.left}>
         <div className={s.counterBox}>
-          <h4 className={s.counterTitle}>Example: AED 500K Gym Loan</h4>
+          <h4 className={s.counterTitle}>$50K Credit Line — Waterfall Repayment</h4>
           <div className={s.counterGrid}>
-            {COUNTER_CONFIG.map((c, i) => (
+            {TIERS.map((tier, i) => (
               <div key={i} className={s.counterItem}>
-                <span className={`${s.counterValue} ${counters[i] >= c.target ? s.counterDone : ''}`}>
-                  {counters[i]}K
+                <span
+                  className={`${s.counterValue} ${tierDone[i] ? s.counterDone : ''}`}
+                  style={tierDone[i] ? { color: tier.color, textShadow: `0 0 16px ${tier.color}77` } : undefined}
+                >
+                  {fmtK(counters[i])}
                 </span>
-                <span className={s.counterLabel}>{c.label}</span>
+                <span className={s.counterLabel}>{tier.name}</span>
               </div>
             ))}
           </div>
+          <div className={s.counterTotal}>
+            <span className={s.counterTotalLabel}>Total obligation</span>
+            <span className={s.counterTotalValue}>{fmtK(TOTAL_OBLIGATION)}</span>
+          </div>
         </div>
         <ul className={s.bullets}>
-          <li className={s.bullet0}><span className={s.check}>✓</span> Repayment cascades top-down automatically</li>
-          <li className={s.bullet1}><span className={s.check}>✓</span> Senior lenders are paid first — lowest risk</li>
-          <li className={s.bullet2}><span className={s.check}>✓</span> Community layer absorbs first losses</li>
+          <li className={s.bullet0}><span className={s.check}>✓</span> Senior lenders are paid in full first — lowest risk</li>
+          <li className={s.bullet1}><span className={s.check}>✓</span> Mezzanine receives flow only after Senior is complete</li>
+          <li className={s.bullet2}><span className={s.check}>✓</span> Community absorbs first losses, earns highest yield</li>
           <li className={s.bullet3}><span className={s.check}>✓</span> Smart-contract enforced — no manual routing</li>
         </ul>
         <p className={`${s.footerNote} ${footerVisible ? s.footerNoteVisible : ''}`}>
-          ✦ Smart-contract enforced · No manual routing
+          ✦ 15% of all revenue auto-routed to waterfall · On-chain enforced
         </p>
       </div>
 
-      {/* ── Right: tier stack ── */}
       <div className={s.tower}>
         {TIERS.map((tier, i) => {
           const unlocked = unlockedTiers[i]
+          const done = tierDone[i]
           return (
             <div key={i}>
               {i > 0 && (
@@ -152,22 +216,24 @@ export default function WaterfallFlow() {
                 className={`${s.tierCard} ${unlocked ? s.tierUnlocked : s.tierLocked}`}
                 style={{ '--tier-color': tier.color } as React.CSSProperties}
               >
-                {/* Vault door overlay — clips upward on unlock */}
                 <div className={`${s.vaultDoor} ${unlocked ? s.vaultDoorOpen : ''}`} />
 
-                {/* Border flash on unlock */}
                 {unlocked && (
                   <div className={s.borderFlash} style={{ '--flash-color': tier.color } as React.CSSProperties} />
                 )}
 
-                {/* Padlock — fades out on unlock */}
                 <div className={`${s.padlockWrap} ${unlocked ? s.padlockUnlocking : ''}`}>
                   <PadlockIcon color={tier.color} />
                 </div>
 
-                {/* Card content — fades in on unlock */}
                 <div className={`${s.tierContent} ${unlocked ? s.tierContentVisible : ''}`}>
-                  <div className={s.tierFill} style={{ background: tier.color }} />
+                  <div
+                    className={s.tierFill}
+                    style={{
+                      background: tier.color,
+                      width: `${tierFills[i] * 0.85}%`,
+                    }}
+                  />
                   <div className={s.tierShimmer} />
                   <div className={s.tierAccent} style={{ background: tier.color }} />
                   <div className={s.tierBody}>
@@ -176,25 +242,46 @@ export default function WaterfallFlow() {
                         <span className={s.tierIcon} style={{ color: tier.color }}>{TIER_ICONS[i]}</span>
                         {tier.name}
                       </span>
-                      <span
-                        className={`${s.tierBadge} ${unlocked ? s.tierBadgePulse : ''}`}
-                        style={{ borderColor: tier.color, color: tier.color }}
-                      >
-                        {tier.badge}
-                      </span>
+                      <div className={s.tierBadgeRow}>
+                        {done && (
+                          <span className={s.tierDoneBadge} style={{ background: `${tier.color}22`, color: tier.color }}>
+                            ✓ PAID
+                          </span>
+                        )}
+                        <span
+                          className={`${s.tierBadge} ${unlocked ? s.tierBadgePulse : ''}`}
+                          style={{ borderColor: tier.color, color: tier.color }}
+                        >
+                          {tier.badge}
+                        </span>
+                      </div>
                     </div>
                     <span className={s.tierDesc}>{tier.desc}</span>
+                    <div className={s.tierMeta}>
+                      <span className={s.tierMetaItem}>
+                        Principal: <strong>{fmtK(tier.principal)}</strong>
+                      </span>
+                      <span className={s.tierMetaDot}>·</span>
+                      <span className={s.tierMetaItem}>
+                        Yield: <strong>{tier.yieldRate}</strong>
+                      </span>
+                      <span className={s.tierMetaDot}>·</span>
+                      <span className={s.tierMetaItem}>
+                        Obligation: <strong>{fmtK(tier.totalReturn)}</strong>
+                      </span>
+                    </div>
                     <div className={s.tierBar}>
                       <div className={s.tierBarTrack}>
                         <div
-                          className={`${s.tierBarFill} ${unlocked ? s.tierBarFillAnimate : ''}`}
+                          className={s.tierBarFill}
                           style={{
                             background: `linear-gradient(90deg, ${tier.color}, ${tier.color}bb)`,
-                            '--fill-pct': `${tier.fillPct}%`,
-                          } as React.CSSProperties}
+                            width: `${tierFills[i]}%`,
+                            transition: `width ${tier.fillDuration}ms cubic-bezier(0.16, 1, 0.3, 1)`,
+                          }}
                         />
                       </div>
-                      <span className={s.tierBarLabel} style={{ color: tier.color }}>{tier.fillPct}%</span>
+                      <span className={s.tierBarLabel} style={{ color: tier.color }}>{tierFills[i]}%</span>
                     </div>
                   </div>
                 </div>
@@ -208,4 +295,3 @@ export default function WaterfallFlow() {
     </div>
   )
 }
-

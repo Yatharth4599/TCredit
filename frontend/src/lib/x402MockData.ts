@@ -222,14 +222,16 @@ export function computeWaterfallState(totalRepaid: number): WaterfallState {
   const seniorTarget = SENIOR_TRANCHE.totalReturn
   const mezzanineTarget = MEZZANINE_TRANCHE.totalReturn
   const juniorTarget = JUNIOR_TRANCHE.totalReturn
-  const totalTarget = TOTAL_OBLIGATION
 
-  const capped = Math.min(totalRepaid, totalTarget)
+  let remaining = Math.max(0, totalRepaid)
 
-  // Proportional distribution — each tier gets its share of every dollar repaid
-  const seniorRepaid = Math.min(Math.round(capped * seniorTarget / totalTarget), seniorTarget)
-  const mezzanineRepaid = Math.min(Math.round(capped * mezzanineTarget / totalTarget), mezzanineTarget)
-  const juniorRepaid = Math.min(Math.round(capped * juniorTarget / totalTarget), juniorTarget)
+  const seniorRepaid = Math.min(remaining, seniorTarget)
+  remaining -= seniorRepaid
+
+  const mezzanineRepaid = Math.min(remaining, mezzanineTarget)
+  remaining -= mezzanineRepaid
+
+  const juniorRepaid = Math.min(remaining, juniorTarget)
 
   return {
     seniorRepaid,

@@ -59,7 +59,9 @@ The frontend uses a Vite proxy to route `/api` requests to `localhost:3001`. Thi
 - `base-contracts/deployments/contracts.ts` - ABI exports (copied to backend on dev/build)
 
 ## Frontend Animations
-- `frontend/src/components/ui/TigerCanvas.tsx` - Animated pixel tiger with blink, roar, nostril smoke, particles, post-roar shockwave
+- `frontend/src/components/ui/TigerCanvas.tsx` - Animated pixel tiger with blink, roar, breathing, fur shimmer, eye glow, nostril flare, and pixel particles (smoke and shockwave removed)
 - `frontend/src/components/ui/AnimatedPixelIcons.tsx` - Animated pixel-art icons for Problem section: AnimatedCoinStackIcon (toppling coins), AnimatedVaultIcon (slamming vault door), AnimatedLockIcon (glitching padlock)
 - `frontend/src/components/ui/ProblemBackground.tsx` - Themed background canvas behind problem cards: falling coins (card 0), rotating gears/rings (card 1), glitch scanlines/pixels (card 2); cross-fades between themes
-- Problem section uses a single-card carousel with auto-advance every 4s and dot navigation
+- Problem section uses a single-card carousel with auto-advance every 6s and dot navigation
+- `frontend/src/components/ui/WaterfallFlow.tsx` - Capital structure waterfall animation: sequential tier unlock (Senior → Mezzanine → Junior) with vault door/padlock reveal, progress bar fills in cascade order, animated counters showing repayment amounts, "PAID" badges on completion. Uses real tranche data ($25K/$15K/$10K for $50K credit line).
+- `frontend/src/lib/x402MockData.ts` - Mock data for $50K credit line with 3-tranche waterfall. `computeWaterfallState()` uses true sequential (top-down) distribution — Senior paid in full first, then Mezzanine, then Junior.
