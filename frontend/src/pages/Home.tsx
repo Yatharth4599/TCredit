@@ -8,6 +8,7 @@ import CardSwap, { Card } from '../components/ui/CardSwap'
 import NoiseBackground from '../components/ui/NoiseBackground'
 import WaterfallFlow from '../components/ui/WaterfallFlow'
 import { BankIcon, HourglassIcon, ShieldIcon } from '../components/ui/PixelIcons'
+import { AnimatedSkullIcon, AnimatedChainIcon, AnimatedLockIcon } from '../components/ui/AnimatedPixelIcons'
 import TigerCanvas from '../components/ui/TigerCanvas'
 import { useScrollAnimations } from '../hooks/useScrollAnimations'
 
@@ -50,21 +51,21 @@ export default function Home() {
         {
             cardTitle: 'Traditional Finance',
             cardDetail: '65% of global SMEs cannot access formal credit. Banks demand collateral, physical presence, and 4–6 week review cycles. Productive businesses are locked out.',
-            icon: <BankIcon opacity={0.85} />,
+            icon: <AnimatedSkullIcon size={96} />,
             headline: 'Legacy credit',
             desc: 'Collateral-based systems exclude productive businesses from capital markets.',
         },
         {
             cardTitle: 'DeFi Lending Today',
             cardDetail: 'Overcollateralized protocols cannot evaluate real businesses. 150% collateral requirements make DeFi credit pointless for working capital.',
-            icon: <HourglassIcon opacity={0.85} />,
+            icon: <AnimatedChainIcon size={96} />,
             headline: 'Broken DeFi',
             desc: 'Current protocols ignore real-world productivity and cash flow entirely.',
         },
         {
             cardTitle: 'No Enforcement Layer',
             cardDetail: 'Capital pools exist. Borrowers exist. But there is no mechanism to verify revenue, route repayment from cash flow, or enforce terms without courts.',
-            icon: <ShieldIcon opacity={0.85} />,
+            icon: <AnimatedLockIcon size={96} />,
             headline: 'Missing infrastructure',
             desc: 'Capital cannot follow commerce — no protocol routes repayment from revenue.',
         },
