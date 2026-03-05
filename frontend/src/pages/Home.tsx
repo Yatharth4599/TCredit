@@ -207,7 +207,7 @@ export default function Home() {
 
                     <div className={`${styles.cta} ${mounted ? styles.visible : ''}`}>
                         <NoiseBackground gradientColors={['#FF5C00', '#CC4A00', '#FF8533']}>
-                            <button className={styles.primaryBtn} onClick={() => navigate('/waitlist')}>
+                            <button className={styles.primaryBtn} onClick={() => navigate('/vaults')}>
                                 <span>Launch App</span>
                                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                                     <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -382,7 +382,7 @@ export default function Home() {
                             <h3 className={styles.hiwCardTitle}>Route payments through Krexa</h3>
                             <p className={styles.hiwCardDesc}>Businesses bill customers using Krexa x402 payment endpoints. Customers pay via local rails or stablecoins. Every transaction is recorded on-chain as verifiable payment history.</p>
                             <div className={styles.hiwCardDetail}><span>Supports USDC, local bank rails, and card payments via on-ramp partners.</span></div>
-                            <button className={styles.hiwCardBtn} onClick={() => navigate('/waitlist')}>Learn More</button>
+                            <button className={styles.hiwCardBtn} onClick={() => navigate('/merchant')}>Learn More</button>
                         </div>
                         <div className={styles.hiwCard} style={{ background: '#00FFF0' }}>
                             <span className={styles.hiwStep}>02</span>
@@ -390,7 +390,7 @@ export default function Home() {
                             <h3 className={styles.hiwCardTitle}>Build a live credit profile</h3>
                             <p className={styles.hiwCardDesc}>Transaction behaviour builds a live credit profile — revenue consistency, volume, frequency, counterparty diversity. Your FairScale score updates with every payment, not once a year.</p>
                             <div className={styles.hiwCardDetail}><span>FairScale scores range 0–1000 across four credit tiers: A, B, C, D.</span></div>
-                            <button className={styles.hiwCardBtn} onClick={() => navigate('/waitlist')}>Learn More</button>
+                            <button className={styles.hiwCardBtn} onClick={() => navigate('/merchant')}>Learn More</button>
                         </div>
                         <div className={styles.hiwCard} style={{ background: '#FFD700' }}>
                             <span className={styles.hiwStep}>03</span>
@@ -398,7 +398,7 @@ export default function Home() {
                             <h3 className={styles.hiwCardTitle}>Access working capital instantly</h3>
                             <p className={styles.hiwCardDesc}>Request working capital, invoice financing, or trade finance against your receivables. Typical cost: ~2% monthly. No collateral needed — your revenue history is the collateral.</p>
                             <div className={styles.hiwCardDetail}><span>Loan terms from 3–12 months. Structured vault with milestone-gated tranches.</span></div>
-                            <button className={styles.hiwCardBtn} onClick={() => navigate('/waitlist')}>Learn More</button>
+                            <button className={styles.hiwCardBtn} onClick={() => navigate('/vaults')}>Learn More</button>
                         </div>
                         <div className={styles.hiwCard} style={{ background: '#FF2A55' }}>
                             <span className={`${styles.hiwStep} ${styles.hiwStepLight}`}>04</span>
@@ -406,7 +406,7 @@ export default function Home() {
                             <h3 className={`${styles.hiwCardTitle} ${styles.hiwCardTitleLight}`}>Fund through structured tranches</h3>
                             <p className={`${styles.hiwCardDesc} ${styles.hiwCardDescLight}`}>On-chain vaults fund loans via structured tranches — senior lenders get priority repayment, liquidity pools provide stable backing, and community investors earn higher yield at higher risk.</p>
                             <div className={`${styles.hiwCardDetail} ${styles.hiwCardDetailLight}`}><span>Waterfall distribution: Senior &rarr; Pool &rarr; Community &rarr; Merchant.</span></div>
-                            <button className={styles.hiwCardBtn} onClick={() => navigate('/waitlist')}>Learn More</button>
+                            <button className={styles.hiwCardBtn} onClick={() => navigate('/pools')}>Learn More</button>
                         </div>
                         <div className={styles.hiwCard} style={{ background: '#FFFFFF' }}>
                             <span className={styles.hiwStep}>05</span>
@@ -414,7 +414,7 @@ export default function Home() {
                             <h3 className={styles.hiwCardTitle}>Repayment happens automatically</h3>
                             <p className={styles.hiwCardDesc}>Incoming payments auto-split: lender repayment first, remaining balance to the merchant. No manual installments, no missed payments. Late fees are calculated and enforced on-chain.</p>
                             <div className={styles.hiwCardDetail}><span>x402 settlement splits enforce repayment at the protocol layer.</span></div>
-                            <button className={styles.hiwCardBtn} onClick={() => navigate('/waitlist')}>Learn More</button>
+                            <button className={styles.hiwCardBtn} onClick={() => navigate('/vaults')}>Learn More</button>
                         </div>
                     </div>
                 </div>
@@ -455,7 +455,7 @@ export default function Home() {
                                 <li><span className={styles.checkIcon}>✓</span> Continuous yield from x402 payment stream, not periodic coupons</li>
                                 <li><span className={styles.checkIcon}>✓</span> Full transparency — every repayment auditable on BaseScan</li>
                             </ul>
-                            <button className={styles.outlineBtn} onClick={() => navigate('/waitlist')}>
+                            <button className={styles.outlineBtn} onClick={() => navigate('/vaults')}>
                                 Browse Vaults
                             </button>
                         </div>
@@ -545,7 +545,7 @@ export default function Home() {
                                 <li><span className={styles.checkIcon}>✓</span> Auto-repayment from incoming payments — no manual installments</li>
                                 <li><span className={styles.checkIcon}>✓</span> Better rates as your FairScale score improves over time</li>
                             </ul>
-                            <button className={styles.outlineBtn} onClick={() => navigate('/waitlist')}>
+                            <button className={styles.outlineBtn} onClick={() => navigate('/merchant')}>
                                 Apply for Funding
                             </button>
                         </div>
@@ -761,11 +761,11 @@ export default function Home() {
                     <div className={styles.footerColumns}>
                         <div className={styles.footerCol}>
                             <h4>Products</h4>
-                            <a href="/waitlist">Vaults</a>
-                            <a href="/waitlist">Liquidity Pools</a>
-                            <a href="/waitlist">Portfolio</a>
-                            <a href="/waitlist">Merchant Dashboard</a>
-                            <a href="/waitlist">x402 Payments</a>
+                            <a href="/vaults">Vaults</a>
+                            <a href="/pools">Liquidity Pools</a>
+                            <a href="/portfolio">Portfolio</a>
+                            <a href="/merchant">Merchant Dashboard</a>
+                            <a href="/x402">x402 Payments</a>
                         </div>
                         <div className={styles.footerCol}>
                             <h4>Company</h4>

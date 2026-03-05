@@ -154,11 +154,3 @@ export const paymentsApi = {
   recent: (vaultId?: string) =>
     api.get<{ payments: ApiVaultEvent[]; total: number }>('/v1/payments/recent', { params: { vaultId } }),
 }
-
-// === Waitlist ===
-export const waitlistApi = {
-  join: (email: string, walletAddress?: string) =>
-    api.post<{ success: boolean; id: string }>('/v1/waitlist', { email, walletAddress }),
-  count: () =>
-    api.get<{ count: number }>('/v1/waitlist/count'),
-}

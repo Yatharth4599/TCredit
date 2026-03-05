@@ -2,7 +2,7 @@
 
 **Chain:** Base (EVM) — Solana features ported to Solidity
 **Target:** Lending protocol MVP with x402 automated repayment
-**Last updated:** 2026-03-01
+**Last updated:** 2026-03-05
 
 ---
 
@@ -196,7 +196,7 @@
 
 ---
 
-## Phase 7: Frontend Integration ✅ (mostly)
+## Phase 7: Frontend Integration ✅
 
 - [x] Remove `@solana/wallet-adapter-*` dependencies
 - [x] Install wagmi + viem + RainbowKit, configured for Base Sepolia (chainId: 84532)
@@ -208,46 +208,46 @@
 - [x] **Merchant Dashboard**: real profile, vault creation form with wallet signing
 - [x] **Liquidity Pools**: real pool data, deposit/withdraw flows with USDC approval
 - [x] Transaction UX: `useContractTx` hook — pending/confirmed/failed toasts
-- [ ] **X402 Demo**: live payment feed from indexed events (currently static demo)
-- [ ] Merchant vault creation: end-to-end signing flow needs final verification
+- [x] **X402 Demo**: intentional static demo (kept as-is by design)
+- [x] Merchant vault creation: pre-validation guardrails (registration check, credit tier warning, form validation, backend param bounds)
+- [x] Waitlist page fully removed (route, CSS, backend endpoint, API client method)
+- [x] All routing reverted to normal (no more `/waitlist` redirects)
+- [x] Rebranded to **Krexa** across all files
 
 ---
 
-## Phase 9: Visual Redesign ← **IN PROGRESS (partially broken)**
+## Phase 8: API Documentation & SDK ✅
 
-> Home page redesign started. Some CSS work done, but tiger mascot and scroll-locking are broken. Component-level redesign (9A-9G) not yet started.
+- [x] OpenAPI 3.0.3 spec (752 lines) — `backend/src/config/openapi.ts`
+- [x] Swagger UI served at `/api/v1/docs/` (CDN-loaded, dark theme)
+- [x] Raw spec at `/api/v1/docs/openapi.json`
+- [x] API key system — `tck_` prefix + 48-char hex, Prisma-backed `ApiKey` table
+- [x] Optional auth middleware (`apiKeyAuth`) — sets `req.apiKey` if valid key provided
+- [x] Required auth middleware (`requireApiKey`) — enforces key on admin routes
+- [x] Rate limiting — 30 req/min anonymous, per-key custom limit (default 100)
+- [x] In-memory sliding window with cleanup, sets `X-RateLimit-*` headers
+- [x] Webhook system — `whsec_` secret, `WebhookEndpoint` + `WebhookDelivery` tables
+- [x] Admin routes (key-protected): CRUD for API keys + webhooks, delivery log
+- [x] Background `startWebhookProcessor()` for retry on failed deliveries
+- [x] All 9 tag categories documented (Health, Vaults, Merchants, Pools, Investments, Platform, Oracle, Payments, Admin)
 
-### 9-HOME. Home Page Visual Overhaul
+---
 
-#### Done ✅
+## Phase 9: Visual Redesign ← **IN PROGRESS**
+
+### 9-HOME. Home Page Visual Overhaul ✅
+
 - [x] Section background colors: Insight=#00FFF0, HowItWorks=#FF5C00, ForUsers=#2CFF05, ForMerchants=#E0115F, WhyBlockchain=#FFFFFF
 - [x] Global accent swaps: #FF6B35→#FF5C00, #4bf1e5→#00FFF0, #fb4173→#E0115F
 - [x] Text color adapts per section (dark on bright/white bg, white on red bg)
-- [x] Divider gradients removed (display: none)
+- [x] Divider gradients removed
 - [x] Easing updated to cubic-bezier(.4, 0, .2, 1) on all reveals
-- [x] GPU hints (will-change, translateZ) on section transitions
 - [x] Flywheel cards solid colors: #2CFF05, #00FFF0, #E0115F, #FF5C00
 - [x] All sections min-height: 100vh
-- [x] Problem section: basic SVG pixel icons (`PixelIcons.tsx` — BankIcon, HourglassIcon, ShieldIcon)
+- [x] Problem section: SVG pixel icons (`PixelIcons.tsx`)
+- [x] Tiger mascot, scroll animations, full design — **completed by user**
 
-#### BROKEN — Needs Redo ❌
-- [ ] **Tiger mascot** — `TigerCanvas.tsx` renders a raccoon, not a tiger. Needs complete redo.
-  - Spec: 192x192 grid, 3x3px cells, 576x576 canvas, retina support
-  - Programmatic layered drawing: accent splash → base silhouette → shading → stripes → features → highlights → edge dissolve
-  - Full anatomy: rounded ears, 4-5 forehead stripes, fierce cyan (#00CED1) eyes, pink nose, OPEN ROAR mouth (white upper fangs, gold #DAA520 lower fangs, hot pink #FF4080 tongue, #1A1A1A void)
-  - Thick cheek stripes, grey shading for 3D volume, jawline, chin
-  - Edge dissolve: scattered pixels, watercolor-style orange/coral (left) + teal/cyan (right) accents
-  - Two-canvas animation: static core + animated overlay (edge drift, 25 particles, eye glow, accent shimmer)
-  - Reference image provided — white tiger, front-facing, shield/diamond silhouette, aggressive roar
-  - `TigerSVG.tsx` also exists and is bad — should be deleted
-- [ ] **Scroll-locking sections** — GSAP ScrollTrigger pin:true was attempted but broke page (set opacity:0 on all content). Reverted to IntersectionObserver. Needs proper implementation:
-  - User wants 1inch.com-style: section pins while animations play, scroll unlocks after animations complete
-  - GSAP v3.14.2 already installed
-  - Must work with existing CSS .visible classes + internal component animation triggers (Stepper, CardSwap, DecryptedText)
-  - Previous approach failed because CSS module class names are hashed — querySelectorAll with `.${styles.xxx}` doesn't work reliably in GSAP context
-- [ ] **Problem section icons** — Working but too basic/rough. Spec calls for 32x32 grid, 4px rects, 4-tone palette per icon with proper shading
-
-### 9A. Financial number hierarchy (all pages)
+### 9A. Financial number hierarchy (all pages) ← Next
 - [ ] Portfolio total value: 3rem+, centered, JetBrains Mono, with `$` prefix dimmed
 - [ ] Pool APY: dominant metric on pool card (2rem+), accent colored
 - [ ] Vault raised/target: largest element on vault card with live fill animation

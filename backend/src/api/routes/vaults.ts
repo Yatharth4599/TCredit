@@ -176,20 +176,36 @@ router.post('/create', async (req, res, next) => {
 
     if (!agent) throw new AppError(400, 'agent address required');
 
+    // Validate and apply defaults
+    const targetAmt = BigInt(targetAmount ?? 0);
+    if (targetAmt === 0n) throw new AppError(400, 'targetAmount is required and must be greater than 0');
+
+    const interest = Number(interestRateBps ?? 1200);
+    if (interest < 100 || interest > 5000) throw new AppError(400, 'interestRateBps must be 100–5000 (1%–50%)');
+
+    const tranches = Number(numTranches ?? 3);
+    if (tranches < 1 || tranches > 12) throw new AppError(400, 'numTranches must be between 1 and 12');
+
+    const lateFee = Number(lateFeeBps ?? 100);
+    if (lateFee < 0 || lateFee > 1000) throw new AppError(400, 'lateFeeBps must be between 0 and 1000');
+
+    const grace = Number(gracePeriodSeconds ?? 7 * 24 * 3600);
+    if (grace < 86400 || grace > 30 * 24 * 3600) throw new AppError(400, 'gracePeriodSeconds must be between 1 and 30 days');
+
     const data = encodeFunctionData({
       abi: VaultFactoryABI,
       functionName: 'createVault',
       args: [
         agent as Address,
-        BigInt(targetAmount ?? 0),
-        BigInt(interestRateBps ?? 1200),
+        targetAmt,
+        BigInt(interest),
         BigInt(durationSeconds ?? 180 * 24 * 3600),
-        BigInt(numTranches ?? 3),
+        BigInt(tranches),
         Number(repaymentRateBps ?? 2000),
         BigInt(minPaymentInterval ?? 86400),
         BigInt(maxSinglePayment ?? 0),
-        Number(lateFeeBps ?? 100),
-        BigInt(gracePeriodSeconds ?? 7 * 24 * 3600),
+        lateFee,
+        BigInt(grace),
         BigInt(fundraisingDeadline ?? Math.floor(Date.now() / 1000) + 30 * 24 * 3600),
       ],
     });

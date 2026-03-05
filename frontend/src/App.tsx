@@ -6,7 +6,11 @@ import Navbar from './components/layout/Navbar'
 import styles from './App.module.css'
 
 const Home = lazy(() => import('./pages/Home'))
-const Waitlist = lazy(() => import('./pages/Waitlist'))
+const Vaults = lazy(() => import('./pages/Vaults'))
+const VaultDetail = lazy(() => import('./pages/VaultDetail'))
+const Portfolio = lazy(() => import('./pages/Portfolio'))
+const LiquidityPools = lazy(() => import('./pages/LiquidityPools'))
+const MerchantDashboard = lazy(() => import('./pages/MerchantDashboard'))
 const X402Demo = lazy(() => import('./pages/X402Demo'))
 
 function getThemeFromPath(pathname: string): string {
@@ -64,14 +68,13 @@ function App() {
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<Home />} />
-                <Route path="/waitlist" element={<Waitlist />} />
-                <Route path="/vaults" element={<Navigate to="/waitlist" replace />} />
-                <Route path="/vaults/:address" element={<Navigate to="/waitlist" replace />} />
-                <Route path="/portfolio" element={<Navigate to="/waitlist" replace />} />
-                <Route path="/pools" element={<Navigate to="/waitlist" replace />} />
-                <Route path="/merchant" element={<Navigate to="/waitlist" replace />} />
+                <Route path="/vaults" element={<Vaults />} />
+                <Route path="/vaults/:address" element={<VaultDetail />} />
+                <Route path="/portfolio" element={<Portfolio />} />
+                <Route path="/pools" element={<LiquidityPools />} />
+                <Route path="/merchant" element={<MerchantDashboard />} />
                 <Route path="/x402" element={<X402Demo />} />
-                <Route path="*" element={<Navigate to="/waitlist" replace />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Suspense>
           </div>

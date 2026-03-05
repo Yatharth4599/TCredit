@@ -23,6 +23,8 @@ export default function MerchantDashboard() {
   const [loading, setLoading] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [isRegistered, setIsRegistered] = useState<boolean | null>(null)
+  const [registering, setRegistering] = useState(false)
 
   // Create vault form state
   const [form, setForm] = useState({
@@ -34,6 +36,9 @@ export default function MerchantDashboard() {
     gracePeriodDays: '7',
   })
 
+  type FormErrors = Partial<typeof form>
+  const [formErrors, setFormErrors] = useState<FormErrors>({})
+
   // Fetch merchant data
   useEffect(() => {
     if (!walletAddress) {
@@ -44,14 +49,51 @@ export default function MerchantDashboard() {
     }
     setLoading(true)
     Promise.all([
-      merchantApi.stats(walletAddress).then(r => setMerchant(r.data ?? null)).catch(() => setMerchant(null)),
+      merchantApi.stats(walletAddress)
+        .then(r => { setMerchant(r.data ?? null); setIsRegistered(true) })
+        .catch((err) => { setMerchant(null); setIsRegistered(err?.response?.status === 404 ? false : null) }),
       merchantApi.vaults(walletAddress).then(r => setVaults(r.data?.vaults ?? [])).catch(() => setVaults([])),
       oracleApi.payments({ limit: 10 }).then(r => setPayments(r.data?.payments ?? [])).catch(() => setPayments([])),
     ]).finally(() => setLoading(false))
   }, [walletAddress])
 
+  const handleRegister = async () => {
+    if (!walletAddress) return
+    setRegistering(true)
+    try {
+      const { data: unsignedTx } = await merchantApi.register({ metadataURI: '' })
+      await executeTx(unsignedTx)
+      setIsRegistered(true)
+      merchantApi.stats(walletAddress).then(r => setMerchant(r.data ?? null)).catch(() => {})
+    } catch {
+      // Error handled by toast
+    } finally {
+      setRegistering(false)
+    }
+  }
+
+  const validateForm = (): FormErrors => {
+    const errors: FormErrors = {}
+    const amount = parseFloat(form.targetAmount)
+    if (!form.targetAmount || isNaN(amount) || amount < 1000) errors.targetAmount = 'Minimum $1,000 USDC'
+    const rate = parseFloat(form.interestRate)
+    if (isNaN(rate) || rate < 1 || rate > 50) errors.interestRate = 'Must be 1%–50%'
+    const months = parseInt(form.durationMonths)
+    if (isNaN(months) || months < 1 || months > 24) errors.durationMonths = 'Must be 1–24 months'
+    const tranches = parseInt(form.numTranches)
+    if (isNaN(tranches) || tranches < 1 || tranches > 12) errors.numTranches = 'Must be 1–12'
+    const lateFee = parseInt(form.lateFeeBps)
+    if (isNaN(lateFee) || lateFee < 0 || lateFee > 1000) errors.lateFeeBps = 'Must be 0–1000 BPS'
+    const grace = parseInt(form.gracePeriodDays)
+    if (isNaN(grace) || grace < 1 || grace > 30) errors.gracePeriodDays = 'Must be 1–30 days'
+    return errors
+  }
+
   const handleCreateVault = async () => {
-    if (!walletAddress || !form.targetAmount) return
+    if (!walletAddress) return
+    const errors = validateForm()
+    if (Object.keys(errors).length > 0) { setFormErrors(errors); return }
+    setFormErrors({})
     setCreating(true)
     try {
       const params: CreateVaultParams = {
@@ -82,6 +124,26 @@ export default function MerchantDashboard() {
           <Wallet size={48} strokeWidth={1} />
           <h2>Connect Your Wallet</h2>
           <p>Connect your wallet to access the merchant dashboard</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!loading && isRegistered === false) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.connectPrompt}>
+          <Star size={48} strokeWidth={1} />
+          <h2>Not Registered as Merchant</h2>
+          <p>You need to register your wallet as a merchant before creating vaults.</p>
+          <button
+            className={styles.createBtn}
+            onClick={handleRegister}
+            disabled={registering}
+            style={{ marginTop: 16, padding: '10px 24px', fontSize: 14 }}
+          >
+            {registering ? <><Loader2 size={14} className={styles.spinner} /> Registering...</> : 'Register as Merchant'}
+          </button>
         </div>
       </div>
     )
@@ -274,70 +336,83 @@ export default function MerchantDashboard() {
               <button className={styles.modalClose} onClick={() => setShowCreateModal(false)}>✕</button>
             </div>
             <div className={styles.modalBody}>
+              {merchant && (merchant.creditTier === 'D' || !merchant.creditValid) && (
+                <div className={styles.creditWarning}>
+                  {merchant.creditTier === 'D'
+                    ? '⚠ D-tier credit — vault may not raise funding. Improve your FairScale score first.'
+                    : '⚠ Credit score expired — renew your score before creating a vault.'}
+                </div>
+              )}
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Target Amount (USDC)</label>
                   <input
-                    className={styles.formInput}
+                    className={`${styles.formInput} ${formErrors.targetAmount ? styles.inputError : ''}`}
                     type="number"
                     placeholder="50000"
                     value={form.targetAmount}
                     onChange={(e) => setForm(f => ({ ...f, targetAmount: e.target.value }))}
                   />
+                  {formErrors.targetAmount && <span className={styles.fieldError}>{formErrors.targetAmount}</span>}
                 </div>
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Interest Rate (%)</label>
                   <input
-                    className={styles.formInput}
+                    className={`${styles.formInput} ${formErrors.interestRate ? styles.inputError : ''}`}
                     type="number"
                     placeholder="12"
                     value={form.interestRate}
                     onChange={(e) => setForm(f => ({ ...f, interestRate: e.target.value }))}
                   />
+                  {formErrors.interestRate && <span className={styles.fieldError}>{formErrors.interestRate}</span>}
                 </div>
               </div>
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Duration (Months)</label>
                   <input
-                    className={styles.formInput}
+                    className={`${styles.formInput} ${formErrors.durationMonths ? styles.inputError : ''}`}
                     type="number"
                     placeholder="6"
                     value={form.durationMonths}
                     onChange={(e) => setForm(f => ({ ...f, durationMonths: e.target.value }))}
                   />
+                  {formErrors.durationMonths && <span className={styles.fieldError}>{formErrors.durationMonths}</span>}
                 </div>
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Number of Tranches</label>
                   <input
-                    className={styles.formInput}
+                    className={`${styles.formInput} ${formErrors.numTranches ? styles.inputError : ''}`}
                     type="number"
                     placeholder="3"
                     value={form.numTranches}
                     onChange={(e) => setForm(f => ({ ...f, numTranches: e.target.value }))}
                   />
+                  {formErrors.numTranches && <span className={styles.fieldError}>{formErrors.numTranches}</span>}
                 </div>
               </div>
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Late Fee (BPS)</label>
                   <input
-                    className={styles.formInput}
+                    className={`${styles.formInput} ${formErrors.lateFeeBps ? styles.inputError : ''}`}
                     type="number"
                     placeholder="100"
                     value={form.lateFeeBps}
                     onChange={(e) => setForm(f => ({ ...f, lateFeeBps: e.target.value }))}
                   />
+                  {formErrors.lateFeeBps && <span className={styles.fieldError}>{formErrors.lateFeeBps}</span>}
                 </div>
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Grace Period (Days)</label>
                   <input
-                    className={styles.formInput}
+                    className={`${styles.formInput} ${formErrors.gracePeriodDays ? styles.inputError : ''}`}
                     type="number"
                     placeholder="7"
                     value={form.gracePeriodDays}
                     onChange={(e) => setForm(f => ({ ...f, gracePeriodDays: e.target.value }))}
                   />
+                  {formErrors.gracePeriodDays && <span className={styles.fieldError}>{formErrors.gracePeriodDays}</span>}
                 </div>
               </div>
             </div>
@@ -346,7 +421,7 @@ export default function MerchantDashboard() {
               <button
                 className={styles.submitBtn}
                 onClick={handleCreateVault}
-                disabled={creating || !form.targetAmount}
+                disabled={creating || (merchant?.creditTier === 'D' && !merchant?.creditValid)}
               >
                 {creating ? <><Loader2 size={14} className={styles.spinner} /> Creating...</> : 'Create Vault'}
               </button>
