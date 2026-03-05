@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import { lazy, Suspense, useEffect } from 'react'
 import { Toaster } from 'react-hot-toast'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -6,35 +6,25 @@ import Navbar from './components/layout/Navbar'
 import styles from './App.module.css'
 
 const Home = lazy(() => import('./pages/Home'))
-const Waitlist = lazy(() => import('./pages/Waitlist'))
 const VaultsMarketing = lazy(() => import('./pages/VaultsMarketing'))
-const MerchantMarketing = lazy(() => import('./pages/MerchantMarketing'))
-const PoolsMarketing = lazy(() => import('./pages/PoolsMarketing'))
 const PortfolioMarketing = lazy(() => import('./pages/PortfolioMarketing'))
-const X402Demo = lazy(() => import('./pages/X402Demo'))
-// App pages
+const PoolsMarketing = lazy(() => import('./pages/PoolsMarketing'))
+const MerchantMarketing = lazy(() => import('./pages/MerchantMarketing'))
 const Vaults = lazy(() => import('./pages/Vaults'))
-const VaultDetail = lazy(() => import('./pages/VaultDetail'))
-const LiquidityPools = lazy(() => import('./pages/LiquidityPools'))
 const Portfolio = lazy(() => import('./pages/Portfolio'))
 const MerchantDashboard = lazy(() => import('./pages/MerchantDashboard'))
-const Gateway = lazy(() => import('./pages/Gateway'))
-const AgentIdentity = lazy(() => import('./pages/AgentIdentity'))
-const AgentWallets = lazy(() => import('./pages/AgentWallets'))
-const WalletDetail = lazy(() => import('./pages/WalletDetail'))
-const Kickstart = lazy(() => import('./pages/Kickstart'))
+const LiquidityPools = lazy(() => import('./pages/LiquidityPools'))
+const VaultDetail = lazy(() => import('./pages/VaultDetail'))
+const X402Demo = lazy(() => import('./pages/X402Demo'))
+const NotFound = lazy(() => import('./pages/NotFound'))
 
 function getThemeFromPath(pathname: string): string {
   if (pathname === '/') return 'home'
-  if (pathname.startsWith('/vaults') || pathname.startsWith('/app/vaults')) return 'vaults'
-  if (pathname.startsWith('/portfolio') || pathname.startsWith('/app/portfolio')) return 'portfolio'
-  if (pathname.startsWith('/merchant') || pathname.startsWith('/app/merchant')) return 'merchant'
-  if (pathname.startsWith('/pools') || pathname.startsWith('/app/pools')) return 'pools'
+  if (pathname.startsWith('/app/vaults') || pathname.startsWith('/vaults')) return 'vaults'
+  if (pathname.startsWith('/app/portfolio') || pathname.startsWith('/portfolio')) return 'portfolio'
+  if (pathname.startsWith('/app/merchant') || pathname.startsWith('/merchant')) return 'merchant'
+  if (pathname.startsWith('/app/pools') || pathname.startsWith('/pools')) return 'pools'
   if (pathname.startsWith('/x402')) return 'x402'
-  if (pathname.startsWith('/app/identity')) return 'home'
-  if (pathname.startsWith('/app/gateway')) return 'x402'
-  if (pathname.startsWith('/app/wallets')) return 'wallets'
-  if (pathname.startsWith('/app/kickstart')) return 'home'
   return 'home'
 }
 
@@ -83,26 +73,20 @@ function App() {
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<Home />} />
-                <Route path="/waitlist" element={<Waitlist />} />
                 {/* Marketing pages */}
                 <Route path="/vaults" element={<VaultsMarketing />} />
-                <Route path="/merchant" element={<MerchantMarketing />} />
-                <Route path="/pools" element={<PoolsMarketing />} />
                 <Route path="/portfolio" element={<PortfolioMarketing />} />
-                <Route path="/x402" element={<X402Demo />} />
-                {/* App pages */}
+                <Route path="/pools" element={<PoolsMarketing />} />
+                <Route path="/merchant" element={<MerchantMarketing />} />
+                {/* Functional app pages */}
                 <Route path="/app/vaults" element={<Vaults />} />
                 <Route path="/app/vaults/:address" element={<VaultDetail />} />
-                <Route path="/app/pools" element={<LiquidityPools />} />
+                <Route path="/vaults/:address" element={<VaultDetail />} />
                 <Route path="/app/portfolio" element={<Portfolio />} />
+                <Route path="/app/pools" element={<LiquidityPools />} />
                 <Route path="/app/merchant" element={<MerchantDashboard />} />
-                <Route path="/app/gateway" element={<Gateway />} />
-                <Route path="/app/wallets" element={<AgentWallets />} />
-                <Route path="/app/wallets/:address" element={<WalletDetail />} />
-                <Route path="/app/identity" element={<AgentIdentity />} />
-                <Route path="/app/identity/:address" element={<AgentIdentity />} />
-                <Route path="/app/kickstart" element={<Kickstart />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="/x402" element={<X402Demo />} />
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
           </div>

@@ -3,15 +3,13 @@ import { motion } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
 import { useAccount } from 'wagmi'
 import { merchantApi, vaultsApi, oracleApi } from '../api/client'
-import type { ApiMerchantStats, ApiVault, ApiOraclePayment, ApiSettlement, CreateVaultParams } from '../api/types'
-import { formatUSDC, weiToNumber, truncateAddress, parseUSDCToWei, bpsToPercent } from '../lib/format'
+import type { ApiMerchantStats, ApiVault, ApiOraclePayment, CreateVaultParams } from '../api/types'
+import { formatUSDC, weiToNumber, truncateAddress, parseUSDCToWei } from '../lib/format'
 import { useContractTx } from '../hooks/useContractTx'
-import { useUSDCApproval } from '../hooks/useUSDCApproval'
-import { CONTRACTS } from '../config/contracts'
-import toast from 'react-hot-toast'
-import { BentoGrid, BentoCard } from '../components/ui/BentoGrid'
 import { WaterfallChart } from '../components/charts/WaterfallChart'
-import { DollarSign, Star, CreditCard, Zap, ChevronRight, Plus, Activity, Wallet, Loader2, ArrowDownCircle, Clock, CheckCircle2, XCircle } from 'lucide-react'
+import { mockMerchantStats, mockVaults, mockPayments } from '../lib/mockData'
+import { StatRowSkeleton } from '../components/ui/StatRowSkeleton'
+import { Star, ChevronRight, Plus, Activity, Wallet, Loader2 } from 'lucide-react'
 import { STATUS_CONFIG } from '../lib/statusConfig'
 import styles from './MerchantDashboard.module.css'
 
@@ -29,17 +27,6 @@ export default function MerchantDashboard() {
   const [isRegistered, setIsRegistered] = useState<boolean | null>(null)
   const [registering, setRegistering] = useState(false)
 
-  // Repayment state
-  const [settlement, setSettlement] = useState<ApiSettlement | null>(null)
-  const [repayments, setRepayments] = useState<ApiOraclePayment[]>([])
-  const [showRepayModal, setShowRepayModal] = useState(false)
-  const [repayAmount, setRepayAmount] = useState('')
-  const [repaying, setRepaying] = useState(false)
-  const [repayStep, setRepayStep] = useState<'input' | 'approve' | 'submit' | 'success'>('input')
-  const [repayTxHash, setRepayTxHash] = useState<string | null>(null)
-  const { needsApproval, approve, isApproving } = useUSDCApproval(CONTRACTS.paymentRouter)
-
-  // Create vault form state
   const [form, setForm] = useState({
     targetAmount: '',
     interestRate: '12',
@@ -52,7 +39,6 @@ export default function MerchantDashboard() {
   type FormErrors = Partial<typeof form>
   const [formErrors, setFormErrors] = useState<FormErrors>({})
 
-  // Fetch merchant data
   useEffect(() => {
     if (!walletAddress) {
       setMerchant(null)
@@ -67,8 +53,6 @@ export default function MerchantDashboard() {
         .catch((err) => { setMerchant(null); setIsRegistered(err?.response?.status === 404 ? false : null) }),
       merchantApi.vaults(walletAddress).then(r => setVaults(r.data?.vaults ?? [])).catch(() => setVaults([])),
       oracleApi.payments({ limit: 10 }).then(r => setPayments(r.data?.payments ?? [])).catch(() => setPayments([])),
-      merchantApi.settlement(walletAddress).then(r => setSettlement(r.data ?? null)).catch(() => setSettlement(null)),
-      merchantApi.repayments(walletAddress).then(r => setRepayments(r.data?.repayments ?? [])).catch(() => setRepayments([])),
     ]).finally(() => setLoading(false))
   }, [walletAddress])
 
@@ -120,73 +104,21 @@ export default function MerchantDashboard() {
         lateFeeBps: parseInt(form.lateFeeBps),
         gracePeriodSeconds: parseInt(form.gracePeriodDays) * 86400,
       }
-      const { data } = await vaultsApi.create(params)
-      if (data?.success) {
-        toast.success('Vault created successfully!')
-        setShowCreateModal(false)
-        merchantApi.vaults(walletAddress).then(r => setVaults(r.data?.vaults ?? [])).catch(() => {})
-      } else {
-        toast.error('Vault creation failed')
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Vault creation failed'
-      toast.error(msg)
+      const { data: unsignedTx } = await vaultsApi.create(params)
+      await executeTx(unsignedTx)
+      setShowCreateModal(false)
+      merchantApi.vaults(walletAddress).then(r => setVaults(r.data?.vaults ?? [])).catch(() => {})
+    } catch {
+      // Error handled by toast
     } finally {
       setCreating(false)
     }
   }
 
-  // Repayment calculations
-  const repayAmountNum = parseFloat(repayAmount) || 0
-  const rateBps = settlement?.repaymentRateBps ?? 3000
-  const grossNeeded = rateBps > 0 ? repayAmountNum * 10000 / rateBps : 0
-  const netReturned = grossNeeded - repayAmountNum
-  const grossWei = rateBps > 0 ? parseUSDCToWei(grossNeeded.toFixed(6)) : '0'
-
-  const handleRepay = async () => {
-    if (!walletAddress || repayAmountNum <= 0) return
-    setRepaying(true)
-    try {
-      // Step 1: Check if approval needed
-      const grossBigInt = BigInt(grossWei)
-      if (needsApproval(grossBigInt)) {
-        setRepayStep('approve')
-        const approved = await approve(grossBigInt)
-        if (!approved) {
-          setRepaying(false)
-          setRepayStep('input')
-          return
-        }
-      }
-
-      // Step 2: Submit repayment
-      setRepayStep('submit')
-      const repayWei = parseUSDCToWei(repayAmountNum.toFixed(6))
-      const { data } = await merchantApi.repay(walletAddress, { repaymentAmount: repayWei })
-      setRepayTxHash(data.txHash)
-      setRepayStep('success')
-      toast.success('Repayment submitted successfully!')
-
-      // Refresh data
-      merchantApi.stats(walletAddress).then(r => setMerchant(r.data ?? null)).catch(() => {})
-      merchantApi.vaults(walletAddress).then(r => setVaults(r.data?.vaults ?? [])).catch(() => {})
-      merchantApi.repayments(walletAddress).then(r => setRepayments(r.data?.repayments ?? [])).catch(() => {})
-      merchantApi.settlement(walletAddress).then(r => setSettlement(r.data ?? null)).catch(() => {})
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Repayment failed'
-      toast.error(msg)
-      setRepayStep('input')
-    } finally {
-      setRepaying(false)
-    }
-  }
-
-  const openRepayModal = () => {
-    setRepayAmount('')
-    setRepayStep('input')
-    setRepayTxHash(null)
-    setShowRepayModal(true)
-  }
+  // Mock data fallback in dev
+  const displayMerchant = merchant ?? (import.meta.env.DEV && walletAddress ? mockMerchantStats : null)
+  const displayVaults = vaults.length > 0 ? vaults : (import.meta.env.DEV && walletAddress ? mockVaults.slice(0, 3) : [])
+  const displayPayments = payments.length > 0 ? payments : (import.meta.env.DEV && walletAddress ? mockPayments : [])
 
   if (!walletAddress) {
     return (
@@ -211,7 +143,7 @@ export default function MerchantDashboard() {
             className={styles.createBtn}
             onClick={handleRegister}
             disabled={registering}
-            style={{ marginTop: 16, padding: '10px 24px', fontSize: 14 }}
+            style={{ marginTop: 16, padding: '12px 28px', fontSize: 14 }}
           >
             {registering ? <><Loader2 size={14} className={styles.spinner} /> Registering...</> : 'Register as Merchant'}
           </button>
@@ -223,53 +155,75 @@ export default function MerchantDashboard() {
   if (loading) {
     return (
       <div className={styles.page}>
-        <div className={styles.loadingState}>
-          <Loader2 size={28} className={styles.spinner} />
-          <span>Loading dashboard...</span>
+        <div className={styles.hero}>
+          <div className={styles.heroInner}>
+            <div className={styles.heroLabel}>Merchant Dashboard</div>
+            <div style={{ height: 48 }} />
+          </div>
+        </div>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '32px 24px' }}>
+          <StatRowSkeleton count={4} />
         </div>
       </div>
     )
   }
 
-  const creditScore = merchant?.creditTier ?? '—'
-  const creditRating = merchant?.creditRating ?? 'Unknown'
-  const totalBorrowed = merchant ? formatUSDC(merchant.totalBorrowed) : '$0'
-  const totalRepaid = merchant ? formatUSDC(merchant.totalRepaid) : '$0'
-  const activeLoanCount = merchant?.activeLoanCount ?? 0
+  const creditScore = displayMerchant?.creditTier ?? '—'
+  const creditRating = displayMerchant?.creditRating ?? 'Unknown'
+  const totalBorrowed = displayMerchant ? formatUSDC(displayMerchant.totalBorrowed) : '$0'
+  const totalRepaid = displayMerchant ? formatUSDC(displayMerchant.totalRepaid) : '$0'
+  const activeLoanCount = displayMerchant?.activeLoanCount ?? 0
 
   return (
     <div className={styles.page}>
-      {/* Stats Row */}
-      <BentoGrid columns={4} gap={14}>
-        {[
-          { icon: <Star size={16} />, label: 'Credit Tier', value: creditScore, sub: creditRating },
-          { icon: <CreditCard size={16} />, label: 'Total Borrowed', value: totalBorrowed, sub: `${activeLoanCount} active loans` },
-          { icon: <DollarSign size={16} />, label: 'Total Repaid', value: totalRepaid, sub: merchant?.creditValid ? 'Score valid' : 'Score expired' },
-          { icon: <Zap size={16} />, label: 'Total Vaults', value: String(merchant?.totalVaults ?? 0), sub: 'All time' },
-        ].map((stat, i) => (
-          <BentoCard key={stat.label}>
-            <motion.div
-              className={styles.bentoStat}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1], delay: i * 0.08 }}
-            >
-              <div className={styles.bentoStatHeader}>
-                <span className={styles.bentoStatIcon}>{stat.icon}</span>
-                <span className={styles.bentoStatLabel}>{stat.label}</span>
-              </div>
-              <div className={styles.bentoStatValue}>{stat.value}</div>
-              <div className={styles.bentoStatSub}>{stat.sub}</div>
-            </motion.div>
-          </BentoCard>
-        ))}
-      </BentoGrid>
+      {/* Hero Band */}
+      <div className={styles.hero}>
+        <motion.div
+          className={styles.heroInner}
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <div className={styles.heroLabel}>Merchant Dashboard</div>
+          <h1 className={styles.heroTitle}>Credit Tier: {creditScore}</h1>
+          <div className={styles.heroSub}>{creditRating} Rating</div>
+        </motion.div>
+      </div>
 
-      {/* Main Content */}
-      <BentoGrid columns={3} gap={14}>
-        {/* Live Oracle Payments */}
-        <BentoCard colSpan="span 1" rowSpan="span 2">
-          <div className={styles.bentoInner}>
+      {/* Stats Row (dark bg) */}
+      <div className={styles.statsRow}>
+        {[
+          { value: totalBorrowed, label: 'Total Borrowed', sub: `${activeLoanCount} active loans` },
+          { value: totalRepaid, label: 'Total Repaid', sub: displayMerchant?.creditValid ? 'Score valid' : 'Score expired' },
+          { value: String(activeLoanCount), label: 'Active Loans', sub: 'Currently running' },
+          { value: String(displayMerchant?.totalVaults ?? 0), label: 'Total Vaults', sub: 'All time' },
+        ].map((stat, i) => (
+          <motion.div
+            key={stat.label}
+            className={styles.statCard}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: i * 0.06 }}
+          >
+            <div className={styles.statValue}>{stat.value}</div>
+            <div className={styles.statLabel}>{stat.label}</div>
+            <div className={styles.statSub}>{stat.sub}</div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* White Section — Content Panels */}
+      <div className={styles.body}>
+        <div className={styles.contentGrid}>
+          {/* Oracle Payments */}
+          <motion.div
+            className={styles.panel}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-40px' }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+          >
             <div className={styles.sectionHeader}>
               <div className={styles.sectionTitle}>
                 <Activity size={15} className={styles.sectionIcon} />
@@ -282,11 +236,18 @@ export default function MerchantDashboard() {
             </div>
 
             <div className={styles.paymentList}>
-              {payments.length === 0 ? (
+              {displayPayments.length === 0 ? (
                 <div className={styles.emptyPayments}>No payments yet</div>
               ) : (
-                payments.map((p) => (
-                  <div key={p.id} className={styles.paymentRow}>
+                displayPayments.map((p, i) => (
+                  <motion.div
+                    key={p.id}
+                    className={styles.paymentRow}
+                    initial={{ opacity: 0, x: -10 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.3, delay: i * 0.04 }}
+                  >
                     <div className={styles.paymentLeft}>
                       <span className={styles.paymentSource}>{truncateAddress(p.from)}</span>
                       <span className={styles.paymentVault}>{truncateAddress(p.vault)}</span>
@@ -296,121 +257,20 @@ export default function MerchantDashboard() {
                       <span className={styles.paymentTime}>{p.status}</span>
                     </div>
                     <ChevronRight size={14} className={styles.paymentChevron} />
-                  </div>
+                  </motion.div>
                 ))
               )}
             </div>
-          </div>
-        </BentoCard>
+          </motion.div>
 
-        {/* Waterfall Breakdown — show first vault's waterfall if active */}
-        <BentoCard colSpan="span 2">
-          <div className={styles.bentoInner}>
-            {vaults.length > 0 && weiToNumber(vaults[0].totalRaised) > 0 ? (
-              <WaterfallChart
-                totalAmount={weiToNumber(vaults[0].totalRaised)}
-                seniorPayment={0}
-                poolPayment={0}
-                userPayment={0}
-              />
-            ) : (
-              <div className={styles.emptyChart}>
-                <p>Create a vault to see waterfall distribution</p>
-              </div>
-            )}
-          </div>
-        </BentoCard>
-
-        {/* Loan Repayment */}
-        <BentoCard colSpan="span 2">
-          <div className={styles.bentoInner}>
-            <div className={styles.sectionHeader}>
-              <div className={styles.sectionTitle}>
-                <ArrowDownCircle size={15} className={styles.sectionIcon} />
-                Loan Repayment
-              </div>
-              {settlement?.active && (
-                <span className={styles.rateBadge}>
-                  {bpsToPercent(rateBps)} to vault
-                </span>
-              )}
-            </div>
-
-            {vaults.filter(v => v.state === 'active' || v.state === 'repaying').length === 0 ? (
-              <div className={styles.emptyPayments}>No active loans to repay</div>
-            ) : (
-              <div className={styles.repaymentSection}>
-                {vaults.filter(v => v.state === 'active' || v.state === 'repaying').map((vault) => {
-                  const outstanding = BigInt(vault.totalToRepay) - BigInt(vault.totalRepaid)
-                  const repaidPct = BigInt(vault.totalToRepay) > 0n
-                    ? Number(BigInt(vault.totalRepaid) * 100n / BigInt(vault.totalToRepay))
-                    : 0
-                  return (
-                    <div key={vault.address} className={styles.repayVaultRow}>
-                      <div className={styles.repayVaultInfo}>
-                        <span className={styles.repayVaultAddr}>{truncateAddress(vault.address, 6)}</span>
-                        <span className={styles.repayVaultOutstanding}>
-                          {formatUSDC(outstanding.toString())} remaining
-                        </span>
-                      </div>
-                      <div className={styles.repayProgressBar}>
-                        <div
-                          className={styles.repayProgressFill}
-                          style={{ width: `${Math.min(repaidPct, 100)}%` }}
-                        />
-                      </div>
-                      <div className={styles.repayProgressMeta}>
-                        <span>{formatUSDC(vault.totalRepaid)} / {formatUSDC(vault.totalToRepay)}</span>
-                        <span>{repaidPct}% repaid</span>
-                      </div>
-                    </div>
-                  )
-                })}
-                <button className={styles.repayBtn} onClick={openRepayModal}>
-                  Make Repayment
-                </button>
-              </div>
-            )}
-          </div>
-        </BentoCard>
-
-        {/* Repayment History */}
-        <BentoCard colSpan="span 1">
-          <div className={styles.bentoInner}>
-            <div className={styles.sectionHeader}>
-              <div className={styles.sectionTitle}>
-                <Clock size={15} className={styles.sectionIcon} />
-                Repayments
-              </div>
-            </div>
-            <div className={styles.paymentList}>
-              {repayments.length === 0 ? (
-                <div className={styles.emptyPayments}>No repayments yet</div>
-              ) : (
-                repayments.slice(0, 8).map((r) => (
-                  <div key={r.id} className={styles.paymentRow}>
-                    <div className={styles.paymentLeft}>
-                      <span className={styles.paymentSource}>{formatUSDC(r.amount)}</span>
-                      <span className={styles.paymentVault}>{new Date(r.createdAt).toLocaleDateString()}</span>
-                    </div>
-                    <div className={styles.paymentRight}>
-                      <span className={`${styles.statusBadge} ${styles[`status_${r.status}`] || ''}`}>
-                        {r.status === 'confirmed' && <CheckCircle2 size={11} />}
-                        {r.status === 'failed' && <XCircle size={11} />}
-                        {(r.status === 'pending' || r.status === 'submitted') && <Loader2 size={11} className={styles.spinner} />}
-                        {r.status}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </BentoCard>
-
-        {/* Vault Management */}
-        <BentoCard colSpan="span 2">
-          <div className={styles.bentoInner}>
+          {/* Vault Management */}
+          <motion.div
+            className={styles.panel}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-40px' }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+          >
             <div className={styles.sectionHeader}>
               <div className={styles.sectionTitle}>Your Vaults</div>
               <button className={styles.createBtn} onClick={() => setShowCreateModal(true)}>
@@ -419,17 +279,36 @@ export default function MerchantDashboard() {
               </button>
             </div>
 
+            {/* Waterfall if applicable */}
+            {displayVaults.length > 0 && weiToNumber(displayVaults[0].totalRaised) > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <WaterfallChart
+                  totalAmount={weiToNumber(displayVaults[0].totalRaised)}
+                  seniorPayment={0}
+                  poolPayment={0}
+                  userPayment={0}
+                />
+              </div>
+            )}
+
             <div className={styles.vaultList}>
-              {vaults.length === 0 ? (
+              {displayVaults.length === 0 ? (
                 <div className={styles.emptyVaults}>
                   <p>No vaults yet. Create one to get started.</p>
                 </div>
               ) : (
-                vaults.map((vault) => {
+                displayVaults.map((vault, i) => {
                   const status = STATUS_CONFIG[vault.state] ?? STATUS_CONFIG.fundraising
 
                   return (
-                    <div key={vault.address} className={styles.vaultItem}>
+                    <motion.div
+                      key={vault.address}
+                      className={styles.vaultItem}
+                      initial={{ opacity: 0, y: 12 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.4, delay: i * 0.06 }}
+                    >
                       <div className={styles.vaultTop}>
                         <div>
                           <h4 className={styles.vaultName}>{truncateAddress(vault.address, 6)}</h4>
@@ -439,19 +318,19 @@ export default function MerchantDashboard() {
                         </div>
                         <span
                           className={styles.vaultStatus}
-                          style={{ color: status.color, borderColor: `${status.color}33`, background: `${status.color}12` }}
+                          style={{ color: status.color, borderColor: `${status.color}33`, background: `${status.color}18` }}
                         >
                           {status.label}
                         </span>
                       </div>
 
                       <div className={styles.vaultAmounts}>
-                        <div className={styles.vaultAmt}>
+                        <div>
                           <span className={styles.vaultAmtVal}>{formatUSDC(vault.totalRaised)}</span>
                           <span className={styles.vaultAmtLbl}>Raised</span>
                         </div>
                         {(vault.state === 'active' || vault.state === 'repaying') && (
-                          <div className={styles.vaultAmt}>
+                          <div>
                             <span className={styles.vaultAmtVal}>{formatUSDC(vault.totalRepaid)}</span>
                             <span className={styles.vaultAmtLbl}>Repaid</span>
                           </div>
@@ -459,12 +338,12 @@ export default function MerchantDashboard() {
                       </div>
 
                       <div className={styles.vaultProgressBar}>
-                        <div
+                        <motion.div
                           className={styles.vaultProgressFill}
-                          style={{
-                            width: `${vault.percentFunded}%`,
-                            background: status.color,
-                          }}
+                          initial={{ width: 0 }}
+                          whileInView={{ width: `${vault.percentFunded}%` }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
                         />
                       </div>
                       <div className={styles.vaultProgressMeta}>
@@ -472,33 +351,39 @@ export default function MerchantDashboard() {
                       </div>
 
                       <div className={styles.vaultActions}>
-                        <button className={styles.manageBtn} onClick={() => navigate(`/app/vaults/${vault.address}`)}>
+                        <button className={styles.manageBtn} onClick={() => navigate(`/vaults/${vault.address}`)}>
                           Details
                         </button>
                       </div>
-                    </div>
+                    </motion.div>
                   )
                 })
               )}
             </div>
-          </div>
-        </BentoCard>
-      </BentoGrid>
+          </motion.div>
+        </div>
+      </div>
 
       {/* Create Vault Modal */}
       {showCreateModal && (
         <div className={styles.modalOverlay} onClick={() => setShowCreateModal(false)}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+          <motion.div
+            className={styles.modal}
+            onClick={(e) => e.stopPropagation()}
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          >
             <div className={styles.modalHeader}>
               <h2>Create New Vault</h2>
               <button className={styles.modalClose} onClick={() => setShowCreateModal(false)}>✕</button>
             </div>
             <div className={styles.modalBody}>
-              {merchant && (merchant.creditTier === 'D' || !merchant.creditValid) && (
+              {displayMerchant && (displayMerchant.creditTier === 'D' || !displayMerchant.creditValid) && (
                 <div className={styles.creditWarning}>
-                  {merchant.creditTier === 'D'
-                    ? '⚠ D-tier credit — vault may not raise funding. Improve your FairScale score first.'
-                    : '⚠ Credit score expired — renew your score before creating a vault.'}
+                  {displayMerchant.creditTier === 'D'
+                    ? 'D-tier credit — vault may not raise funding. Improve your FairScale score first.'
+                    : 'Credit score expired — renew your score before creating a vault.'}
                 </div>
               )}
               <div className={styles.formRow}>
@@ -579,108 +464,12 @@ export default function MerchantDashboard() {
               <button
                 className={styles.submitBtn}
                 onClick={handleCreateVault}
-                disabled={creating}
+                disabled={creating || (displayMerchant?.creditTier === 'D' && !displayMerchant?.creditValid)}
               >
                 {creating ? <><Loader2 size={14} className={styles.spinner} /> Creating...</> : 'Create Vault'}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-      {/* Repay Modal */}
-      {showRepayModal && (
-        <div className={styles.modalOverlay} onClick={() => setShowRepayModal(false)}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h2>Make Repayment</h2>
-              <button className={styles.modalClose} onClick={() => setShowRepayModal(false)}>&#x2715;</button>
-            </div>
-            <div className={styles.modalBody}>
-              {repayStep === 'success' ? (
-                <div className={styles.repaySuccess}>
-                  <CheckCircle2 size={40} />
-                  <h3>Repayment Submitted</h3>
-                  <p>Your repayment of {formatUSDC(parseUSDCToWei(repayAmountNum.toFixed(6)))} has been processed.</p>
-                  {repayTxHash && (
-                    <a
-                      href={`https://sepolia.basescan.org/tx/${repayTxHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.txLink}
-                    >
-                      View transaction
-                    </a>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Repayment Amount (USDC to vault)</label>
-                    <input
-                      className={styles.formInput}
-                      type="number"
-                      placeholder="300"
-                      value={repayAmount}
-                      onChange={(e) => setRepayAmount(e.target.value)}
-                      disabled={repayStep !== 'input'}
-                    />
-                  </div>
-
-                  {repayAmountNum > 0 && (
-                    <div className={styles.repayBreakdown}>
-                      <div className={styles.repayBreakdownRow}>
-                        <span>Gross USDC needed</span>
-                        <span className={styles.repayBreakdownVal}>${grossNeeded.toFixed(2)}</span>
-                      </div>
-                      <div className={styles.repayBreakdownRow}>
-                        <span>To vault ({bpsToPercent(rateBps)})</span>
-                        <span className={styles.repayBreakdownVal}>${repayAmountNum.toFixed(2)}</span>
-                      </div>
-                      <div className={styles.repayBreakdownRow}>
-                        <span>Returned to you</span>
-                        <span className={styles.repayBreakdownVal}>${netReturned.toFixed(2)}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {repayStep === 'approve' && (
-                    <div className={styles.repayStepIndicator}>
-                      <Loader2 size={14} className={styles.spinner} />
-                      <span>Step 1/2: Approve USDC spending...</span>
-                    </div>
-                  )}
-                  {repayStep === 'submit' && (
-                    <div className={styles.repayStepIndicator}>
-                      <Loader2 size={14} className={styles.spinner} />
-                      <span>Step 2/2: Submitting repayment...</span>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-            <div className={styles.modalFooter}>
-              {repayStep === 'success' ? (
-                <button className={styles.submitBtn} onClick={() => setShowRepayModal(false)}>
-                  Done
-                </button>
-              ) : (
-                <>
-                  <button className={styles.cancelBtn} onClick={() => setShowRepayModal(false)}>Cancel</button>
-                  <button
-                    className={styles.submitBtn}
-                    onClick={handleRepay}
-                    disabled={repaying || isApproving || repayAmountNum <= 0}
-                  >
-                    {repaying || isApproving ? (
-                      <><Loader2 size={14} className={styles.spinner} /> Processing...</>
-                    ) : (
-                      'Repay'
-                    )}
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
+          </motion.div>
         </div>
       )}
     </div>

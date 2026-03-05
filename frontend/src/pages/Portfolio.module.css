@@ -1,808 +1,518 @@
 /* ============================================
-   PORTFOLIO PAGE — Cyan accent, borderless surfaces
+   PORTFOLIO PAGE — Cyan accent, alternating sections
    ============================================ */
 
 .portfolio {
-    min-height: 100vh;
-    background: var(--bg-dark);
-    padding: 100px 24px 60px;
-    position: relative;
-    z-index: 1;
+  min-height: 100vh;
+  background: var(--bg-dark);
 }
 
-/* Ambient Background */
-.ambientGlow {
-    position: fixed;
-    top: -20%;
-    right: -10%;
-    width: 1100px;
-    height: 1100px;
-    background: radial-gradient(
-        ellipse at center,
-        rgba(var(--accent-rgb), 0.12) 0%,
-        transparent 55%
-    );
-    filter: blur(100px);
-    pointer-events: none;
-    z-index: 0;
+/* ─── Hero Band ────────────────────────────── */
+.hero {
+  background: var(--accent);
+  padding: 120px 24px 48px;
 }
 
-/* ============================================
-   HEADER
-   ============================================ */
-
-.header {
-    max-width: 1280px;
-    margin: 0 auto 40px;
+.heroInner {
+  max-width: 1280px;
+  margin: 0 auto;
 }
 
-.headerContent {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+.heroLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.45);
+  margin-bottom: 8px;
 }
 
-.overline {
-    font-size: 0.7rem;
-    font-weight: 600;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--accent);
+.heroTitle {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: #000;
+  margin: 0 0 24px;
 }
 
-.title {
-    font-family: var(--font-display);
-    font-size: clamp(1.75rem, 4vw, 2.5rem);
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    color: var(--text-primary);
+.heroValue {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
 }
 
-/* ============================================
-   MAIN CONTENT LAYOUT
-   ============================================ */
-
-.content {
-    max-width: 1280px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 340px 1fr;
-    gap: 24px;
+.heroCurrency {
+  font-family: var(--font-mono);
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.4);
 }
 
-.leftColumn {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+.heroAmount {
+  font-family: var(--font-mono);
+  font-size: clamp(3rem, 8vw, 5.5rem);
+  font-weight: 800;
+  color: #000;
+  line-height: 1;
 }
 
-.rightColumn {
-    min-width: 0;
+/* ─── Stats Row (dark bg) ─────────────────── */
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px 24px 0;
 }
 
-/* ============================================
-   OVERVIEW CARD
-   ============================================ */
-
-.overviewCard {
-    background: var(--surface-2);
-    border-radius: var(--card-border-radius);
-    padding: 24px;
+.statCard {
+  padding: 24px 20px;
+  border-radius: 12px;
+  background: var(--surface-1);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.overviewHeader {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
-    font-size: 0.85rem;
-    color: var(--text-tertiary);
+.statValue {
+  font-family: var(--font-mono);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 6px;
 }
 
-.liveBadge {
-    padding: 4px 10px;
-    background: rgba(var(--accent-rgb), 0.12);
-    color: var(--accent);
-    font-size: 0.7rem;
-    font-weight: 600;
-    border-radius: var(--pill-radius);
+.statLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
 }
 
-.overviewValue {
-    display: flex;
-    align-items: baseline;
-    gap: 4px;
-    margin-bottom: 8px;
+/* ─── White Section (investments) ─────────── */
+.body {
+  background: #FFFFFF;
+  margin-top: 32px;
+  padding: 48px 24px 60px;
 }
 
-.currency {
-    font-family: var(--font-mono);
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--text-tertiary);
+.bodyInner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
-.amount {
-    font-family: var(--font-mono);
-    font-size: 2.5rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.overviewChange {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 24px;
-}
-
-.profit {
-    font-family: var(--font-mono);
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--color-success);
-}
-
-.percent {
-    padding: 4px 10px;
-    background: rgba(34, 197, 94, 0.12);
-    color: var(--color-success);
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    font-weight: 600;
-    border-radius: var(--pill-radius);
-}
-
-.overviewStats {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 0;
-    border-top: 1px solid var(--surface-4);
-    border-bottom: 1px solid var(--surface-4);
-}
-
-.overviewStat {
-    text-align: center;
-    flex: 1;
-}
-
-.overviewStatValue {
-    display: block;
-    font-family: var(--font-mono);
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 4px;
-}
-
-.overviewStatLabel {
-    font-size: 0.68rem;
-    color: var(--text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-}
-
-.overviewStatDivider {
-    width: 1px;
-    height: 32px;
-    background: var(--surface-4);
-}
-
-.claimSection {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 20px;
-    padding: 16px;
-    background: rgba(var(--accent-rgb), 0.06);
-    border-radius: 12px;
+/* ─── Claim Banner ─────────────────────────── */
+.claimBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  background: #F5F5F7;
+  border: 1px solid #E5E5E5;
+  border-radius: 12px;
 }
 
 .claimInfo {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .claimLabel {
-    font-size: 0.75rem;
-    color: var(--text-tertiary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(0, 0, 0, 0.45);
 }
 
 .claimValue {
-    font-family: var(--font-mono);
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--accent);
 }
 
-.claimBtn {
-    padding: 10px 20px;
-    background: var(--accent);
-    color: #000;
-    font-size: 0.85rem;
-    font-weight: 600;
-    border: none;
-    border-radius: var(--pill-radius);
-    cursor: pointer;
-    transition: transform 0.15s ease, filter 0.15s ease;
-}
-
-.claimBtn:hover {
-    transform: scale(0.97);
-    filter: brightness(1.1);
-}
-
-/* ============================================
-   ALLOCATION CARD
-   ============================================ */
-
-.allocationCard,
-.activityCard {
-    background: var(--surface-2);
-    border-radius: var(--card-border-radius);
-    padding: 20px;
-}
-
-.cardTitle {
-    font-family: var(--font-display);
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 16px;
-}
-
-.allocationList {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 16px;
-}
-
-.allocationItem {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.allocationInfo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.allocationDot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-}
-
-.dotActive {
-    background: var(--color-success);
-}
-
-.dotRepaying {
-    background: #60a5fa;
-}
-
-.dotCompleted {
-    background: var(--text-tertiary);
-}
-
-.allocationName {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-}
-
-.allocationRight {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.allocationAmount {
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.allocationPercent {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--text-tertiary);
-    min-width: 32px;
-    text-align: right;
-}
-
-.allocationBar {
-    display: flex;
-    height: 4px;
-    background: var(--surface-4);
-    border-radius: var(--pill-radius);
-    overflow: hidden;
-}
-
-.allocationBarSegment {
-    height: 100%;
-    transition: width 0.8s ease;
-}
-
-.barActive {
-    background: var(--color-success);
-}
-
-.barRepaying {
-    background: #60a5fa;
-}
-
-.barCompleted {
-    background: var(--text-tertiary);
-}
-
-/* ============================================
-   ACTIVITY CARD
-   ============================================ */
-
-.activityList {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-}
-
-.activityItem {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--surface-3);
-}
-
-.activityItem:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-}
-
-.activityItem:first-child {
-    padding-top: 0;
-}
-
-.activityIcon {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--surface-3);
-    border-radius: 10px;
-    color: var(--text-tertiary);
-}
-
-.activityInfo {
-    flex: 1;
-    min-width: 0;
-}
-
-.activityTitle {
-    display: block;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--text-primary);
-    margin-bottom: 2px;
-}
-
-.activityDesc {
-    font-size: 0.75rem;
-    color: var(--text-tertiary);
-}
-
-.activityRight {
-    text-align: right;
-}
-
-.activityAmount {
-    display: block;
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--accent);
-    margin-bottom: 2px;
-}
-
-.activityAmountGreen {
-    display: block;
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--color-success);
-    margin-bottom: 2px;
-}
-
-.activityTime {
-    font-size: 0.7rem;
-    color: var(--text-tertiary);
-}
-
-/* ============================================
-   INVESTMENTS CARD
-   ============================================ */
-
+/* ─── Investments Card (white section) ────── */
 .investmentsCard {
-    background: var(--surface-2);
-    border-radius: var(--card-border-radius);
-    overflow: hidden;
+  background: #FFFFFF;
+  border: 1px solid #E5E5E5;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .investmentsHeader {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 20px 24px;
-    border-bottom: 1px solid var(--surface-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #E5E5E5;
 }
 
-.investmentsHeader h2 {
-    font-family: var(--font-display);
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--text-primary);
+.investmentsTitle {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: #000;
 }
 
 .tabs {
-    display: flex;
-    gap: 4px;
+  display: flex;
+  gap: 4px;
 }
 
 .tab {
-    padding: 8px 16px;
-    background: transparent;
-    color: var(--text-tertiary);
-    font-size: 0.8rem;
-    font-weight: 500;
-    border: none;
-    border-radius: var(--pill-radius);
-    cursor: pointer;
-    transition: all 0.2s ease;
+  padding: 8px 18px;
+  background: transparent;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid #E5E5E5;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .tab:hover {
-    color: var(--text-primary);
-    background: var(--surface-3);
+  color: #000;
+  border-color: #ccc;
 }
 
 .tabActive {
-    background: var(--accent);
-    color: #000;
-    font-weight: 600;
+  background: var(--accent);
+  color: #000;
+  border-color: var(--accent);
+  font-weight: 700;
 }
 
 .investmentsList {
-    padding: 0;
+  padding: 0;
 }
 
 .investmentItem {
-    padding: 20px 24px;
-    border-bottom: 1px solid var(--surface-3);
-    transition: background 0.2s ease;
+  padding: 20px 24px;
+  border-bottom: 1px solid #E5E5E5;
+  transition: background 0.15s ease;
 }
 
 .investmentItem:last-child {
-    border-bottom: none;
+  border-bottom: none;
 }
 
 .investmentItem:hover {
-    background: rgba(255, 255, 255, 0.015);
+  background: #FAFAFA;
 }
 
 .investmentMain {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
 }
 
 .investmentInfo h4 {
-    font-family: var(--font-display);
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 8px;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: #000;
+  margin-bottom: 8px;
 }
 
 .investmentMeta {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .statusActive,
 .statusRepaying,
 .statusCompleted {
-    padding: 4px 10px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    border-radius: var(--pill-radius);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+  padding: 4px 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .statusActive {
-    background: rgba(34, 197, 94, 0.12);
-    color: var(--color-success);
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
 }
 
 .statusRepaying {
-    background: rgba(96, 165, 250, 0.12);
-    color: #60a5fa;
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
 }
 
 .statusCompleted {
-    background: var(--surface-3);
-    color: var(--text-tertiary);
-}
-
-.investmentCategory {
-    font-size: 0.75rem;
-    color: var(--text-tertiary);
+  background: #F0F0F0;
+  color: rgba(0, 0, 0, 0.4);
 }
 
 .investmentDate {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: rgba(0, 0, 0, 0.45);
 }
 
 .investmentStats {
-    display: flex;
-    gap: 32px;
+  display: flex;
+  gap: 32px;
 }
 
 .investmentStat {
-    text-align: right;
+  text-align: right;
 }
 
 .investmentStatValue {
-    display: block;
-    font-family: var(--font-mono);
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 4px;
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #000;
+  margin-bottom: 4px;
 }
 
 .investmentStatLabel {
-    font-size: 0.68rem;
-    color: var(--text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-}
-
-.profitValue {
-    color: var(--color-success);
-}
-
-.investmentProgress {
-    margin-bottom: 16px;
-}
-
-.progressInfo {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 8px;
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--text-tertiary);
-}
-
-.progressBar {
-    height: 3px;
-    background: var(--surface-4);
-    border-radius: var(--pill-radius);
-    overflow: hidden;
-}
-
-.progressFill {
-    height: 100%;
-    background: var(--accent);
-    border-radius: var(--pill-radius);
-    transition: width 0.8s ease;
+  font-size: 0.65rem;
+  color: rgba(0, 0, 0, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .investmentActions {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .claimSmallBtn {
-    padding: 8px 18px;
-    background: var(--accent);
-    color: #000;
-    font-size: 0.8rem;
-    font-weight: 600;
-    border: none;
-    border-radius: var(--pill-radius);
-    cursor: pointer;
-    transition: transform 0.15s ease, filter 0.15s ease;
+  padding: 8px 18px;
+  background: var(--accent);
+  color: #000;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
 }
 
 .claimSmallBtn:hover {
-    transform: scale(0.97);
-    filter: brightness(1.1);
+  transform: scale(0.97);
+  filter: brightness(1.1);
 }
 
 .detailsBtn {
-    padding: 8px 18px;
-    background: var(--surface-3);
-    color: var(--text-secondary);
-    font-size: 0.8rem;
-    font-weight: 500;
-    border: none;
-    border-radius: var(--pill-radius);
-    cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
+  padding: 8px 18px;
+  background: transparent;
+  color: #000;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid #E5E5E5;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .detailsBtn:hover {
-    background: var(--surface-4);
-    color: var(--text-primary);
+  border-color: #ccc;
+  background: #F5F5F7;
 }
 
-.completedBadge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    background: var(--surface-3);
-    color: var(--text-tertiary);
-    font-size: 0.8rem;
-    border-radius: var(--pill-radius);
+/* ─── Allocation (dark bg section) ─────────── */
+.allocationSection {
+  background: var(--bg-dark);
+  padding: 48px 24px 60px;
 }
 
+.allocationInner {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.allocationCard {
+  background: var(--surface-1);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.cardTitle {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+
+.allocationList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.allocationItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.allocationInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.allocationDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.dotActive { background: var(--accent); }
+.dotRepaying { background: rgba(var(--accent-rgb, 6, 182, 212), 0.5); }
+.dotCompleted { background: var(--text-tertiary); }
+
+.allocationName {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.allocationRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.allocationAmount {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.allocationPercent {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  min-width: 32px;
+  text-align: right;
+}
+
+.allocationBar {
+  display: flex;
+  height: 8px;
+  background: var(--surface-3);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.allocationBarSegment {
+  height: 100%;
+  transition: width 0.8s ease;
+}
+
+.barActive { background: var(--accent); }
+.barRepaying { background: rgba(var(--accent-rgb, 6, 182, 212), 0.5); }
+.barCompleted { background: var(--text-tertiary); }
+
+/* ─── Empty / Loading ──────────────────────── */
 .emptyState {
-    padding: 60px 24px;
-    text-align: center;
+  padding: 60px 24px;
+  text-align: center;
 }
 
 .emptyState p {
-    font-size: 0.9rem;
-    color: var(--text-tertiary);
+  font-size: 0.9rem;
+  color: rgba(0, 0, 0, 0.45);
 }
 
-/* ============================================
-   LOADING & CONNECT STATES
-   ============================================ */
-
-.spinner {
-    animation: spin 0.8s linear infinite;
-}
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
+.spinner { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .connectPrompt {
-    min-height: 60vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    color: var(--text-tertiary);
-    text-align: center;
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--text-tertiary);
+  text-align: center;
+  padding: 120px 24px 60px;
 }
 
 .connectPrompt h2 {
-    font-family: var(--font-display);
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
 }
 
 .connectPrompt p {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0;
 }
 
-.loadingInline {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 30px 0;
-    color: var(--text-tertiary);
-}
-
-/* ============================================
-   RESPONSIVE
-   ============================================ */
-
-@media (max-width: 1024px) {
-    .content {
-        grid-template-columns: 1fr;
-    }
-
-    .leftColumn {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
-    }
-
-    .overviewCard {
-        grid-column: span 2;
-    }
-}
-
+/* ─── Responsive ───────────────────────────── */
 @media (max-width: 768px) {
-    .portfolio {
-        padding: 80px 16px 40px;
-    }
+  .hero { padding: 100px 16px 36px; }
+  .statsRow { grid-template-columns: 1fr; padding: 24px 16px 0; }
+  .body { padding: 32px 16px 40px; }
 
-    .leftColumn {
-        grid-template-columns: 1fr;
-    }
+  .investmentsHeader {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
 
-    .overviewCard {
-        grid-column: span 1;
-    }
+  .tabs { width: 100%; }
+  .tab { flex: 1; text-align: center; }
 
-    .investmentMain {
-        flex-direction: column;
-        gap: 16px;
-    }
+  .investmentMain {
+    flex-direction: column;
+    gap: 16px;
+  }
 
-    .investmentStats {
-        width: 100%;
-        justify-content: space-between;
-    }
+  .investmentStats {
+    width: 100%;
+    justify-content: space-between;
+  }
 
-    .investmentStat {
-        text-align: center;
-    }
+  .investmentStat { text-align: center; }
 
-    .investmentsHeader {
-        flex-direction: column;
-        gap: 16px;
-        align-items: flex-start;
-    }
+  .investmentActions {
+    flex-direction: column;
+    width: 100%;
+  }
 
-    .tabs {
-        width: 100%;
-    }
+  .claimSmallBtn,
+  .detailsBtn {
+    width: 100%;
+    text-align: center;
+  }
 
-    .tab {
-        flex: 1;
-        text-align: center;
-    }
-}
-
-@media (max-width: 480px) {
-    .overviewStats {
-        flex-direction: column;
-        gap: 16px;
-    }
-
-    .overviewStatDivider {
-        width: 60px;
-        height: 1px;
-    }
-
-    .investmentStats {
-        gap: 16px;
-    }
-
-    .investmentActions {
-        flex-direction: column;
-        width: 100%;
-    }
-
-    .claimSmallBtn,
-    .detailsBtn {
-        width: 100%;
-        justify-content: center;
-    }
+  .claimBanner {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
 }
