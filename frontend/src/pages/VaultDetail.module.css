@@ -1,7 +1,10 @@
 .vaultDetail {
   min-height: 100vh;
   padding: 100px 0 50px;
+  position: relative;
+  z-index: 1;
 }
+
 
 /* ─── Icon color utilities ───────────────────── */
 .iconSuccess { color: var(--color-success); }
@@ -17,7 +20,7 @@
   background: var(--surface-2);
   color: var(--text-secondary);
   border: none;
-  border-radius: var(--pill-radius);
+  border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 500;
   margin-bottom: 28px;
@@ -61,7 +64,7 @@
 
 .statusBadge {
   padding: 5px 14px;
-  border-radius: var(--pill-radius);
+  border-radius: 999px;
   border: none;
   font-size: 0.75rem;
   font-weight: 600;
@@ -72,7 +75,7 @@
 .progressSection {
   padding: 28px;
   background: var(--surface-2);
-  border-radius: var(--card-border-radius);
+  border-radius: 12px;
 }
 .progressHeader {
   display: flex;
@@ -87,14 +90,14 @@
   width: 100%;
   height: 4px;
   background: var(--surface-4);
-  border-radius: var(--pill-radius);
+  border-radius: 999px;
   overflow: hidden;
   margin-bottom: 10px;
 }
 .progressFill {
   height: 100%;
   background: var(--accent);
-  border-radius: var(--pill-radius);
+  border-radius: 999px;
   transition: width 0.8s ease;
 }
 .progressText {
@@ -111,7 +114,7 @@
 .statCard {
   padding: 20px;
   background: var(--surface-2);
-  border-radius: var(--card-border-radius);
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -125,7 +128,7 @@
 }
 .statValue {
   font-family: var(--font-mono);
-  font-size: 1.35rem;
+  font-size: 1.6rem;
   font-weight: 700;
   color: var(--text-primary);
 }
@@ -134,7 +137,7 @@
 .section {
   padding: 28px;
   background: var(--surface-2);
-  border-radius: var(--card-border-radius);
+  border-radius: 12px;
 }
 .sectionTitle {
   font-family: var(--font-display);
@@ -156,7 +159,7 @@
   gap: 8px;
   padding: 12px 14px;
   background: var(--surface-3);
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 0.82rem;
   color: var(--text-secondary);
 }
@@ -171,7 +174,7 @@
 .milestoneItem {
   padding: 14px 16px;
   background: var(--surface-3);
-  border-radius: 10px;
+  border-radius: 8px;
   margin-bottom: 8px;
 }
 .milestoneItem:last-child { margin-bottom: 0; }
@@ -208,7 +211,7 @@
   justify-content: space-between;
   padding: 11px 14px;
   background: var(--surface-3);
-  border-radius: 10px;
+  border-radius: 8px;
   font-family: var(--font-mono);
   font-size: 0.82rem;
   color: var(--text-primary);
@@ -233,7 +236,7 @@
   gap: 16px;
   padding: 12px 14px;
   background: var(--surface-3);
-  border-radius: 10px;
+  border-radius: 8px;
   margin-bottom: 6px;
   font-size: 0.82rem;
 }
@@ -268,7 +271,7 @@
 .investCard {
   padding: 28px;
   background: var(--surface-2);
-  border-radius: var(--card-border-radius);
+  border-radius: 12px;
 }
 .investCard h3 {
   font-family: var(--font-display);
@@ -296,7 +299,7 @@
   padding: 12px 14px;
   background: var(--surface-3);
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
   color: var(--text-primary);
   font-family: var(--font-mono);
   font-size: 0.95rem;
@@ -331,7 +334,7 @@
   background: var(--accent);
   color: #000;
   border: none;
-  border-radius: var(--pill-radius);
+  border-radius: 8px;
   font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;

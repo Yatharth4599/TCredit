@@ -6,6 +6,10 @@ import Navbar from './components/layout/Navbar'
 import styles from './App.module.css'
 
 const Home = lazy(() => import('./pages/Home'))
+const VaultsMarketing = lazy(() => import('./pages/VaultsMarketing'))
+const PortfolioMarketing = lazy(() => import('./pages/PortfolioMarketing'))
+const PoolsMarketing = lazy(() => import('./pages/PoolsMarketing'))
+const MerchantMarketing = lazy(() => import('./pages/MerchantMarketing'))
 const Vaults = lazy(() => import('./pages/Vaults'))
 const Portfolio = lazy(() => import('./pages/Portfolio'))
 const MerchantDashboard = lazy(() => import('./pages/MerchantDashboard'))
@@ -16,10 +20,10 @@ const NotFound = lazy(() => import('./pages/NotFound'))
 
 function getThemeFromPath(pathname: string): string {
   if (pathname === '/') return 'home'
-  if (pathname.startsWith('/vaults')) return 'vaults'
-  if (pathname.startsWith('/portfolio')) return 'portfolio'
-  if (pathname.startsWith('/merchant')) return 'merchant'
-  if (pathname.startsWith('/pools')) return 'pools'
+  if (pathname.startsWith('/app/vaults') || pathname.startsWith('/vaults')) return 'vaults'
+  if (pathname.startsWith('/app/portfolio') || pathname.startsWith('/portfolio')) return 'portfolio'
+  if (pathname.startsWith('/app/merchant') || pathname.startsWith('/merchant')) return 'merchant'
+  if (pathname.startsWith('/app/pools') || pathname.startsWith('/pools')) return 'pools'
   if (pathname.startsWith('/x402')) return 'x402'
   return 'home'
 }
@@ -69,11 +73,18 @@ function App() {
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<Home />} />
-                <Route path="/vaults" element={<Vaults />} />
+                {/* Marketing pages */}
+                <Route path="/vaults" element={<VaultsMarketing />} />
+                <Route path="/portfolio" element={<PortfolioMarketing />} />
+                <Route path="/pools" element={<PoolsMarketing />} />
+                <Route path="/merchant" element={<MerchantMarketing />} />
+                {/* Functional app pages */}
+                <Route path="/app/vaults" element={<Vaults />} />
+                <Route path="/app/vaults/:address" element={<VaultDetail />} />
                 <Route path="/vaults/:address" element={<VaultDetail />} />
-                <Route path="/portfolio" element={<Portfolio />} />
-                <Route path="/pools" element={<LiquidityPools />} />
-                <Route path="/merchant" element={<MerchantDashboard />} />
+                <Route path="/app/portfolio" element={<Portfolio />} />
+                <Route path="/app/pools" element={<LiquidityPools />} />
+                <Route path="/app/merchant" element={<MerchantDashboard />} />
                 <Route path="/x402" element={<X402Demo />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

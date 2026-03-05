@@ -533,8 +533,8 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
         function handleResize() {
             W = parent.clientWidth || window.innerWidth
             H = parent.clientHeight || window.innerHeight
-            canvas.width = W * dpr
-            canvas.height = H * dpr
+            canvas!.width = W * dpr
+            canvas!.height = H * dpr
             ctx.setTransform(1, 0, 0, 1, 0, 0)
             ctx.scale(dpr, dpr)
             tigerCX = W / 2

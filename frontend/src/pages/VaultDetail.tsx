@@ -121,6 +121,7 @@ export default function VaultDetail() {
 
     return (
         <div className={styles.vaultDetail}>
+
             <div className="container">
                 <button className={styles.backButton} onClick={() => navigate('/vaults')}>
                     <ArrowLeft size={16} /> Back to Vaults

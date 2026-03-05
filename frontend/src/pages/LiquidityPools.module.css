@@ -1,629 +1,440 @@
 /* ============================================
-   LIQUIDITY POOLS PAGE — Purple accent, borderless surfaces
+   LIQUIDITY POOLS — Purple accent, alternating sections
    ============================================ */
 
 .page {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 104px 24px 60px;
-    position: relative;
-    z-index: 1;
+  min-height: 100vh;
+  background: var(--bg-dark);
 }
 
-.ambientGlow {
-    position: fixed;
-    top: -20%;
-    left: -10%;
-    width: 1100px;
-    height: 1100px;
-    background: radial-gradient(
-        ellipse at center,
-        rgba(var(--accent-rgb), 0.12) 0%,
-        transparent 55%
-    );
-    filter: blur(100px);
-    pointer-events: none;
-    z-index: 0;
+/* ─── Hero Band ────────────────────────────── */
+.hero {
+  background: var(--accent);
+  padding: 120px 24px 48px;
 }
 
-/* ============================================
-   HEADER
-   ============================================ */
-
-.header {
-    margin-bottom: 32px;
+.heroInner {
+  max-width: 1280px;
+  margin: 0 auto;
 }
 
-.overline {
-    font-size: 0.7rem;
-    font-weight: 600;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--accent);
-    display: block;
-    margin-bottom: 8px;
+.heroLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 8px;
 }
 
-.title {
-    font-family: var(--font-display);
-    font-size: clamp(1.75rem, 4vw, 2.5rem);
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    color: var(--text-primary);
-    margin-bottom: 8px;
+.heroTitle {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: #fff;
+  margin: 0 0 12px;
 }
 
-.subtitle {
-    font-size: 0.95rem;
-    color: var(--text-secondary);
-    max-width: 540px;
+.heroSubtitle {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 540px;
 }
 
-/* ============================================
-   STATS ROW
-   ============================================ */
-
+/* ─── Stats Row (dark bg) ─────────────────── */
 .statsRow {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 12px;
-    margin-bottom: 24px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px 24px 0;
 }
 
 .statCard {
-    background: var(--surface-2);
-    border-radius: var(--card-border-radius);
-    padding: 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+  background: var(--surface-1);
+  border-radius: 12px;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .statLabel {
-    font-size: 0.68rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-tertiary);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
 }
 
 .statValue {
-    font-family: var(--font-mono);
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--accent);
 }
 
-.apyValue {
-    color: var(--accent);
+/* ─── White Section (pool cards) ──────────── */
+.whiteSection {
+  background: #FFFFFF;
+  margin-top: 32px;
+  padding: 48px 24px 60px;
 }
 
-/* ============================================
-   FILTERS
-   ============================================ */
-
-.filters {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 24px;
+.whiteSectionInner {
+  max-width: 1280px;
+  margin: 0 auto;
 }
 
-.filterBtn {
-    padding: 8px 18px;
-    background: var(--surface-3);
-    border: none;
-    border-radius: var(--pill-radius);
-    color: var(--text-secondary);
-    font-size: 0.8rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s ease;
+.sectionLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: rgba(0, 0, 0, 0.45);
+  margin-bottom: 20px;
 }
 
-.filterBtn:hover {
-    color: var(--text-primary);
-    background: var(--surface-4);
-}
-
-.filterActive {
-    background: var(--accent);
-    color: #000;
-    font-weight: 600;
-}
-
-/* ============================================
-   POOL GRID
-   ============================================ */
-
+/* ─── Pool Grid ───────────────────────────── */
 .poolGrid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-    margin-bottom: 40px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 40px;
 }
 
 .poolCard {
-    background: var(--surface-2);
-    border-radius: var(--card-border-radius);
-    padding: 24px;
-    transition: background 0.2s ease, box-shadow 0.2s ease;
+  background: #FFFFFF;
+  border-radius: 12px;
+  border: 1px solid #E5E5E5;
+  padding: 28px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .poolCard:hover {
-    background: var(--surface-3);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
 }
 
 .treasuryCard {
-    box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.12), 0 4px 24px rgba(var(--accent-rgb), 0.06);
-}
-
-.treasuryCard:hover {
-    box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.2), 0 8px 32px rgba(var(--accent-rgb), 0.1);
+  border-top: 4px solid var(--accent);
 }
 
 /* Pool header */
 .poolHeader {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
 }
 
-/* Pool APY hero block */
 .poolApyBlock {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
 }
 
 .poolApyVal {
-    font-family: var(--font-mono);
-    font-size: 1.8rem;
-    font-weight: 800;
-    color: var(--accent);
-    line-height: 1;
+  font-family: var(--font-mono);
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
 }
 
 .poolApyLabel {
-    font-size: 0.62rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--text-tertiary);
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(0, 0, 0, 0.4);
 }
 
 .poolType {
-    font-size: 0.68rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--text-tertiary);
-    margin-bottom: 6px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(0, 0, 0, 0.4);
+  margin-bottom: 6px;
 }
 
 .poolName {
-    font-family: var(--font-display);
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #000;
 }
 
-.statusBadge {
-    padding: 4px 12px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    border-radius: var(--pill-radius);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-
-.activeBadge {
-    background: rgba(34, 197, 94, 0.12);
-    color: var(--color-success);
-}
-
-.nearCap {
-    background: rgba(251, 191, 36, 0.12);
-    color: var(--color-warning);
-}
-
-/* Utilization bar — no label, just visual */
+/* Utilization bar */
 .utilizationBar {
-    height: 8px;
-    background: var(--surface-4);
-    border-radius: var(--pill-radius);
-    overflow: hidden;
-    margin-bottom: 20px;
+  height: 8px;
+  background: #E5E5E5;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 20px;
 }
 
 .utilizationFill {
-    height: 100%;
-    background: var(--accent);
-    border-radius: var(--pill-radius);
-    transition: width 0.8s ease;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.8s ease;
 }
 
 /* Pool stats */
 .poolStats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    padding: 16px 0;
-    border-top: 1px solid var(--surface-3);
-    border-bottom: 1px solid var(--surface-3);
-    margin-bottom: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 16px 0;
+  border-top: 1px solid #E5E5E5;
+  border-bottom: 1px solid #E5E5E5;
+  margin-bottom: 16px;
 }
 
 .poolStat {
-    text-align: center;
+  text-align: center;
 }
 
 .poolStatValue {
-    display: block;
-    font-family: var(--font-mono);
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 4px;
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #000;
+  margin-bottom: 4px;
 }
 
 .poolStatLabel {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-tertiary);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(0, 0, 0, 0.45);
 }
 
 /* Pool footer */
 .poolFooter {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
-
-.poolMeta {
-    display: flex;
-    gap: 8px;
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    color: var(--text-tertiary);
-}
-
-/* ============================================
-   ALLOCATIONS TABLE
-   ============================================ */
-
-.allocationsSection {}
-
-.sectionTitle {
-    font-family: var(--font-display);
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 16px;
-}
-
-.allocationsTable {
-    background: var(--surface-2);
-    border-radius: var(--card-border-radius);
-    overflow: hidden;
-}
-
-.tableHeader {
-    display: grid;
-    grid-template-columns: 1.4fr 1.4fr 1fr 0.8fr 0.7fr;
-    padding: 14px 20px;
-    font-size: 0.68rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-tertiary);
-    border-bottom: 1px solid var(--surface-3);
-}
-
-.tableRow {
-    display: grid;
-    grid-template-columns: 1.4fr 1.4fr 1fr 0.8fr 0.7fr;
-    padding: 14px 20px;
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    border-bottom: 1px solid var(--surface-3);
-    transition: background 0.15s ease;
-}
-
-.tableRow:last-child {
-    border-bottom: none;
-}
-
-.tableRow:hover {
-    background: rgba(255, 255, 255, 0.015);
-}
-
-.cellPool {
-    font-weight: 500;
-    color: var(--text-primary);
-}
-
-.cellVault {
-    color: var(--text-secondary);
-}
-
-.cellAmount {
-    font-family: var(--font-mono);
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.cellDate {
-    font-family: var(--font-mono);
-    color: var(--text-tertiary);
-}
-
-.cellStatus {
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-
-.statusActive {
-    color: var(--color-success);
-}
-
-.statusRepaying {
-    color: #3b82f6;
-}
-
-.statusCompleted {
-    color: var(--text-tertiary);
-}
-
-/* ============================================
-   LOADING & EMPTY STATES
-   ============================================ */
-
-.spinner {
-    animation: spin 0.8s linear infinite;
-}
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-.loadingState {
-    grid-column: 1 / -1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding: 60px 20px;
-    color: var(--text-tertiary);
-    font-size: 0.9rem;
-}
-
-.emptyState {
-    grid-column: 1 / -1;
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--text-tertiary);
-    font-size: 0.9rem;
-}
-
-/* ============================================
-   POOL ACTION BUTTONS
-   ============================================ */
 
 .poolActions {
-    display: flex;
-    gap: 8px;
+  display: flex;
+  gap: 8px;
 }
 
 .depositBtn {
-    flex: 1;
-    padding: 10px;
-    border-radius: var(--pill-radius);
-    background: var(--accent);
-    border: none;
-    color: #000;
-    font-weight: 700;
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: transform 0.15s ease, filter 0.15s ease;
+  flex: 1;
+  padding: 10px 20px;
+  border-radius: 8px;
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
 }
 
 .depositBtn:hover:not(:disabled) {
-    transform: scale(0.97);
-    filter: brightness(1.1);
+  transform: scale(0.97);
+  filter: brightness(1.1);
 }
 
 .depositBtn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .withdrawBtn {
-    flex: 1;
-    padding: 10px;
-    border-radius: var(--pill-radius);
-    background: var(--surface-3);
-    border: none;
-    color: var(--text-secondary);
-    font-weight: 600;
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
+  flex: 1;
+  padding: 10px 20px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid #E5E5E5;
+  color: #000;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .withdrawBtn:hover:not(:disabled) {
-    background: var(--surface-4);
-    color: var(--text-primary);
+  background: #F5F5F7;
+  border-color: #ccc;
 }
 
 .withdrawBtn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
-/* ============================================
-   MODAL
-   ============================================ */
+/* ─── Loading & Empty ─────────────────────── */
+.spinner {
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
+.loadingState {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 20px;
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 0.9rem;
+}
+
+.emptyState {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 20px;
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 0.9rem;
+}
+
+/* ─── Modal (dark bg) ─────────────────────── */
 .modalOverlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(16px);
-    z-index: 500;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(16px);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .modalContent {
-    background: rgba(16, 20, 28, 0.82);
-    backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 20px;
-    padding: 28px;
-    width: 420px;
-    max-width: 90vw;
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  background: #0C0F14;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 28px;
+  width: 420px;
+  max-width: 90vw;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
 }
 
 .modalContent h3 {
-    font-family: var(--font-display);
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0 0 20px;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 20px;
 }
 
 .modalInput {
-    margin-bottom: 20px;
+  margin-bottom: 20px;
 }
 
 .modalInput label {
-    display: block;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-tertiary);
-    margin-bottom: 8px;
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
 }
 
 .modalInput input {
-    width: 100%;
-    padding: 12px 14px;
-    background: var(--surface-3);
-    border: none;
-    border-radius: 12px;
-    color: var(--text-primary);
-    font-family: var(--font-mono);
-    font-size: 0.95rem;
-    box-sizing: border-box;
-    transition: background 0.15s ease;
+  width: 100%;
+  padding: 12px 14px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
 }
 
 .modalInput input:focus {
-    outline: none;
-    background: var(--surface-4);
+  outline: none;
+  border-color: var(--accent);
 }
 
 .modalActions {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
 .cancelBtn {
-    padding: 10px 20px;
-    border-radius: var(--pill-radius);
-    border: none;
-    background: var(--surface-3);
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
 
 .cancelBtn:hover {
-    background: var(--surface-4);
-    color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
 }
 
 .confirmBtn {
-    padding: 10px 24px;
-    border-radius: var(--pill-radius);
-    background: var(--accent);
-    border: none;
-    color: #000;
-    font-weight: 700;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: transform 0.15s ease, filter 0.15s ease;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+  padding: 10px 24px;
+  border-radius: 8px;
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .confirmBtn:hover:not(:disabled) {
-    transform: scale(0.97);
-    filter: brightness(1.1);
+  transform: scale(0.97);
+  filter: brightness(1.1);
 }
 
 .confirmBtn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
-/* ============================================
-   RESPONSIVE
-   ============================================ */
-
+/* ─── Responsive ──────────────────────────── */
 @media (max-width: 1024px) {
-    .statsRow {
-        grid-template-columns: repeat(3, 1fr);
-    }
+  .statsRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 768px) {
-    .page {
-        padding: 88px 16px 40px;
-    }
+  .hero { padding: 100px 16px 36px; }
+  .statsRow { grid-template-columns: 1fr; padding: 24px 16px 0; }
+  .whiteSection { padding: 32px 16px 40px; }
 
-    .statsRow {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .poolGrid {
-        grid-template-columns: 1fr;
-    }
-
-    .tableHeader,
-    .tableRow {
-        grid-template-columns: 1fr 1fr 0.8fr;
-    }
-
-    .cellDate,
-    .tableHeader span:nth-child(4) {
-        display: none;
-    }
-
-    .cellStatus,
-    .tableHeader span:nth-child(5) {
-        display: none;
-    }
+  .poolGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 480px) {
-    .statsRow {
-        grid-template-columns: 1fr;
-    }
+  .statsRow {
+    grid-template-columns: 1fr;
+  }
 
-    .poolStats {
-        grid-template-columns: 1fr;
-        gap: 8px;
-    }
+  .poolStats {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
 }

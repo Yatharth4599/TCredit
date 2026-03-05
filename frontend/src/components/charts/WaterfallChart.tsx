@@ -10,10 +10,17 @@ interface WaterfallProps {
   totalAmount: number
 }
 
-const COLORS = {
-  senior: '#FF6B35',
-  pool: '#FF8C5A',
-  user: 'rgba(255,255,255,0.5)',
+function getCSSVar(name: string, fallback: string): string {
+  if (typeof window === 'undefined') return fallback
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
+}
+
+function getColors() {
+  return {
+    senior: getCSSVar('--accent', '#FF6B35'),
+    pool: getCSSVar('--accent-light', '#FF8C5A'),
+    user: getCSSVar('--text-secondary', 'rgba(245,245,247,0.6)'),
+  }
 }
 
 interface TooltipPayload {
@@ -32,6 +39,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Toolti
 }
 
 export function WaterfallChart({ seniorPayment, poolPayment, userPayment, totalAmount }: WaterfallProps) {
+  const COLORS = getColors()
   const data = [
     { name: 'Incoming', value: totalAmount, color: 'rgba(255,255,255,0.15)' },
     { name: 'Senior', value: seniorPayment, color: COLORS.senior },
