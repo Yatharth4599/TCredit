@@ -208,7 +208,7 @@ export default function Home() {
                     <div className={`${styles.cta} ${mounted ? styles.visible : ''}`}>
                         <NoiseBackground gradientColors={['#FF5C00', '#CC4A00', '#FF8533']}>
                             <button className={styles.primaryBtn} onClick={() => navigate('/waitlist')}>
-                                <span>Launch App</span>
+                                <span>Join the Waitlist</span>
                                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                                     <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
