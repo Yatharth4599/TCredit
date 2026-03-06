@@ -277,7 +277,7 @@ export default function Portfolio() {
                                 <div className={styles.emptyState}>
                                     <p>{investments.length === 0 ? 'No investments yet' : 'No investments in this category'}</p>
                                     {investments.length === 0 && (
-                                        <button className={styles.claimSmallBtn} onClick={() => navigate('/vaults')}>
+                                        <button className={styles.claimSmallBtn} onClick={() => navigate('/app/vaults')}>
                                             Browse Vaults
                                         </button>
                                     )}
@@ -326,7 +326,7 @@ export default function Portfolio() {
                                                 )}
                                                 <button
                                                     className={styles.detailsBtn}
-                                                    onClick={() => navigate(`/vaults/${inv.vaultAddress}`)}
+                                                    onClick={() => navigate(`/app/vaults/${inv.vaultAddress}`)}
                                                 >
                                                     View Details
                                                 </button>

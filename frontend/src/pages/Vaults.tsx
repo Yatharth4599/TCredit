@@ -247,7 +247,7 @@ export default function Vaults() {
                         <button
                           className={styles.investBtn}
                           disabled={!walletAddress || !investAmount || parseFloat(investAmount) < 1}
-                          onClick={() => navigate(`/vaults/${selected.address}`)}
+                          onClick={() => navigate(`/app/vaults/${selected.address}`)}
                         >
                           {walletAddress ? 'Invest Now' : 'Connect Wallet'}
                         </button>
@@ -256,7 +256,7 @@ export default function Vaults() {
 
                     <button
                       className={styles.viewDetailBtn}
-                      onClick={() => navigate(`/vaults/${selected.address}`)}
+                      onClick={() => navigate(`/app/vaults/${selected.address}`)}
                     >
                       <ExternalLink size={14} />
                       <span>View Full Details</span>

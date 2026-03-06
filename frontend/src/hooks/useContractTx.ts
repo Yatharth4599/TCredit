@@ -1,9 +1,11 @@
 import { useState, useCallback } from 'react';
-import { useSendTransaction, useWaitForTransactionReceipt } from 'wagmi';
+import { useSendTransaction } from 'wagmi';
+import { waitForTransactionReceipt } from 'wagmi/actions';
 import toast from 'react-hot-toast';
 import type { UnsignedTx } from '../api/types';
 import { txUrl } from '../config/contracts';
 import { useStore } from '../store/useStore';
+import { config } from '../config/wagmi';
 
 export type TxStatus = 'idle' | 'signing' | 'submitted' | 'confirming' | 'confirmed' | 'failed';
 
@@ -14,10 +16,8 @@ export function useContractTx() {
   const { sendTransactionAsync } = useSendTransaction();
   const setPendingTx = useStore((s) => s.setPendingTx);
 
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    hash: txHash,
-    query: { enabled: !!txHash },
-  });
+  const isConfirming = status === 'confirming';
+  const isConfirmed = status === 'confirmed';
 
   const execute = useCallback(async (unsignedTx: UnsignedTx): Promise<`0x${string}` | undefined> => {
     setStatus('signing');
@@ -37,6 +37,13 @@ export function useContractTx() {
       setStatus('confirming');
       setPendingTx({ hash, description: unsignedTx.description, status: 'confirming' });
       toast.loading('Waiting for confirmation...', { id: toastId });
+
+      // Actually wait for the receipt
+      await waitForTransactionReceipt(config, { hash });
+
+      setStatus('confirmed');
+      setPendingTx({ hash, description: unsignedTx.description, status: 'confirmed' });
+      toast.success('Transaction confirmed!', { id: toastId });
 
       return hash;
     } catch (err: unknown) {

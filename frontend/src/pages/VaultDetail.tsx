@@ -111,7 +111,7 @@ export default function VaultDetail() {
         return (
             <div className={styles.notFound}>
                 <h1>Vault not found</h1>
-                <button onClick={() => navigate('/vaults')}>Back to Vaults</button>
+                <button onClick={() => navigate('/app/vaults')}>Back to Vaults</button>
             </div>
         )
     }
@@ -122,7 +122,7 @@ export default function VaultDetail() {
     return (
         <div className={styles.vaultDetail}>
             <div className="container">
-                <button className={styles.backButton} onClick={() => navigate('/vaults')}>
+                <button className={styles.backButton} onClick={() => navigate('/app/vaults')}>
                     <ArrowLeft size={16} /> Back to Vaults
                 </button>
 

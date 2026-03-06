@@ -314,7 +314,7 @@ export default function MerchantDashboard() {
                       </div>
 
                       <div className={styles.vaultActions}>
-                        <button className={styles.manageBtn} onClick={() => navigate(`/vaults/${vault.address}`)}>
+                        <button className={styles.manageBtn} onClick={() => navigate(`/app/vaults/${vault.address}`)}>
                           Details
                         </button>
                       </div>
@@ -421,7 +421,7 @@ export default function MerchantDashboard() {
               <button
                 className={styles.submitBtn}
                 onClick={handleCreateVault}
-                disabled={creating || (merchant?.creditTier === 'D' && !merchant?.creditValid)}
+                disabled={creating}
               >
                 {creating ? <><Loader2 size={14} className={styles.spinner} /> Creating...</> : 'Create Vault'}
               </button>
