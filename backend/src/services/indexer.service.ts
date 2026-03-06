@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import type { Address, AbiEvent } from 'viem';
-import { publicClient } from '../chain/client.js';
+import { publicClient, walletClient } from '../chain/client.js';
 import {
   AgentRegistryABI,
   PaymentRouterABI,
@@ -50,6 +50,7 @@ const EVENTS = {
   // VaultFactory
   VaultCreated: getEvent(VaultFactoryABI, 'VaultCreated'),
   // AgentRegistry
+  AgentRegistered: getEvent(AgentRegistryABI, 'AgentRegistered'),
   CreditScoreUpdated: getEvent(AgentRegistryABI, 'CreditScoreUpdated'),
   // PaymentRouter
   PaymentExecuted: getEvent(PaymentRouterABI, 'PaymentExecuted'),
@@ -307,6 +308,7 @@ async function runPollCycle(): Promise<void> {
 
   // Fetch all event logs in parallel
   const [
+    agentRegisteredLogs,
     vaultCreatedLogs,
     creditScoreLogs,
     milestoneSumittedLogs,
@@ -320,6 +322,7 @@ async function runPollCycle(): Promise<void> {
     defaultedLogs,
     stateChangedLogs,
   ] = await Promise.all([
+    publicClient.getLogs({ address: addresses.agentRegistry, event: EVENTS.AgentRegistered, fromBlock, toBlock }),
     publicClient.getLogs({ address: addresses.vaultFactory, event: EVENTS.VaultCreated, fromBlock, toBlock }),
     publicClient.getLogs({ address: addresses.agentRegistry, event: EVENTS.CreditScoreUpdated, fromBlock, toBlock }),
     publicClient.getLogs({ address: addresses.milestoneRegistry, event: EVENTS.MilestoneSubmitted, fromBlock, toBlock }),
@@ -346,6 +349,25 @@ async function runPollCycle(): Promise<void> {
       ? publicClient.getLogs({ address: vaultAddresses, event: EVENTS.VaultStateChanged, fromBlock, toBlock })
       : Promise.resolve([]),
   ]);
+
+  // Auto-assign credit score (B tier, 600) to newly registered merchants
+  for (const log of agentRegisteredLogs) {
+    if (!log.args) continue;
+    const agent = (log.args as Record<string, unknown>).wallet as Address;
+    if (walletClient && agent) {
+      try {
+        const hash = await walletClient.writeContract({
+          address: addresses.agentRegistry,
+          abi: AgentRegistryABI,
+          functionName: 'updateCreditScore',
+          args: [agent, 600],
+        });
+        console.log(`[Indexer] Auto-assigned credit score 600 (B tier) to ${agent} — tx: ${hash}`);
+      } catch (err) {
+        console.error(`[Indexer] Failed to auto-assign credit score to ${agent}:`, err);
+      }
+    }
+  }
 
   // Process VaultCreated first (ensures vault records exist before other events reference them)
   for (const log of vaultCreatedLogs) {

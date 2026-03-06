@@ -6,6 +6,7 @@ import { merchantApi, vaultsApi, oracleApi } from '../api/client'
 import type { ApiMerchantStats, ApiVault, ApiOraclePayment, CreateVaultParams } from '../api/types'
 import { formatUSDC, weiToNumber, truncateAddress, parseUSDCToWei } from '../lib/format'
 import { useContractTx } from '../hooks/useContractTx'
+import toast from 'react-hot-toast'
 import { BentoGrid, BentoCard } from '../components/ui/BentoGrid'
 import { WaterfallChart } from '../components/charts/WaterfallChart'
 import { DollarSign, Star, CreditCard, Zap, ChevronRight, Plus, Activity, Wallet, Loader2 } from 'lucide-react'
@@ -105,13 +106,17 @@ export default function MerchantDashboard() {
         lateFeeBps: parseInt(form.lateFeeBps),
         gracePeriodSeconds: parseInt(form.gracePeriodDays) * 86400,
       }
-      const { data: unsignedTx } = await vaultsApi.create(params)
-      await executeTx(unsignedTx)
-      setShowCreateModal(false)
-      // Refresh vaults
-      merchantApi.vaults(walletAddress).then(r => setVaults(r.data?.vaults ?? [])).catch(() => {})
-    } catch {
-      // Error handled by toast
+      const { data } = await vaultsApi.create(params)
+      if (data?.success) {
+        toast.success('Vault created successfully!')
+        setShowCreateModal(false)
+        merchantApi.vaults(walletAddress).then(r => setVaults(r.data?.vaults ?? [])).catch(() => {})
+      } else {
+        toast.error('Vault creation failed')
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Vault creation failed'
+      toast.error(msg)
     } finally {
       setCreating(false)
     }

@@ -8,7 +8,7 @@ import { AppError } from '../middleware/errorHandler.js';
 import { addresses } from '../../config/contracts.js';
 import { VaultFactoryABI, MerchantVaultABI } from '../../config/abis.js';
 import { encodeFunctionData } from 'viem';
-import { publicClient } from '../../chain/client.js';
+import { publicClient, walletClient } from '../../chain/client.js';
 
 const prisma = new PrismaClient();
 
@@ -192,7 +192,10 @@ router.post('/create', async (req, res, next) => {
     const grace = Number(gracePeriodSeconds ?? 7 * 24 * 3600);
     if (grace < 86400 || grace > 30 * 24 * 3600) throw new AppError(400, 'gracePeriodSeconds must be between 1 and 30 days');
 
-    const data = encodeFunctionData({
+    if (!walletClient) throw new AppError(503, 'Admin wallet not configured');
+
+    const hash = await walletClient.writeContract({
+      address: addresses.vaultFactory,
       abi: VaultFactoryABI,
       functionName: 'createVault',
       args: [
@@ -210,10 +213,13 @@ router.post('/create', async (req, res, next) => {
       ],
     });
 
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
     res.json({
-      to: addresses.vaultFactory,
-      data,
-      description: 'createVault — sign and broadcast with your wallet',
+      success: true,
+      txHash: hash,
+      status: receipt.status,
+      description: 'Vault created successfully',
     });
   } catch (err) {
     next(err);

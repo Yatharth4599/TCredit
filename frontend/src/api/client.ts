@@ -65,7 +65,7 @@ export const vaultsApi = {
     api.get<{ milestones: ApiMilestone[]; total: number }>(`/v1/vaults/${address}/milestones`),
 
   create: (body: CreateVaultParams) =>
-    api.post<UnsignedTx>('/v1/vaults/create', body),
+    api.post<{ success: boolean; txHash: string; status: string; description: string }>('/v1/vaults/create', body),
 
   submitMilestone: (address: string, body: { trancheIndex: number; evidenceHash: string }) =>
     api.post<UnsignedTx>(`/v1/vaults/${address}/milestone/submit`, body),

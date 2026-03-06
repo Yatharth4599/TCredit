@@ -27,6 +27,10 @@ router.get('/:address', async (req, res, next) => {
       hasActiveCreditLine: boolean; vault: Address; active: boolean;
     };
 
+    if (!agent.active && agent.registeredAt === 0n) {
+      return res.status(404).json({ error: 'Merchant not registered' });
+    }
+
     res.json({
       address: agent.wallet,
       metadataURI: agent.metadataURI,
@@ -69,8 +73,12 @@ router.get('/:address/stats', async (req, res, next) => {
 
     const agent = agentData as {
       totalPaymentsReceived: bigint; totalPaymentsSent: bigint;
-      hasActiveCreditLine: boolean;
+      hasActiveCreditLine: boolean; active: boolean; registeredAt: bigint;
     };
+
+    if (!agent.active && agent.registeredAt === 0n) {
+      return res.status(404).json({ error: 'Merchant not registered' });
+    }
 
     const vaults = await listAllVaults();
     const agentVaults = vaults.filter((v) => v.agent.toLowerCase() === addr.toLowerCase());
