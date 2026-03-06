@@ -285,7 +285,6 @@ export default function Portfolio() {
                             ) : (
                                 filteredInvestments.map((inv) => {
                                     const status = STATUS_CONFIG[inv.state] || STATUS_CONFIG.active
-                                    const invested = weiToNumber(inv.amountInvested)
                                     const claimable = weiToNumber(inv.claimable)
 
                                     return (

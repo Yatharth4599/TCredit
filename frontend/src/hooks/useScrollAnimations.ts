@@ -184,7 +184,7 @@ export function useScrollAnimations() {
             const flywheelEl = document.getElementById('flywheel')
             if (flywheelEl) {
                 const cards = Array.from(flywheelEl.querySelectorAll('[data-anim="flywheel-card"]'))
-                const centerText = flywheelEl.querySelector('[data-anim="flywheel-center"]')
+                flywheelEl.querySelector('[data-anim="flywheel-center"]')
 
                 gsap.set(cards, { opacity: 0, y: 55, scale: 0.9 })
 

@@ -57,7 +57,7 @@ export default function PixelCanvas({
     const dy = Math.sin(rad)
 
     const spawnParticle = useCallback(
-        (canvasW: number, canvasH: number): Particle => {
+        (_canvasW: number, _canvasH: number): Particle => {
             const cx = posRef.current.x + totalW / 2
             const cy = posRef.current.y + totalH / 2
             const angle = Math.random() * Math.PI * 2

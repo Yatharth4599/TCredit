@@ -79,7 +79,6 @@ export default function LiquidityPools() {
 
     const totalDeposits = summary ? weiToNumber(summary.totalDeposits) : 0
     const totalAllocated = summary ? weiToNumber(summary.totalAllocated) : 0
-    const totalAvailable = summary ? weiToNumber(summary.totalAvailable) : 0
     const utilization = totalDeposits > 0 ? ((totalAllocated / totalDeposits) * 100).toFixed(1) : '0'
 
     return (
