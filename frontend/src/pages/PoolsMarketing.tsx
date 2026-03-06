@@ -1131,7 +1131,7 @@ export default function PoolsMarketing() {
                 </motion.p>
                 <motion.div className={styles.ctaActions}
                     initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, ease, delay: 0.2 }}>
-                    <motion.button className={styles.launchBtn} onClick={() => navigate('/waitlist')} whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.97 }}>Launch App <ArrowRight size={18} /></motion.button>
+                    <motion.button className={styles.launchBtn} onClick={() => navigate('/app/pools')} whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.97 }}>Launch App <ArrowRight size={18} /></motion.button>
                     <a href="https://sepolia.basescan.org/address/0xDf980d0734b00888e4Ac350027515B4D6E473bBa" target="_blank" rel="noopener noreferrer" className={styles.secondaryBtn}>
                         View on BaseScan <ExternalLink size={14} />
                     </a>

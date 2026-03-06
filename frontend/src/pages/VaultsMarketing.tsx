@@ -1264,7 +1264,7 @@ export default function VaultsMarketing() {
                 >
                     <motion.button
                         className={styles.launchBtn}
-                        onClick={() => navigate('/waitlist')}
+                        onClick={() => navigate('/app/vaults')}
                         whileHover={{ scale: 1.06 }}
                         whileTap={{ scale: 0.97 }}
                     >

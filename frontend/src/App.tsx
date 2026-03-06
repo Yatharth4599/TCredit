@@ -12,13 +12,19 @@ const MerchantMarketing = lazy(() => import('./pages/MerchantMarketing'))
 const PoolsMarketing = lazy(() => import('./pages/PoolsMarketing'))
 const PortfolioMarketing = lazy(() => import('./pages/PortfolioMarketing'))
 const X402Demo = lazy(() => import('./pages/X402Demo'))
+// App pages
+const Vaults = lazy(() => import('./pages/Vaults'))
+const VaultDetail = lazy(() => import('./pages/VaultDetail'))
+const LiquidityPools = lazy(() => import('./pages/LiquidityPools'))
+const Portfolio = lazy(() => import('./pages/Portfolio'))
+const MerchantDashboard = lazy(() => import('./pages/MerchantDashboard'))
 
 function getThemeFromPath(pathname: string): string {
   if (pathname === '/') return 'home'
-  if (pathname.startsWith('/vaults')) return 'vaults'
-  if (pathname.startsWith('/portfolio')) return 'portfolio'
-  if (pathname.startsWith('/merchant')) return 'merchant'
-  if (pathname.startsWith('/pools')) return 'pools'
+  if (pathname.startsWith('/vaults') || pathname.startsWith('/app/vaults')) return 'vaults'
+  if (pathname.startsWith('/portfolio') || pathname.startsWith('/app/portfolio')) return 'portfolio'
+  if (pathname.startsWith('/merchant') || pathname.startsWith('/app/merchant')) return 'merchant'
+  if (pathname.startsWith('/pools') || pathname.startsWith('/app/pools')) return 'pools'
   if (pathname.startsWith('/x402')) return 'x402'
   return 'home'
 }
@@ -75,6 +81,12 @@ function App() {
                 <Route path="/pools" element={<PoolsMarketing />} />
                 <Route path="/portfolio" element={<PortfolioMarketing />} />
                 <Route path="/x402" element={<X402Demo />} />
+                {/* App pages */}
+                <Route path="/app/vaults" element={<Vaults />} />
+                <Route path="/app/vaults/:address" element={<VaultDetail />} />
+                <Route path="/app/pools" element={<LiquidityPools />} />
+                <Route path="/app/portfolio" element={<Portfolio />} />
+                <Route path="/app/merchant" element={<MerchantDashboard />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Suspense>

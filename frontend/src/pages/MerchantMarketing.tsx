@@ -888,7 +888,7 @@ export default function MerchantMarketing() {
                             </div>
                             <motion.button
                                 className={styles.connectBtn}
-                                onClick={() => navigate('/waitlist')}
+                                onClick={() => navigate('/app/merchant')}
                                 whileHover={{ scale: 1.04 }}
                                 whileTap={{ scale: 0.97 }}
                             >
@@ -1103,7 +1103,7 @@ export default function MerchantMarketing() {
                 </motion.p>
                 <motion.div className={styles.ctaActions}
                     initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, ease, delay: 0.2 }}>
-                    <motion.button className={styles.launchBtn} onClick={() => navigate('/waitlist')} whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.97 }}>Launch App <ArrowRight size={18} /></motion.button>
+                    <motion.button className={styles.launchBtn} onClick={() => navigate('/app/merchant')} whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.97 }}>Launch App <ArrowRight size={18} /></motion.button>
                     <a href="https://sepolia.basescan.org/address/0xAEa7C5CCACebB1423b163b765d3214752f1496A4" target="_blank" rel="noopener noreferrer" className={styles.secondaryBtn}>
                         View on BaseScan <ExternalLink size={14} />
                     </a>

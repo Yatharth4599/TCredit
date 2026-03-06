@@ -1130,7 +1130,7 @@ export default function PortfolioMarketing() {
                             </div>
                             <motion.button
                                 className={styles.connectBtn}
-                                onClick={() => navigate('/waitlist')}
+                                onClick={() => navigate('/app/portfolio')}
                                 whileHover={prefersReduced ? {} : { scale: 1.04 }}
                                 whileTap={prefersReduced ? {} : { scale: 0.97 }}
                             >
@@ -1296,7 +1296,7 @@ export default function PortfolioMarketing() {
                     initial={prefersReduced ? false : { opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: prefersReduced ? 0 : 0.5, ease, delay: prefersReduced ? 0 : 0.2 }}>
                     <motion.button
                         className={styles.launchBtn}
-                        onClick={() => navigate('/waitlist')}
+                        onClick={() => navigate('/app/portfolio')}
                         whileHover={prefersReduced ? {} : { scale: 1.06 }}
                         whileTap={prefersReduced ? {} : { scale: 0.97 }}
                     >
