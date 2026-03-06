@@ -207,7 +207,7 @@ export default function Home() {
 
                     <div className={`${styles.cta} ${mounted ? styles.visible : ''}`}>
                         <NoiseBackground gradientColors={['#FF5C00', '#CC4A00', '#FF8533']}>
-                            <button className={styles.primaryBtn} onClick={() => navigate('/vaults')}>
+                            <button className={styles.primaryBtn} onClick={() => navigate('/waitlist')}>
                                 <span>Launch App</span>
                                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                                     <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -455,7 +455,7 @@ export default function Home() {
                                 <li><span className={styles.checkIcon}>✓</span> Continuous yield from x402 payment stream, not periodic coupons</li>
                                 <li><span className={styles.checkIcon}>✓</span> Full transparency — every repayment auditable on BaseScan</li>
                             </ul>
-                            <button className={styles.outlineBtn} onClick={() => navigate('/vaults')}>
+                            <button className={styles.outlineBtn} onClick={() => navigate('/waitlist')}>
                                 Browse Vaults
                             </button>
                         </div>
@@ -545,7 +545,7 @@ export default function Home() {
                                 <li><span className={styles.checkIcon}>✓</span> Auto-repayment from incoming payments — no manual installments</li>
                                 <li><span className={styles.checkIcon}>✓</span> Better rates as your FairScale score improves over time</li>
                             </ul>
-                            <button className={styles.outlineBtn} onClick={() => navigate('/merchant')}>
+                            <button className={styles.outlineBtn} onClick={() => navigate('/waitlist')}>
                                 Apply for Funding
                             </button>
                         </div>

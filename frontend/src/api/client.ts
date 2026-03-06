@@ -149,6 +149,14 @@ export const oracleApi = {
     api.get<{ payments: ApiOraclePayment[]; total: number }>('/v1/oracle/payments', { params }),
 }
 
+// === Waitlist ===
+export const waitlistApi = {
+  join: (email: string, walletAddress?: string) =>
+    api.post<{ success: boolean; id: string }>('/v1/waitlist', { email, walletAddress }),
+  count: () =>
+    api.get<{ count: number }>('/v1/waitlist/count'),
+}
+
 // === Payments ===
 export const paymentsApi = {
   recent: (vaultId?: string) =>

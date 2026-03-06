@@ -1,0 +1,164 @@
+.page {
+    min-height: 100vh;
+    background: #06070A;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 120px 24px 60px;
+    position: relative;
+    overflow: hidden;
+}
+
+.content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    max-width: 560px;
+    width: 100%;
+}
+
+.label {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: #FF5C00;
+    margin-bottom: 24px;
+}
+
+.headline {
+    font-family: var(--font-display);
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+    margin: 0 0 12px;
+}
+
+.headlineAccent {
+    color: #FF5C00;
+}
+
+.subtitle {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.45);
+    margin: 0 0 48px;
+}
+
+.form {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.emailInput {
+    flex: 1;
+    padding: 16px 22px;
+    background: transparent;
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
+    border-radius: 9999px;
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.emailInput::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.emailInput:focus {
+    border-color: rgba(255, 92, 0, 0.6);
+}
+
+.submitBtn {
+    padding: 16px 36px;
+    background: #FF5C00;
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: transform 0.15s ease, opacity 0.2s ease;
+    white-space: nowrap;
+}
+
+.submitBtn:hover {
+    transform: scale(0.97);
+    opacity: 0.9;
+}
+
+.submitBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.successMessage {
+    padding: 16px 24px;
+    background: rgba(44, 255, 5, 0.08);
+    border: 1px solid rgba(44, 255, 5, 0.15);
+    border-radius: 9999px;
+    color: #2CFF05;
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin-bottom: 32px;
+}
+
+.errorMessage {
+    color: #FF2A55;
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+}
+
+.socials {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 48px;
+}
+
+.socials a {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.socials a:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+.backLink {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 24px;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.backLink:hover {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+@media (max-width: 480px) {
+    .page { padding: 100px 20px 40px; }
+    .form { flex-direction: column; }
+    .submitBtn { width: 100%; }
+}

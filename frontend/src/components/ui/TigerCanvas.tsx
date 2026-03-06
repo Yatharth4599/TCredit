@@ -311,6 +311,8 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
         const canvas = canvasRef.current
         if (!canvas) return
 
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
         const dpr = window.devicePixelRatio || 1
         const parent = canvas.parentElement!
         let W = parent.clientWidth || window.innerWidth
@@ -369,6 +371,17 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
             tigerDrawX = (tigerSize - tigerDrawW) / 2
             tigerDrawY = (tigerSize - tigerDrawH) / 2
             offCtx.drawImage(tmp, tigerDrawX, tigerDrawY, tigerDrawW, tigerDrawH)
+
+            if (prefersReducedMotion) {
+                ctx.clearRect(0, 0, W, H)
+                const destX = tigerCX - tigerSize / 2
+                const destY = tigerCY - tigerSize / 2
+                ctx.drawImage(
+                    offscreen,
+                    0, 0, offscreen.width, offscreen.height,
+                    destX, destY, tigerSize, tigerSize
+                )
+            }
         }
 
         const blink: BlinkState = {
@@ -672,7 +685,9 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
             animId = requestAnimationFrame(animate)
         }
 
-        animId = requestAnimationFrame(animate)
+        if (!prefersReducedMotion) {
+            animId = requestAnimationFrame(animate)
+        }
         return () => {
             cancelAnimationFrame(animId)
             ro.disconnect()

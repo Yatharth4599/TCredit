@@ -187,9 +187,7 @@ export default function DecryptedText({
     }
 
     return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
+      observer.disconnect();
     };
   }, [animateOn, hasAnimated]);
 

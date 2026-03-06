@@ -329,8 +329,10 @@ class App {
     window.cancelAnimationFrame(this.autoScrollRaf)
     window.removeEventListener('resize', this.onResizeBound)
     window.removeEventListener('wheel', this.onWheelBound)
+    this.container.removeEventListener('mousedown', this.onTouchDownBound)
     window.removeEventListener('mousemove', this.onTouchMoveBound)
     window.removeEventListener('mouseup', this.onTouchUpBound)
+    this.container.removeEventListener('touchstart', this.onTouchDownBound)
     window.removeEventListener('touchmove', this.onTouchMoveBound)
     window.removeEventListener('touchend', this.onTouchUpBound)
     if (this.renderer?.gl?.canvas?.parentNode) {
