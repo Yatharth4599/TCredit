@@ -7,6 +7,13 @@ import platformRoutes from './platform.js';
 import investmentRoutes from './investments.js';
 import paymentRoutes from './payments.js';
 import oracleRoutes from './oracle.js';
+import balanceRoutes from './balance.js';
+import x402Routes from './x402.js';
+import walletRoutes from './wallets.js';
+import gatewayRoutes from './gateway.js';
+import acpRoutes from './acp.js';
+import creditRoutes from './credit.js';
+import identityRoutes from './identity.js';
 const router = Router();
 
 // Health
@@ -19,6 +26,25 @@ router.use('/pools', poolRoutes);
 router.use('/platform', platformRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/oracle', oracleRoutes);
+
+// Balance
+router.use('/balance', balanceRoutes);
+
+// x402 Facilitator
+router.use('/x402', x402Routes);
+
+// Agent Wallets
+router.use('/wallets', walletRoutes);
+
+// Gateway & ACP
+router.use('/gateway', gatewayRoutes);
+router.use('/acp', acpRoutes);
+
+// Credit Lines
+router.use('/credit', creditRoutes);
+
+// Agent Identity
+router.use('/identity', identityRoutes);
 
 // Investment endpoints
 router.use('/', investmentRoutes);

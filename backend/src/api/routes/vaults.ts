@@ -226,6 +226,20 @@ router.post('/create', async (req, res, next) => {
   }
 });
 
+// POST /api/v1/vaults/:address/release-tranche — build unsigned releaseTranche tx
+router.post('/:address/release-tranche', async (req, res, next) => {
+  try {
+    const vaultAddr = req.params.address as Address;
+    const data = encodeFunctionData({
+      abi: MerchantVaultABI,
+      functionName: 'releaseTranche',
+    });
+    res.json({ to: vaultAddr, data });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /api/v1/vaults/:address/milestone/submit — build unsigned submitMilestone tx
 router.post('/:address/milestone/submit', async (req, res, next) => {
   try {

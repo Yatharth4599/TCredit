@@ -18,6 +18,10 @@ import type {
   ApiHealthResponse,
   ApiSettlement,
   ApiRepaymentResult,
+  ApiAgentIdentity,
+  ApiGatewaySummary,
+  ApiGatewayBreakdown,
+  ApiAgentWallet,
   UnsignedTx,
   CreateVaultParams,
 } from './types'
@@ -166,6 +170,63 @@ export const waitlistApi = {
     api.post<{ success: boolean; id: string }>('/v1/waitlist', { email, walletAddress }),
   count: () =>
     api.get<{ count: number }>('/v1/waitlist/count'),
+}
+
+// === Agent Identity ===
+export const identityApi = {
+  get: (address: string) =>
+    api.get<ApiAgentIdentity>(`/v1/identity/${address}`),
+
+  score: (address: string) =>
+    api.get<{ agent: string; score: number; hasIdentity: boolean }>(`/v1/identity/${address}/score`),
+
+  mint: (body: { agent: string }) =>
+    api.post<UnsignedTx>('/v1/identity/mint', body),
+}
+
+// === Gateway ===
+export const gatewayApi = {
+  summary: (address: string) =>
+    api.get<ApiGatewaySummary>(`/v1/gateway/${address}/summary`),
+
+  breakdown: (address: string) =>
+    api.get<ApiGatewayBreakdown>(`/v1/gateway/${address}/breakdown`),
+
+  payments: (address: string) =>
+    api.get<{ payments: ApiGatewaySummary['recentPayments']; total: number }>(`/v1/gateway/${address}/payments`),
+}
+
+// === Agent Wallets ===
+export const walletsApi = {
+  list: () =>
+    api.get<{ wallets: ApiAgentWallet[]; total: number }>('/v1/wallets'),
+
+  byOwner: (address: string) =>
+    api.get<ApiAgentWallet>(`/v1/wallets/by-owner/${address}`),
+
+  detail: (address: string) =>
+    api.get<ApiAgentWallet>(`/v1/wallets/${address}`),
+
+  create: (body: { operator: string; dailyLimitUsdc?: string; perTxLimitUsdc?: string }) =>
+    api.post<UnsignedTx>('/v1/wallets/create', body),
+
+  setLimits: (address: string, body: { dailyLimitUsdc: string; perTxLimitUsdc: string }) =>
+    api.post<UnsignedTx>(`/v1/wallets/${address}/set-limits`, body),
+
+  setOperator: (address: string, body: { operator: string }) =>
+    api.post<UnsignedTx>(`/v1/wallets/${address}/set-operator`, body),
+
+  whitelist: (address: string, body: { recipient: string; allowed: boolean }) =>
+    api.post<UnsignedTx>(`/v1/wallets/${address}/whitelist`, body),
+
+  freeze: (address: string) =>
+    api.post<UnsignedTx>(`/v1/wallets/${address}/freeze`),
+
+  unfreeze: (address: string) =>
+    api.post<UnsignedTx>(`/v1/wallets/${address}/unfreeze`),
+
+  linkCredit: (address: string, body: { vault: string }) =>
+    api.post<UnsignedTx>(`/v1/wallets/${address}/link-credit`, body),
 }
 
 // === Payments ===

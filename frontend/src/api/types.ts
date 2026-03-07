@@ -191,6 +191,65 @@ export interface ApiRepaymentResult {
   netReturned: string;
 }
 
+export interface ApiAgentIdentity {
+  agent: string;
+  hasIdentity: boolean;
+  tokenId: string;
+  reputationScore: number;
+  reputation: {
+    totalTransactions: string;
+    totalVolumeUsdc: string;
+    successfulRepayments: string;
+    defaultCount: string;
+    firstActiveAt: string;
+    metadataURI: string;
+  };
+}
+
+export interface ApiGatewaySummary {
+  totalRevenue: string;
+  totalPayments: number;
+  sources: {
+    crypto: { volume: string; count: number };
+    x402: { volume: string; count: number };
+    fiat: { volume: string; count: number };
+  };
+  recentPayments: Array<{
+    id: string;
+    source: string;
+    amount: string;
+    from: string;
+    to: string;
+    status: string;
+    timestamp: string;
+    txHash: string | null;
+  }>;
+}
+
+export interface ApiGatewayBreakdown {
+  breakdown: Array<{
+    source: string;
+    volume: string;
+    count: number;
+    color: string;
+  }>;
+  totalRevenue: string;
+  totalPayments: number;
+}
+
+export interface ApiAgentWallet {
+  address: string;
+  owner: string;
+  operator: string;
+  dailyLimit: string;
+  perTxLimit: string;
+  spentToday: string;
+  frozen: boolean;
+  whitelistEnabled: boolean;
+  creditVault: string;
+  remainingDaily: string;
+}
+
 export interface CreateVaultParams {
   agent: string;
   targetAmount?: string;

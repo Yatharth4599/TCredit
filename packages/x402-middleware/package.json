@@ -1,0 +1,23 @@
+{
+  "name": "@krexa/x402-middleware",
+  "version": "0.1.0",
+  "description": "Express middleware for x402 HTTP payment gating — merchants add one line to monetise APIs",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "viem": "^2.46.3"
+  },
+  "peerDependencies": {
+    "express": ">=4.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "express": "^5.2.1",
+    "typescript": "^5.9.3"
+  }
+}

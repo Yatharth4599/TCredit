@@ -18,6 +18,10 @@ const VaultDetail = lazy(() => import('./pages/VaultDetail'))
 const LiquidityPools = lazy(() => import('./pages/LiquidityPools'))
 const Portfolio = lazy(() => import('./pages/Portfolio'))
 const MerchantDashboard = lazy(() => import('./pages/MerchantDashboard'))
+const Gateway = lazy(() => import('./pages/Gateway'))
+const AgentIdentity = lazy(() => import('./pages/AgentIdentity'))
+const AgentWallets = lazy(() => import('./pages/AgentWallets'))
+const WalletDetail = lazy(() => import('./pages/WalletDetail'))
 
 function getThemeFromPath(pathname: string): string {
   if (pathname === '/') return 'home'
@@ -26,6 +30,9 @@ function getThemeFromPath(pathname: string): string {
   if (pathname.startsWith('/merchant') || pathname.startsWith('/app/merchant')) return 'merchant'
   if (pathname.startsWith('/pools') || pathname.startsWith('/app/pools')) return 'pools'
   if (pathname.startsWith('/x402')) return 'x402'
+  if (pathname.startsWith('/app/identity')) return 'home'
+  if (pathname.startsWith('/app/gateway')) return 'x402'
+  if (pathname.startsWith('/app/wallets')) return 'wallets'
   return 'home'
 }
 
@@ -87,6 +94,11 @@ function App() {
                 <Route path="/app/pools" element={<LiquidityPools />} />
                 <Route path="/app/portfolio" element={<Portfolio />} />
                 <Route path="/app/merchant" element={<MerchantDashboard />} />
+                <Route path="/app/gateway" element={<Gateway />} />
+                <Route path="/app/wallets" element={<AgentWallets />} />
+                <Route path="/app/wallets/:address" element={<WalletDetail />} />
+                <Route path="/app/identity" element={<AgentIdentity />} />
+                <Route path="/app/identity/:address" element={<AgentIdentity />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Suspense>
