@@ -174,6 +174,23 @@ export interface ApiOraclePayment {
   processedAt: string | null;
 }
 
+export interface ApiSettlement {
+  vault: string;
+  repaymentRateBps: number;
+  totalRouted: string;
+  totalPayments: number;
+  active: boolean;
+  lastPaymentAt: string | null;
+}
+
+export interface ApiRepaymentResult {
+  status: string;
+  txHash: string | null;
+  repaymentAmount: string;
+  grossAmount: string;
+  netReturned: string;
+}
+
 export interface CreateVaultParams {
   agent: string;
   targetAmount?: string;

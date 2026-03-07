@@ -531,6 +531,170 @@
     color: var(--text-tertiary);
 }
 
+/* Rate badge */
+.rateBadge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--accent);
+  padding: 3px 10px;
+  background: rgba(var(--accent-rgb), 0.1);
+  border-radius: var(--pill-radius);
+}
+
+/* Repayment section */
+.repaymentSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.repayVaultRow {
+  padding: 12px;
+  background: var(--surface-3);
+  border-radius: 12px;
+}
+
+.repayVaultInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.repayVaultAddr {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.repayVaultOutstanding {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.repayProgressBar {
+  height: 4px;
+  background: var(--surface-4);
+  border-radius: var(--pill-radius);
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.repayProgressFill {
+  height: 100%;
+  background: var(--color-success);
+  border-radius: var(--pill-radius);
+  transition: width 0.8s ease;
+}
+
+.repayProgressMeta {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+}
+
+/* Status badges */
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--pill-radius);
+  text-transform: capitalize;
+}
+
+.status_confirmed {
+  color: var(--color-success);
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.status_failed {
+  color: #e53e3e;
+  background: rgba(229, 62, 62, 0.1);
+}
+
+.status_pending,
+.status_submitted {
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+/* Repay breakdown in modal */
+.repayBreakdown {
+  padding: 12px;
+  background: var(--surface-3);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.repayBreakdownRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.repayBreakdownVal {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.repayStepIndicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(var(--accent-rgb), 0.08);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: var(--accent);
+}
+
+.repaySuccess {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 0;
+  text-align: center;
+  color: var(--color-success);
+}
+
+.repaySuccess h3 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.repaySuccess p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.txLink {
+  font-size: 0.82rem;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.txLink:hover {
+  text-decoration: underline;
+}
+
 /* Responsive */
 @media (max-width: 1100px) {
   .statsRow { grid-template-columns: 1fr 1fr; }

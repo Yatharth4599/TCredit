@@ -14,6 +14,7 @@
     "copy-abis": "cp ../base-contracts/deployments/contracts.ts src/config/abis.ts",
     "predev": "npm run copy-abis && npm run db:generate",
     "prebuild": "npm run copy-abis && npm run db:generate",
+    "demo": "tsx src/scripts/demo-lifecycle.ts",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down"
   },

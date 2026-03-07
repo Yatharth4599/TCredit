@@ -16,6 +16,8 @@ import type {
   ApiPlatformConfig,
   ApiOraclePayment,
   ApiHealthResponse,
+  ApiSettlement,
+  ApiRepaymentResult,
   UnsignedTx,
   CreateVaultParams,
 } from './types'
@@ -90,6 +92,15 @@ export const merchantApi = {
 
   updateCreditScore: (address: string, body: { score: number }) =>
     api.post<UnsignedTx>(`/v1/merchants/${address}/credit-score`, body),
+
+  settlement: (address: string) =>
+    api.get<ApiSettlement>(`/v1/merchants/${address}/settlement`),
+
+  repayments: (address: string, params?: { limit?: number }) =>
+    api.get<{ repayments: ApiOraclePayment[]; total: number }>(`/v1/merchants/${address}/repayments`, { params }),
+
+  repay: (address: string, body: { repaymentAmount: string }) =>
+    api.post<ApiRepaymentResult>(`/v1/merchants/${address}/repay`, body),
 }
 
 // === Pools ===

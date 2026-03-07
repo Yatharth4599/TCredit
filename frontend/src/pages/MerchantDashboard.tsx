@@ -3,13 +3,15 @@ import { motion } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
 import { useAccount } from 'wagmi'
 import { merchantApi, vaultsApi, oracleApi } from '../api/client'
-import type { ApiMerchantStats, ApiVault, ApiOraclePayment, CreateVaultParams } from '../api/types'
-import { formatUSDC, weiToNumber, truncateAddress, parseUSDCToWei } from '../lib/format'
+import type { ApiMerchantStats, ApiVault, ApiOraclePayment, ApiSettlement, CreateVaultParams } from '../api/types'
+import { formatUSDC, weiToNumber, truncateAddress, parseUSDCToWei, bpsToPercent } from '../lib/format'
 import { useContractTx } from '../hooks/useContractTx'
+import { useUSDCApproval } from '../hooks/useUSDCApproval'
+import { CONTRACTS } from '../config/contracts'
 import toast from 'react-hot-toast'
 import { BentoGrid, BentoCard } from '../components/ui/BentoGrid'
 import { WaterfallChart } from '../components/charts/WaterfallChart'
-import { DollarSign, Star, CreditCard, Zap, ChevronRight, Plus, Activity, Wallet, Loader2 } from 'lucide-react'
+import { DollarSign, Star, CreditCard, Zap, ChevronRight, Plus, Activity, Wallet, Loader2, ArrowDownCircle, Clock, CheckCircle2, XCircle } from 'lucide-react'
 import { STATUS_CONFIG } from '../lib/statusConfig'
 import styles from './MerchantDashboard.module.css'
 
@@ -26,6 +28,16 @@ export default function MerchantDashboard() {
   const [creating, setCreating] = useState(false)
   const [isRegistered, setIsRegistered] = useState<boolean | null>(null)
   const [registering, setRegistering] = useState(false)
+
+  // Repayment state
+  const [settlement, setSettlement] = useState<ApiSettlement | null>(null)
+  const [repayments, setRepayments] = useState<ApiOraclePayment[]>([])
+  const [showRepayModal, setShowRepayModal] = useState(false)
+  const [repayAmount, setRepayAmount] = useState('')
+  const [repaying, setRepaying] = useState(false)
+  const [repayStep, setRepayStep] = useState<'input' | 'approve' | 'submit' | 'success'>('input')
+  const [repayTxHash, setRepayTxHash] = useState<string | null>(null)
+  const { needsApproval, approve, isApproving } = useUSDCApproval(CONTRACTS.paymentRouter)
 
   // Create vault form state
   const [form, setForm] = useState({
@@ -55,6 +67,8 @@ export default function MerchantDashboard() {
         .catch((err) => { setMerchant(null); setIsRegistered(err?.response?.status === 404 ? false : null) }),
       merchantApi.vaults(walletAddress).then(r => setVaults(r.data?.vaults ?? [])).catch(() => setVaults([])),
       oracleApi.payments({ limit: 10 }).then(r => setPayments(r.data?.payments ?? [])).catch(() => setPayments([])),
+      merchantApi.settlement(walletAddress).then(r => setSettlement(r.data ?? null)).catch(() => setSettlement(null)),
+      merchantApi.repayments(walletAddress).then(r => setRepayments(r.data?.repayments ?? [])).catch(() => setRepayments([])),
     ]).finally(() => setLoading(false))
   }, [walletAddress])
 
@@ -120,6 +134,58 @@ export default function MerchantDashboard() {
     } finally {
       setCreating(false)
     }
+  }
+
+  // Repayment calculations
+  const repayAmountNum = parseFloat(repayAmount) || 0
+  const rateBps = settlement?.repaymentRateBps ?? 3000
+  const grossNeeded = rateBps > 0 ? repayAmountNum * 10000 / rateBps : 0
+  const netReturned = grossNeeded - repayAmountNum
+  const grossWei = rateBps > 0 ? parseUSDCToWei(grossNeeded.toFixed(6)) : '0'
+
+  const handleRepay = async () => {
+    if (!walletAddress || repayAmountNum <= 0) return
+    setRepaying(true)
+    try {
+      // Step 1: Check if approval needed
+      const grossBigInt = BigInt(grossWei)
+      if (needsApproval(grossBigInt)) {
+        setRepayStep('approve')
+        const approved = await approve(grossBigInt)
+        if (!approved) {
+          setRepaying(false)
+          setRepayStep('input')
+          return
+        }
+      }
+
+      // Step 2: Submit repayment
+      setRepayStep('submit')
+      const repayWei = parseUSDCToWei(repayAmountNum.toFixed(6))
+      const { data } = await merchantApi.repay(walletAddress, { repaymentAmount: repayWei })
+      setRepayTxHash(data.txHash)
+      setRepayStep('success')
+      toast.success('Repayment submitted successfully!')
+
+      // Refresh data
+      merchantApi.stats(walletAddress).then(r => setMerchant(r.data ?? null)).catch(() => {})
+      merchantApi.vaults(walletAddress).then(r => setVaults(r.data?.vaults ?? [])).catch(() => {})
+      merchantApi.repayments(walletAddress).then(r => setRepayments(r.data?.repayments ?? [])).catch(() => {})
+      merchantApi.settlement(walletAddress).then(r => setSettlement(r.data ?? null)).catch(() => {})
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Repayment failed'
+      toast.error(msg)
+      setRepayStep('input')
+    } finally {
+      setRepaying(false)
+    }
+  }
+
+  const openRepayModal = () => {
+    setRepayAmount('')
+    setRepayStep('input')
+    setRepayTxHash(null)
+    setShowRepayModal(true)
   }
 
   if (!walletAddress) {
@@ -252,6 +318,93 @@ export default function MerchantDashboard() {
                 <p>Create a vault to see waterfall distribution</p>
               </div>
             )}
+          </div>
+        </BentoCard>
+
+        {/* Loan Repayment */}
+        <BentoCard colSpan="span 2">
+          <div className={styles.bentoInner}>
+            <div className={styles.sectionHeader}>
+              <div className={styles.sectionTitle}>
+                <ArrowDownCircle size={15} className={styles.sectionIcon} />
+                Loan Repayment
+              </div>
+              {settlement?.active && (
+                <span className={styles.rateBadge}>
+                  {bpsToPercent(rateBps)} to vault
+                </span>
+              )}
+            </div>
+
+            {vaults.filter(v => v.state === 'active' || v.state === 'repaying').length === 0 ? (
+              <div className={styles.emptyPayments}>No active loans to repay</div>
+            ) : (
+              <div className={styles.repaymentSection}>
+                {vaults.filter(v => v.state === 'active' || v.state === 'repaying').map((vault) => {
+                  const outstanding = BigInt(vault.totalToRepay) - BigInt(vault.totalRepaid)
+                  const repaidPct = BigInt(vault.totalToRepay) > 0n
+                    ? Number(BigInt(vault.totalRepaid) * 100n / BigInt(vault.totalToRepay))
+                    : 0
+                  return (
+                    <div key={vault.address} className={styles.repayVaultRow}>
+                      <div className={styles.repayVaultInfo}>
+                        <span className={styles.repayVaultAddr}>{truncateAddress(vault.address, 6)}</span>
+                        <span className={styles.repayVaultOutstanding}>
+                          {formatUSDC(outstanding.toString())} remaining
+                        </span>
+                      </div>
+                      <div className={styles.repayProgressBar}>
+                        <div
+                          className={styles.repayProgressFill}
+                          style={{ width: `${Math.min(repaidPct, 100)}%` }}
+                        />
+                      </div>
+                      <div className={styles.repayProgressMeta}>
+                        <span>{formatUSDC(vault.totalRepaid)} / {formatUSDC(vault.totalToRepay)}</span>
+                        <span>{repaidPct}% repaid</span>
+                      </div>
+                    </div>
+                  )
+                })}
+                <button className={styles.repayBtn} onClick={openRepayModal}>
+                  Make Repayment
+                </button>
+              </div>
+            )}
+          </div>
+        </BentoCard>
+
+        {/* Repayment History */}
+        <BentoCard colSpan="span 1">
+          <div className={styles.bentoInner}>
+            <div className={styles.sectionHeader}>
+              <div className={styles.sectionTitle}>
+                <Clock size={15} className={styles.sectionIcon} />
+                Repayments
+              </div>
+            </div>
+            <div className={styles.paymentList}>
+              {repayments.length === 0 ? (
+                <div className={styles.emptyPayments}>No repayments yet</div>
+              ) : (
+                repayments.slice(0, 8).map((r) => (
+                  <div key={r.id} className={styles.paymentRow}>
+                    <div className={styles.paymentLeft}>
+                      <span className={styles.paymentSource}>{formatUSDC(r.amount)}</span>
+                      <span className={styles.paymentVault}>{new Date(r.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    <div className={styles.paymentRight}>
+                      <span className={`${styles.statusBadge} ${styles[`status_${r.status}`] || ''}`}>
+                        {r.status === 'confirmed' && <CheckCircle2 size={11} />}
+                        {r.status === 'failed' && <XCircle size={11} />}
+                        {(r.status === 'pending' || r.status === 'submitted') && <Loader2 size={11} className={styles.spinner} />}
+                        {r.status}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </BentoCard>
 
@@ -430,6 +583,102 @@ export default function MerchantDashboard() {
               >
                 {creating ? <><Loader2 size={14} className={styles.spinner} /> Creating...</> : 'Create Vault'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Repay Modal */}
+      {showRepayModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowRepayModal(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2>Make Repayment</h2>
+              <button className={styles.modalClose} onClick={() => setShowRepayModal(false)}>&#x2715;</button>
+            </div>
+            <div className={styles.modalBody}>
+              {repayStep === 'success' ? (
+                <div className={styles.repaySuccess}>
+                  <CheckCircle2 size={40} />
+                  <h3>Repayment Submitted</h3>
+                  <p>Your repayment of {formatUSDC(parseUSDCToWei(repayAmountNum.toFixed(6)))} has been processed.</p>
+                  {repayTxHash && (
+                    <a
+                      href={`https://sepolia.basescan.org/tx/${repayTxHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.txLink}
+                    >
+                      View transaction
+                    </a>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Repayment Amount (USDC to vault)</label>
+                    <input
+                      className={styles.formInput}
+                      type="number"
+                      placeholder="300"
+                      value={repayAmount}
+                      onChange={(e) => setRepayAmount(e.target.value)}
+                      disabled={repayStep !== 'input'}
+                    />
+                  </div>
+
+                  {repayAmountNum > 0 && (
+                    <div className={styles.repayBreakdown}>
+                      <div className={styles.repayBreakdownRow}>
+                        <span>Gross USDC needed</span>
+                        <span className={styles.repayBreakdownVal}>${grossNeeded.toFixed(2)}</span>
+                      </div>
+                      <div className={styles.repayBreakdownRow}>
+                        <span>To vault ({bpsToPercent(rateBps)})</span>
+                        <span className={styles.repayBreakdownVal}>${repayAmountNum.toFixed(2)}</span>
+                      </div>
+                      <div className={styles.repayBreakdownRow}>
+                        <span>Returned to you</span>
+                        <span className={styles.repayBreakdownVal}>${netReturned.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {repayStep === 'approve' && (
+                    <div className={styles.repayStepIndicator}>
+                      <Loader2 size={14} className={styles.spinner} />
+                      <span>Step 1/2: Approve USDC spending...</span>
+                    </div>
+                  )}
+                  {repayStep === 'submit' && (
+                    <div className={styles.repayStepIndicator}>
+                      <Loader2 size={14} className={styles.spinner} />
+                      <span>Step 2/2: Submitting repayment...</span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+            <div className={styles.modalFooter}>
+              {repayStep === 'success' ? (
+                <button className={styles.submitBtn} onClick={() => setShowRepayModal(false)}>
+                  Done
+                </button>
+              ) : (
+                <>
+                  <button className={styles.cancelBtn} onClick={() => setShowRepayModal(false)}>Cancel</button>
+                  <button
+                    className={styles.submitBtn}
+                    onClick={handleRepay}
+                    disabled={repaying || isApproving || repayAmountNum <= 0}
+                  >
+                    {repaying || isApproving ? (
+                      <><Loader2 size={14} className={styles.spinner} /> Processing...</>
+                    ) : (
+                      'Repay'
+                    )}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

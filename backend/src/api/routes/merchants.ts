@@ -6,6 +6,11 @@ import { AgentRegistryABI } from '../../config/abis.js';
 import { addresses } from '../../config/contracts.js';
 import { encodeFunctionData } from 'viem';
 import { AppError } from '../middleware/errorHandler.js';
+import { getSettlement } from '../../chain/paymentRouter.js';
+import { processPayment } from '../../services/oracle.service.js';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 const router = Router();
 
@@ -107,9 +112,104 @@ router.get('/:address/stats', async (req, res, next) => {
   }
 });
 
-// GET /api/v1/merchants/:address/repayments — from VaultEvents (Phase 5 fills this)
-router.get('/:address/repayments', (_req, res) => {
-  res.json({ repayments: [], total: 0 });
+// GET /api/v1/merchants/:address/settlement — on-chain settlement data
+router.get('/:address/settlement', async (req, res, next) => {
+  try {
+    const addr = req.params.address as Address;
+    const settlement = await getSettlement(addr);
+
+    res.json({
+      vault: settlement.vault,
+      repaymentRateBps: Number(settlement.repaymentRateBps),
+      totalRouted: settlement.totalRouted.toString(),
+      totalPayments: Number(settlement.totalPayments),
+      active: settlement.active,
+      lastPaymentAt: settlement.lastPaymentAt > 0n
+        ? new Date(Number(settlement.lastPaymentAt) * 1000).toISOString()
+        : null,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/v1/merchants/:address/repayments — query real OraclePayment records
+router.get('/:address/repayments', async (req, res, next) => {
+  try {
+    const addr = req.params.address.toLowerCase();
+    const payments = await prisma.oraclePayment.findMany({
+      where: {
+        OR: [{ from: addr }, { to: addr }],
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    res.json({
+      repayments: payments.map((p) => ({
+        id: p.id,
+        from: p.from,
+        to: p.to,
+        vault: p.vault,
+        amount: p.amount.toString(),
+        nonce: p.nonce.toString(),
+        deadline: p.deadline.toString(),
+        paymentId: p.paymentId,
+        status: p.status,
+        txHash: p.txHash,
+        error: p.error,
+        attempts: p.attempts,
+        nextRetryAt: p.nextRetryAt?.toISOString() ?? null,
+        createdAt: p.createdAt.toISOString(),
+        processedAt: p.processedAt?.toISOString() ?? null,
+      })),
+      total: payments.length,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/merchants/:address/repay — submit a repayment via oracle
+router.post('/:address/repay', async (req, res, next) => {
+  try {
+    const addr = req.params.address as Address;
+    const { repaymentAmount } = req.body;
+    if (!repaymentAmount) throw new AppError(400, 'repaymentAmount (wei string) required');
+
+    const repayBigInt = BigInt(repaymentAmount);
+    if (repayBigInt <= 0n) throw new AppError(400, 'repaymentAmount must be positive');
+
+    // Get settlement to calculate gross amount
+    const settlement = await getSettlement(addr);
+    if (!settlement.active) {
+      throw new AppError(400, `No active settlement for ${addr}`);
+    }
+
+    const rateBps = BigInt(settlement.repaymentRateBps);
+    if (rateBps === 0n) throw new AppError(400, 'Settlement has 0 repaymentRateBps');
+
+    // grossAmount = ceil(repaymentAmount * 10000 / repaymentRateBps)
+    const grossAmount = (repayBigInt * 10000n + rateBps - 1n) / rateBps;
+    const netReturned = grossAmount - repayBigInt;
+
+    // Submit via oracle (from=merchant, to=merchant, amount=grossAmount)
+    const result = await processPayment({
+      from: addr,
+      to: addr,
+      amount: grossAmount.toString(),
+    });
+
+    res.json({
+      status: result.status,
+      txHash: result.txHash,
+      repaymentAmount: repayBigInt.toString(),
+      grossAmount: grossAmount.toString(),
+      netReturned: netReturned.toString(),
+    });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // POST /api/v1/merchants/register — build unsigned registerAgent tx
