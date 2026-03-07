@@ -62,6 +62,36 @@ export default function Navbar() {
       onClick: () => navigate('/merchant'),
     },
     {
+      title: 'Wallets',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M3 7V5a2 2 0 012-2h12a2 2 0 012 2v2" /><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M2 11h6a2 2 0 012 2v0a2 2 0 01-2 2H2" /><circle cx="7" cy="13" r="0.5" fill="currentColor" />
+        </svg>
+      ),
+      href: '/app/wallets',
+      onClick: () => navigate('/app/wallets'),
+    },
+    {
+      title: 'Identity',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M12 10a3 3 0 100-6 3 3 0 000 6z" /><path d="M2 21a10 10 0 0120 0" /><path d="M12 14v4" /><path d="M8 18h8" />
+        </svg>
+      ),
+      href: '/app/identity',
+      onClick: () => navigate('/app/identity'),
+    },
+    {
+      title: 'Gateway',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M2 20h20M6 20V10M10 20V4M14 20V8M18 20V14" />
+        </svg>
+      ),
+      href: '/app/gateway',
+      onClick: () => navigate('/app/gateway'),
+    },
+    {
       title: 'x402 Demo',
       icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">

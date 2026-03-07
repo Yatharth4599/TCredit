@@ -1,5 +1,7 @@
 import { publicClient } from './client.js';
+import { erc20Abi, parseAbiItem } from 'viem';
 import type { Address } from 'viem';
+import { env } from '../config/env.js';
 
 const AgentWalletABI = [
   { inputs: [], name: 'owner', outputs: [{ type: 'address' }], stateMutability: 'view', type: 'function' },
@@ -38,4 +40,38 @@ export async function getWalletState(walletAddr: Address) {
     creditVault: creditVault as string,
     remainingDaily: (remainingDaily as bigint).toString(),
   };
+}
+
+export async function getWalletBalance(walletAddr: Address) {
+  const usdcAddress = env.USDC_ADDRESS as Address;
+  const balance = await publicClient.readContract({
+    address: usdcAddress,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: [walletAddr],
+  });
+  return (balance as bigint).toString();
+}
+
+const PaymentExecutedEvent = parseAbiItem(
+  'event PaymentExecuted(address indexed to, uint256 amount)'
+);
+
+export async function getTransferHistory(walletAddr: Address) {
+  const latestBlock = await publicClient.getBlockNumber();
+  const fromBlock = latestBlock > 50000n ? latestBlock - 50000n : 0n;
+
+  const logs = await publicClient.getLogs({
+    address: walletAddr,
+    event: PaymentExecutedEvent,
+    fromBlock,
+    toBlock: 'latest',
+  });
+
+  return logs.map((log) => ({
+    to: log.args.to as string,
+    amount: (log.args.amount as bigint).toString(),
+    blockNumber: log.blockNumber.toString(),
+    txHash: log.transactionHash,
+  }));
 }

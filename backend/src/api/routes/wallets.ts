@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import type { Address } from 'viem';
-import { parseUnits } from 'viem';
-import { getWalletState } from '../../chain/agentWallet.js';
+import { parseUnits, encodeFunctionData, erc20Abi } from 'viem';
+import { getWalletState, getWalletBalance, getTransferHistory } from '../../chain/agentWallet.js';
 import {
   getWalletByOwner,
   getAllWallets,
@@ -12,6 +12,9 @@ import {
   encodeFreeze,
   encodeUnfreeze,
   encodeLinkCreditVault,
+  encodeTransfer,
+  encodeEmergencyWithdraw,
+  encodeToggleWhitelist,
 } from '../../chain/agentWalletFactory.js';
 import { AppError } from '../middleware/errorHandler.js';
 
@@ -19,6 +22,7 @@ const router = Router();
 
 // Factory address — set via env once deployed
 const WALLET_FACTORY = (process.env.AGENT_WALLET_FACTORY_ADDRESS ?? '0x0000000000000000000000000000000000000000') as Address;
+const USDC_ADDRESS = (process.env.USDC_ADDRESS ?? '0x036CbD53842c5426634e7929541eC2318f3dCF7e') as Address;
 
 // GET /api/v1/wallets — list all wallets
 router.get('/', async (req, res, next) => {
@@ -46,6 +50,30 @@ router.get('/by-owner/:address', async (req, res, next) => {
     }
     const state = await getWalletState(walletAddr);
     res.json({ address: walletAddr, ...state });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/v1/wallets/:address/balance — return USDC balance of wallet
+// NOTE: must be registered before /:address catch-all
+router.get('/:address/balance', async (req, res, next) => {
+  try {
+    const walletAddr = req.params.address as Address;
+    const balance = await getWalletBalance(walletAddr);
+    res.json({ address: walletAddr, balanceUsdc: balance });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/v1/wallets/:address/history — return recent PaymentExecuted events
+// NOTE: must be registered before /:address catch-all
+router.get('/:address/history', async (req, res, next) => {
+  try {
+    const walletAddr = req.params.address as Address;
+    const events = await getTransferHistory(walletAddr);
+    res.json({ events, total: events.length });
   } catch (err) {
     next(err);
   }
@@ -141,6 +169,62 @@ router.post('/:address/link-credit', async (req, res, next) => {
     if (!vault) throw new AppError(400, 'vault address required');
     const tx = encodeLinkCreditVault(req.params.address as Address, vault as Address);
     res.json({ ...tx, description: 'Link credit vault to wallet' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/wallets/:address/transfer — build unsigned transfer(to, amount) tx (operator signs)
+router.post('/:address/transfer', async (req, res, next) => {
+  try {
+    const { to, amountUsdc } = req.body;
+    if (!to) throw new AppError(400, 'recipient address required');
+    if (!amountUsdc) throw new AppError(400, 'amountUsdc required');
+    const amount = parseUnits(String(amountUsdc), 6);
+    const tx = encodeTransfer(req.params.address as Address, to as Address, amount);
+    res.json({ ...tx, description: `Transfer ${amountUsdc} USDC to ${to}` });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/wallets/:address/deposit — build unsigned USDC transfer to wallet (anyone sends USDC)
+router.post('/:address/deposit', async (req, res, next) => {
+  try {
+    const { amountUsdc } = req.body;
+    if (!amountUsdc) throw new AppError(400, 'amountUsdc required');
+    const amount = parseUnits(String(amountUsdc), 6);
+    const walletAddr = req.params.address as Address;
+    const data = encodeFunctionData({
+      abi: erc20Abi,
+      functionName: 'transfer',
+      args: [walletAddr, amount],
+    });
+    res.json({ to: USDC_ADDRESS, data, description: `Deposit ${amountUsdc} USDC into wallet` });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/wallets/:address/emergency-withdraw — build unsigned emergencyWithdraw tx (owner only)
+router.post('/:address/emergency-withdraw', async (req, res, next) => {
+  try {
+    const { to } = req.body;
+    if (!to) throw new AppError(400, 'recipient address required');
+    const tx = encodeEmergencyWithdraw(req.params.address as Address, to as Address);
+    res.json({ ...tx, description: 'Emergency withdraw all USDC from wallet' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/wallets/:address/toggle-whitelist — build unsigned toggleWhitelist tx
+router.post('/:address/toggle-whitelist', async (req, res, next) => {
+  try {
+    const { enabled } = req.body;
+    if (typeof enabled !== 'boolean') throw new AppError(400, 'enabled (boolean) required');
+    const tx = encodeToggleWhitelist(req.params.address as Address, enabled);
+    res.json({ ...tx, description: `${enabled ? 'Enable' : 'Disable'} whitelist` });
   } catch (err) {
     next(err);
   }

@@ -227,6 +227,24 @@ export const walletsApi = {
 
   linkCredit: (address: string, body: { vault: string }) =>
     api.post<UnsignedTx>(`/v1/wallets/${address}/link-credit`, body),
+
+  transfer: (address: string, body: { to: string; amountUsdc: string }) =>
+    api.post<UnsignedTx>(`/v1/wallets/${address}/transfer`, body),
+
+  deposit: (address: string, body: { amountUsdc: string }) =>
+    api.post<UnsignedTx>(`/v1/wallets/${address}/deposit`, body),
+
+  balance: (address: string) =>
+    api.get<{ address: string; balanceUsdc: string }>(`/v1/wallets/${address}/balance`),
+
+  emergencyWithdraw: (address: string, body: { to: string }) =>
+    api.post<UnsignedTx>(`/v1/wallets/${address}/emergency-withdraw`, body),
+
+  toggleWhitelist: (address: string, body: { enabled: boolean }) =>
+    api.post<UnsignedTx>(`/v1/wallets/${address}/toggle-whitelist`, body),
+
+  history: (address: string) =>
+    api.get<{ events: Array<{ to: string; amount: string; blockNumber: string; txHash: string }>; total: number }>(`/v1/wallets/${address}/history`),
 }
 
 // === Payments ===

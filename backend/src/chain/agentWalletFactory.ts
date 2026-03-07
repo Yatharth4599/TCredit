@@ -81,6 +81,27 @@ const AgentWalletABI = [
     stateMutability: 'nonpayable',
     type: 'function',
   },
+  {
+    inputs: [{ name: 'to', type: 'address' }, { name: 'amount', type: 'uint256' }],
+    name: 'transfer',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'to', type: 'address' }],
+    name: 'emergencyWithdraw',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'enabled', type: 'bool' }],
+    name: 'toggleWhitelist',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
 ] as const;
 
 export async function getWalletByOwner(factoryAddr: Address, owner: Address) {
@@ -155,5 +176,26 @@ export function encodeLinkCreditVault(walletAddr: Address, vault: Address) {
   return {
     to: walletAddr,
     data: encodeFunctionData({ abi: AgentWalletABI, functionName: 'linkCreditVault', args: [vault] }),
+  };
+}
+
+export function encodeTransfer(walletAddr: Address, to: Address, amount: bigint) {
+  return {
+    to: walletAddr,
+    data: encodeFunctionData({ abi: AgentWalletABI, functionName: 'transfer', args: [to, amount] }),
+  };
+}
+
+export function encodeEmergencyWithdraw(walletAddr: Address, to: Address) {
+  return {
+    to: walletAddr,
+    data: encodeFunctionData({ abi: AgentWalletABI, functionName: 'emergencyWithdraw', args: [to] }),
+  };
+}
+
+export function encodeToggleWhitelist(walletAddr: Address, enabled: boolean) {
+  return {
+    to: walletAddr,
+    data: encodeFunctionData({ abi: AgentWalletABI, functionName: 'toggleWhitelist', args: [enabled] }),
   };
 }
