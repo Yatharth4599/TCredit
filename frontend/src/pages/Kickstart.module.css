@@ -1,0 +1,352 @@
+.page {
+  min-height: 100vh;
+  padding: 100px 24px 60px;
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  margin: 6px 0 0;
+}
+
+.launchBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: var(--pill-radius);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.launchBtn:hover {
+  opacity: 0.9;
+}
+
+/* Info Banner */
+.infoBanner {
+  background: var(--surface-2);
+  border-radius: var(--card-border-radius);
+  padding: 20px 24px;
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.infoBanner svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.infoBanner p {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Section */
+.sectionTitle {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 16px;
+}
+
+/* Grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* Card */
+.card {
+  background: var(--surface-2);
+  border-radius: var(--card-border-radius);
+  padding: 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.card:hover {
+  background: var(--surface-3);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.cardAddr {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.cardRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.cardRow span:last-child {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.buyBtn {
+  width: 100%;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--accent);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  margin-top: 12px;
+  transition: background 0.2s;
+}
+
+.buyBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Empty */
+.empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-tertiary);
+}
+
+.empty svg {
+  margin-bottom: 12px;
+  opacity: 0.4;
+}
+
+/* Steps */
+.stepsCard {
+  background: var(--surface-2);
+  border-radius: var(--card-border-radius);
+  padding: 24px;
+  margin-bottom: 32px;
+}
+
+.step {
+  display: flex;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.step:last-child {
+  border-bottom: none;
+}
+
+.stepNum {
+  width: 28px;
+  height: 28px;
+  background: var(--accent);
+  color: #000;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.stepContent {
+  flex: 1;
+}
+
+.stepAction {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.stepNetwork {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.stepNote {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+/* Modal */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  background: var(--surface-1);
+  border-radius: var(--panel-border-radius);
+  padding: 32px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.modalTitle {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 24px;
+}
+
+.formGroup {
+  margin-bottom: 16px;
+}
+
+.formGroup label {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--surface-3);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  border-color: var(--accent);
+}
+
+.textarea {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--surface-3);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  outline: none;
+  box-sizing: border-box;
+  min-height: 80px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.textarea:focus {
+  border-color: var(--accent);
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--surface-3);
+  border-radius: 10px;
+  margin-bottom: 16px;
+  cursor: pointer;
+}
+
+.toggle input {
+  accent-color: var(--accent);
+}
+
+.toggle span {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.submitBtn {
+  width: 100%;
+  padding: 12px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: var(--pill-radius);
+  font-weight: 600;
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.submitBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+}

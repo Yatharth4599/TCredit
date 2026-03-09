@@ -184,3 +184,73 @@ export async function releaseTranche(vaultAddress: string) {
     method: 'POST',
   });
 }
+
+// ---------------------------------------------------------------------------
+// Kickstart (EasyA)
+// ---------------------------------------------------------------------------
+
+export async function uploadKickstartMetadata(body: {
+  name: string;
+  ticker: string;
+  description: string;
+  imageUrl?: string;
+}) {
+  return request<{ uri: string; description: string }>('/kickstart/upload-metadata', {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function buildCreateToken(body: {
+  name: string;
+  symbol: string;
+  uri: string;
+  initialBuyEth?: string;
+  deadlineSeconds?: number;
+}) {
+  return request<{ to: string; data: string; value: string; chainId: number; description: string }>(
+    '/kickstart/create-token',
+    { method: 'POST', body },
+  );
+}
+
+export async function buildBuyToken(body: {
+  curveAddress: string;
+  ethAmount: string;
+  minTokensOut?: string;
+}) {
+  return request<{ to: string; data: string; value: string; chainId: number; description: string }>(
+    '/kickstart/buy-token',
+    { method: 'POST', body },
+  );
+}
+
+export async function buildCreditAndLaunch(body: {
+  vaultAddress?: string;
+  name: string;
+  symbol: string;
+  description?: string;
+  imageUrl?: string;
+  initialBuyEth?: string;
+}) {
+  return request<{
+    steps: Array<{
+      step: number;
+      network: string;
+      chainId: number;
+      action: string;
+      description: string;
+      tx?: { to: string; data: string; value?: string };
+      note?: string;
+    }>;
+    totalSteps: number;
+    note: string;
+  }>('/kickstart/credit-and-launch', { method: 'POST', body });
+}
+
+export async function getKickstartTokens(start?: number, count?: number) {
+  return request<{ tokens: Array<{ curve: string; token: string | null }>; total: number }>(
+    '/kickstart/tokens',
+    { params: { start: String(start ?? 0), count: String(count ?? 20) } },
+  );
+}

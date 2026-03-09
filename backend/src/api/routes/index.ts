@@ -14,6 +14,7 @@ import gatewayRoutes from './gateway.js';
 import acpRoutes from './acp.js';
 import creditRoutes from './credit.js';
 import identityRoutes from './identity.js';
+import kickstartRoutes from './kickstart.js';
 const router = Router();
 
 // Health
@@ -45,6 +46,9 @@ router.use('/credit', creditRoutes);
 
 // Agent Identity
 router.use('/identity', identityRoutes);
+
+// Kickstart (EasyA) — token launches with credit
+router.use('/kickstart', kickstartRoutes);
 
 // Investment endpoints
 router.use('/', investmentRoutes);

@@ -113,8 +113,59 @@ Chain ID: 84532 | RPC: `https://sepolia.base.org` | Explorer: `https://sepolia.b
 
 See `references/contracts.md` for function signatures.
 
+## Kickstart Integration
+
+Agents can use Krexa credit to launch tokens on [EasyA Kickstart](https://kickstart.easya.io) — a fair launch launchpad on Base mainnet with bonding curves that graduate to Aerodrome DEX at ~4.5 ETH.
+
+**Note:** Krexa contracts run on Base Sepolia (84532). Kickstart runs on Base mainnet (8453). The API handles both networks.
+
+### Launch a Token with Credit
+
+```bash
+# 1. Draw credit from vault (Base Sepolia)
+TX=$(curl -s -X POST https://api.krexa.xyz/api/v1/credit/YOUR_VAULT/draw)
+TO=$(echo $TX | jq -r '.to') && DATA=$(echo $TX | jq -r '.data')
+cast send $TO $DATA --rpc-url https://sepolia.base.org --private-key $KEY
+
+# 2. Upload token metadata
+META=$(curl -s -X POST https://api.krexa.xyz/api/v1/kickstart/upload-metadata \
+  -H "Content-Type: application/json" \
+  -d '{"name": "My Token", "ticker": "MTK", "description": "A cool token"}')
+URI=$(echo $META | jq -r '.uri')
+
+# 3. Create token on Kickstart (Base mainnet)
+TX=$(curl -s -X POST https://api.krexa.xyz/api/v1/kickstart/create-token \
+  -H "Content-Type: application/json" \
+  -d "{\"name\": \"My Token\", \"symbol\": \"MTK\", \"uri\": \"$URI\", \"initialBuyEth\": \"0.01\"}")
+TO=$(echo $TX | jq -r '.to') && DATA=$(echo $TX | jq -r '.data') && VALUE=$(echo $TX | jq -r '.value')
+cast send $TO --data $DATA --value $VALUE --rpc-url https://mainnet.base.org --private-key $KEY
+```
+
+### Combined Flow (Single API Call)
+
+```bash
+# Returns ordered steps across both networks
+curl -s -X POST https://api.krexa.xyz/api/v1/kickstart/credit-and-launch \
+  -H "Content-Type: application/json" \
+  -d '{"vaultAddress": "0xVAULT", "name": "My Token", "symbol": "MTK", "description": "A cool token", "initialBuyEth": "0.01"}'
+```
+
+### Kickstart API Endpoints
+
+| Action | Method | Endpoint | Body |
+|--------|--------|----------|------|
+| Upload metadata | POST | `/kickstart/upload-metadata` | `{name, ticker, description, imageUrl?}` |
+| Create token | POST | `/kickstart/create-token` | `{name, symbol, uri, initialBuyEth?}` |
+| Buy token | POST | `/kickstart/buy-token` | `{curveAddress, ethAmount, minTokensOut?}` |
+| Credit + Launch | POST | `/kickstart/credit-and-launch` | `{vaultAddress?, name, symbol, description?, imageUrl?, initialBuyEth?}` |
+| List tokens | GET | `/kickstart/tokens?count=20` | — |
+| Factory config | GET | `/kickstart/config` | — |
+
+See `references/kickstart-api.md` for full details.
+
 ## References
 
 - `references/wallet-api.md` — Full wallet endpoint reference with curl examples
 - `references/credit-api.md` — Credit line endpoint reference
 - `references/contracts.md` — Contract addresses and function signatures for `cast`
+- `references/kickstart-api.md` — Kickstart token launch endpoint reference

@@ -22,6 +22,7 @@ const Gateway = lazy(() => import('./pages/Gateway'))
 const AgentIdentity = lazy(() => import('./pages/AgentIdentity'))
 const AgentWallets = lazy(() => import('./pages/AgentWallets'))
 const WalletDetail = lazy(() => import('./pages/WalletDetail'))
+const Kickstart = lazy(() => import('./pages/Kickstart'))
 
 function getThemeFromPath(pathname: string): string {
   if (pathname === '/') return 'home'
@@ -33,6 +34,7 @@ function getThemeFromPath(pathname: string): string {
   if (pathname.startsWith('/app/identity')) return 'home'
   if (pathname.startsWith('/app/gateway')) return 'x402'
   if (pathname.startsWith('/app/wallets')) return 'wallets'
+  if (pathname.startsWith('/app/kickstart')) return 'home'
   return 'home'
 }
 
@@ -99,6 +101,7 @@ function App() {
                 <Route path="/app/wallets/:address" element={<WalletDetail />} />
                 <Route path="/app/identity" element={<AgentIdentity />} />
                 <Route path="/app/identity/:address" element={<AgentIdentity />} />
+                <Route path="/app/kickstart" element={<Kickstart />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Suspense>

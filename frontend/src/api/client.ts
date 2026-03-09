@@ -252,3 +252,37 @@ export const paymentsApi = {
   recent: (vaultId?: string) =>
     api.get<{ payments: ApiVaultEvent[]; total: number }>('/v1/payments/recent', { params: { vaultId } }),
 }
+
+// === Kickstart (EasyA) ===
+export const kickstartApi = {
+  uploadMetadata: (body: { name: string; ticker: string; description: string; imageUrl?: string }) =>
+    api.post<{ uri: string; description: string }>('/v1/kickstart/upload-metadata', body),
+
+  createToken: (body: { name: string; symbol: string; uri: string; initialBuyEth?: string }) =>
+    api.post<UnsignedTx & { value: string; chainId: number }>('/v1/kickstart/create-token', body),
+
+  buyToken: (body: { curveAddress: string; ethAmount: string; minTokensOut?: string }) =>
+    api.post<UnsignedTx & { value: string; chainId: number }>('/v1/kickstart/buy-token', body),
+
+  creditAndLaunch: (body: {
+    vaultAddress?: string; name: string; symbol: string;
+    description?: string; imageUrl?: string; initialBuyEth?: string;
+  }) =>
+    api.post<{
+      steps: Array<{
+        step: number; network: string; chainId: number; action: string;
+        description: string; tx?: { to: string; data: string; value?: string }; note?: string;
+      }>;
+      totalSteps: number; note: string;
+    }>('/v1/kickstart/credit-and-launch', body),
+
+  tokens: (params?: { start?: number; count?: number }) =>
+    api.get<{ tokens: Array<{ curve: string; token: string | null }>; total: number }>(
+      '/v1/kickstart/tokens', { params }
+    ),
+
+  config: () =>
+    api.get<{ factory: string; chainId: number; virtualEth: string; virtualToken: string; targetEth: string }>(
+      '/v1/kickstart/config'
+    ),
+}

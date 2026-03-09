@@ -16,6 +16,14 @@ const envSchema = z.object({
 
   ORACLE_PRIVATE_KEY: z.string().optional().default(''),
 
+  // Kickstart (EasyA) integration
+  KICKSTART_API_URL: z.string().url().optional().default('https://kickstart.easya.io/api'),
+  KICKSTART_FACTORY_ADDRESS: z.string().startsWith('0x').optional().default('0x07DFAEC8e182C5eF79844ADc70708C1c15aA60fb'),
+  BASE_MAINNET_RPC_URL: z.string().url().optional().default('https://mainnet.base.org'),
+
+  // CORS
+  CORS_ORIGIN: z.string().optional().default(''),
+
   PORT: z.coerce.number().default(3001),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 });
