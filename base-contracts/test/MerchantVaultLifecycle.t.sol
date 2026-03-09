@@ -144,39 +144,32 @@ contract MerchantVaultLifecycleTest is Test {
         vault.invest(4_000e6);
         vm.stopPrank();
 
-        // Repay 2K (net 1960 after 2% fee) — vault has less than invested
+        // Repay 2K (net 1960 after 2% fee) — vault balance = 10K + 1960 = 11960
         _repay(vault, 2_000e6);
 
         vm.prank(admin);
         vault.markDefault();
 
-        // Remaining in vault = original 10K - 2K repayment sent out... wait:
-        // processRepayment takes 2K IN, distributes 1960 to waterfall (community)
-        // but claimRefund reads usdc.balanceOf(vault) — which is 10K + 2K - 40 fee transfer? 
-        // Actually: vault receives 2K, fee (40) goes to feeRecipient immediately, net 1960 stays in vault
-        // So vault balance = 10K (invested) + 1960 (repayment net) = 11960
-        // Wait: invest() transfers USDC INTO vault. processRepayment also transfers USDC IN.
-        // claimRefund: refund = (balance * remaining) / totalRaised
-        // remaining = usdc.balanceOf(vault) at time of claim = 10K + 1960 = 11960
-        // A gets: (6000 * 11960) / 10000 = 7176
-        // B gets: (4000 * 11960) / 10000 = 4784
-
-        uint256 remainingBeforeA = usdc.balanceOf(address(vault));
-        uint256 expectedA = (6_000e6 * remainingBeforeA) / 10_000e6;
+        // With snapshot fix: both A and B get refunds based on the SAME snapshot balance
+        // Snapshot = 11960. A gets: (6000 * 11960) / 10000 = 7176, B gets: (4000 * 11960) / 10000 = 4784
+        // Order-independent — both use defaultSnapshotBalance
+        uint256 snapshot = vault.defaultSnapshotBalance();
+        uint256 expectedA = (6_000e6 * snapshot) / 10_000e6;
+        uint256 expectedB = (4_000e6 * snapshot) / 10_000e6;
 
         uint256 beforeA = usdc.balanceOf(communityInvestorA);
         vm.prank(communityInvestorA);
         vault.claimRefund();
         assertEq(usdc.balanceOf(communityInvestorA) - beforeA, expectedA);
 
-        // B's expected share is based on vault balance AFTER A already claimed
-        uint256 remainingBeforeB = usdc.balanceOf(address(vault));
-        uint256 expectedB = (4_000e6 * remainingBeforeB) / 10_000e6;
-
         uint256 beforeB = usdc.balanceOf(communityInvestorB);
         vm.prank(communityInvestorB);
         vault.claimRefund();
         assertEq(usdc.balanceOf(communityInvestorB) - beforeB, expectedB);
+
+        // Verify: claim order doesn't matter — same amounts regardless
+        assertEq(expectedA, (6_000e6 * snapshot) / 10_000e6);
+        assertEq(expectedB, (4_000e6 * snapshot) / 10_000e6);
     }
 
     function test_claimRefund_doubleClaimReverts() public {

@@ -2,7 +2,7 @@
 
 **Chain:** Base (EVM) — Solana features ported to Solidity
 **Target:** Lending protocol MVP with x402 automated repayment
-**Last updated:** 2026-03-05
+**Last updated:** 2026-03-07
 
 ---
 
@@ -96,7 +96,7 @@
 - [x] `POST /api/v1/merchants/:address/credit-score` — build unsigned updateCreditScore tx
 
 ### Vault Endpoints
-- [x] `POST /api/v1/vaults/create` — build unsigned createVault tx
+- [x] `POST /api/v1/vaults/create` — backend-signed createVault (admin walletClient, permissionless for users)
 - [x] `GET /api/v1/vaults` — list all vaults from chain (filter by state/agent)
 - [x] `GET /api/v1/vaults/:address` — full detail + waterfall + investor count
 - [x] `GET /api/v1/vaults/:address/investors` — investor list with balances + claimable
@@ -125,8 +125,10 @@
 - [x] `GET /api/v1/platform/config` — fee structure, limits, all contract addresses
 
 ### Notes
-- All read endpoints pull live data from Base Sepolia via viem (no event indexer yet)
-- All write endpoints return `{ to, data }` unsigned tx — user signs with wallet
+- All read endpoints pull live data from Base Sepolia via viem (event indexer supplements with DB)
+- Most write endpoints return `{ to, data }` unsigned tx — user signs with wallet
+- `POST /vaults/create` is backend-signed (admin-only on-chain) — returns `{ success, txHash }`
+- Indexer auto-assigns credit score 600 (B tier) on `AgentRegistered` event
 - `/merchant/:id/*` aliases added for frontend backward-compat (client.ts uses singular path)
 
 ---
@@ -213,6 +215,11 @@
 - [x] Waitlist page fully removed (route, CSS, backend endpoint, API client method)
 - [x] All routing reverted to normal (no more `/waitlist` redirects)
 - [x] Rebranded to **Krexa** across all files
+- [x] `/app/*` routes for product pages (vaults, pools, portfolio, merchant dashboard)
+- [x] Marketing pages at `/vaults`, `/pools`, `/merchant` with "Launch App" → `/app/*`
+- [x] Permissionless vault creation — backend signs with admin key, no user wallet tx needed
+- [x] Auto credit score assignment via indexer (600 = B tier on registration)
+- [x] CORS updated for production domain (krexa.xyz)
 
 ---
 
@@ -230,6 +237,47 @@
 - [x] Admin routes (key-protected): CRUD for API keys + webhooks, delivery log
 - [x] Background `startWebhookProcessor()` for retry on failed deliveries
 - [x] All 9 tag categories documented (Health, Vaults, Merchants, Pools, Investments, Platform, Oracle, Payments, Admin)
+
+---
+
+## Phase 8.5: Agent Infrastructure (Deployed) ✅
+
+### New Contracts (Base Sepolia)
+- [x] **AgentIdentity** — Soulbound ERC721 reputation NFT (one per agent). Score 0-1000: 40% volume + 30% repayments + 20% age - 10% defaults. Admin mints, indexer updates.
+- [x] **AgentWallet** — Human-owned, AI-operated smart wallet. Owner sets daily/per-tx limits, whitelist, freeze. Operator (AI) executes transfers within guardrails. Linkable to credit vault.
+- [x] **AgentWalletFactory** — CREATE2 factory. One wallet per owner. Predictable addresses.
+- [x] **Krexa402Facilitator** — x402 HTTP payment facilitator. Merchants register API endpoints with USDC prices. Agents pay per-call. Configurable fee (max 10%). Forwards via PaymentRouter.
+
+### New Backend Routes
+- [x] `GET/POST /api/v1/identity` — mint soulbound NFT, read reputation + score
+- [x] `GET/POST /api/v1/wallets` — create, list, detail, balance, history, limits, operator, whitelist, freeze, deposit, transfer, emergency-withdraw
+- [x] `POST /api/v1/credit/agent-line` — create agent credit line via VaultFactory
+- [x] `POST /api/v1/credit/vendor` — vendor-to-vendor credit
+- [x] `GET/POST /api/v1/credit/:address/lines` + `/draw` — list and draw from credit lines
+- [x] `POST/GET /api/v1/x402` — register priced resources, verify payment receipts, get resource pricing
+- [x] `POST/GET /api/v1/kickstart` — upload metadata, create bonding-curve token (Base mainnet), buy, credit-and-launch combo
+- [x] `GET /api/v1/gateway/:address` — unified revenue dashboard (crypto + x402 + fiat)
+- [x] `GET /api/v1/balance/:address` — on-chain USDC balance
+
+### New Packages
+- [x] **@krexa/mcp-server** — MCP server exposing Krexa tools to LLMs (Claude + others). 11 tools: credit, wallet, kickstart, payments.
+- [x] **@krexa/x402-client** — Client SDK. Auto-detects HTTP 402, pays via Krexa transparently.
+- [x] **@krexa/x402-middleware** — Express middleware for one-line API monetization.
+
+### Known Bugs (see bugs.md)
+- [ ] **BUG-001 CRITICAL** — `predictWalletAddress` returns wrong address (bytecode mismatch)
+- [ ] **BUG-002 CRITICAL** — Facilitator `executeX402Payment` signature mismatch (x402 flow non-functional on-chain)
+- [ ] **BUG-003 MEDIUM** — No admin transfer mechanism on AgentIdentity, AgentWalletFactory, Krexa402Facilitator
+- [ ] **BUG-004 MEDIUM** — `executeX402Payment` has zero test coverage
+- [ ] **BUG-005 MEDIUM** — Resource hash front-runnable (no sender binding)
+- [ ] **BUG-006 LOW** — Daily limit uses sliding window, not calendar day
+- [ ] **BUG-007 LOW** — `_safeMint` allows contract recipient to grief identity minting
+- [ ] **BUG-008 LOW** — Operator can be set to `address(0)`
+- [ ] **BUG-009 LOW** — Deactivated resources cannot be reactivated
+- [ ] **BUG-010 LOW** — `getAllWallets()` unbounded, will hit gas limit at scale
+- [ ] **BUG-011 LOW** — Admin can arbitrarily overwrite reputation (no delta protection)
+
+**Total tests: 197/197 passing** (37 new: AgentIdentity×13, AgentWallet×19, Krexa402Facilitator×6 — missing executeX402Payment coverage)
 
 ---
 
@@ -283,17 +331,55 @@
 - [ ] Vaults detail panel: `backdrop-filter: blur(20px)` + `background: rgba(16,20,28,0.7)`
 - [ ] All modals: frosted glass overlay + semi-transparent modal bg
 
----
+### 9H. New Page Marketing — Agent Identity (`/agent-identity`)
+- [ ] Marketing landing section: headline "Your Agent's On-Chain Credit Identity" + subtext
+- [ ] Score tier breakdown UI (A/B/C/D) with color-coded tier badges
+- [ ] Animated score meter (0–1000 arc/gauge) on scroll reveal
+- [ ] Stats grid: totalTransactions, totalVolume, repayments, age, defaults
+- [ ] "Mint Identity" CTA → `/app/agent-identity`
+- [ ] Apply Phase 9 styles: ambient glow, gradient text on score, frosted glass stat cards
 
-## Phase 8: API Documentation & SDK
+### 9I. New Page Marketing — Agent Wallets (`/agent-wallets`)
+- [ ] Marketing landing section: headline "Human Control, AI Speed" + subtext
+- [ ] Feature grid: daily limits, per-tx limits, whitelist, freeze, credit link
+- [ ] Animated wallet card mockup showing limit dials and status
+- [ ] "Create Your Agent Wallet" CTA → `/app/agent-wallets`
+- [ ] Apply Phase 9 styles: card hierarchy, ambient glow, skeleton on load
 
-- [ ] OpenAPI/Swagger spec (auto-generated from Express routes)
-- [ ] API key registration system
-- [ ] Per-key rate limiting middleware
-- [ ] TypeScript SDK: `@tigerpay/sdk` wrapping REST endpoints
-- [ ] Developer docs: "Integrate TigerPayX lending into your protocol"
-- [ ] Webhook system: subscribe to vault events (created, funded, repaid, defaulted)
-- [ ] Multi-tenant: per-protocol vault visibility / scoping
+### 9J. New Page App — Agent Wallets app page (`/app/agent-wallets`)
+- [ ] Redesign wallet list cards: address pill, daily limit bar (filled/remaining), frozen badge, balance in JetBrains Mono
+- [ ] Create wallet modal: styled with frosted glass, operator input + limit sliders
+- [ ] WalletDetail page redesign: owner/operator split layout, limits dashboard, action buttons grouped by role (owner vs operator)
+- [ ] Transaction history table: amount, recipient, timestamp, tx hash link to BaseScan
+- [ ] Freeze toggle: red/green status indicator with pulse animation
+
+### 9K. New Page Marketing — Gateway (`/gateway`)
+- [ ] Marketing section: headline "Unified Revenue Intelligence" + subtext
+- [ ] Revenue source breakdown mockup: crypto / x402 / fiat with colored ring chart
+- [ ] Recent payments feed preview (static demo data)
+- [ ] "View Your Gateway" CTA → `/app/gateway`
+- [ ] Apply Phase 9 styles: gradient text on revenue total, ambient glow
+
+### 9L. New Page App — Gateway app page (`/app/gateway`)
+- [ ] Revenue total: large JetBrains Mono number, gradient colored, centered hero
+- [ ] Source breakdown cards: Crypto (accent), x402 (cyan), Fiat (amber) — each with icon + amount + % share
+- [ ] Payment feed: infinite scroll or paginated table, color-coded by source
+- [ ] Period selector: 24h / 7d / 30d / All time
+- [ ] Apply skeleton loaders while data loads
+
+### 9M. New Page Marketing — Kickstart (`/kickstart`)
+- [ ] Marketing section: headline "Launch a Token Backed by Real Revenue" + subtext
+- [ ] Flow diagram: Draw Credit (Sepolia) → Upload Metadata → Create Token (Mainnet) → Bonding Curve
+- [ ] Recent token launches carousel/grid (live from backend)
+- [ ] "Launch Your Token" CTA → `/app/kickstart`
+- [ ] Apply Phase 9 styles: gradient headline, ambient glow, card hover lift
+
+### 9N. New Page App — Kickstart app page (`/app/kickstart`)
+- [ ] Launch modal redesign: frosted glass, name/symbol/description/image fields with preview
+- [ ] "Use Credit" toggle: expands to show linked vault + drawable amount
+- [ ] Steps progress indicator: 1 Upload → 2 Create → 3 Buy (optional)
+- [ ] Recent tokens grid: name, symbol, curve address pill, BaseScan link
+- [ ] Apply skeleton loaders, error states, tx confirmation flow
 
 ---
 

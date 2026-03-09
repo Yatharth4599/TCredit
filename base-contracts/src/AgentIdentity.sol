@@ -10,6 +10,7 @@ import {Errors} from "./libraries/Errors.sol";
 /// @dev Score: 40% volume + 30% repayments + 20% account age - 10% defaults
 contract AgentIdentity is IAgentIdentity, ERC721 {
     address public admin;
+    address public pendingAdmin;
     uint256 private _nextTokenId;
 
     mapping(address => Reputation) private _reputations;
@@ -53,7 +54,7 @@ contract AgentIdentity is IAgentIdentity, ERC721 {
         if (_agentToToken[agent] != 0) revert Errors.AgentAlreadyRegistered();
 
         uint256 tokenId = _nextTokenId++;
-        _safeMint(agent, tokenId);
+        _mint(agent, tokenId);
 
         _agentToToken[agent] = tokenId;
         _tokenToAgent[tokenId] = agent;
@@ -136,5 +137,20 @@ contract AgentIdentity is IAgentIdentity, ERC721 {
 
     function tokenOfAgent(address agent) external view returns (uint256) {
         return _agentToToken[agent];
+    }
+
+    // ─── Admin Transfer ───────────────────────────────────────
+
+    function proposeAdmin(address _newAdmin) external onlyAdmin {
+        if (_newAdmin == address(0)) revert Errors.ZeroAddress();
+        pendingAdmin = _newAdmin;
+    }
+
+    function acceptAdmin() external {
+        if (msg.sender != pendingAdmin) revert Errors.Unauthorized();
+        address old = admin;
+        admin = pendingAdmin;
+        pendingAdmin = address(0);
+        emit IdentityMinted(address(0), 0); // signal admin change (no dedicated event)
     }
 }

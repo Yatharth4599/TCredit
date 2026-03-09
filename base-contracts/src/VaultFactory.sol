@@ -137,22 +137,31 @@ contract VaultFactory {
 
     // ─── Predicted Address ───────────────────────────────────────
 
-    function predictVaultAddress(address agent) external view returns (address) {
+    function predictVaultAddress(
+        address agent,
+        uint256 targetAmount,
+        uint256 interestRateBps,
+        uint256 durationSeconds,
+        uint256 numTranches,
+        uint16 lateFeeBps,
+        uint256 gracePeriodSeconds,
+        uint256 fundraisingDeadline
+    ) external view returns (address) {
         bytes32 salt = keccak256(abi.encodePacked(agent));
         MerchantVault.VaultParams memory p = MerchantVault.VaultParams({
             usdc: config.usdc,
             agent: agent,
             admin: config.admin,
             factory: address(this),
-            targetAmount: 0,
-            interestRateBps: 0,
-            durationSeconds: 0,
-            numTranches: 0,
+            targetAmount: targetAmount,
+            interestRateBps: interestRateBps,
+            durationSeconds: durationSeconds,
+            numTranches: numTranches,
             platformFeeBps: config.defaultFeeBps,
             platformFeeRecipient: config.feeRecipient,
-            lateFeeBps: 0,
-            gracePeriodSeconds: 0,
-            fundraisingDeadline: 0
+            lateFeeBps: lateFeeBps,
+            gracePeriodSeconds: gracePeriodSeconds,
+            fundraisingDeadline: fundraisingDeadline
         });
         bytes32 hash = keccak256(
             abi.encodePacked(

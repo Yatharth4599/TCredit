@@ -157,7 +157,7 @@ model OraclePayment {
   processedAt DateTime?
 
   @@index([status])
-  @@index([from, nonce])
+  @@unique([from, nonce])
 }
 
 model WaitlistEntry {

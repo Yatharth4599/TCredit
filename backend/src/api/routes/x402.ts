@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import type { Address, Hex } from 'viem';
 import { parseUnits } from 'viem';
-import { getResource, getFacilitatorFeeBps } from '../../chain/facilitator.js';
+import { getResource, getResourceKey, getFacilitatorFeeBps } from '../../chain/facilitator.js';
 import { hashResourceUrl, registerResourceTx, verifyPaymentReceipt } from '../../services/facilitator.service.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { env } from '../../config/env.js';
 
 const router = Router();
 
-// Facilitator address — will come from env once deployed
-const FACILITATOR_ADDRESS = (process.env.KREXA_402_FACILITATOR_ADDRESS ?? '0x0000000000000000000000000000000000000000') as Address;
+const FACILITATOR_ADDRESS = env.KREXA_402_FACILITATOR_ADDRESS as Address;
 
 // POST /api/v1/x402/register-resource — register URL with pricing
 router.post('/register-resource', async (req, res, next) => {
@@ -21,9 +21,9 @@ router.post('/register-resource', async (req, res, next) => {
     const tx = await registerResourceTx(FACILITATOR_ADDRESS, url, price);
 
     res.json({
-      resourceHash: tx.resourceHash,
+      rawResourceHash: tx.resourceHash,
       unsignedTx: { to: tx.to, data: tx.data },
-      description: 'Sign and submit this transaction to register the resource',
+      description: 'Sign and submit this transaction to register the resource. After submission, use GET /x402/resource-key/:rawHash/:owner to get the storage key needed for all subsequent lookups.',
     });
   } catch (err) {
     next(err);
@@ -48,18 +48,30 @@ router.post('/verify', async (req, res, next) => {
   }
 });
 
-// GET /api/v1/x402/resource/:hash — get resource pricing
-router.get('/resource/:hash', async (req, res, next) => {
+// GET /api/v1/x402/resource/:key — get resource by storage key (owner-bound hash)
+// key = keccak256(abi.encode(rawResourceHash, ownerAddress)) — use /resource-key to derive it
+router.get('/resource/:key', async (req, res, next) => {
   try {
-    const resourceHash = req.params.hash as `0x${string}`;
-    const resource = await getResource(FACILITATOR_ADDRESS, resourceHash);
+    const resourceKey = req.params.key as Hex;
+    const resource = await getResource(FACILITATOR_ADDRESS, resourceKey);
     const feeBps = await getFacilitatorFeeBps(FACILITATOR_ADDRESS);
 
     res.json({
       ...resource,
       facilitatorFeeBps: feeBps,
-      resourceHash,
+      resourceKey,
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/v1/x402/resource-key/:rawHash/:owner — derive storage key from raw hash + owner
+router.get('/resource-key/:rawHash/:owner', async (req, res, next) => {
+  try {
+    const { rawHash, owner } = req.params;
+    const key = await getResourceKey(FACILITATOR_ADDRESS, rawHash as Hex, owner as Address);
+    res.json({ rawHash, owner, resourceKey: key });
   } catch (err) {
     next(err);
   }

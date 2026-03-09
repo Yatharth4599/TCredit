@@ -17,12 +17,12 @@ import {
   encodeToggleWhitelist,
 } from '../../chain/agentWalletFactory.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { env } from '../../config/env.js';
 
 const router = Router();
 
-// Factory address — set via env once deployed
-const WALLET_FACTORY = (process.env.AGENT_WALLET_FACTORY_ADDRESS ?? '0x0000000000000000000000000000000000000000') as Address;
-const USDC_ADDRESS = (process.env.USDC_ADDRESS ?? '0x036CbD53842c5426634e7929541eC2318f3dCF7e') as Address;
+const WALLET_FACTORY = env.AGENT_WALLET_FACTORY_ADDRESS as Address;
+const USDC_ADDRESS = env.USDC_ADDRESS as Address;
 
 // GET /api/v1/wallets — list all wallets
 router.get('/', async (req, res, next) => {

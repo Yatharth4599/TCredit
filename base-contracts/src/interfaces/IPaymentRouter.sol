@@ -41,6 +41,7 @@ interface IPaymentRouter {
     event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
 
     function executePayment(X402Payment calldata payment, bytes calldata signature) external;
+    function executeFacilitatedPayment(X402Payment calldata payment) external;
     function createSettlement(
         address agent,
         address vault,

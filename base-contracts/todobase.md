@@ -2,7 +2,7 @@
 
 **Component:** `base-contracts/` — Solidity smart contracts for Base L2
 **Purpose:** Accelerator demo — AI-native programmable credit on Base
-**Last updated:** 2026-02-26
+**Last updated:** 2026-03-09
 
 ---
 
@@ -84,59 +84,87 @@ The $150 hits `vault.processRepayment()`:
 ```
 base-contracts/
 ├── src/
-│   ├── AgentRegistry.sol      # On-chain agent identity & stats
-│   ├── PaymentRouter.sol      # x402 payment execution + auto-split
-│   ├── MerchantVault.sol      # Per-agent credit vault + waterfall
-│   ├── VaultFactory.sol       # CREATE2 vault deployer + platform config
-│   ├── LiquidityPool.sol      # LP deposit pool → vault allocation
-│   ├── interfaces/            # IAgentRegistry, IPaymentRouter, IMerchantVault, ILiquidityPool (all synced)
+│   ├── AgentRegistry.sol        # On-chain agent identity & stats
+│   ├── PaymentRouter.sol        # x402 payment execution + auto-split
+│   ├── MerchantVault.sol        # Per-agent credit vault + waterfall
+│   ├── VaultFactory.sol         # CREATE2 vault deployer + platform config
+│   ├── LiquidityPool.sol        # LP deposit pool → vault allocation
+│   ├── MilestoneRegistry.sol    # Verifier voting + tranche gate
+│   ├── AgentIdentity.sol        # Soulbound ERC721 reputation NFT
+│   ├── AgentWallet.sol          # Human-controlled, AI-operated smart wallet
+│   ├── AgentWalletFactory.sol   # CREATE2 wallet deployer, one per owner
+│   ├── Krexa402Facilitator.sol  # x402 HTTP payment facilitator
+│   ├── interfaces/              # All interfaces synced
 │   └── libraries/
-│       ├── Errors.sol         # Centralized custom errors (~50)
-│       ├── SignatureLib.sol    # ECDSA verification for x402 proofs
-│       └── WaterfallLib.sol   # Senior → Pool → Community distribution
+│       ├── Errors.sol           # Centralized custom errors
+│       ├── SignatureLib.sol     # ECDSA verification for x402 proofs
+│       └── WaterfallLib.sol     # Senior → Pool → Community distribution
 ├── test/
-│   ├── AgentRegistry.t.sol          # 7 unit tests
-│   ├── PaymentRouter.t.sol          # 5 unit tests
-│   ├── MerchantVault.t.sol          # 8 unit tests
-│   ├── LiquidityPool.t.sol          # 6 unit tests
-│   ├── Waterfall.t.sol              # 7 tests (incl. fuzz)
-│   ├── VaultFactory.t.sol           # 22 tests (CREATE2, fees, admin, pause, bounds)
-│   ├── SecurityHardening.t.sol      # 12 tests (2-step admin, pause, oracle, reentrancy)
-│   ├── MerchantVaultLifecycle.t.sol # 15 tests (default, claimRefund, state transitions)
-│   ├── PaymentRouterSettlement.t.sol # 12 tests (rate limit, maxPayment, deactivate, update)
-│   ├── LiquidityPoolLifecycle.t.sol # 9 tests (allocate → repay → processReturn → withdraw)
-│   ├── MultiInvestorE2E.t.sol       # 2 tests (proportional claims, senior pool)
-│   ├── E2E.t.sol                    # 1 full demo flow (4 agents, 9 payments, waterfall)
+│   ├── AgentRegistry.t.sol           # 7 unit tests
+│   ├── PaymentRouter.t.sol           # 5 unit tests
+│   ├── MerchantVault.t.sol           # 8 unit tests
+│   ├── LiquidityPool.t.sol           # 6 unit tests
+│   ├── Waterfall.t.sol               # 7 tests (incl. fuzz)
+│   ├── VaultFactory.t.sol            # 22 tests
+│   ├── SecurityHardening.t.sol       # 12 tests
+│   ├── MerchantVaultLifecycle.t.sol  # 15 tests
+│   ├── PaymentRouterSettlement.t.sol # 12 tests
+│   ├── LiquidityPoolLifecycle.t.sol  # 9 tests
+│   ├── MultiInvestorE2E.t.sol        # 2 tests
+│   ├── E2E.t.sol                     # 1 full demo flow
+│   ├── AgentIdentity.t.sol           # 13 tests (soulbound, reputation, score)
+│   ├── AgentWallet.t.sol             # 19 tests (factory, transfer, limits, whitelist, freeze)
+│   ├── Krexa402Facilitator.t.sol     # 18 tests (register, update, deactivate, fees, executeX402Payment full coverage)
 │   └── mocks/MockUSDC.sol
-├── script/Deploy.s.sol        # Foundry deployment script (Base Sepolia / Mainnet)
-├── .env.example               # All required env vars documented
-└── foundry.toml               # RPC + optimizer config
+├── script/
+│   ├── Deploy.s.sol               # Core contracts deployment
+│   ├── DeployAgentIdentity.s.sol  # AgentIdentity deployment
+│   ├── DeployAgentWallet.s.sol    # AgentWalletFactory deployment
+│   └── DeployFacilitator.s.sol    # Krexa402Facilitator deployment
+├── deployments/
+│   ├── base-sepolia.json          # All deployed addresses
+│   ├── abis.json                  # All contract ABIs
+│   └── contracts.ts               # TypeScript typed exports
+├── .env.example                   # All required env vars documented
+└── foundry.toml                   # RPC + optimizer config
 ```
 
 ---
 
-## Current State: 120/120 Tests Passing
+## Current State: 207/207 Tests Passing
 
-**Build:** ✅ Clean  
-**Tests:** ✅ 120 passed, 0 failed  
-**Last commit:** `7526ae5` → `main`
+**Build:** ✅ Clean
+**Tests:** ✅ 207 passed, 0 failed
+**Last commit:** `feature/waitlist` branch (all bug fixes applied)
 
 ### Coverage
 
-| Contract         | Lines   | Branches | Functions |
-|------------------|---------|----------|-----------|
-| AgentRegistry    | ~97%    | ~60%     | ~95%      |
-| PaymentRouter    | ~90%    | ~70%     | ~95%      |
-| MerchantVault    | ~85%    | ~50%     | ~85%      |
-| LiquidityPool    | ~88%    | ~55%     | ~88%      |
-| VaultFactory     | ~80%    | ~50%     | ~85%      |
-| SignatureLib     | ~75%    | ~50%     | ~85%      |
-| WaterfallLib     | 100%    | 100%     | 100%      |
-| **Total**        | **87%** | **55%**  | **~90%**  |
+| Contract              | Lines   | Branches | Functions | Notes                          |
+|-----------------------|---------|----------|-----------|--------------------------------|
+| AgentRegistry         | ~97%    | ~60%     | ~95%      |                                |
+| PaymentRouter         | ~90%    | ~70%     | ~95%      |                                |
+| MerchantVault         | ~85%    | ~50%     | ~85%      |                                |
+| LiquidityPool         | ~88%    | ~55%     | ~88%      |                                |
+| VaultFactory          | ~80%    | ~50%     | ~85%      |                                |
+| SignatureLib          | ~75%    | ~50%     | ~85%      |                                |
+| WaterfallLib          | 100%    | 100%     | 100%      |                                |
+| AgentIdentity         | ~85%    | ~50%     | ~90%      |                                |
+| AgentWallet           | ~90%    | ~60%     | ~95%      |                                |
+| AgentWalletFactory    | ~80%    | ~50%     | ~90%      |                                |
+| Krexa402Facilitator   | ~90%    | ~70%     | ~95%      | Full execution path covered    |
+| **Total**             | **88%** | **60%**  | **~90%**  |                                |
 
 ---
 
 ## Completed ✅
+
+### Agent Infrastructure Contracts (Phase 8.5 — Deployed Base Sepolia)
+- [x] **AgentIdentity** — Soulbound ERC721, one per agent, admin-mint, reputation struct (volume, repayments, defaults, age), score 0-1000, 13 tests
+- [x] **AgentWallet** — Human owner + AI operator roles, daily limit, per-tx limit, sliding 24h window reset, whitelist mode, freeze/unfreeze, emergency withdraw, credit vault link, 19 tests
+- [x] **AgentWalletFactory** — CREATE2 factory, one wallet per owner, `getAllWallets()` + paginated `getWallets(offset, limit)`, 2-step admin transfer, event emission
+- [x] **Krexa402Facilitator** — Merchant resource registration (sender-bound to prevent front-running), x402 per-call pricing, fee split (max 10%), forwards via `executeFacilitatedPayment`, `reactivateResource`, 2-step admin transfer, 18 tests
+- [x] **Deploy scripts** — Individual deploy scripts for each new contract
+- [x] **deployments/abis.json + contracts.ts** — Auto-generated TypeScript exports for all contracts
 
 ### Core Contracts (All 5 Implemented)
 - [x] **AgentRegistry** — Self-registration, metadata, vault linking, payment stats, deactivation
@@ -177,7 +205,7 @@ base-contracts/
 - [x] **PaymentRouterSettlement.t.sol** — 12 settlement tests (rate limiting, maxPayment, deactivate, update)
 - [x] **LiquidityPoolLifecycle.t.sol** — 9 pool lifecycle tests (allocate → repay → processReturn → withdraw)
 - [x] **MultiInvestorE2E.t.sol** — 2 multi-investor E2E tests (proportional claims, senior pool claims)
-- **Total: 120/120 tests passing | 87% line coverage | 55% branch coverage**
+- **Total: 207/207 tests passing | 88% line coverage | 60% branch coverage**
 
 ### Deployment
 - [x] **Deploy.s.sol** — Deploys all contracts, wires basic permissions, supports Base Sepolia
@@ -197,13 +225,15 @@ base-contracts/
 
 ## Remaining 🔧
 
-### 1. Testnet Deploy (HIGH — needed for live demo)
-- [ ] **Deploy to Base Sepolia** — Run `script/Deploy.s.sol` with real env vars
-- [ ] **Verify contracts on BaseScan** — Use `--verify --etherscan-api-key $BASESCAN_API_KEY`
-- [ ] **Wire LiquidityPool permissions post-deploy** — Pools need `setFactory()` + `setPaymentRouter()` called after deploy
-- [ ] **Pre-fund demo wallets** — Sepolia ETH + USDC for oracle, deployer, test agents
+### 1. Bug Fixes
+- All 17 actionable bugs resolved ✅ — see bugs.md for full status
+- BUG-019 (admin reputation overwrite) accepted as governance risk
 
-### 2. Demo Script (HIGH — the actual presentation)
+### 2. Missing Tests
+- [ ] **Fuzz tests** — AgentIdentity score computation, AgentWallet spending limits
+- [ ] **Edge cases** — `dailyLimit=0` (unlimited), `perTxLimit=0` (unlimited), `transfer(amount=0)`
+
+### 3. Demo Script
 - [ ] **Interactive Forge script** — Runs E2E flow on-chain with console.log output showing each step
 - [ ] **Demo narrative output** — Each step prints human-readable: "TranslateBot registered → Vault created ($50K) → Senior funded ($40K) → 9 payments processed → Waterfall distributed → Returns claimed"
 
@@ -224,9 +254,15 @@ base-contracts/
 | Waterfall Correctness   | ✅ Fuzz tested, 100% coverage          | Resolved |
 | CREATE2 Determinism     | ✅ Salt = agent only                   | Resolved |
 | Interface Sync          | ✅ All 4 interfaces updated            | Resolved |
-| Branch Coverage         | ✅ 87% line / 55% branch (120 tests)  | Resolved |
-| Deploy Wiring           | ⚠️ Needs post-deploy wiring on testnet | Low      |
+| Branch Coverage         | ✅ 88% line / 60% branch (207 tests)  | Resolved |
+| Deploy Wiring           | ✅ All contracts live on Base Sepolia   | Resolved |
+| AgentWallet Admin       | ✅ 2-step admin on all contracts        | Resolved |
+| AgentWalletFactory      | ✅ predictWalletAddress fixed           | Resolved |
+| Krexa402Facilitator     | ✅ x402 payments functional via facilitatedPayment path | Resolved |
+| x402 Resource Security  | ✅ Hash bound to sender, front-running eliminated | Resolved |
+| Default Refund Fairness | ✅ Snapshot-based, order-independent    | Resolved |
+| Pool Claim Path         | ✅ Pool investors tracked, claimReturns works | Resolved |
 
 ---
 
-*Document version: 2.0 — Updated 2026-03-01 — All pre-testnet todos complete. Next: Base Sepolia deploy + demo script.*
+*Document version: 3.1 — Updated 2026-03-09 — All 17 bugs resolved. 207/207 tests passing. See bugs.md for full audit log.*

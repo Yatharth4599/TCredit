@@ -17,6 +17,7 @@ contract Krexa402Facilitator is IKrexa402Facilitator, ReentrancyGuard {
     IERC20 public immutable usdc;
     IPaymentRouter public immutable router;
     address public admin;
+    address public pendingAdmin;
     uint16 public facilitatorFeeBps; // max 1000 (10%)
 
     mapping(bytes32 => Resource) private _resources;
@@ -39,15 +40,22 @@ contract Krexa402Facilitator is IKrexa402Facilitator, ReentrancyGuard {
 
     // ─── Resource Management ─────────────────────────────────────
 
-    /// @notice Register a URL/API resource with a price. Anyone can register.
+    /// @notice Register a URL/API resource with a price. Hash is bound to msg.sender
+    ///         to prevent front-running (different callers get different keys).
     function registerResource(bytes32 resourceHash, uint256 pricePerCall) external {
         if (pricePerCall == 0) revert Errors.InvalidAmount();
-        Resource storage res = _resources[resourceHash];
+        bytes32 key = keccak256(abi.encode(resourceHash, msg.sender));
+        Resource storage res = _resources[key];
         if (res.owner != address(0)) revert Errors.VaultAlreadyExists(); // resource exists
         res.owner = msg.sender;
         res.pricePerCall = pricePerCall;
         res.active = true;
-        emit ResourceRegistered(resourceHash, msg.sender, pricePerCall);
+        emit ResourceRegistered(key, msg.sender, pricePerCall);
+    }
+
+    /// @notice Compute the storage key for a resource (hash + owner).
+    function resourceKey(bytes32 resourceHash, address owner) external pure returns (bytes32) {
+        return keccak256(abi.encode(resourceHash, owner));
     }
 
     /// @notice Update price — only resource owner
@@ -75,8 +83,9 @@ contract Krexa402Facilitator is IKrexa402Facilitator, ReentrancyGuard {
     function executeX402Payment(
         bytes32 resourceHash,
         IPaymentRouter.X402Payment calldata payment,
-        bytes calldata signature
+        bytes calldata /* signature — kept for interface compat */
     ) external nonReentrant {
+        if (msg.sender != payment.from) revert Errors.Unauthorized(); // payer must be caller
         Resource storage res = _resources[resourceHash];
         if (!res.active) revert Errors.SettlementNotActive();
         if (payment.amount < res.pricePerCall) revert Errors.InvalidAmount();
@@ -93,13 +102,13 @@ contract Krexa402Facilitator is IKrexa402Facilitator, ReentrancyGuard {
             usdc.safeTransfer(admin, fee);
         }
 
-        // Forward remainder through PaymentRouter (approval needed)
+        // Forward remainder through PaymentRouter via facilitated path (no sig check)
         uint256 routerAmount = payment.amount - fee;
         usdc.forceApprove(address(router), routerAmount);
 
-        // Build modified payment with reduced amount for router
+        // Build payment preserving original payer for stats tracking
         IPaymentRouter.X402Payment memory routerPayment = IPaymentRouter.X402Payment({
-            from: address(this),    // facilitator is now the payer in router context
+            from: payment.from,     // original payer for stats
             to: payment.to,
             amount: routerAmount,
             nonce: payment.nonce,
@@ -107,7 +116,7 @@ contract Krexa402Facilitator is IKrexa402Facilitator, ReentrancyGuard {
             paymentId: payment.paymentId
         });
 
-        router.executePayment(routerPayment, signature);
+        router.executeFacilitatedPayment(routerPayment);
 
         emit X402PaymentExecuted(
             resourceHash,
@@ -126,6 +135,30 @@ contract Krexa402Facilitator is IKrexa402Facilitator, ReentrancyGuard {
         uint16 old = facilitatorFeeBps;
         facilitatorFeeBps = newFeeBps;
         emit FacilitatorFeeUpdated(old, newFeeBps);
+    }
+
+    // ─── Resource Reactivation ──────────────────────────────────
+
+    function reactivateResource(bytes32 resourceHash) external {
+        Resource storage res = _resources[resourceHash];
+        if (res.owner != msg.sender) revert Errors.Unauthorized();
+        res.active = true;
+        emit ResourceRegistered(resourceHash, msg.sender, res.pricePerCall);
+    }
+
+    // ─── Admin Transfer ───────────────────────────────────────
+
+    function proposeAdmin(address _newAdmin) external onlyAdmin {
+        if (_newAdmin == address(0)) revert Errors.ZeroAddress();
+        pendingAdmin = _newAdmin;
+    }
+
+    function acceptAdmin() external {
+        if (msg.sender != pendingAdmin) revert Errors.Unauthorized();
+        address old = admin;
+        admin = pendingAdmin;
+        pendingAdmin = address(0);
+        emit FacilitatorFeeUpdated(0, 0); // reuse event for admin change notification
     }
 
     // ─── View ────────────────────────────────────────────────────

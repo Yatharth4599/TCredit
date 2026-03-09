@@ -1,10 +1,8 @@
-import { PrismaClient } from '@prisma/client';
 import type { Address } from 'viem';
 import { publicClient, walletClient, oracleAccount } from '../chain/client.js';
 import { MerchantVaultABI, addresses, PaymentRouterABI } from '../config/contracts.js';
 import { getAllVaults } from '../chain/vaultFactory.js';
-
-const prisma = new PrismaClient();
+import { prisma } from '../config/prisma.js';
 
 const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 

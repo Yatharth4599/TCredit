@@ -121,7 +121,7 @@ contract LiquidityPoolLifecycleTest is Test {
     // 2. General pool lifecycle (investFromPool path)
     // ════════════════════════════════════════════════════════════════
 
-    function test_generalPool_investFromPool_noInvestorTracking() public {
+    function test_generalPool_investFromPool_investorTracking() public {
         MerchantVault vault = _makeVault(10_000e6);
 
         vm.startPrank(lp1);
@@ -132,10 +132,10 @@ contract LiquidityPoolLifecycleTest is Test {
         vm.prank(admin);
         generalPool.allocateToVault(address(vault), 10_000e6);
 
-        // investFromPool → tracked in poolFunded, no investorBalance
+        // investFromPool → tracked in poolFunded AND investorBalances (for claim path)
         assertEq(uint8(vault.state()), uint8(IMerchantVault.VaultState.Active));
         assertEq(vault.poolFunded(), 10_000e6);
-        assertEq(vault.getInvestorBalance(address(generalPool)), 0); // no investor tracking
+        assertEq(vault.getInvestorBalance(address(generalPool)), 10_000e6);
     }
 
     // ════════════════════════════════════════════════════════════════

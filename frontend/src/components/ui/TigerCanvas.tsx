@@ -18,251 +18,6 @@ interface Particle {
     baseSpeed: number
 }
 
-
-function removeBackground(
-    data: Uint8ClampedArray,
-    w: number,
-    h: number,
-    tolerance: number = 42
-) {
-    const visited = new Uint8Array(w * h)
-    const isNearWhite = (i: number) =>
-        data[i] > (255 - tolerance) &&
-        data[i + 1] > (255 - tolerance) &&
-        data[i + 2] > (255 - tolerance)
-
-    const queue: number[] = []
-    const enqueue = (x: number, y: number) => {
-        if (x < 0 || x >= w || y < 0 || y >= h) return
-        const idx = y * w + x
-        if (visited[idx]) return
-        const pi = idx * 4
-        if (!isNearWhite(pi)) return
-        visited[idx] = 1
-        data[pi + 3] = 0
-        queue.push(idx)
-    }
-
-    for (let x = 0; x < w; x++) { enqueue(x, 0); enqueue(x, h - 1) }
-    for (let y = 0; y < h; y++) { enqueue(0, y); enqueue(w - 1, y) }
-
-    while (queue.length > 0) {
-        const idx = queue.shift()!
-        const x = idx % w
-        const y = (idx - x) / w
-        enqueue(x - 1, y)
-        enqueue(x + 1, y)
-        enqueue(x, y - 1)
-        enqueue(x, y + 1)
-    }
-}
-
-function smoothstep(t: number): number {
-    return t * t * (3 - 2 * t)
-}
-
-const EYE_LEFT = { cx: 0.422, cy: 0.375, w: 0.042, h: 0.024 }
-const EYE_RIGHT = { cx: 0.558, cy: 0.370, w: 0.045, h: 0.024 }
-
-const EYELID_COLORS = [
-    { color: '#1a1a2e', w: 1.0 },
-    { color: '#2d2d44', w: 0.85 },
-    { color: '#c8c8d4', w: 0.65 },
-]
-
-const MOUTH_REGION = { cx: 0.495, cy: 0.510, w: 0.155, h: 0.085 }
-const NOSE_REGION = { cx: 0.470, cy: 0.440, w: 0.045, h: 0.025 }
-
-interface BlinkState {
-    phase: 'open' | 'closing' | 'closed' | 'opening'
-    frame: number
-    nextBlinkAt: number
-}
-
-interface MouthState {
-    phase: 'closed' | 'opening' | 'open' | 'closing'
-    frame: number
-    nextRoarAt: number
-}
-
-
-function drawEyelid(
-    ctx: CanvasRenderingContext2D,
-    eyeCX: number, eyeCY: number,
-    eyeW: number, eyeH: number,
-    closeFraction: number
-) {
-    if (closeFraction <= 0) return
-
-    const coverH = eyeH * closeFraction
-    const px = Math.max(2, eyeW * 0.08)
-
-    for (const layer of EYELID_COLORS) {
-        const lw = eyeW * layer.w
-        const lx = eyeCX - lw / 2
-        ctx.fillStyle = layer.color
-        ctx.fillRect(
-            Math.round(lx / px) * px,
-            Math.round((eyeCY - eyeH / 2) / px) * px,
-            Math.round(lw / px) * px,
-            Math.round(coverH / px) * px
-        )
-    }
-
-    if (closeFraction > 0.7) {
-        const bottomCoverH = eyeH * (closeFraction - 0.5) * 0.6
-        if (bottomCoverH > 0) {
-            ctx.fillStyle = '#1a1a2e'
-            const bx = eyeCX - eyeW * 0.4
-            const by = eyeCY + eyeH / 2 - bottomCoverH
-            ctx.fillRect(
-                Math.round(bx / px) * px,
-                Math.round(by / px) * px,
-                Math.round((eyeW * 0.8) / px) * px,
-                Math.round(bottomCoverH / px) * px
-            )
-        }
-    }
-}
-
-function drawEyeGlow(
-    ctx: CanvasRenderingContext2D,
-    eyeCX: number, eyeCY: number,
-    eyeW: number, eyeH: number,
-    glowIntensity: number
-) {
-    if (glowIntensity <= 0) return
-
-    ctx.save()
-    ctx.globalAlpha = glowIntensity * 0.35
-    ctx.shadowColor = '#40E0D0'
-    ctx.shadowBlur = eyeW * 0.8
-    ctx.fillStyle = '#40E0D0'
-    ctx.fillRect(
-        eyeCX - eyeW * 0.3,
-        eyeCY - eyeH * 0.3,
-        eyeW * 0.6,
-        eyeH * 0.6
-    )
-    ctx.restore()
-
-    ctx.save()
-    ctx.globalAlpha = glowIntensity * 0.15
-    ctx.fillStyle = '#80F0E8'
-    const highlightW = eyeW * 0.2
-    const highlightH = eyeH * 0.25
-    ctx.fillRect(
-        eyeCX - highlightW / 2 + eyeW * 0.1,
-        eyeCY - highlightH / 2 - eyeH * 0.1,
-        highlightW,
-        highlightH
-    )
-    ctx.restore()
-}
-
-function drawMouthOverlay(
-    ctx: CanvasRenderingContext2D,
-    mouthCX: number, mouthCY: number,
-    mouthW: number, mouthH: number,
-    openFraction: number,
-    jawTremble: number
-) {
-    if (openFraction <= 0) return
-
-    const px = Math.max(2, mouthW * 0.06)
-    const extendY = mouthH * 0.55 * openFraction
-    const trembleOffset = jawTremble
-
-    ctx.fillStyle = '#1a1a2e'
-    const jawW = mouthW * (0.9 - openFraction * 0.1)
-    const jawX = mouthCX - jawW / 2 + trembleOffset
-    const jawY = mouthCY + mouthH * 0.3
-    ctx.fillRect(
-        Math.round(jawX / px) * px,
-        Math.round(jawY / px) * px,
-        Math.round(jawW / px) * px,
-        Math.round(extendY / px) * px
-    )
-
-    ctx.fillStyle = '#c43a5e'
-    const tongueW = jawW * 0.65
-    const tongueH = extendY * 0.6
-    const tongueX = mouthCX - tongueW / 2 + trembleOffset
-    const tongueY = jawY + extendY * 0.1
-    ctx.fillRect(
-        Math.round(tongueX / px) * px,
-        Math.round(tongueY / px) * px,
-        Math.round(tongueW / px) * px,
-        Math.round(tongueH / px) * px
-    )
-
-    ctx.fillStyle = '#e75480'
-    const innerW = tongueW * 0.55
-    const innerH = tongueH * 0.5
-    const innerX = mouthCX - innerW / 2 + trembleOffset
-    const innerY = tongueY + tongueH * 0.15
-    ctx.fillRect(
-        Math.round(innerX / px) * px,
-        Math.round(innerY / px) * px,
-        Math.round(innerW / px) * px,
-        Math.round(innerH / px) * px
-    )
-
-    if (openFraction > 0.4) {
-        ctx.fillStyle = '#c8a84e'
-        const fangW = mouthW * 0.055
-        const fangH = extendY * 0.45 * openFraction
-        const fangLX = mouthCX - jawW * 0.32 + trembleOffset
-        const fangRX = mouthCX + jawW * 0.32 - fangW + trembleOffset
-        const fangY = jawY - px
-        ctx.fillRect(
-            Math.round(fangLX / px) * px,
-            Math.round(fangY / px) * px,
-            Math.round(fangW / px) * px,
-            Math.round(fangH / px) * px
-        )
-        ctx.fillRect(
-            Math.round(fangRX / px) * px,
-            Math.round(fangY / px) * px,
-            Math.round(fangW / px) * px,
-            Math.round(fangH / px) * px
-        )
-    }
-}
-
-function drawNostrilFlare(
-    ctx: CanvasRenderingContext2D,
-    noseCX: number, noseCY: number,
-    noseW: number, noseH: number,
-    flareIntensity: number
-) {
-    if (flareIntensity <= 0) return
-
-    const px = Math.max(2, noseW * 0.12)
-    const expand = flareIntensity * noseW * 0.15
-
-    ctx.save()
-    ctx.globalAlpha = flareIntensity * 0.5
-    ctx.fillStyle = '#d4727a'
-    const leftNX = noseCX - noseW * 0.25 - expand * 0.5
-    const rightNX = noseCX + noseW * 0.1 + expand * 0.3
-    const nH = noseH * 0.45
-    const nW = noseW * 0.2 + expand * 0.3
-    ctx.fillRect(
-        Math.round(leftNX / px) * px,
-        Math.round((noseCY - nH / 2) / px) * px,
-        Math.round(nW / px) * px,
-        Math.round(nH / px) * px
-    )
-    ctx.fillRect(
-        Math.round(rightNX / px) * px,
-        Math.round((noseCY - nH / 2) / px) * px,
-        Math.round(nW / px) * px,
-        Math.round(nH / px) * px
-    )
-    ctx.restore()
-}
-
 function drawFurShimmer(
     ctx: CanvasRenderingContext2D,
     imgOriginX: number, imgOriginY: number,
@@ -327,7 +82,7 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
         const rand = seededRandom(42)
         const particles: Particle[] = []
 
-        const tigerSize = Math.min(1050, Math.max(450, W * 0.75))
+        const tigerSize = Math.min(924, Math.max(396, W * 0.66))
 
         let tigerCX = W / 2
         let tigerCY = H / 2
@@ -337,7 +92,7 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
 
         const img = new Image()
         img.crossOrigin = 'anonymous'
-        img.src = '/images/tiger-pixel.jpeg'
+        img.src = '/images/tigerhome.png'
 
         let offscreen: HTMLCanvasElement | null = null
         let tigerDrawX = 0
@@ -346,16 +101,6 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
         let tigerDrawH = 0
 
         img.onload = () => {
-            const tmp = document.createElement('canvas')
-            tmp.width = img.naturalWidth
-            tmp.height = img.naturalHeight
-            const tmpCtx = tmp.getContext('2d')!
-            tmpCtx.drawImage(img, 0, 0)
-
-            const imgData = tmpCtx.getImageData(0, 0, tmp.width, tmp.height)
-            removeBackground(imgData.data, tmp.width, tmp.height, 45)
-            tmpCtx.putImageData(imgData, 0, 0)
-
             offscreen = document.createElement('canvas')
             offscreen.width = tigerSize * dpr
             offscreen.height = tigerSize * dpr
@@ -370,7 +115,7 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
             tigerDrawH = img.naturalHeight * scale
             tigerDrawX = (tigerSize - tigerDrawW) / 2
             tigerDrawY = (tigerSize - tigerDrawH) / 2
-            offCtx.drawImage(tmp, tigerDrawX, tigerDrawY, tigerDrawW, tigerDrawH)
+            offCtx.drawImage(img, tigerDrawX, tigerDrawY, tigerDrawW, tigerDrawH)
 
             if (prefersReducedMotion) {
                 ctx.clearRect(0, 0, W, H)
@@ -384,128 +129,13 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
             }
         }
 
-        const blink: BlinkState = {
-            phase: 'open',
-            frame: 0,
-            nextBlinkAt: 90 + Math.floor(Math.random() * 60),
-        }
-
-        const mouth: MouthState = {
-            phase: 'closed',
-            frame: 0,
-            nextRoarAt: 200 + Math.floor(Math.random() * 120),
-        }
-
-
-        let frameCount = 0
         let breathPhase = 0
-        let eyeGlowPhase = 0
         let shimmerPhase = 0
         let headSwayPhase = 0
 
-        const BLINK_CLOSE_FRAMES = 4
-        const BLINK_HOLD_FRAMES = 3
-        const BLINK_OPEN_FRAMES = 5
-
-        const MOUTH_OPEN_FRAMES = 18
-        const MOUTH_HOLD_FRAMES = 25
-        const MOUTH_CLOSE_FRAMES = 22
-
         const BREATH_SPEED = 0.008
-        const EYE_GLOW_SPEED = 0.012
         const SHIMMER_SPEED = 0.002
         const HEAD_SWAY_SPEED = 0.004
-
-        function updateBlink() {
-            switch (blink.phase) {
-                case 'open':
-                    if (frameCount >= blink.nextBlinkAt) {
-                        if (mouth.phase !== 'closed') return
-                        blink.phase = 'closing'
-                        blink.frame = 0
-                    }
-                    break
-                case 'closing':
-                    blink.frame++
-                    if (blink.frame >= BLINK_CLOSE_FRAMES) {
-                        blink.phase = 'closed'
-                        blink.frame = 0
-                    }
-                    break
-                case 'closed':
-                    blink.frame++
-                    if (blink.frame >= BLINK_HOLD_FRAMES) {
-                        blink.phase = 'opening'
-                        blink.frame = 0
-                    }
-                    break
-                case 'opening':
-                    blink.frame++
-                    if (blink.frame >= BLINK_OPEN_FRAMES) {
-                        blink.phase = 'open'
-                        blink.frame = 0
-                        const doubleBlinkChance = Math.random()
-                        if (doubleBlinkChance < 0.3) {
-                            blink.nextBlinkAt = frameCount + 8 + Math.floor(Math.random() * 6)
-                        } else {
-                            blink.nextBlinkAt = frameCount + 90 + Math.floor(Math.random() * 90)
-                        }
-                    }
-                    break
-            }
-        }
-
-        function getBlinkFraction(): number {
-            switch (blink.phase) {
-                case 'open': return 0
-                case 'closing': return blink.frame / BLINK_CLOSE_FRAMES
-                case 'closed': return 1
-                case 'opening': return 1 - blink.frame / BLINK_OPEN_FRAMES
-            }
-        }
-
-        function updateMouth() {
-            switch (mouth.phase) {
-                case 'closed':
-                    if (frameCount >= mouth.nextRoarAt) {
-                        if (blink.phase !== 'open') return
-                        mouth.phase = 'opening'
-                        mouth.frame = 0
-                    }
-                    break
-                case 'opening':
-                    mouth.frame++
-                    if (mouth.frame >= MOUTH_OPEN_FRAMES) {
-                        mouth.phase = 'open'
-                        mouth.frame = 0
-                    }
-                    break
-                case 'open':
-                    mouth.frame++
-                    if (mouth.frame >= MOUTH_HOLD_FRAMES) {
-                        mouth.phase = 'closing'
-                        mouth.frame = 0
-                    }
-                    break
-                case 'closing':
-                    mouth.frame++
-                    if (mouth.frame >= MOUTH_CLOSE_FRAMES) {
-                        mouth.phase = 'closed'
-                        mouth.frame = 0
-                        mouth.nextRoarAt = frameCount + 200 + Math.floor(Math.random() * 150)
-                    }
-                    break
-            }
-        }
-
-        function getMouthFraction(): number {
-            switch (mouth.phase) {
-                case 'closed': return 0
-                case 'opening': return smoothstep(mouth.frame / MOUTH_OPEN_FRAMES)
-                case 'open': return 1
-                case 'closing': return 1 - smoothstep(mouth.frame / MOUTH_CLOSE_FRAMES)
-            }
-        }
 
         function spawnParticle() {
             const angle = rand() * Math.PI * 2
@@ -560,10 +190,8 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
 
         function animate() {
             ctx.clearRect(0, 0, W, H)
-            frameCount++
 
             breathPhase += BREATH_SPEED
-            eyeGlowPhase += EYE_GLOW_SPEED
             shimmerPhase += SHIMMER_SPEED
             headSwayPhase += HEAD_SWAY_SPEED
             if (shimmerPhase > 1.3) shimmerPhase = -0.3
@@ -571,10 +199,6 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
             const breathScale = 1 + Math.sin(breathPhase) * 0.008
             const headSwayX = Math.sin(headSwayPhase) * tigerSize * 0.003
             const headSwayY = Math.cos(headSwayPhase * 0.7) * tigerSize * 0.002
-
-            updateMouth()
-            const mouthFrac = getMouthFraction()
-            const isRoaring = mouthFrac > 0
 
             if (offscreen) {
                 const destX = tigerCX - (tigerSize * breathScale) / 2 + headSwayX
@@ -596,60 +220,12 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
                 const px = Math.max(2, scaledDrawW * 0.003)
 
                 drawFurShimmer(ctx, imgOriginX, imgOriginY, scaledDrawW, scaledDrawH, shimmerPhase, px)
-
-                updateBlink()
-                const blinkFrac = getBlinkFraction()
-
-                const eyeGlowIntensity = blinkFrac > 0.5 ? 0 : (0.5 + Math.sin(eyeGlowPhase) * 0.5) * (1 - blinkFrac)
-
-                const leftEyeX = imgOriginX + EYE_LEFT.cx * scaledDrawW
-                const leftEyeY = imgOriginY + EYE_LEFT.cy * scaledDrawH
-                const leftEyeW = EYE_LEFT.w * scaledDrawW
-                const leftEyeH = EYE_LEFT.h * scaledDrawH
-
-                const rightEyeX = imgOriginX + EYE_RIGHT.cx * scaledDrawW
-                const rightEyeY = imgOriginY + EYE_RIGHT.cy * scaledDrawH
-                const rightEyeW = EYE_RIGHT.w * scaledDrawW
-                const rightEyeH = EYE_RIGHT.h * scaledDrawH
-
-                drawEyeGlow(ctx, leftEyeX, leftEyeY, leftEyeW, leftEyeH, eyeGlowIntensity)
-                drawEyeGlow(ctx, rightEyeX, rightEyeY, rightEyeW, rightEyeH, eyeGlowIntensity)
-
-                if (blinkFrac > 0) {
-                    drawEyelid(ctx, leftEyeX, leftEyeY, leftEyeW, leftEyeH, blinkFrac)
-                    drawEyelid(ctx, rightEyeX, rightEyeY, rightEyeW, rightEyeH, blinkFrac)
-                }
-
-                const breathSin = Math.sin(breathPhase)
-                const nostrilFlare = Math.max(0, breathSin) * 0.6
-                const noseX = imgOriginX + NOSE_REGION.cx * scaledDrawW
-                const noseY = imgOriginY + NOSE_REGION.cy * scaledDrawH
-                const noseW = NOSE_REGION.w * scaledDrawW
-                const noseH = NOSE_REGION.h * scaledDrawH
-                if (nostrilFlare > 0.05) {
-                    drawNostrilFlare(ctx, noseX, noseY, noseW, noseH, nostrilFlare)
-                }
-
-                if (mouthFrac > 0) {
-                    let jawTremble = 0
-                    if (mouthFrac > 0.6) {
-                        jawTremble = (Math.sin(frameCount * 0.8) * 0.5 + Math.sin(frameCount * 1.3) * 0.3) * scaledDrawW * 0.003 * mouthFrac
-                    }
-
-                    const mouthX = imgOriginX + MOUTH_REGION.cx * scaledDrawW
-                    const mouthY = imgOriginY + MOUTH_REGION.cy * scaledDrawH
-                    const mouthW = MOUTH_REGION.w * scaledDrawW
-                    const mouthH = MOUTH_REGION.h * scaledDrawH
-                    drawMouthOverlay(ctx, mouthX, mouthY, mouthW, mouthH, mouthFrac, jawTremble)
-                }
             }
-
-            const particleBoost = isRoaring ? 1 + mouthFrac * 0.8 : 1
 
             for (let i = particles.length - 1; i >= 0; i--) {
                 const p = particles[i]
-                p.x += p.vx * particleBoost
-                p.y += p.vy * particleBoost
+                p.x += p.vx
+                p.y += p.vy
                 p.life++
 
                 let alpha: number
@@ -670,14 +246,6 @@ export default function TigerCanvas({ opacity = 1, className, style }: TigerCanv
                 ctx.globalAlpha = alpha * 0.82
                 ctx.fillStyle = p.color
                 ctx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size)
-            }
-
-            const maxParticles = particleCount + 80
-            if (isRoaring && mouthFrac > 0.5 && particles.length < maxParticles) {
-                const burstCount = Math.min(Math.floor(mouthFrac * 3), maxParticles - particles.length)
-                for (let b = 0; b < burstCount; b++) {
-                    spawnParticle()
-                }
             }
 
             ctx.globalAlpha = 1

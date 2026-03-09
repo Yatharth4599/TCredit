@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import type { Address } from 'viem';
-import { PrismaClient } from '@prisma/client';
 import { listAllVaults, getVaultDetail } from '../../services/vault.service.js';
 import { getInvestors, getClaimable, getWaterfallState } from '../../chain/merchantVault.js';
 import { getMilestone } from '../../chain/milestoneRegistry.js';
@@ -9,8 +8,7 @@ import { addresses } from '../../config/contracts.js';
 import { VaultFactoryABI, MerchantVaultABI } from '../../config/abis.js';
 import { encodeFunctionData } from 'viem';
 import { publicClient, walletClient } from '../../chain/client.js';
-
-const prisma = new PrismaClient();
+import { prisma } from '../../config/prisma.js';
 
 const router = Router();
 

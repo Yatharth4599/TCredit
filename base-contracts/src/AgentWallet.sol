@@ -85,6 +85,7 @@ contract AgentWallet is IAgentWallet, ReentrancyGuard {
     // ─── Owner Functions ─────────────────────────────────────────
 
     function setOperator(address newOperator) external onlyOwner {
+        if (newOperator == address(0)) revert Errors.ZeroAddress();
         address old = operator;
         operator = newOperator;
         emit OperatorSet(old, newOperator);

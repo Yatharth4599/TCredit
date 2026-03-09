@@ -1,5 +1,5 @@
-import { keccak256, toHex, encodeFunctionData, type Address, type Hex } from 'viem';
-import { publicClient, walletClient, oracleAccount } from '../chain/client.js';
+import { keccak256, toHex, encodeAbiParameters, parseAbiParameters, encodeFunctionData, decodeFunctionData, type Address, type Hex } from 'viem';
+import { publicClient } from '../chain/client.js';
 import { getResource } from '../chain/facilitator.js';
 
 // Minimal ABI for facilitator writes
@@ -42,6 +42,13 @@ export function hashResourceUrl(url: string): Hex {
   return keccak256(toHex(url));
 }
 
+/// Compute the storage key for a resource (matches Krexa402Facilitator.resourceKey)
+export function computeResourceKey(resourceHash: Hex, owner: Address): Hex {
+  return keccak256(
+    encodeAbiParameters(parseAbiParameters('bytes32, address'), [resourceHash, owner]),
+  );
+}
+
 export async function registerResourceTx(
   facilitatorAddr: Address,
   url: string,
@@ -70,6 +77,23 @@ export async function verifyPaymentReceipt(
   const tx = await publicClient.getTransaction({ hash: txHash });
   if (tx.to?.toLowerCase() !== facilitatorAddr.toLowerCase()) {
     return { valid: false, reason: 'Transaction not directed to facilitator' };
+  }
+
+  // Decode calldata to verify it called executeX402Payment with the correct resourceHash
+  try {
+    const decoded = decodeFunctionData({
+      abi: Krexa402FacilitatorABI,
+      data: tx.input,
+    });
+    if (decoded.functionName !== 'executeX402Payment') {
+      return { valid: false, reason: 'Transaction did not call executeX402Payment' };
+    }
+    const [calledResourceHash] = decoded.args as [Hex, unknown, unknown];
+    if (calledResourceHash.toLowerCase() !== resourceHash.toLowerCase()) {
+      return { valid: false, reason: 'Resource hash mismatch in calldata' };
+    }
+  } catch {
+    return { valid: false, reason: 'Could not decode transaction calldata' };
   }
 
   // Verify the resource is valid

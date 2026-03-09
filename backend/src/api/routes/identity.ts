@@ -3,10 +3,11 @@ import type { Address } from 'viem';
 import { encodeFunctionData } from 'viem';
 import { getAgentIdentity } from '../../chain/agentIdentity.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { env } from '../../config/env.js';
 
 const router = Router();
 
-const IDENTITY_ADDRESS = (process.env.AGENT_IDENTITY_ADDRESS ?? '0x0000000000000000000000000000000000000000') as Address;
+const IDENTITY_ADDRESS = env.AGENT_IDENTITY_ADDRESS as Address;
 
 // Minimal ABI for mint
 const AgentIdentityMintABI = [

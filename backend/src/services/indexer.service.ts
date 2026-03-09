@@ -1,4 +1,3 @@
-import { PrismaClient } from '@prisma/client';
 import type { Address, AbiEvent } from 'viem';
 import { publicClient, walletClient } from '../chain/client.js';
 import {
@@ -12,8 +11,7 @@ import {
 } from '../config/contracts.js';
 import { getAllVaults } from '../chain/vaultFactory.js';
 import { dispatchWebhook } from './webhook.service.js';
-
-const prisma = new PrismaClient();
+import { prisma } from '../config/prisma.js';
 
 // ---------------------------------------------------------------------------
 // Constants

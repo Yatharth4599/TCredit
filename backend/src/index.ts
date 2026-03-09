@@ -1,5 +1,6 @@
 import app from './app.js';
 import { env } from './config/env.js';
+import { prisma } from './config/prisma.js';
 import { startRetryProcessor, stopRetryProcessor } from './services/oracle.service.js';
 import { startEventIndexer, stopEventIndexer } from './services/indexer.service.js';
 import { startKeeper, stopKeeper } from './services/keeper.service.js';
@@ -21,7 +22,8 @@ function shutdown() {
   stopEventIndexer();
   stopKeeper();
   stopWebhookProcessor();
-  server.close(() => {
+  server.close(async () => {
+    await prisma.$disconnect();
     console.log('[TCredit] Server closed');
     process.exit(0);
   });

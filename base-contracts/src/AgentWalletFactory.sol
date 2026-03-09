@@ -9,11 +9,14 @@ import {Errors} from "./libraries/Errors.sol";
 contract AgentWalletFactory {
     address public immutable usdc;
     address public admin;
+    address public pendingAdmin;
 
     mapping(address => address) public ownerToWallet;
     address[] public allWallets;
 
     event WalletCreated(address indexed owner, address indexed operator, address wallet);
+    event AdminTransferProposed(address indexed current, address indexed proposed);
+    event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
 
     modifier onlyAdmin() {
         if (msg.sender != admin) revert Errors.Unauthorized();
@@ -51,12 +54,17 @@ contract AgentWalletFactory {
         return walletAddr;
     }
 
-    /// @notice Predict wallet address for a given owner
-    function predictWalletAddress(address owner) external view returns (address) {
+    /// @notice Predict wallet address for a given owner (must match createWallet args)
+    function predictWalletAddress(
+        address owner,
+        address operator,
+        uint256 _dailyLimit,
+        uint256 _perTxLimit
+    ) external view returns (address) {
         bytes32 salt = keccak256(abi.encode(owner));
         bytes memory bytecode = abi.encodePacked(
             type(AgentWallet).creationCode,
-            abi.encode(usdc, owner, address(0), uint256(0), uint256(0))
+            abi.encode(usdc, owner, operator, _dailyLimit, _perTxLimit)
         );
         bytes32 hash = keccak256(
             abi.encodePacked(bytes1(0xff), address(this), salt, keccak256(bytecode))
@@ -70,5 +78,34 @@ contract AgentWalletFactory {
 
     function totalWallets() external view returns (uint256) {
         return allWallets.length;
+    }
+
+    // ─── Admin Transfer ───────────────────────────────────────
+
+    function proposeAdmin(address _newAdmin) external onlyAdmin {
+        if (_newAdmin == address(0)) revert Errors.ZeroAddress();
+        pendingAdmin = _newAdmin;
+        emit AdminTransferProposed(admin, _newAdmin);
+    }
+
+    function acceptAdmin() external {
+        if (msg.sender != pendingAdmin) revert Errors.Unauthorized();
+        address old = admin;
+        admin = pendingAdmin;
+        pendingAdmin = address(0);
+        emit AdminTransferred(old, admin);
+    }
+
+    // ─── Paginated View ───────────────────────────────────────
+
+    function getWallets(uint256 offset, uint256 limit) external view returns (address[] memory) {
+        uint256 end = offset + limit;
+        if (end > allWallets.length) end = allWallets.length;
+        if (offset >= allWallets.length) return new address[](0);
+        address[] memory result = new address[](end - offset);
+        for (uint256 i = offset; i < end; i++) {
+            result[i - offset] = allWallets[i];
+        }
+        return result;
     }
 }
