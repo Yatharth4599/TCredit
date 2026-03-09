@@ -1,10 +1,8 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { requireApiKey } from '../middleware/apiKeyAuth.js';
 import { AppError } from '../middleware/errorHandler.js';
-
-const prisma = new PrismaClient();
+import { prisma } from '../../config/prisma.js';
 const router = Router();
 
 // All admin routes require a valid API key

@@ -1,10 +1,9 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { publicClient } from '../../chain/client.js';
 import type { HealthResponse } from '../../types/index.js';
+import { prisma } from '../../config/prisma.js';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 router.get('/health', async (_req, res) => {
   let dbOk = false;

@@ -1,11 +1,9 @@
-import { PrismaClient } from '@prisma/client';
 import { publicClient } from '../chain/client.js';
 import { addresses } from '../config/contracts.js';
 import { PaymentRouterABI } from '../config/abis.js';
 import type { Address } from 'viem';
 import { formatUnits, erc20Abi } from 'viem';
-
-const prisma = new PrismaClient();
+import { prisma } from '../config/prisma.js';
 
 export interface GatewaySummary {
   totalRevenue: string;

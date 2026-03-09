@@ -8,9 +8,7 @@ import { encodeFunctionData } from 'viem';
 import { AppError } from '../middleware/errorHandler.js';
 import { getSettlement } from '../../chain/paymentRouter.js';
 import { processPayment } from '../../services/oracle.service.js';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../../config/prisma.js';
 
 const router = Router();
 

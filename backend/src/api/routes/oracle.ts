@@ -3,10 +3,10 @@ import type { Address } from 'viem';
 import { z } from 'zod';
 import { processPayment, getOracleHealth } from '../../services/oracle.service.js';
 import { AppError } from '../middleware/errorHandler.js';
-import { PrismaClient } from '@prisma/client';
+import { requireApiKey } from '../middleware/apiKeyAuth.js';
+import { prisma } from '../../config/prisma.js';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 const paymentSchema = z.object({
   from: z.string().startsWith('0x').length(42),
@@ -15,8 +15,8 @@ const paymentSchema = z.object({
   paymentId: z.string().startsWith('0x').optional(),
 });
 
-// POST /api/v1/oracle/payment — webhook receiver
-router.post('/payment', async (req, res, next) => {
+// POST /api/v1/oracle/payment — webhook receiver (requires API key)
+router.post('/payment', requireApiKey, async (req, res, next) => {
   try {
     const parsed = paymentSchema.safeParse(req.body);
     if (!parsed.success) {

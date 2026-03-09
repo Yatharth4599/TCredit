@@ -70,10 +70,14 @@ contract MerchantVault is IMerchantVault, ReentrancyGuard {
     mapping(address => uint256) public investorBalances;
     mapping(address => uint256) public claimedReturns;
     mapping(address => bool) public isSeniorInvestor;
+    mapping(address => bool) public isPoolInvestor;
     address[] public investors;
 
     address public pendingAdmin;
     bool public paused;
+
+    // Snapshot of vault balance at the moment of default (for fair pro-rata refunds)
+    uint256 public defaultSnapshotBalance;
 
     // ─── Modifiers ───────────────────────────────────────────────
 
@@ -190,6 +194,7 @@ contract MerchantVault is IMerchantVault, ReentrancyGuard {
     function investSenior(uint256 amount) external nonReentrant notPaused inState(VaultState.Fundraising) {
         if (amount == 0) revert Errors.InvalidAmount();
         if (totalRaised + amount > targetAmount) revert Errors.ExceedsTarget();
+        if (isPoolInvestor[msg.sender]) revert Errors.Unauthorized(); // can't mix tranche roles
 
         usdc.safeTransferFrom(msg.sender, address(this), amount);
 
@@ -212,8 +217,16 @@ contract MerchantVault is IMerchantVault, ReentrancyGuard {
     function investFromPool(uint256 amount) external nonReentrant notPaused inState(VaultState.Fundraising) {
         if (amount == 0) revert Errors.InvalidAmount();
         if (totalRaised + amount > targetAmount) revert Errors.ExceedsTarget();
+        if (isSeniorInvestor[msg.sender]) revert Errors.Unauthorized(); // can't mix tranche roles
 
         usdc.safeTransferFrom(msg.sender, address(this), amount);
+
+        // Track pool as an investor so it can claim pool-tranche returns
+        if (investorBalances[msg.sender] == 0) {
+            investors.push(msg.sender);
+        }
+        investorBalances[msg.sender] += amount;
+        isPoolInvestor[msg.sender] = true;
 
         poolFunded += amount;
         totalRaised += amount;
@@ -341,6 +354,7 @@ contract MerchantVault is IMerchantVault, ReentrancyGuard {
 
         VaultState oldState = state;
         state = VaultState.Defaulted;
+        defaultSnapshotBalance = usdc.balanceOf(address(this));
         emit VaultStateChanged(oldState, VaultState.Defaulted);
         emit VaultDefaulted(block.timestamp);
     }
@@ -379,14 +393,14 @@ contract MerchantVault is IMerchantVault, ReentrancyGuard {
         uint256 balance = investorBalances[msg.sender];
         if (balance == 0) revert Errors.NothingToClaim();
 
-        // For cancelled: full refund. For defaulted: pro-rata of remaining
+        // For cancelled: full refund. For defaulted: pro-rata of snapshot
         uint256 refund;
         if (state == VaultState.Cancelled) {
             refund = balance;
         } else {
             if (totalRaised == 0) revert Errors.NothingToClaim();
-            uint256 remaining = usdc.balanceOf(address(this));
-            refund = (balance * remaining) / totalRaised;
+            // Use the snapshot taken at default time — order-independent
+            refund = (balance * defaultSnapshotBalance) / totalRaised;
         }
 
         investorBalances[msg.sender] = 0;
@@ -517,15 +531,21 @@ contract MerchantVault is IMerchantVault, ReentrancyGuard {
         uint256 balance = investorBalances[investor];
         if (balance == 0) return 0;
 
-        // Community investors claim pro-rata from community repaid amount
-        if (!isSeniorInvestor[investor] && userFunded > 0) {
-            uint256 share = (balance * totalCommunityRepaid) / userFunded;
+        // Pool investors claim pro-rata from pool repaid amount
+        if (isPoolInvestor[investor] && poolFunded > 0) {
+            uint256 share = (balance * totalPoolRepaid) / poolFunded;
             return share > claimedReturns[investor] ? share - claimedReturns[investor] : 0;
         }
 
         // Senior investors claim pro-rata from senior repaid amount
         if (isSeniorInvestor[investor] && seniorFunded > 0) {
             uint256 share = (balance * totalSeniorRepaid) / seniorFunded;
+            return share > claimedReturns[investor] ? share - claimedReturns[investor] : 0;
+        }
+
+        // Community investors claim pro-rata from community repaid amount
+        if (userFunded > 0) {
+            uint256 share = (balance * totalCommunityRepaid) / userFunded;
             return share > claimedReturns[investor] ? share - claimedReturns[investor] : 0;
         }
 

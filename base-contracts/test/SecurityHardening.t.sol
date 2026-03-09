@@ -193,9 +193,9 @@ contract SecurityHardeningTest is Test {
 
     function test_predictVaultAddress_deterministic() public {
         // predictVaultAddress should return the same address regardless of block
-        address predicted1 = factory.predictVaultAddress(borrower);
+        address predicted1 = factory.predictVaultAddress(borrower, 50_000e6, 1200, 180 days, 3, 0, 0, 0);
         vm.warp(block.timestamp + 1000);
-        address predicted2 = factory.predictVaultAddress(borrower);
+        address predicted2 = factory.predictVaultAddress(borrower, 50_000e6, 1200, 180 days, 3, 0, 0, 0);
         assertEq(predicted1, predicted2, "Predicted addresses should be deterministic");
     }
 

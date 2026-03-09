@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import { createHmac } from 'crypto';
-
-const prisma = new PrismaClient();
+import { prisma } from '../config/prisma.js';
 
 const MAX_ATTEMPTS = 5;
 const BACKOFF_BASE_MS = 5_000; // 5s, 20s, 80s, 320s, 1280s

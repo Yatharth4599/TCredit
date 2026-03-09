@@ -1,12 +1,10 @@
-import { PrismaClient } from '@prisma/client';
 import type { Address, Hex } from 'viem';
 import { keccak256, encodeAbiParameters, parseAbiParameters, toHex } from 'viem';
 import { publicClient, walletClient, oracleAccount } from '../chain/client.js';
 import { PaymentRouterABI, addresses } from '../config/contracts.js';
 import { getSettlement, isNonceUsed } from '../chain/paymentRouter.js';
 import { AppError } from '../api/middleware/errorHandler.js';
-
-const prisma = new PrismaClient();
+import { prisma } from '../config/prisma.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -192,33 +190,44 @@ export async function processPayment(params: WebhookPaymentRequest): Promise<Ora
     }
   }
 
-  // 4. Get next nonce for this sender
-  const nonce = await getNextNonce(params.from);
-
-  // 5. Build deadline (5 minutes from current block)
+  // 4. Build deadline (5 minutes from current block)
   const block = await publicClient.getBlock();
   const deadline = block.timestamp + 300n;
 
-  // 6. Generate paymentId if not provided
-  const paymentId = (params.paymentId
-    ? params.paymentId as Hex
-    : keccak256(toHex(`${params.from}-${params.to}-${amount}-${nonce}-${Date.now()}`))
-  );
-
-  // 7. Create DB record (reserve nonce)
-  const record = await prisma.oraclePayment.create({
-    data: {
-      from: params.from.toLowerCase(),
-      to: params.to.toLowerCase(),
-      vault: settlement.vault.toLowerCase(),
-      amount,
-      nonce,
-      deadline,
-      paymentId,
-      status: 'pending',
-      attempts: 0,
-    },
-  });
+  // 5. Atomically reserve a nonce — retry on unique constraint conflict (concurrent requests)
+  let record;
+  let nonce = await getNextNonce(params.from);
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const paymentId = (params.paymentId
+      ? params.paymentId as Hex
+      : keccak256(toHex(`${params.from}-${params.to}-${amount}-${nonce}-${Date.now()}`))
+    );
+    try {
+      record = await prisma.oraclePayment.create({
+        data: {
+          from: params.from.toLowerCase(),
+          to: params.to.toLowerCase(),
+          vault: settlement.vault.toLowerCase(),
+          amount,
+          nonce,
+          deadline,
+          paymentId,
+          status: 'pending',
+          attempts: 0,
+        },
+      });
+      break;
+    } catch (err: unknown) {
+      // Unique constraint violation on (from, nonce) — increment and retry
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('Unique constraint') || msg.includes('unique constraint')) {
+        nonce += 1n;
+        continue;
+      }
+      throw err;
+    }
+  }
+  if (!record) throw new AppError(500, 'Failed to reserve nonce after retries');
 
   // 8. Sign + submit
   try {
@@ -228,7 +237,7 @@ export async function processPayment(params: WebhookPaymentRequest): Promise<Ora
       amount,
       nonce,
       deadline,
-      paymentId,
+      paymentId: record.paymentId as Hex,
     });
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
@@ -269,9 +278,12 @@ async function markFailed(recordId: string, error: string): Promise<void> {
   });
 }
 
-function scheduleRetry(recordId: string): void {
+function scheduleRetry(recordId: string, attemptsSoFar: number = 0): void {
   const existing = retryTimers.get(recordId);
   if (existing) clearTimeout(existing);
+
+  const delayIndex = Math.min(attemptsSoFar, RETRY_DELAYS.length - 1);
+  const delay = RETRY_DELAYS[delayIndex];
 
   const timer = setTimeout(async () => {
     retryTimers.delete(recordId);
@@ -300,13 +312,13 @@ function scheduleRetry(recordId: string): void {
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       await markFailed(recordId, errMsg);
-      // If still under max attempts, schedule another retry
+      // If still under max attempts, schedule another retry with incremented attempt count
       const record = await prisma.oraclePayment.findUnique({ where: { id: recordId } });
       if (record && record.status === 'pending' && record.attempts < MAX_ATTEMPTS) {
-        scheduleRetry(recordId);
+        scheduleRetry(recordId, record.attempts);
       }
     }
-  }, RETRY_DELAYS[0]);
+  }, delay);
 
   retryTimers.set(recordId, timer);
 }

@@ -14,6 +14,10 @@ const envSchema = z.object({
   MILESTONE_REGISTRY_ADDRESS: z.string().startsWith('0x'),
   USDC_ADDRESS: z.string().startsWith('0x'),
 
+  KREXA_402_FACILITATOR_ADDRESS: z.string().startsWith('0x'),
+  AGENT_WALLET_FACTORY_ADDRESS: z.string().startsWith('0x'),
+  AGENT_IDENTITY_ADDRESS: z.string().startsWith('0x'),
+
   ORACLE_PRIVATE_KEY: z.string().optional().default(''),
 
   // Kickstart (EasyA) integration

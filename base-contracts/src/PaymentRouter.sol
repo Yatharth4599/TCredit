@@ -34,6 +34,7 @@ contract PaymentRouter is IPaymentRouter, ReentrancyGuard {
     }
 
     address public factory;
+    mapping(address => bool) public approvedFacilitators;
 
     bool public paused;
     address public pendingAdmin;
@@ -89,6 +90,71 @@ contract PaymentRouter is IPaymentRouter, ReentrancyGuard {
         admin = pendingAdmin;
         pendingAdmin = address(0);
         emit AdminTransferred(old, admin);
+    }
+
+    function setFacilitator(address facilitator, bool approved) external onlyAdmin {
+        if (facilitator == address(0)) revert Errors.ZeroAddress();
+        approvedFacilitators[facilitator] = approved;
+    }
+
+    // ─── Facilitated Payment (from approved facilitator, no sig check) ──
+
+    /// @notice Execute a payment forwarded by an approved facilitator.
+    ///         The facilitator already pulled USDC from the original payer,
+    ///         took its fee, and approved this router for the net amount.
+    ///         We skip signature verification since the facilitator is trusted.
+    function executeFacilitatedPayment(X402Payment calldata payment) external nonReentrant notPaused {
+        if (!approvedFacilitators[msg.sender]) revert Errors.Unauthorized();
+
+        // Deadline check
+        if (block.timestamp > payment.deadline) revert Errors.PaymentExpired();
+
+        // Replay protection (nonce under facilitator's namespace)
+        if (usedNonces[msg.sender][payment.nonce]) revert Errors.NonceAlreadyUsed();
+        usedNonces[msg.sender][payment.nonce] = true;
+
+        if (payment.amount == 0) revert Errors.InvalidAmount();
+
+        // Check settlement for receiving agent
+        Settlement storage settlement = _settlements[payment.to];
+        uint256 repaymentAmount = 0;
+
+        if (settlement.active) {
+            // Calculate split
+            repaymentAmount = (payment.amount * settlement.repaymentRateBps) / 10_000;
+            uint256 netAmount = payment.amount - repaymentAmount;
+
+            // Transfer from facilitator (who already approved us)
+            usdc.safeTransferFrom(msg.sender, address(this), payment.amount);
+
+            if (repaymentAmount > 0) {
+                usdc.forceApprove(settlement.vault, repaymentAmount);
+                IMerchantVault(settlement.vault).processRepayment(repaymentAmount);
+            }
+
+            if (netAmount > 0) {
+                usdc.safeTransfer(payment.to, netAmount);
+            }
+
+            settlement.totalRouted += repaymentAmount;
+            settlement.totalPayments++;
+            settlement.lastPaymentAt = block.timestamp;
+        } else {
+            usdc.safeTransferFrom(msg.sender, payment.to, payment.amount);
+        }
+
+        // Update agent stats
+        try registry.incrementPaymentsSent(payment.from, payment.amount) {} catch {}
+        try registry.incrementPaymentsReceived(payment.to, payment.amount) {} catch {}
+
+        emit PaymentExecuted(
+            payment.from,
+            payment.to,
+            payment.amount,
+            repaymentAmount,
+            payment.paymentId,
+            payment.nonce
+        );
     }
 
     // ─── Execute Payment (THE x402 function) ─────────────────────
