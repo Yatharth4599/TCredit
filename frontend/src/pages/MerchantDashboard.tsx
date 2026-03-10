@@ -61,7 +61,7 @@ export default function MerchantDashboard() {
     if (!walletAddress) return
     setRegistering(true)
     try {
-      const { data: unsignedTx } = await merchantApi.register({ metadataURI: '' })
+      const { data: unsignedTx } = await merchantApi.register({ metadataURI: 'ipfs://krexa' })
       const hash = await executeTx(unsignedTx)
       if (hash) {
         setIsRegistered(true)
