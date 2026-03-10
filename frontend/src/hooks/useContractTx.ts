@@ -32,6 +32,7 @@ export function useContractTx() {
         to: unsignedTx.to as `0x${string}`,
         data: unsignedTx.data as `0x${string}`,
         ...(unsignedTx.value ? { value: BigInt(unsignedTx.value) } : {}),
+        ...(unsignedTx.chainId ? { chainId: unsignedTx.chainId } : {}),
       });
 
       setTxHash(hash);

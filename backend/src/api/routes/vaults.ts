@@ -9,6 +9,9 @@ import { VaultFactoryABI, MerchantVaultABI } from '../../config/abis.js';
 import { encodeFunctionData } from 'viem';
 import { publicClient, walletClient } from '../../chain/client.js';
 import { prisma } from '../../config/prisma.js';
+import { env } from '../../config/env.js';
+
+const CHAIN_ID = Number(env.CHAIN_ID);
 
 const router = Router();
 
@@ -232,7 +235,7 @@ router.post('/:address/release-tranche', async (req, res, next) => {
       abi: MerchantVaultABI,
       functionName: 'releaseTranche',
     });
-    res.json({ to: vaultAddr, data });
+    res.json({ to: vaultAddr, data, chainId: CHAIN_ID });
   } catch (err) {
     next(err);
   }
@@ -251,7 +254,7 @@ router.post('/:address/milestone/submit', async (req, res, next) => {
       functionName: 'submitMilestone',
       args: [req.params.address as Address, BigInt(trancheIndex), evidenceHash as `0x${string}`],
     });
-    res.json({ to: addresses.milestoneRegistry, data });
+    res.json({ to: addresses.milestoneRegistry, data, chainId: CHAIN_ID });
   } catch (err) {
     next(err);
   }
@@ -270,7 +273,7 @@ router.post('/:address/milestone/vote', async (req, res, next) => {
       functionName: 'voteMilestone',
       args: [req.params.address as Address, BigInt(trancheIndex), Boolean(approve)],
     });
-    res.json({ to: addresses.milestoneRegistry, data });
+    res.json({ to: addresses.milestoneRegistry, data, chainId: CHAIN_ID });
   } catch (err) {
     next(err);
   }

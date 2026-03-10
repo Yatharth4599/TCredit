@@ -224,6 +224,7 @@ router.post('/register', async (req, res, next) => {
     res.json({
       to: addresses.agentRegistry,
       data,
+      chainId: Number(env.CHAIN_ID),
       description: 'registerAgent — sign and broadcast with your wallet',
     });
   } catch (err) {

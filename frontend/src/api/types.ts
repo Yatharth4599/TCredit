@@ -155,6 +155,7 @@ export interface UnsignedTx {
   data: string;
   description: string;
   value?: string;
+  chainId?: number;
 }
 
 export interface EnrichedKickstartToken {
