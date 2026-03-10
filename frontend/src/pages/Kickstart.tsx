@@ -5,6 +5,7 @@ import { kickstartApi } from '../api/client'
 import { truncateAddress } from '../lib/format'
 import { useContractTx } from '../hooks/useContractTx'
 import { Rocket, Loader2, Zap, ExternalLink, TrendingUp } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { Skeleton } from '../components/ui/Skeleton'
 import { AnimatedNumber } from '../components/ui/AnimatedNumber'
 import type { EnrichedKickstartToken } from '../api/types'
@@ -283,8 +284,12 @@ export default function Kickstart() {
         const hash = await executeTx({ to: tx.to, data: tx.data, description: tx.description, value: tx.value })
         if (hash) setShowCreate(false)
       }
-    } catch { /* toast handled by useContractTx */ }
-    finally { setCreating(false) }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Launch failed'
+      // axios errors have response data
+      const axiosMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      toast.error(axiosMsg || msg)
+    } finally { setCreating(false) }
   }
 
   const handleBuy = async () => {
@@ -298,8 +303,10 @@ export default function Kickstart() {
       })
       const hash = await executeTx({ to: tx.to, data: tx.data, description: `Buy ${buyTarget.symbol}`, value: tx.value })
       if (hash) setBuyTarget(null)
-    } catch { /* toast handled */ }
-    finally { setBuying(false) }
+    } catch (err: unknown) {
+      const axiosMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      toast.error(axiosMsg || 'Buy failed')
+    } finally { setBuying(false) }
   }
 
   const totalEthRaised = parseFloat(stats?.totalEthRaisedEth ?? '0')
