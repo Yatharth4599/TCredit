@@ -9,6 +9,7 @@ import { useContractTx } from '../hooks/useContractTx'
 import { useUSDCApproval } from '../hooks/useUSDCApproval'
 import { WaterfallChart } from '../components/charts/WaterfallChart'
 import { ArrowLeft, Loader2, CheckCircle, Clock, AlertTriangle, Users, Layers, TrendingUp } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { Skeleton } from '../components/ui/Skeleton'
 import { STATUS_CONFIG } from '../lib/statusConfig'
 import styles from './VaultDetail.module.css'
@@ -137,7 +138,19 @@ export default function VaultDetail() {
                         >
                             <div>
                                 <h1>{truncateAddress(vault.agent, 6)}</h1>
-                                <p className={styles.category}>{truncateAddress(vault.address)}</p>
+                                <p className={styles.category}>
+                                    {truncateAddress(vault.address)}
+                                    <button
+                                        className={styles.copyAddrBtn}
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(vault.address)
+                                            toast.success('Vault address copied!')
+                                        }}
+                                        title="Copy vault address"
+                                    >
+                                        Copy
+                                    </button>
+                                </p>
                             </div>
                             <span
                                 className={styles.statusBadge}

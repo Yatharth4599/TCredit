@@ -321,6 +321,26 @@
   background: #F0F0F0;
 }
 
+.copyBtn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid #E5E5E5;
+  color: #666;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.copyBtn:hover {
+  border-color: var(--accent, #52FFA1);
+  color: var(--accent, #52FFA1);
+  background: rgba(82, 255, 161, 0.06);
+}
+
 /* Create button */
 .createBtn {
   display: flex;

@@ -10,6 +10,7 @@ import { WaterfallChart } from '../components/charts/WaterfallChart'
 import { mockMerchantStats, mockVaults, mockPayments } from '../lib/mockData'
 import { StatRowSkeleton } from '../components/ui/StatRowSkeleton'
 import { Star, ChevronRight, Plus, Activity, Wallet, Loader2 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { STATUS_CONFIG } from '../lib/statusConfig'
 import styles from './MerchantDashboard.module.css'
 
@@ -350,6 +351,16 @@ export default function MerchantDashboard() {
                       </div>
 
                       <div className={styles.vaultActions}>
+                        <button
+                          className={styles.copyBtn}
+                          onClick={() => {
+                            navigator.clipboard.writeText(vault.address)
+                            toast.success('Vault address copied!')
+                          }}
+                          title={vault.address}
+                        >
+                          Copy Address
+                        </button>
                         <button className={styles.manageBtn} onClick={() => navigate(`/vaults/${vault.address}`)}>
                           Details
                         </button>
