@@ -35,6 +35,7 @@ router.post('/upload-metadata', async (req, res, next) => {
     const formData = new FormData();
     formData.append('name', name);
     formData.append('ticker', ticker);
+    formData.append('symbol', ticker);
     formData.append('description', fullDescription);
 
     // Support base64 image (from direct file upload) or imageUrl
