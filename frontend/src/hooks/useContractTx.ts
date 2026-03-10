@@ -31,6 +31,7 @@ export function useContractTx() {
       const hash = await sendTransactionAsync({
         to: unsignedTx.to as `0x${string}`,
         data: unsignedTx.data as `0x${string}`,
+        ...(unsignedTx.value ? { value: BigInt(unsignedTx.value) } : {}),
       });
 
       setTxHash(hash);

@@ -154,6 +154,27 @@ export interface UnsignedTx {
   to: string;
   data: string;
   description: string;
+  value?: string;
+}
+
+export interface EnrichedKickstartToken {
+  curve: string;
+  token: string | null;
+  name: string;
+  symbol: string;
+  ethRaisedEth: string;
+  progressPct: number;
+  graduated: boolean;
+}
+
+export interface EnrichedTokensResponse {
+  tokens: EnrichedKickstartToken[];
+  total: number;
+  stats: {
+    totalTokens: number;
+    graduatedCount: number;
+    totalEthRaisedEth: string;
+  };
 }
 
 export interface ApiOraclePayment {

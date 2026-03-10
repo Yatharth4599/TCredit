@@ -32,7 +32,7 @@ function getThemeFromPath(pathname: string): string {
   if (pathname.startsWith('/app/wallets')) return 'merchant'
   if (pathname.startsWith('/app/identity')) return 'merchant'
   if (pathname.startsWith('/app/gateway')) return 'merchant'
-  if (pathname.startsWith('/app/kickstart') || pathname.startsWith('/kickstart')) return 'merchant'
+  if (pathname.startsWith('/app/kickstart') || pathname.startsWith('/kickstart')) return 'kickstart'
   if (pathname.startsWith('/x402')) return 'x402'
   return 'home'
 }

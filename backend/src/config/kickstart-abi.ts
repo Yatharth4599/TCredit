@@ -53,3 +53,8 @@ export const BondingCurveABI = [
     outputs: [{ name: '', type: 'address' }],
   },
 ] as const;
+
+export const ERC20ABI = [
+  { name: 'name',   type: 'function', stateMutability: 'view', inputs: [], outputs: [{ type: 'string' }] },
+  { name: 'symbol', type: 'function', stateMutability: 'view', inputs: [], outputs: [{ type: 'string' }] },
+] as const;

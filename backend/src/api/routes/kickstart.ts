@@ -2,7 +2,8 @@ import { Router } from 'express';
 import type { Address } from 'viem';
 import { encodeFunctionData, parseEther } from 'viem';
 import { env } from '../../config/env.js';
-import { KickstartFactoryABI, BondingCurveABI } from '../../config/kickstart-abi.js';
+import { KickstartFactoryABI, BondingCurveABI, ERC20ABI } from '../../config/kickstart-abi.js';
+import { formatUnits } from 'viem';
 import { publicClientMainnet } from '../../chain/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { addresses, MerchantVaultABI } from '../../config/contracts.js';
@@ -205,6 +206,101 @@ router.post('/credit-and-launch', async (req, res, next) => {
         ? 'Step 1 draws credit on Base Sepolia. Step 2 uploads metadata off-chain. Step 3 creates the token on Base mainnet. Agent must have ETH on mainnet for step 3.'
         : 'Step 1 uploads metadata off-chain. Step 2 creates the token on Base mainnet. Agent must have ETH on mainnet.',
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// In-memory cache for enriched tokens (30s TTL)
+const enrichedCache = new Map<string, { data: unknown; ts: number }>();
+
+// GET /api/v1/kickstart/tokens/enriched — list tokens with name, symbol, bonding curve progress
+router.get('/tokens/enriched', async (req, res, next) => {
+  try {
+    const count = Number(req.query.count ?? 20);
+    const start = Number(req.query.start ?? 0);
+    const cacheKey = `${start}-${count}`;
+
+    const cached = enrichedCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < 30_000) {
+      return res.json(cached.data);
+    }
+
+    const [curves, bondingConfig] = await Promise.all([
+      publicClientMainnet.readContract({
+        address: KICKSTART_FACTORY,
+        abi: KickstartFactoryABI,
+        functionName: 'getCurves',
+        args: [BigInt(start), BigInt(count)],
+      }) as Promise<Address[]>,
+      publicClientMainnet.readContract({
+        address: KICKSTART_FACTORY,
+        abi: KickstartFactoryABI,
+        functionName: 'getBondingCurveConfig',
+      }) as Promise<[bigint, bigint, bigint]>,
+    ]);
+
+    const targetEth = bondingConfig[2];
+
+    const tokens = await Promise.all(
+      curves.map(async (curveAddr) => {
+        try {
+          const [tokenAddr, ethRaisedWei] = await Promise.all([
+            publicClientMainnet.readContract({
+              address: curveAddr,
+              abi: BondingCurveABI,
+              functionName: 'token',
+            }) as Promise<Address>,
+            publicClientMainnet.getBalance({ address: curveAddr }),
+          ]);
+
+          let name = 'Unknown';
+          let symbol = '???';
+          if (tokenAddr) {
+            try {
+              [name, symbol] = await Promise.all([
+                publicClientMainnet.readContract({ address: tokenAddr, abi: ERC20ABI, functionName: 'name' }) as Promise<string>,
+                publicClientMainnet.readContract({ address: tokenAddr, abi: ERC20ABI, functionName: 'symbol' }) as Promise<string>,
+              ]);
+            } catch { /* keep defaults */ }
+          }
+
+          const progressPct = targetEth > 0n
+            ? Math.min(100, Number(ethRaisedWei * 10000n / targetEth) / 100)
+            : 0;
+
+          return {
+            curve: curveAddr,
+            token: tokenAddr ?? null,
+            name,
+            symbol,
+            ethRaisedEth: parseFloat(formatUnits(ethRaisedWei, 18)).toFixed(4),
+            progressPct: Math.round(progressPct * 10) / 10,
+            graduated: progressPct >= 100,
+          };
+        } catch {
+          return { curve: curveAddr, token: null, name: 'Unknown', symbol: '???', ethRaisedEth: '0.0000', progressPct: 0, graduated: false };
+        }
+      })
+    );
+
+    const graduatedCount = tokens.filter(t => t.graduated).length;
+    const totalEthRaised = tokens.reduce((sum, t) => sum + parseFloat(t.ethRaisedEth), 0);
+
+    const response = {
+      tokens,
+      total: tokens.length,
+      stats: {
+        totalTokens: tokens.length,
+        graduatedCount,
+        totalEthRaisedEth: totalEthRaised.toFixed(4),
+      },
+    };
+
+    enrichedCache.set(cacheKey, { data: response, ts: Date.now() });
+    setTimeout(() => enrichedCache.delete(cacheKey), 30_000);
+
+    return res.json(response);
   } catch (err) {
     next(err);
   }

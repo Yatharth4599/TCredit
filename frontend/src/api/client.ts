@@ -24,6 +24,7 @@ import type {
   ApiAgentWallet,
   UnsignedTx,
   CreateVaultParams,
+  EnrichedTokensResponse,
 } from './types'
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
@@ -280,6 +281,9 @@ export const kickstartApi = {
     api.get<{ tokens: Array<{ curve: string; token: string | null }>; total: number }>(
       '/v1/kickstart/tokens', { params }
     ),
+
+  enrichedTokens: (params?: { start?: number; count?: number }) =>
+    api.get<EnrichedTokensResponse>('/v1/kickstart/tokens/enriched', { params }),
 
   config: () =>
     api.get<{ factory: string; chainId: number; virtualEth: string; virtualToken: string; targetEth: string }>(

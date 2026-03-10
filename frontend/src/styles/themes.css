@@ -115,3 +115,21 @@
   --accent-dark:  #E85A28;
   --accent-rgb:   255, 107, 53;
 }
+
+/* ─── Kickstart: EasyA Green ────────────────── */
+[data-theme="kickstart"] {
+  --accent:       #52FFA1;
+  --accent-light: #7BFFC0;
+  --accent-dark:  #3AE085;
+  --accent-rgb:   82, 255, 161;
+  --accent-glow:  0 0 60px rgba(82, 255, 161, 0.20);
+  --gradient-primary: linear-gradient(135deg, #52FFA1 0%, #7BFFC0 100%);
+  --glow-aurora-primary: radial-gradient(
+    ellipse 80% 40% at 50% 110%,
+    rgba(82, 255, 161, 0.10) 0%,
+    transparent 70%
+  );
+  --text-highlight: #7BFFC0;
+  --border-highlight: #3AE085;
+  --border-glow: rgba(82, 255, 161, 0.35);
+}
