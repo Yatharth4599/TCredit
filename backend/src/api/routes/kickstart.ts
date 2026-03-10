@@ -17,20 +17,34 @@ const KICKSTART_API = env.KICKSTART_API_URL;
 // Proxy metadata upload to EasyA Kickstart API
 router.post('/upload-metadata', async (req, res, next) => {
   try {
-    const { name, ticker, description, imageUrl } = req.body;
+    const { name, ticker, description, imageUrl, imageBase64, imageMime, twitter, telegram, website } = req.body;
 
     if (!name || !ticker || !description) {
       throw new AppError(400, 'name, ticker, and description are required');
     }
 
+    // Append social links to description if provided
+    let fullDescription = description;
+    const socials: string[] = [];
+    if (twitter)  socials.push(`Twitter: ${twitter}`);
+    if (telegram) socials.push(`Telegram: ${telegram}`);
+    if (website)  socials.push(`Website: ${website}`);
+    if (socials.length) fullDescription = `${description}\n\n${socials.join('\n')}`;
+
     // Build form data for the Kickstart metadata API
     const formData = new FormData();
     formData.append('name', name);
     formData.append('ticker', ticker);
-    formData.append('description', description);
+    formData.append('description', fullDescription);
 
-    // If imageUrl provided, fetch the image and attach it
-    if (imageUrl) {
+    // Support base64 image (from direct file upload) or imageUrl
+    if (imageBase64) {
+      const mime = imageMime || 'image/png';
+      const ext = mime.split('/')[1] || 'png';
+      const buffer = Buffer.from(imageBase64, 'base64');
+      const blob = new Blob([buffer], { type: mime });
+      formData.append('image', blob, `token-image.${ext}`);
+    } else if (imageUrl) {
       const imageRes = await fetch(imageUrl);
       if (!imageRes.ok) {
         throw new AppError(400, `Failed to fetch image from ${imageUrl}`);

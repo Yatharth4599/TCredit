@@ -625,6 +625,40 @@
   cursor: pointer;
 }
 
+/* ── Image Upload ─────────────────────────────────────────── */
+
+.imageUpload {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+  background: var(--surface-3);
+  border: 2px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  overflow: hidden;
+}
+
+.imageUpload:hover {
+  border-color: var(--accent);
+}
+
+.imagePreview {
+  width: 100%;
+  max-height: 160px;
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+.imageUploadHint {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  text-align: center;
+  padding: 16px;
+  line-height: 1.5;
+}
+
 /* ── Network Warning ──────────────────────────────────────── */
 
 .networkWarning {

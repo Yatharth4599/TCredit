@@ -256,7 +256,7 @@ export const paymentsApi = {
 
 // === Kickstart (EasyA) ===
 export const kickstartApi = {
-  uploadMetadata: (body: { name: string; ticker: string; description: string; imageUrl?: string }) =>
+  uploadMetadata: (body: { name: string; ticker: string; description: string; imageUrl?: string; imageBase64?: string; imageMime?: string; twitter?: string; telegram?: string; website?: string }) =>
     api.post<{ uri: string; description: string }>('/v1/kickstart/upload-metadata', body),
 
   createToken: (body: { name: string; symbol: string; uri: string; initialBuyEth?: string }) =>

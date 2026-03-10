@@ -182,7 +182,11 @@ export default function Kickstart() {
   const [nameInput, setNameInput] = useState('')
   const [symbolInput, setSymbolInput] = useState('')
   const [descInput, setDescInput] = useState('')
-  const [imageUrlInput, setImageUrlInput] = useState('')
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [twitterInput, setTwitterInput] = useState('')
+  const [telegramInput, setTelegramInput] = useState('')
+  const [websiteInput, setWebsiteInput] = useState('')
   const [initialBuyInput, setInitialBuyInput] = useState('')
   const [useCredit, setUseCredit] = useState(false)
   const [vaultInput, setVaultInput] = useState('')
@@ -218,16 +222,39 @@ export default function Kickstart() {
       .finally(() => setLoading(false))
   }, [])
 
+  const toBase64 = (file: File): Promise<{ base64: string; mime: string }> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const result = reader.result as string
+        resolve({ base64: result.split(',')[1], mime: file.type })
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+
+  const handleImageFile = (file: File) => {
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
+
   const handleLaunch = async () => {
     if (!nameInput || !symbolInput) return
     setCreating(true)
     try {
+      let imageBase64: string | undefined
+      let imageMime: string | undefined
+      if (imageFile) {
+        const result = await toBase64(imageFile)
+        imageBase64 = result.base64
+        imageMime = result.mime
+      }
+
       if (useCredit) {
         const { data } = await kickstartApi.creditAndLaunch({
           name: nameInput,
           symbol: symbolInput,
           description: descInput,
-          imageUrl: imageUrlInput || undefined,
           initialBuyEth: initialBuyInput || undefined,
           vaultAddress: vaultInput || undefined,
         })
@@ -239,7 +266,11 @@ export default function Kickstart() {
           name: nameInput,
           ticker: symbolInput,
           description: descInput,
-          imageUrl: imageUrlInput || undefined,
+          imageBase64,
+          imageMime,
+          twitter: twitterInput || undefined,
+          telegram: telegramInput || undefined,
+          website: websiteInput || undefined,
         })
         uri = metaResult.uri
 
@@ -465,8 +496,35 @@ export default function Kickstart() {
               </div>
 
               <div className={styles.formGroup}>
-                <label>Image URL <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>(optional)</span></label>
-                <input value={imageUrlInput} onChange={e => setImageUrlInput(e.target.value)} placeholder="https://..." className={styles.input} />
+                <label>Logo <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>(optional)</span></label>
+                <label
+                  className={styles.imageUpload}
+                  onDragOver={e => e.preventDefault()}
+                  onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleImageFile(f) }}
+                >
+                  {imagePreview ? (
+                    <img src={imagePreview} alt="preview" className={styles.imagePreview} />
+                  ) : (
+                    <span className={styles.imageUploadHint}>Drop image here or click to upload</span>
+                  )}
+                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFile(f) }} />
+                </label>
+              </div>
+
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label>Twitter / X <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>(optional)</span></label>
+                  <input value={twitterInput} onChange={e => setTwitterInput(e.target.value)} placeholder="https://x.com/handle" className={styles.input} />
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Telegram <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>(optional)</span></label>
+                  <input value={telegramInput} onChange={e => setTelegramInput(e.target.value)} placeholder="https://t.me/channel" className={styles.input} />
+                </div>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Website <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>(optional)</span></label>
+                <input value={websiteInput} onChange={e => setWebsiteInput(e.target.value)} placeholder="https://..." className={styles.input} />
               </div>
 
               <div className={styles.formGroup}>
