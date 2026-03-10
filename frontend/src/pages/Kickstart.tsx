@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useAccount } from 'wagmi'
+import { useAccount, useChainId, useSwitchChain } from 'wagmi'
 import { motion, AnimatePresence } from 'motion/react'
 import { kickstartApi } from '../api/client'
 import { truncateAddress } from '../lib/format'
@@ -167,6 +167,9 @@ function BuyModal({
 
 export default function Kickstart() {
   const { address: walletAddress } = useAccount()
+  const chainId = useChainId()
+  const { switchChain } = useSwitchChain()
+  const isOnMainnet = chainId === 8453
   const [tokens, setTokens] = useState<EnrichedKickstartToken[]>([])
   const [stats, setStats] = useState<{ totalTokens: number; graduatedCount: number; totalEthRaisedEth: string } | null>(null)
   const [loading, setLoading] = useState(true)
@@ -246,8 +249,8 @@ export default function Kickstart() {
           uri,
           initialBuyEth: initialBuyInput || undefined,
         })
-        await executeTx({ to: tx.to, data: tx.data, description: tx.description, value: tx.value })
-        setShowCreate(false)
+        const hash = await executeTx({ to: tx.to, data: tx.data, description: tx.description, value: tx.value })
+        if (hash) setShowCreate(false)
       }
     } catch { /* toast handled by useContractTx */ }
     finally { setCreating(false) }
@@ -262,8 +265,8 @@ export default function Kickstart() {
         ethAmount: buyEthAmount,
         minTokensOut: '0',
       })
-      await executeTx({ to: tx.to, data: tx.data, description: `Buy ${buyTarget.symbol}`, value: tx.value })
-      setBuyTarget(null)
+      const hash = await executeTx({ to: tx.to, data: tx.data, description: `Buy ${buyTarget.symbol}`, value: tx.value })
+      if (hash) setBuyTarget(null)
     } catch { /* toast handled */ }
     finally { setBuying(false) }
   }
@@ -435,6 +438,15 @@ export default function Kickstart() {
           <motion.div className={styles.overlay} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowCreate(false)}>
             <motion.div className={styles.modal} initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} onClick={e => e.stopPropagation()}>
               <h3 className={styles.modalTitle}>Launch Token on Kickstart</h3>
+
+              {!isOnMainnet && (
+                <div className={styles.networkWarning}>
+                  ⚠ Token launches happen on <strong>Base mainnet</strong>. Your wallet is on a different network.{' '}
+                  <button className={styles.switchBtn} onClick={() => switchChain({ chainId: 8453 })}>
+                    Switch to Base
+                  </button>
+                </div>
+              )}
 
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
