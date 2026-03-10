@@ -104,8 +104,7 @@ export default function MerchantDashboard() {
         lateFeeBps: parseInt(form.lateFeeBps),
         gracePeriodSeconds: parseInt(form.gracePeriodDays) * 86400,
       }
-      const { data: unsignedTx } = await vaultsApi.create(params)
-      await executeTx(unsignedTx)
+      await vaultsApi.create(params)
       setShowCreateModal(false)
       merchantApi.vaults(walletAddress).then(r => setVaults(r.data?.vaults ?? [])).catch(() => {})
     } catch {

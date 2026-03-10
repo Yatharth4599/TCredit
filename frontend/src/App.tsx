@@ -15,6 +15,11 @@ const Portfolio = lazy(() => import('./pages/Portfolio'))
 const MerchantDashboard = lazy(() => import('./pages/MerchantDashboard'))
 const LiquidityPools = lazy(() => import('./pages/LiquidityPools'))
 const VaultDetail = lazy(() => import('./pages/VaultDetail'))
+const AgentWallets = lazy(() => import('./pages/AgentWallets'))
+const WalletDetail = lazy(() => import('./pages/WalletDetail'))
+const AgentIdentity = lazy(() => import('./pages/AgentIdentity'))
+const Gateway = lazy(() => import('./pages/Gateway'))
+const Kickstart = lazy(() => import('./pages/Kickstart'))
 const X402Demo = lazy(() => import('./pages/X402Demo'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 
@@ -24,6 +29,10 @@ function getThemeFromPath(pathname: string): string {
   if (pathname.startsWith('/app/portfolio') || pathname.startsWith('/portfolio')) return 'portfolio'
   if (pathname.startsWith('/app/merchant') || pathname.startsWith('/merchant')) return 'merchant'
   if (pathname.startsWith('/app/pools') || pathname.startsWith('/pools')) return 'pools'
+  if (pathname.startsWith('/app/wallets')) return 'merchant'
+  if (pathname.startsWith('/app/identity')) return 'merchant'
+  if (pathname.startsWith('/app/gateway')) return 'merchant'
+  if (pathname.startsWith('/app/kickstart') || pathname.startsWith('/kickstart')) return 'merchant'
   if (pathname.startsWith('/x402')) return 'x402'
   return 'home'
 }
@@ -85,6 +94,11 @@ function App() {
                 <Route path="/app/portfolio" element={<Portfolio />} />
                 <Route path="/app/pools" element={<LiquidityPools />} />
                 <Route path="/app/merchant" element={<MerchantDashboard />} />
+                <Route path="/app/wallets" element={<AgentWallets />} />
+                <Route path="/app/wallets/:address" element={<WalletDetail />} />
+                <Route path="/app/identity" element={<AgentIdentity />} />
+                <Route path="/app/gateway" element={<Gateway />} />
+                <Route path="/app/kickstart" element={<Kickstart />} />
                 <Route path="/x402" element={<X402Demo />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
