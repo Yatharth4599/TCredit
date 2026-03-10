@@ -62,11 +62,14 @@ export default function MerchantDashboard() {
     setRegistering(true)
     try {
       const { data: unsignedTx } = await merchantApi.register({ metadataURI: '' })
-      await executeTx(unsignedTx)
-      setIsRegistered(true)
-      merchantApi.stats(walletAddress).then(r => setMerchant(r.data ?? null)).catch(() => {})
-    } catch {
-      // Error handled by toast
+      const hash = await executeTx(unsignedTx)
+      if (hash) {
+        setIsRegistered(true)
+        merchantApi.stats(walletAddress).then(r => setMerchant(r.data ?? null)).catch(() => {})
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Registration failed'
+      toast.error(msg)
     } finally {
       setRegistering(false)
     }

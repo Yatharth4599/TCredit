@@ -213,8 +213,7 @@ router.post('/:address/repay', async (req, res, next) => {
 // POST /api/v1/merchants/register — build unsigned registerAgent tx
 router.post('/register', async (req, res, next) => {
   try {
-    const { metadataURI } = req.body;
-    if (!metadataURI) throw new AppError(400, 'metadataURI required');
+    const { metadataURI = '' } = req.body;
 
     const data = encodeFunctionData({
       abi: AgentRegistryABI,
