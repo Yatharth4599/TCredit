@@ -38,20 +38,21 @@ router.post('/upload-metadata', async (req, res, next) => {
     formData.append('symbol', ticker);
     formData.append('description', fullDescription);
 
-    // Support base64 image (from direct file upload) or imageUrl
+    // Support base64 image (from direct file upload), imageUrl, or default placeholder
+    const effectiveImageUrl = imageUrl || 'https://placehold.co/400x400/1a1a1a/52FFA1/png?text=' + encodeURIComponent(ticker.slice(0, 4).toUpperCase());
     if (imageBase64) {
       const mime = imageMime || 'image/png';
       const ext = mime.split('/')[1] || 'png';
       const buffer = Buffer.from(imageBase64, 'base64');
       const blob = new Blob([buffer], { type: mime });
       formData.append('image', blob, `token-image.${ext}`);
-    } else if (imageUrl) {
-      const imageRes = await fetch(imageUrl);
+    } else {
+      const imageRes = await fetch(effectiveImageUrl);
       if (!imageRes.ok) {
-        throw new AppError(400, `Failed to fetch image from ${imageUrl}`);
+        throw new AppError(400, `Failed to fetch image`);
       }
       const imageBlob = await imageRes.blob();
-      const ext = imageUrl.split('.').pop()?.split('?')[0] || 'png';
+      const ext = effectiveImageUrl.split('.').pop()?.split('?')[0] || 'png';
       formData.append('image', imageBlob, `token-image.${ext}`);
     }
 
