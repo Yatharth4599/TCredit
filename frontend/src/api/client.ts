@@ -25,6 +25,9 @@ import type {
   UnsignedTx,
   CreateVaultParams,
   EnrichedTokensResponse,
+  ApiTraderProfile,
+  ApiTraderVault,
+  PolymarketStats,
 } from './types'
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
@@ -252,6 +255,33 @@ export const walletsApi = {
 export const paymentsApi = {
   recent: (vaultId?: string) =>
     api.get<{ payments: ApiVaultEvent[]; total: number }>('/v1/payments/recent', { params: { vaultId } }),
+}
+
+// === Traders (Polymarket Credit) ===
+export const tradersApi = {
+  profile: (address: string) =>
+    api.get<ApiTraderProfile>(`/v1/traders/${address}`),
+
+  stats: (address: string) =>
+    api.get<PolymarketStats>(`/v1/traders/${address}/stats`),
+
+  vault: (address: string) =>
+    api.get<ApiTraderVault>(`/v1/traders/${address}/vault`),
+
+  register: (body?: { metadataURI?: string }) =>
+    api.post<UnsignedTx>('/v1/traders/register', body ?? {}),
+
+  createVault: () =>
+    api.post<UnsignedTx>('/v1/traders/create-vault', {}),
+
+  draw: (vaultAddress: string, body: { amount: string }) =>
+    api.post<UnsignedTx>(`/v1/traders/${vaultAddress}/draw`, body),
+
+  repay: (vaultAddress: string, body: { amount: string }) =>
+    api.post<UnsignedTx>(`/v1/traders/${vaultAddress}/repay`, body),
+
+  score: (address: string) =>
+    api.post<UnsignedTx & { polymarketStats: PolymarketStats; suggestedScore: number }>(`/v1/traders/${address}/score`, {}),
 }
 
 // === Kickstart (EasyA) ===

@@ -286,6 +286,51 @@ export interface CreateVaultParams {
   fundraisingDeadline?: number;
 }
 
+export interface ApiTraderProfile {
+  address: string;
+  isRegistered: boolean;
+  active: boolean;
+  creditScore: number;
+  creditTier: string;
+  creditUpdatedAt: number;
+  vault: string | null;
+}
+
+export interface ApiTraderVault {
+  vault: string | null;
+  message?: string;
+  creditLimit: string;
+  drawn: string;
+  totalRepaid: string;
+  totalDrawn: string;
+  interestRateBps: number;
+  frozen: boolean;
+  activatedAt: number;
+  utilizationBps: number;
+  utilizationPct: number;
+  available: string;
+  accruedInterest: string;
+}
+
+export interface PolymarketStats {
+  address: string;
+  totalVolume: number;
+  realizedPnl: number;
+  unrealizedPnl: number;
+  winRate: number;
+  totalTrades: number;
+  openPositions: number;
+  accountAgedays: number;
+  firstTradeAt: number | null;
+  suggestedScore: number;
+  scoreBreakdown: {
+    winRate: number;
+    volume: number;
+    realizedPnl: number;
+    accountAge: number;
+  };
+}
+
 export interface ApiHealthResponse {
   status: 'ok' | 'degraded' | 'down';
   timestamp: string;

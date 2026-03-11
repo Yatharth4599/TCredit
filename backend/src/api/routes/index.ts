@@ -15,6 +15,7 @@ import acpRoutes from './acp.js';
 import creditRoutes from './credit.js';
 import identityRoutes from './identity.js';
 import kickstartRoutes from './kickstart.js';
+import traderRoutes from './traders.js';
 const router = Router();
 
 // Health
@@ -49,6 +50,9 @@ router.use('/identity', identityRoutes);
 
 // Kickstart (EasyA) — token launches with credit
 router.use('/kickstart', kickstartRoutes);
+
+// Polymarket Traders — credit lines based on trading history
+router.use('/traders', traderRoutes);
 
 // Investment endpoints
 router.use('/', investmentRoutes);

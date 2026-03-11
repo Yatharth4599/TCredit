@@ -20,6 +20,7 @@ const WalletDetail = lazy(() => import('./pages/WalletDetail'))
 const AgentIdentity = lazy(() => import('./pages/AgentIdentity'))
 const Gateway = lazy(() => import('./pages/Gateway'))
 const Kickstart = lazy(() => import('./pages/Kickstart'))
+const TraderDashboard = lazy(() => import('./pages/TraderDashboard'))
 const X402Demo = lazy(() => import('./pages/X402Demo'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 
@@ -33,6 +34,7 @@ function getThemeFromPath(pathname: string): string {
   if (pathname.startsWith('/app/identity')) return 'merchant'
   if (pathname.startsWith('/app/gateway')) return 'merchant'
   if (pathname.startsWith('/app/kickstart') || pathname.startsWith('/kickstart')) return 'kickstart'
+  if (pathname.startsWith('/app/traders')) return 'merchant'
   if (pathname.startsWith('/x402')) return 'x402'
   return 'home'
 }
@@ -99,6 +101,7 @@ function App() {
                 <Route path="/app/identity" element={<AgentIdentity />} />
                 <Route path="/app/gateway" element={<Gateway />} />
                 <Route path="/app/kickstart" element={<Kickstart />} />
+                <Route path="/app/traders" element={<TraderDashboard />} />
                 <Route path="/x402" element={<X402Demo />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

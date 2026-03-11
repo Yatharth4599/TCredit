@@ -102,6 +102,16 @@ export default function Navbar() {
       onClick: () => navigate('/app/kickstart'),
     },
     {
+      title: 'Traders',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M3 3l18 18M21 3l-6.5 6.5M7 7L3 3M21 3h-6M21 3v6" /><path d="M3 21h6M3 21v-6M10 14l4-4" />
+        </svg>
+      ),
+      href: '/app/traders',
+      onClick: () => navigate('/app/traders'),
+    },
+    {
       title: 'x402 Demo',
       icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
