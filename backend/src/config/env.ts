@@ -25,6 +25,9 @@ const envSchema = z.object({
   KICKSTART_FACTORY_ADDRESS: z.string().startsWith('0x').optional().default('0x07DFAEC8e182C5eF79844ADc70708C1c15aA60fb'),
   BASE_MAINNET_RPC_URL: z.string().url().optional().default('https://mainnet.base.org'),
 
+  // Polymarket Trader Credit
+  TRADER_VAULT_FACTORY_ADDRESS: z.string().optional().default(''),
+
   // CORS
   CORS_ORIGIN: z.string().optional().default(''),
 
