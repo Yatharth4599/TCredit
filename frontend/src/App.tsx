@@ -21,6 +21,7 @@ const AgentIdentity = lazy(() => import('./pages/AgentIdentity'))
 const Gateway = lazy(() => import('./pages/Gateway'))
 const Kickstart = lazy(() => import('./pages/Kickstart'))
 const TraderDashboard = lazy(() => import('./pages/TraderDashboard'))
+const WaitlistAdmin = lazy(() => import('./pages/WaitlistAdmin'))
 const X402Demo = lazy(() => import('./pages/X402Demo'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 
@@ -102,6 +103,7 @@ function App() {
                 <Route path="/app/gateway" element={<Gateway />} />
                 <Route path="/app/kickstart" element={<Kickstart />} />
                 <Route path="/app/traders" element={<TraderDashboard />} />
+                <Route path="/admin/waitlist" element={<WaitlistAdmin />} />
                 <Route path="/x402" element={<X402Demo />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

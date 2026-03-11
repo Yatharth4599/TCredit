@@ -201,4 +201,48 @@ router.get('/webhooks/:id/deliveries', async (req, res, next) => {
   }
 });
 
+// =========================================================================
+// Waitlist
+// =========================================================================
+
+// GET /api/v1/admin/waitlist — all entries
+router.get('/waitlist', async (_req, res, next) => {
+  try {
+    const entries = await prisma.waitlistEntry.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({
+      entries: entries.map((e) => ({
+        id: e.id,
+        email: e.email,
+        walletAddress: e.walletAddress,
+        createdAt: e.createdAt.toISOString(),
+      })),
+      total: entries.length,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/v1/admin/waitlist/export — download as CSV
+router.get('/waitlist/export', async (_req, res, next) => {
+  try {
+    const entries = await prisma.waitlistEntry.findMany({
+      orderBy: { createdAt: 'asc' },
+    });
+    const rows = [
+      'id,email,walletAddress,joinedAt',
+      ...entries.map((e) =>
+        [e.id, e.email, e.walletAddress ?? '', e.createdAt.toISOString()].join(',')
+      ),
+    ];
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="waitlist.csv"');
+    res.send(rows.join('\n'));
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

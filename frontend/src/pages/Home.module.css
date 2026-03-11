@@ -2198,3 +2198,165 @@
         padding: 24px 16px;
     }
 }
+
+/* ── Waitlist Modal ── */
+.waitlistBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0 }
+  to   { opacity: 1 }
+}
+
+.waitlistModal {
+  position: relative;
+  background: #10141c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 420px;
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px) }
+  to   { opacity: 1; transform: translateY(0) }
+}
+
+.waitlistClose {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.15s;
+}
+.waitlistClose:hover { color: #F5F5F7; }
+
+.waitlistTitle {
+  font-size: 22px;
+  font-weight: 700;
+  color: #F5F5F7;
+  margin: 0 0 8px;
+  letter-spacing: -0.3px;
+}
+
+.waitlistSubtitle {
+  font-size: 14px;
+  color: #888;
+  margin: 0 0 24px;
+}
+
+.waitlistError {
+  font-size: 13px;
+  color: #FF5B5B;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  background: rgba(255, 91, 91, 0.08);
+  border-radius: 8px;
+}
+
+.waitlistForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.waitlistInput {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 13px 16px;
+  font-size: 15px;
+  color: #F5F5F7;
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+.waitlistInput:focus {
+  border-color: rgba(255, 92, 0, 0.5);
+}
+.waitlistInput::placeholder { color: #555; }
+
+.waitlistSubmit {
+  background: linear-gradient(135deg, #FF5C00, #CC4A00);
+  border: none;
+  border-radius: 10px;
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  font-family: inherit;
+}
+.waitlistSubmit:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+.waitlistSubmit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.waitlistSuccess {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.waitlistSuccessIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(82, 255, 161, 0.1);
+  border: 2px solid rgba(82, 255, 161, 0.3);
+  color: #52FFA1;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.waitlistSuccess h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #F5F5F7;
+  margin: 0 0 8px;
+}
+
+.waitlistSuccess p {
+  font-size: 14px;
+  color: #888;
+  margin: 0 0 24px;
+}
+
+.waitlistDoneBtn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 10px 28px;
+  font-size: 14px;
+  color: #F5F5F7;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.waitlistDoneBtn:hover { background: rgba(255, 255, 255, 0.1); }

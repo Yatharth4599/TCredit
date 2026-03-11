@@ -16,6 +16,8 @@ import creditRoutes from './credit.js';
 import identityRoutes from './identity.js';
 import kickstartRoutes from './kickstart.js';
 import traderRoutes from './traders.js';
+import waitlistRoutes from './waitlist.js';
+import adminRoutes from './admin.js';
 const router = Router();
 
 // Health
@@ -53,6 +55,12 @@ router.use('/kickstart', kickstartRoutes);
 
 // Polymarket Traders — credit lines based on trading history
 router.use('/traders', traderRoutes);
+
+// Waitlist
+router.use('/waitlist', waitlistRoutes);
+
+// Admin (API key protected)
+router.use('/admin', adminRoutes);
 
 // Investment endpoints
 router.use('/', investmentRoutes);

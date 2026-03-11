@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useEffect, useState, useRef } from 'react'
-import { platformApi } from '../api/client'
+import { platformApi, waitlistApi } from '../api/client'
 import { weiToNumber } from '../lib/format'
 import { AnimatedNumber } from '../components/ui/AnimatedNumber'
 import DecryptedText from '../components/ui/DecryptedText'
@@ -52,6 +52,11 @@ export default function Home() {
         activeVaults: 25,
     })
     const [hoveredFlywheel, setHoveredFlywheel] = useState<number | null>(null)
+    const [showWaitlist, setShowWaitlist] = useState(false)
+    const [waitlistEmail, setWaitlistEmail] = useState('')
+    const [waitlistLoading, setWaitlistLoading] = useState(false)
+    const [waitlistDone, setWaitlistDone] = useState(false)
+    const [waitlistError, setWaitlistError] = useState('')
     const [activeProblem, setActiveProblem] = useState(0)
     const [investorCardVisible, setInvestorCardVisible] = useState(false)
     const investorCardRef = useRef<HTMLDivElement>(null)
@@ -213,10 +218,67 @@ export default function Home() {
                                 </svg>
                             </button>
                         </NoiseBackground>
-                        <button className={styles.secondaryBtn}>
-                            <span>Read Litepaper</span>
+                        <button className={styles.secondaryBtn} onClick={() => setShowWaitlist(true)}>
+                            <span>Join Waitlist</span>
                         </button>
                     </div>
+
+                    {/* ── Waitlist Modal ── */}
+                    {showWaitlist && (
+                        <div className={styles.waitlistBackdrop} onClick={() => { if (!waitlistLoading) setShowWaitlist(false) }}>
+                            <div className={styles.waitlistModal} onClick={e => e.stopPropagation()}>
+                                <button className={styles.waitlistClose} onClick={() => setShowWaitlist(false)} aria-label="Close">✕</button>
+                                {waitlistDone ? (
+                                    <div className={styles.waitlistSuccess}>
+                                        <div className={styles.waitlistSuccessIcon}>✓</div>
+                                        <h3>You're on the list!</h3>
+                                        <p>We'll reach out when early access opens.</p>
+                                        <button className={styles.waitlistDoneBtn} onClick={() => setShowWaitlist(false)}>Close</button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <h3 className={styles.waitlistTitle}>Get Early Access</h3>
+                                        <p className={styles.waitlistSubtitle}>Be first when Krexa launches. No spam, ever.</p>
+                                        {waitlistError && <p className={styles.waitlistError}>{waitlistError}</p>}
+                                        <form className={styles.waitlistForm} onSubmit={async (e) => {
+                                            e.preventDefault()
+                                            if (!waitlistEmail.trim()) return
+                                            setWaitlistLoading(true)
+                                            setWaitlistError('')
+                                            try {
+                                                await waitlistApi.join(waitlistEmail.trim())
+                                                setWaitlistDone(true)
+                                            } catch (err: unknown) {
+                                                const msg = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data?.message
+                                                    || (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data?.error
+                                                    || 'Something went wrong. Try again.'
+                                                setWaitlistError(msg)
+                                            } finally {
+                                                setWaitlistLoading(false)
+                                            }
+                                        }}>
+                                            <input
+                                                type="email"
+                                                className={styles.waitlistInput}
+                                                placeholder="your@email.com"
+                                                value={waitlistEmail}
+                                                onChange={e => setWaitlistEmail(e.target.value)}
+                                                required
+                                                autoFocus
+                                            />
+                                            <button
+                                                type="submit"
+                                                className={styles.waitlistSubmit}
+                                                disabled={waitlistLoading || !waitlistEmail.trim()}
+                                            >
+                                                {waitlistLoading ? 'Joining...' : 'Join Waitlist'}
+                                            </button>
+                                        </form>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     <div className={`${styles.stats} ${mounted ? styles.visible : ''}`}>
                         <div className={styles.stat}>

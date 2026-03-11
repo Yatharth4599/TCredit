@@ -171,9 +171,15 @@ export const oracleApi = {
 // === Waitlist ===
 export const waitlistApi = {
   join: (email: string, walletAddress?: string) =>
-    api.post<{ success: boolean; id: string }>('/v1/waitlist', { email, walletAddress }),
+    api.post<{ success: boolean; id: string; alreadyJoined: boolean }>('/v1/waitlist', { email, walletAddress }),
   count: () =>
     api.get<{ count: number }>('/v1/waitlist/count'),
+  all: (apiKey: string) =>
+    api.get<{ entries: Array<{ id: string; email: string; walletAddress: string | null; createdAt: string }>; total: number }>(
+      '/v1/admin/waitlist', { headers: { 'x-api-key': apiKey } }
+    ),
+  exportCsv: (apiKey: string) =>
+    api.get('/v1/admin/waitlist/export', { headers: { 'x-api-key': apiKey }, responseType: 'blob' }),
 }
 
 // === Agent Identity ===

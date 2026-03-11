@@ -1,0 +1,239 @@
+.page {
+  min-height: 100vh;
+  padding: 80px 24px 60px;
+  max-width: 900px;
+  margin: 0 auto;
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+/* ── Login ── */
+.loginBox {
+  max-width: 400px;
+  margin: 80px auto 0;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 36px 32px;
+}
+
+.loginTitle {
+  font-size: 22px;
+  font-weight: 700;
+  color: #F5F5F7;
+  margin: 0 0 6px;
+}
+
+.loginSub {
+  font-size: 13px;
+  color: #888;
+  margin: 0 0 24px;
+}
+
+.loginForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.keyInput {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-size: 14px;
+  color: #F5F5F7;
+  outline: none;
+  font-family: monospace;
+  transition: border-color 0.15s;
+}
+.keyInput:focus { border-color: rgba(82,255,161,0.4); }
+.keyInput::placeholder { color: #555; font-family: inherit; }
+
+.loginBtn {
+  background: rgba(82,255,161,0.12);
+  border: 1px solid rgba(82,255,161,0.25);
+  border-radius: 8px;
+  padding: 11px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #52FFA1;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.loginBtn:hover:not(:disabled) { background: rgba(82,255,161,0.2); }
+.loginBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #F5F5F7;
+  margin: 0 0 4px;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #888;
+  margin: 0;
+}
+
+.headerActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.refreshBtn, .exportBtn, .logoutBtn {
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.refreshBtn {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #888;
+}
+.refreshBtn:hover:not(:disabled) { color: #F5F5F7; border-color: rgba(255,255,255,0.15); }
+.refreshBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.exportBtn {
+  background: rgba(82,255,161,0.08);
+  border: 1px solid rgba(82,255,161,0.2);
+  color: #52FFA1;
+}
+.exportBtn:hover { background: rgba(82,255,161,0.15); }
+
+.logoutBtn {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.06);
+  color: #666;
+}
+.logoutBtn:hover { color: #FF5B5B; border-color: rgba(255,91,91,0.3); }
+
+/* ── Error ── */
+.errorMsg {
+  font-size: 13px;
+  color: #FF5B5B;
+  padding: 8px 14px;
+  background: rgba(255,91,91,0.08);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+/* ── Search ── */
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  color: #666;
+}
+
+.searchInput {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #F5F5F7;
+  font-family: inherit;
+}
+.searchInput::placeholder { color: #555; }
+
+.searchCount {
+  font-size: 12px;
+  color: #666;
+  white-space: nowrap;
+}
+
+/* ── Table ── */
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: #666;
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: #C0C0C6;
+  vertical-align: middle;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover td {
+  background: rgba(255,255,255,0.02);
+}
+
+.numCell {
+  color: #555 !important;
+  width: 40px;
+  font-variant-numeric: tabular-nums;
+}
+
+.emailCell {
+  font-family: monospace;
+  font-size: 13px;
+  color: #F5F5F7 !important;
+}
+
+.walletCell {
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.dateCell {
+  font-size: 12px;
+  color: #777 !important;
+  white-space: nowrap;
+}
+
+.na {
+  color: #444;
+}
+
+.emptyCell {
+  text-align: center;
+  color: #555;
+  padding: 40px 16px !important;
+}
