@@ -4,7 +4,7 @@ import { http } from 'wagmi';
 
 export const config = getDefaultConfig({
   appName: 'Krexa',
-  projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'tcredit-dev',
+  projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'krexa-dev',
   chains: [baseSepolia, base],
   transports: {
     [baseSepolia.id]: http(),

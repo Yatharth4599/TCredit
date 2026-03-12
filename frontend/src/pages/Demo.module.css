@@ -1,0 +1,764 @@
+/* ============================================================
+   DEMO PAGE
+   ============================================================ */
+
+.page {
+  min-height: 100vh;
+  background: var(--bg-dark);
+  padding: 100px 0 80px;
+  position: relative;
+}
+
+/* ── Hero ── */
+.heroBg {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 400px;
+  background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(255,92,0,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero {
+  max-width: 760px;
+  margin: 0 auto 64px;
+  padding: 0 24px;
+  text-align: center;
+  position: relative;
+}
+
+.liveChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #22c55e;
+  background: rgba(34,197,94,0.08);
+  border: 1px solid rgba(34,197,94,0.2);
+  border-radius: 999px;
+  padding: 5px 14px;
+  margin-bottom: 24px;
+}
+
+.liveDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.8); }
+}
+
+.heroTitle {
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 4vw, 2.8rem);
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  margin: 0 0 16px;
+}
+
+.heroSubtitle {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin: 0 0 32px;
+}
+
+.heroStats {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Stat chip ── */
+.statChip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 18px;
+  background: var(--surface-2);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  min-width: 90px;
+}
+
+.statChipVal {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.statChipLabel {
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+}
+
+/* ── Steps ── */
+.steps {
+  max-width: 840px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Step card ── */
+.stepCard {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.stepCard > div {
+  display: flex;
+  gap: 0;
+}
+
+/* Step left gutter with the number */
+.stepLeft {
+  display: flex;
+  align-items: flex-start;
+  padding: 32px 0 32px 32px;
+  flex-shrink: 0;
+}
+
+.stepNum {
+  font-family: var(--font-mono);
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+/* Step body */
+.stepBody {
+  flex: 1;
+  padding: 32px 32px 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.stepIcon {
+  margin-bottom: 14px;
+}
+
+.stepTitle {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 12px;
+}
+
+.stepDesc {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin: 0 0 20px;
+}
+
+.highlight {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.stepStats {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+/* CTA button — uses CSS custom property for accent color */
+.stepCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: rgba(255,255,255,0.04);
+  color: var(--cta-color, var(--accent));
+  border: 1px solid color-mix(in srgb, var(--cta-color, var(--accent)) 30%, transparent);
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  align-self: flex-start;
+  text-decoration: none;
+}
+
+.stepCta:hover {
+  background: color-mix(in srgb, var(--cta-color, var(--accent)) 12%, transparent);
+  border-color: var(--cta-color, var(--accent));
+}
+
+/* ── Step 2: Score visual ── */
+.scoreVisual {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  padding: 20px;
+  background: var(--surface-3);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.scoreRingWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.scoreRing {
+  width: 90px;
+  height: 90px;
+}
+
+.scoreInner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+
+.scoreValue {
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.scoreSub {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+}
+
+.scoreDetails {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scoreRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.scoreRow:last-child {
+  border-bottom: none;
+}
+
+/* ── Step 3: Vault visual ── */
+.vaultVisual {
+  padding: 20px;
+  background: var(--surface-3);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vaultRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.vaultLabel {
+  color: var(--text-tertiary);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.vaultVal {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.progressWrap {
+  width: 100%;
+  height: 4px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.vaultMeta {
+  display: flex;
+  gap: 16px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  flex-wrap: wrap;
+}
+
+/* ── Step 4: Waterfall mini ── */
+.wfMini {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 20px;
+  background: var(--surface-3);
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+
+.wfRow {
+  display: grid;
+  grid-template-columns: 130px 1fr 70px;
+  align-items: center;
+  gap: 12px;
+}
+
+.wfLabel {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.wfBarWrap {
+  height: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.wfBar {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.wfVal {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: right;
+}
+
+.wfCaption {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-tertiary);
+  text-align: center;
+  margin: 0 0 20px;
+}
+
+/* ── Step 5: Yield grid ── */
+.yieldGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.yieldTier {
+  padding: 16px 14px;
+  background: var(--surface-3);
+  border: 1px solid;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.yieldVal {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.yieldLabel {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.yieldDesc {
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+}
+
+/* ── Bottom summary card ── */
+.bottomCard {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: var(--card-border-radius);
+  padding: 48px 40px;
+  text-align: center;
+}
+
+.bottomBg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(255,92,0,0.07) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.bottomContent {
+  position: relative;
+}
+
+.bottomLabel {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 24px;
+}
+
+.flowLine {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.flowItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.flowWord {
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 2vw, 1.4rem);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.flowArrow {
+  color: var(--accent);
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.bottomDesc {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin: 0 0 32px;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.bottomDesc strong {
+  color: var(--text-primary);
+}
+
+.bottomActions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.bottomPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.15s;
+}
+
+.bottomPrimary:hover {
+  filter: brightness(1.1);
+  transform: scale(0.97);
+}
+
+.bottomSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.bottomSecondary:hover {
+  border-color: rgba(255,255,255,0.25);
+  color: var(--text-primary);
+}
+
+/* ── Responsive ── */
+@media (max-width: 700px) {
+  .stepCard > div {
+    flex-direction: column;
+  }
+
+  .stepLeft {
+    padding: 24px 24px 0;
+  }
+
+  .stepNum {
+    font-size: 1.8rem;
+  }
+
+  .stepBody {
+    padding: 16px 24px 28px;
+  }
+
+  .scoreVisual {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .yieldGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .wfRow {
+    grid-template-columns: 110px 1fr 60px;
+  }
+
+  .bottomCard {
+    padding: 36px 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero {
+    margin-bottom: 40px;
+  }
+
+  .heroTitle {
+    font-size: 1.6rem;
+  }
+
+  .flowWord {
+    font-size: 0.9rem;
+  }
+
+  .bottomActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bottomPrimary,
+  .bottomSecondary {
+    justify-content: center;
+  }
+}
+
+/* ── Lifecycle Banner ── */
+.lifecycleBanner {
+  max-width: 760px;
+  margin: 0 auto 56px;
+  padding: 32px 28px;
+  background: var(--surface-2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+}
+
+.lifecycleBanner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(255, 92, 0, 0.06) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.lifecycleTop {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lifecycleEyebrow {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.lifecycleDesc {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+  max-width: 460px;
+}
+
+.lifecycleFlow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 14px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  width: 100%;
+}
+
+.lifecycleFlowItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.lifecycleArrow {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.lifecycleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  border-radius: 12px;
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+  letter-spacing: -0.01em;
+}
+
+.lifecycleBtn:hover {
+  transform: scale(0.97);
+  filter: brightness(1.1);
+}
+
+.lifecycleOr {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+/* ── Step 4: dual CTA row ── */
+.stepCtaRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.stepCtaSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.stepCtaSecondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── Step 5: lifecycle hint ── */
+.lifecycleHint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  margin-bottom: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  line-height: 1.5;
+}
+
+.lifecycleHint svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.inlineLink {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: opacity 0.15s ease;
+}
+
+.inlineLink:hover {
+  opacity: 0.75;
+}

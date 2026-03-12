@@ -1,567 +1,685 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, memo } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import LivePaymentFeed from '../components/x402/LivePaymentFeed'
-import WaterfallBreakdown from '../components/x402/WaterfallBreakdown'
-import {
-  BotIcon, VaultIcon, CoinsIcon, SendIcon, BoltIcon, WaveIcon, CheckCircleIcon,
-  ShieldIcon, LayersIcon, BankIcon, TranslateIcon, SearchIcon,
-} from '../components/x402/Icons'
-import {
-  TRANSLATE_BOT,
-  VAULT_CONFIG,
-  SENIOR_TRANCHE,
-  MEZZANINE_TRANCHE,
-  JUNIOR_TRANCHE,
-  ALL_INVESTORS,
-  CREDIT_ASSESSMENT,
-  type WaterfallState,
-  computeWaterfallState,
-  fmtUSD,
-} from '../lib/x402MockData'
+import { ExternalLink, Loader2, Zap, CheckCircle2, AlertCircle, Activity } from 'lucide-react'
 import s from './X402Demo.module.css'
 
-const STEPS = [
-  { id: 'register', label: 'Register', icon: <BotIcon size={18} /> },
-  { id: 'assess', label: 'AI Credit', icon: <SearchIcon size={18} /> },
-  { id: 'vault', label: 'Create Vault', icon: <VaultIcon size={18} /> },
-  { id: 'fund', label: 'Fund', icon: <CoinsIcon size={18} /> },
-  { id: 'disburse', label: 'Disburse', icon: <SendIcon size={18} /> },
-  { id: 'payments', label: 'Payments', icon: <BoltIcon size={18} /> },
-  { id: 'waterfall', label: 'Waterfall', icon: <WaveIcon size={18} /> },
-  { id: 'complete', label: 'Complete', icon: <CheckCircleIcon size={18} /> },
-]
-
-const ASSESS_ITEMS = [
-  { label: 'Payment History', value: `${CREDIT_ASSESSMENT.paymentHistory} months tracked` },
-  { label: 'Transaction Volume', value: `${CREDIT_ASSESSMENT.totalTransactions.toLocaleString()} verified txns` },
-  { label: 'Monthly Revenue', value: `${fmtUSD(CREDIT_ASSESSMENT.averageMonthlyRevenue)}/mo avg` },
-  { label: 'Active Subscriptions', value: `${CREDIT_ASSESSMENT.activeSubscriptions} recurring clients` },
-  { label: 'On-time Rate', value: `${CREDIT_ASSESSMENT.onTimePaymentRate}%` },
-]
-
-const fadeIn = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -10 },
-  transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] as const },
+// ── Demo constants ─────────────────────────────────────────────────────────
+const DEMO_MERCHANT = {
+  name: 'GlobalTextiles',
+  address: '0xA109...7d2',
+  vault: '0x4aF9...3b1D',
 }
 
-export default function X402Demo() {
-  const [step, setStep] = useState(0)
-  const [waterfallState, setWaterfallState] = useState<WaterfallState>(
-    computeWaterfallState(0),
+const DEMO_LOAN        = 100_000
+const DEMO_INIT_REPAID = 42_000
+const SENIOR_TARGET    = 70_000
+const POOL_TARGET      = 20_000
+const COMMUNITY_TARGET = 10_000
+
+const TEST_SOURCES = [
+  { id: 'shopbot',   label: 'ShopBot',        addr: '0x3cF1...F1d' },
+  { id: 'databot',   label: 'DataBot',         addr: '0x9eA2...F9A' },
+  { id: 'codebot',   label: 'CodeBot',         addr: '0x5dB8...E6' },
+  { id: 'customer1', label: 'Customer-0x2aE4', addr: '0x2aE4...F1' },
+]
+
+const PRESET_AMOUNTS = [500, 1_000, 2_500, 5_000, 10_000]
+
+// ── Payment split math (mirrors WaterfallLib.sol) ──────────────────────────
+interface PaymentSplit {
+  total: number
+  platformFee: number
+  net: number
+  seniorTranche: number
+  liquidityPool: number
+  communityInvestors: number
+  merchantReceives: number
+}
+
+function computeSplitLocal(amount: number): PaymentSplit {
+  const total = amount
+  const platformFee = Math.floor(total * 250) / 10000
+  const net = total - platformFee
+  const seniorTranche = Math.floor(net * 2000) / 10000
+  const liquidityPool = Math.floor(net * 1000) / 10000
+  const communityInvestors = Math.floor(net * 500) / 10000
+  const merchantReceives = parseFloat((net - seniorTranche - liquidityPool - communityInvestors).toFixed(2))
+  return { total, platformFee, net, seniorTranche, liquidityPool, communityInvestors, merchantReceives }
+}
+
+// ── AnimatedNumber ─────────────────────────────────────────────────────────
+function AnimatedNumber({
+  value,
+  decimals = 2,
+  prefix = '',
+}: {
+  value: number
+  decimals?: number
+  prefix?: string
+}) {
+  const [displayed, setDisplayed] = useState(value)
+  const prevRef  = useRef(value)
+  const rafRef   = useRef<number>()
+
+  useEffect(() => {
+    const from = prevRef.current
+    const to   = value
+    prevRef.current = to
+
+    let start: number | undefined
+
+    const tick = (now: number) => {
+      if (!start) start = now
+      const t      = Math.min((now - start) / 700, 1)
+      const eased  = 1 - Math.pow(1 - t, 3) // ease-out cubic
+      setDisplayed(from + (to - from) * eased)
+      if (t < 1) rafRef.current = requestAnimationFrame(tick)
+    }
+
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    rafRef.current = requestAnimationFrame(tick)
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
+  }, [value])
+
+  const fmt = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(displayed)
+
+  return <>{prefix}{fmt}</>
+}
+
+// ── Waterfall tier box ─────────────────────────────────────────────────────
+interface TierDef {
+  key: string
+  name: string
+  pct: string | null
+  color: string
+  amount: number
+  progress: number | null  // 0–100
+  isLast?: boolean
+  isMerchant?: boolean
+}
+
+const WaterfallBox = memo(function WaterfallBox({
+  tier,
+  lit,
+  connectorLit,
+}: {
+  tier: TierDef
+  lit: boolean
+  connectorLit: boolean
+}) {
+  return (
+    <div className={s.wfItem}>
+      <motion.div
+        className={`${s.wfBox} ${tier.isMerchant ? s.wfBoxMerchant : ''}`}
+        animate={{
+          borderColor: lit ? tier.color : 'rgba(255,255,255,0.06)',
+          boxShadow: lit ? `0 0 24px -4px ${tier.color}40` : '0 0 0 0 transparent',
+        }}
+        transition={{ duration: 0.35 }}
+      >
+        <div className={s.wfBoxRow}>
+          <div className={s.wfBoxLeft}>
+            <span className={s.wfBoxName}>{tier.name}</span>
+            {tier.pct && <span className={s.wfBoxPct}>{tier.pct}</span>}
+          </div>
+          <motion.span
+            className={s.wfBoxAmount}
+            animate={{ color: lit ? tier.color : 'rgba(255,255,255,0.9)' }}
+            transition={{ duration: 0.35 }}
+          >
+            {tier.amount > 0
+              ? <AnimatedNumber value={tier.amount} prefix="$" />
+              : <span className={s.wfBoxZero}>—</span>
+            }
+          </motion.span>
+        </div>
+
+        {tier.progress !== null && (
+          <div className={s.wfBarWrap}>
+            <div className={s.wfBar}>
+              <motion.div
+                className={s.wfBarFill}
+                style={{ background: tier.color }}
+                animate={{ width: `${Math.min(tier.progress, 100)}%` }}
+                transition={{ duration: 1.1, ease: 'easeOut', delay: lit ? 0.25 : 0 }}
+              />
+            </div>
+            <span className={s.wfBarLabel}>{tier.progress.toFixed(0)}% filled</span>
+          </div>
+        )}
+      </motion.div>
+
+      {!tier.isLast && (
+        <div className={s.wfConnector}>
+          <motion.div
+            className={s.wfConnectorLine}
+            animate={{ scaleY: connectorLit ? 1 : 0.3, opacity: connectorLit ? 1 : 0.25 }}
+            style={{ transformOrigin: 'top', background: connectorLit ? tier.color : 'rgba(255,255,255,0.15)' }}
+            transition={{ duration: 0.3 }}
+          />
+          <motion.div
+            className={s.wfArrow}
+            animate={{ color: connectorLit ? tier.color : 'rgba(255,255,255,0.15)' }}
+            transition={{ duration: 0.3 }}
+          >
+            ▼
+          </motion.div>
+        </div>
+      )}
+    </div>
   )
-  const [fundingPct, setFundingPct] = useState(0)
-  const [vaultStatus, setVaultStatus] = useState<string>('—')
-  const [assessChecked, setAssessChecked] = useState(0)
-  const [assessApproved, setAssessApproved] = useState(false)
-  const [disbursed, setDisbursed] = useState(false)
-  const [mounted, setMounted] = useState(false)
+})
+
+// ── Session state ───────────────────────────────────────────────────────────
+interface SessionState {
+  totalRepaid: number
+  paymentsCount: number
+  revenueRouted: number
+  merchantEarned: number
+}
+
+interface PaymentLog {
+  id: string
+  amount: number
+  source: string
+  txHash: string | null
+  ts: string
+}
+
+// ── Main component ─────────────────────────────────────────────────────────
+export default function X402Demo() {
+  const [mounted,     setMounted]     = useState(false)
+  const [amount,      setAmount]      = useState(2_500)
+  const [rawInput,    setRawInput]    = useState('2500')
+  const [source,      setSource]      = useState('shopbot')
+  const [submitting,  setSubmitting]  = useState(false)
+  const [activeTier,  setActiveTier]  = useState(-1)  // -1 = idle, 0-5 = animating
+  const [lastSplit,   setLastSplit]   = useState<PaymentSplit | null>(null)
+  const [txHash,      setTxHash]      = useState<string | null>(null)
+  const [txUrl,       setTxUrl]       = useState<string | null>(null)
+  const [demoMode,    setDemoMode]    = useState<'live' | 'demo' | null>(null)
+  const [error,       setError]       = useState<string | null>(null)
+  const [session,     setSession]     = useState<SessionState>({
+    totalRepaid: DEMO_INIT_REPAID,
+    paymentsCount: 0,
+    revenueRouted: 0,
+    merchantEarned: 0,
+  })
+  const [payments, setPayments] = useState<PaymentLog[]>([])
 
   useEffect(() => { setMounted(true) }, [])
 
-  // Animate AI assessment checklist on step 1
-  useEffect(() => {
-    if (step === 1) {
-      setAssessChecked(0)
-      setAssessApproved(false)
-      const timers = ASSESS_ITEMS.map((_, i) =>
-        setTimeout(() => setAssessChecked(i + 1), (i + 1) * 600),
-      )
-      const approveTimer = setTimeout(() => setAssessApproved(true), (ASSESS_ITEMS.length + 1) * 600)
-      return () => { timers.forEach(clearTimeout); clearTimeout(approveTimer) }
+  const handleAmountInput = useCallback((raw: string) => {
+    setRawInput(raw)
+    const v = parseFloat(raw.replace(/,/g, ''))
+    if (!isNaN(v) && v > 0) {
+      setAmount(Math.min(Math.max(Math.round(v * 100) / 100, 100), 10_000))
     }
-  }, [step])
-
-  // Animate funding bar when step 3 activates
-  useEffect(() => {
-    if (step === 3) {
-      setVaultStatus('Fundraising')
-      const t1 = setTimeout(() => setFundingPct(80), 400)
-      const t2 = setTimeout(() => {
-        setFundingPct(100)
-        setVaultStatus('Active')
-      }, 1800)
-      return () => { clearTimeout(t1); clearTimeout(t2) }
-    }
-  }, [step])
-
-  // Animate single disbursement on step 4
-  useEffect(() => {
-    if (step === 4) {
-      setDisbursed(false)
-      const t = setTimeout(() => setDisbursed(true), 800)
-      return () => clearTimeout(t)
-    }
-  }, [step])
-
-  // Update waterfall as payments flow
-  const handlePayments = useCallback((totalRepaid: number) => {
-    setWaterfallState(computeWaterfallState(totalRepaid))
   }, [])
 
-  const canPrev = step > 0
-  const canNext = step < STEPS.length - 1
+  const handleSimulate = useCallback(async () => {
+    if (submitting) return
+    setSubmitting(true)
+    setError(null)
+    setActiveTier(-1)
+    setTxHash(null)
+    setTxUrl(null)
+    setDemoMode(null)
+
+    let split: PaymentSplit
+    let txHashResult: string | null = null
+    let txUrlResult: string | null = null
+    let modeResult: 'live' | 'demo' = 'demo'
+
+    try {
+      const res = await fetch('/api/v1/demo/simulate-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, source }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        split = data.split
+        txHashResult = data.txHash
+        txUrlResult  = data.txUrl
+        modeResult   = data.mode
+      } else {
+        split = computeSplitLocal(amount)
+      }
+    } catch {
+      split = computeSplitLocal(amount)
+    }
+
+    setSubmitting(false)
+    setLastSplit(split)
+    setTxHash(txHashResult)
+    setTxUrl(txUrlResult)
+    setDemoMode(modeResult)
+
+    // Animate tiers sequentially (200ms between each)
+    const TIER_DELAY = 200
+    for (let i = 0; i <= 5; i++) {
+      setTimeout(() => setActiveTier(i), i * TIER_DELAY)
+    }
+    // Keep last state visible; reset on next payment
+
+    // Update session totals
+    const vaultCut = split.seniorTranche + split.liquidityPool + split.communityInvestors
+    setSession(prev => ({
+      totalRepaid:    prev.totalRepaid + vaultCut,
+      paymentsCount:  prev.paymentsCount + 1,
+      revenueRouted:  prev.revenueRouted + split.total,
+      merchantEarned: prev.merchantEarned + split.merchantReceives,
+    }))
+
+    // Add to log
+    const srcObj = TEST_SOURCES.find(t => t.id === source) ?? TEST_SOURCES[0]
+    setPayments(prev => [{
+      id:     Date.now().toString(),
+      amount: split.total,
+      source: srcObj.label,
+      txHash: txHashResult,
+      ts:     new Date().toLocaleTimeString(),
+    }, ...prev.slice(0, 9)])
+  }, [amount, source, submitting])
+
+  // Compute cumulative tranche fill percentages (sequential waterfall)
+  const seniorProgress    = Math.min((session.totalRepaid / SENIOR_TARGET) * 100, 100)
+  const poolProgress      = Math.min(Math.max(((session.totalRepaid - SENIOR_TARGET) / POOL_TARGET) * 100, 0), 100)
+  const communityProgress = Math.min(Math.max(((session.totalRepaid - SENIOR_TARGET - POOL_TARGET) / COMMUNITY_TARGET) * 100, 0), 100)
+
+  const outstanding  = Math.max(DEMO_LOAN - session.totalRepaid, 0)
+  const progressPct  = Math.min((session.totalRepaid / DEMO_LOAN) * 100, 100)
+
+  // Preview split for current amount
+  const preview = computeSplitLocal(amount)
+
+  // Waterfall tier definitions
+  const wfTiers: TierDef[] = lastSplit ? [
+    {
+      key: 'incoming', name: 'Incoming Payment', pct: null,
+      color: 'rgba(255,255,255,0.9)', amount: lastSplit.total,
+      progress: null,
+    },
+    {
+      key: 'fee', name: 'Platform Fee', pct: '2.5%',
+      color: '#6b7280', amount: lastSplit.platformFee,
+      progress: null,
+    },
+    {
+      key: 'senior', name: 'Senior Tranche', pct: '20% of net',
+      color: '#3b82f6', amount: lastSplit.seniorTranche,
+      progress: seniorProgress,
+    },
+    {
+      key: 'pool', name: 'Liquidity Pool', pct: '10% of net',
+      color: '#a855f7', amount: lastSplit.liquidityPool,
+      progress: poolProgress,
+    },
+    {
+      key: 'community', name: 'Community Investors', pct: '5% of net',
+      color: '#f59e0b', amount: lastSplit.communityInvestors,
+      progress: communityProgress,
+    },
+    {
+      key: 'merchant', name: 'Merchant Receives', pct: '65% of net',
+      color: '#22c55e', amount: lastSplit.merchantReceives,
+      progress: null,
+      isLast: true,
+      isMerchant: true,
+    },
+  ] : []
 
   return (
     <div className={s.page}>
       <div className={s.ambientGlow} />
 
-      {/* Header */}
+      {/* ── Header ──────────────────────────────────────────────────── */}
       <header className={`${s.header} ${mounted ? s.visible : ''}`}>
-        <span className={s.overline}>Krexa x402 Demo · Powered by Base</span>
-        <h1 className={s.title}>
-          Programmable Credit in Action
-        </h1>
+        <span className={s.overline}>Krexa x402 Demo · Live on Base Sepolia</span>
+        <h1 className={s.title}>Revenue Router — Live Demo</h1>
         <p className={s.subtitle}>
-          Watch TranslateBot get a {fmtUSD(VAULT_CONFIG.target)} credit line — AI-assessed, funded by 3 pools, 
-          repaid automatically from revenue. No trust required.
+          Submit a payment and watch the PaymentRouter split it through the
+          waterfall in real-time. Every cent accounted for. No trust required.
         </p>
       </header>
 
-      {/* Step Indicators */}
-      <div className={s.stepBar}>
-        {STEPS.map((st, i) => (
-          <button
-            key={st.id}
-            className={`${s.stepItem} ${i === step ? s.active : ''} ${i < step ? s.done : ''}`}
-            onClick={() => setStep(i)}
-          >
-            <span className={s.stepIcon}>{st.icon}</span>
-            <span className={s.stepLabel}>{st.label}</span>
-          </button>
-        ))}
-      </div>
+      {/* ── Main grid ───────────────────────────────────────────────── */}
+      <div className={s.demoGrid}>
 
-      {/* Step Content */}
-      <div className={s.content}>
-        <AnimatePresence mode="wait">
-          {/* ── Step 0: Register ── */}
-          {step === 0 && (
-            <motion.div key="register" className={s.stepContent} {...fadeIn}>
-              <div className={s.card}>
-                <div className={s.cardHeader}>
-                  <span className={s.cardIcon}><BotIcon size={28} color="#FF6B35" /></span>
-                  <div>
-                    <h2 className={s.cardTitle}>Agent Registration</h2>
-                    <p className={s.cardDesc}>TranslateBot registers on-chain to build a verifiable payment identity on Base</p>
-                  </div>
-                </div>
+        {/* ── LEFT: Simulator + Waterfall ─────────────────────────── */}
+        <div className={s.demoLeft}>
 
-                {/* Animated registration flow */}
-                <div className={s.animFlow}>
-                  <motion.div
-                    className={s.animNode}
-                    initial={{ opacity: 0, scale: 0.8 }}
+          {/* Payment Simulator ─────────────────────────────────────── */}
+          <div className={s.simCard}>
+            <div className={s.simCardHead}>
+              <span className={s.simCardTitle}>x402 Payment Simulator</span>
+              <AnimatePresence>
+                {demoMode && (
+                  <motion.span
+                    className={demoMode === 'live' ? s.modeLive : s.modeDemo}
+                    initial={{ opacity: 0, scale: 0.85 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.2, duration: 0.4 }}
+                    exit={{ opacity: 0, scale: 0.85 }}
                   >
-                    <span className={s.animNodeIcon}><TranslateIcon size={24} color="#FF6B35" /></span>
-                    <span className={s.animNodeLabel}>TranslateBot</span>
-                  </motion.div>
-
-                  <motion.div
-                    className={s.animArrow}
-                    initial={{ opacity: 0, scaleX: 0 }}
-                    animate={{ opacity: 1, scaleX: 1 }}
-                    transition={{ delay: 0.6, duration: 0.3 }}
-                  >
-                    <svg width="60" height="20" viewBox="0 0 60 20"><path d="M0 10h50M44 4l6 6-6 6" stroke="#FF6B35" strokeWidth="1.5" fill="none" /></svg>
-                  </motion.div>
-
-                  <motion.div
-                    className={s.animNode}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.9, duration: 0.4 }}
-                  >
-                    <span className={s.animNodeIcon}><VaultIcon size={24} color="#3b82f6" /></span>
-                    <span className={s.animNodeLabel}>AgentRegistry</span>
-                  </motion.div>
-                </div>
-
-                <motion.div
-                  className={s.agentCard}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.3, duration: 0.4 }}
-                >
-                  <span className={s.agentEmoji}><TranslateIcon size={32} color="#FF6B35" /></span>
-                  <div className={s.agentInfo}>
-                    <span className={s.agentName}>{TRANSLATE_BOT.name}</span>
-                    <span className={s.agentType}>{TRANSLATE_BOT.type}</span>
-                    <span className={s.agentAddr}>{TRANSLATE_BOT.address}</span>
-                  </div>
-                  <span className={s.registeredBadge}><CheckCircleIcon size={14} color="#34d399" /> Registered</span>
-                </motion.div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* ── Step 1: AI Credit Assessment ── */}
-          {step === 1 && (
-            <motion.div key="assess" className={s.stepContent} {...fadeIn}>
-              <div className={s.card}>
-                <div className={s.cardHeader}>
-                  <span className={s.cardIcon}><SearchIcon size={28} color="#FF6B35" /></span>
-                  <div>
-                    <h2 className={s.cardTitle}>AI Credit Assessment</h2>
-                    <p className={s.cardDesc}>Krexa AI analyzes TranslateBot's on-chain payment history, revenue patterns, and subscriber base</p>
-                  </div>
-                </div>
-
-                <div className={s.assessGrid}>
-                  {ASSESS_ITEMS.map((item, i) => (
-                    <motion.div
-                      key={item.label}
-                      className={`${s.assessRow} ${i < assessChecked ? s.assessChecked : ''}`}
-                      initial={{ opacity: 0, x: -12 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.2 + i * 0.15, duration: 0.3 }}
-                    >
-                      <span className={s.assessLabel}>{item.label}</span>
-                      <span className={s.assessValue}>{item.value}</span>
-                      <span className={s.assessCheck}>
-                        {i < assessChecked ? <CheckCircleIcon size={16} color="#34d399" /> : <span className={s.assessSpinner} />}
-                      </span>
-                    </motion.div>
-                  ))}
-                </div>
-
-                {assessApproved && (
-                  <motion.div
-                    className={s.assessResult}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.4 }}
-                  >
-                    <div className={s.assessScore}>
-                      <span className={s.scoreGrade}>Grade {CREDIT_ASSESSMENT.riskScore}</span>
-                      <span className={s.scoreDivider} />
-                      <span className={s.scoreLimit}>Credit Limit: {fmtUSD(CREDIT_ASSESSMENT.creditLimit)}</span>
-                    </div>
-                    <span className={s.approvedBadge}>
-                      <CheckCircleIcon size={18} color="#34d399" /> APPROVED
-                    </span>
-                  </motion.div>
+                    {demoMode === 'live'
+                      ? <><span className={s.liveDot} /> On-chain</>
+                      : 'Demo mode'}
+                  </motion.span>
                 )}
+              </AnimatePresence>
+            </div>
+
+            {/* Merchant info */}
+            <div className={s.simMerchant}>
+              <div className={s.simMerchantRow}>
+                <span className={s.simMeta}>Merchant</span>
+                <span className={s.simMerchantName}>
+                  {DEMO_MERCHANT.name}
+                  <code className={s.simAddr}>{DEMO_MERCHANT.address}</code>
+                </span>
               </div>
-            </motion.div>
-          )}
-
-          {/* ── Step 2: Create Vault ── */}
-          {step === 2 && (
-            <motion.div key="vault" className={s.stepContent} {...fadeIn}>
-              <div className={s.card}>
-                <div className={s.cardHeader}>
-                  <span className={s.cardIcon}><VaultIcon size={28} color="#FF6B35" /></span>
-                  <div>
-                    <h2 className={s.cardTitle}>Vault Creation</h2>
-                    <p className={s.cardDesc}>VaultFactory deploys a MerchantVault via deterministic CREATE2 for TranslateBot</p>
-                  </div>
-                </div>
-
-                {/* Animated deployment flow */}
-                <div className={s.animFlow}>
-                  <motion.div
-                    className={s.animNode}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.2, duration: 0.4 }}
-                  >
-                    <span className={s.animNodeIcon}><TranslateIcon size={24} color="#FF6B35" /></span>
-                    <span className={s.animNodeLabel}>TranslateBot</span>
-                  </motion.div>
-
-                  <motion.div
-                    className={s.animArrow}
-                    initial={{ opacity: 0, scaleX: 0 }}
-                    animate={{ opacity: 1, scaleX: 1 }}
-                    transition={{ delay: 0.6, duration: 0.3 }}
-                  >
-                    <svg width="60" height="20" viewBox="0 0 60 20"><path d="M0 10h50M44 4l6 6-6 6" stroke="#FF6B35" strokeWidth="1.5" fill="none" /></svg>
-                  </motion.div>
-
-                  <motion.div
-                    className={s.animNode}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.9, duration: 0.4 }}
-                  >
-                    <span className={s.animNodeIcon}><CoinsIcon size={24} color="#3b82f6" /></span>
-                    <span className={s.animNodeLabel}>VaultFactory</span>
-                  </motion.div>
-
-                  <motion.div
-                    className={s.animArrow}
-                    initial={{ opacity: 0, scaleX: 0 }}
-                    animate={{ opacity: 1, scaleX: 1 }}
-                    transition={{ delay: 1.2, duration: 0.3 }}
-                  >
-                    <svg width="60" height="20" viewBox="0 0 60 20"><path d="M0 10h50M44 4l6 6-6 6" stroke="#34d399" strokeWidth="1.5" fill="none" /></svg>
-                  </motion.div>
-
-                  <motion.div
-                    className={`${s.animNode} ${s.animNodeHighlight}`}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 1.5, duration: 0.5 }}
-                  >
-                    <span className={s.animNodeIcon}><VaultIcon size={24} color="#34d399" /></span>
-                    <span className={s.animNodeLabel}>MerchantVault</span>
-                  </motion.div>
-                </div>
-
-                <motion.div
-                  className={s.vaultParams}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.8, duration: 0.4 }}
-                >
-                  {[
-                    { label: 'Target', value: fmtUSD(VAULT_CONFIG.target) },
-                    { label: 'Blended Rate', value: `${VAULT_CONFIG.blendedRate}%/mo` },
-                    { label: 'Duration', value: `${VAULT_CONFIG.durationDays} days` },
-                    { label: 'Disbursement', value: 'Single tranche' },
-                    { label: 'Auto-Split', value: `${VAULT_CONFIG.repaymentRate}% to vault` },
-                    { label: 'Monthly Cost', value: fmtUSD(VAULT_CONFIG.monthlyInterest) },
-                  ].map((p) => (
-                    <div key={p.label} className={s.paramItem}>
-                      <span className={s.paramLabel}>{p.label}</span>
-                      <span className={s.paramValue}>{p.value}</span>
-                    </div>
-                  ))}
-                </motion.div>
+              <div className={s.simMerchantRow}>
+                <span className={s.simMeta}>Active Vault</span>
+                <span className={s.simMerchantName}>
+                  $100,000 loan —{' '}
+                  <span className={s.simRepaid}>
+                    $<AnimatedNumber value={session.totalRepaid} decimals={0} /> repaid
+                  </span>
+                </span>
               </div>
-            </motion.div>
-          )}
+            </div>
 
-          {/* ── Step 3: Fund (3 Pools) ── */}
-          {step === 3 && (
-            <motion.div key="fund" className={s.stepContent} {...fadeIn}>
-              <div className={s.card}>
-                <div className={s.cardHeader}>
-                  <span className={s.cardIcon}><CoinsIcon size={28} color="#FF6B35" /></span>
-                  <div>
-                    <h2 className={s.cardTitle}>Three-Pool Capital Structure</h2>
-                    <p className={s.cardDesc}>Three investor tiers fill the vault — different risk, different yield</p>
-                  </div>
-                </div>
-                <div className={s.investorGrid3}>
-                  {ALL_INVESTORS.map((inv) => (
-                    <div key={inv.name} className={`${s.investorCard} ${s[inv.type]}`}>
-                      <span className={s.investorBadge}>
-                        {inv.type === 'senior' && <><ShieldIcon size={14} /> Senior (NBFC)</>}
-                        {inv.type === 'mezzanine' && <><LayersIcon size={14} /> Mezzanine (LP)</>}
-                        {inv.type === 'junior' && <><BankIcon size={14} /> Junior (Treasury)</>}
-                      </span>
-                      <span className={s.investorName}>{inv.name}</span>
-                      <span className={s.investorAmount}>{fmtUSD(inv.amount)}</span>
-                      <div className={s.investorYield}>
-                        <span>{inv.yieldRate}%/mo yield</span>
-                        <span>→ {fmtUSD(inv.monthlyYield)}/mo</span>
-                      </div>
-                      <span className={s.investorProfit}>
-                        6-month return: {fmtUSD(inv.totalReturn)} (+{fmtUSD(inv.profit)})
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div className={s.fundingProgress}>
-                  <div className={s.fundingBar}>
-                    <div
-                      className={s.fundingFill}
-                      style={{ width: `${fundingPct}%` }}
+            {/* Amount input */}
+            <div className={s.simFields}>
+              <div className={s.simField}>
+                <label className={s.simLabel}>Payment Amount (USDC)</label>
+                <div className={s.simInputRow}>
+                  <div className={s.simInputWrap}>
+                    <span className={s.simCurrSign}>$</span>
+                    <input
+                      type="number"
+                      className={s.simInput}
+                      value={rawInput}
+                      min={100}
+                      max={10000}
+                      step={100}
+                      onChange={e => handleAmountInput(e.target.value)}
+                      onBlur={() => setRawInput(String(amount))}
                     />
                   </div>
-                  <div className={s.fundingMeta}>
-                    <span>{fundingPct}% funded</span>
-                    <span className={s.vaultStatusBadge} data-status={vaultStatus.toLowerCase()}>
-                      {vaultStatus}
-                    </span>
+                  <div className={s.simPresets}>
+                    {PRESET_AMOUNTS.map(p => (
+                      <button
+                        key={p}
+                        className={`${s.simPreset} ${amount === p ? s.simPresetActive : ''}`}
+                        onClick={() => { setAmount(p); setRawInput(String(p)) }}
+                      >
+                        ${p >= 1000 ? `${p / 1000}K` : p}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
-            </motion.div>
-          )}
 
-          {/* ── Step 4: Disburse (Single Release) ── */}
-          {step === 4 && (
-            <motion.div key="disburse" className={s.stepContent} {...fadeIn}>
-              <div className={s.card}>
-                <div className={s.cardHeader}>
-                  <span className={s.cardIcon}><SendIcon size={28} color="#FF6B35" /></span>
-                  <div>
-                    <h2 className={s.cardTitle}>Single Disbursement</h2>
-                    <p className={s.cardDesc}>Full {fmtUSD(VAULT_CONFIG.target)} credit line released to TranslateBot in one tranche</p>
-                  </div>
-                </div>
-
-                <div className={s.disburseFlow}>
-                  <motion.div
-                    className={s.disburseFrom}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.2, duration: 0.4 }}
-                  >
-                    <VaultIcon size={28} color="#3b82f6" />
-                    <span>MerchantVault</span>
-                    <span className={s.disburseAmount}>{fmtUSD(VAULT_CONFIG.target)}</span>
-                  </motion.div>
-
-                  <motion.div
-                    className={s.disburseArrow}
-                    initial={{ opacity: 0, scaleX: 0 }}
-                    animate={{ opacity: disbursed ? 1 : 0.3, scaleX: disbursed ? 1 : 0.3 }}
-                    transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] as const }}
-                  >
-                    <svg width="100" height="24" viewBox="0 0 100 24">
-                      <path d="M0 12h88M82 6l6 6-6 6" stroke={disbursed ? '#34d399' : '#555'} strokeWidth="2" fill="none" />
-                    </svg>
-                  </motion.div>
-
-                  <motion.div
-                    className={`${s.disburseTo} ${disbursed ? s.disburseComplete : ''}`}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.4, duration: 0.4 }}
-                  >
-                    <TranslateIcon size={28} color="#FF6B35" />
-                    <span>TranslateBot</span>
-                    {disbursed && <span className={s.disburseStatus}>✓ Received</span>}
-                  </motion.div>
-                </div>
-
-                {disbursed && (
-                  <motion.div
-                    className={s.disburseNote}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3, duration: 0.3 }}
-                  >
-                    PaymentRouter configured: {VAULT_CONFIG.repaymentRate}% of all incoming revenue auto-routes to vault repayment
-                  </motion.div>
-                )}
+              <div className={s.simField}>
+                <label className={s.simLabel}>Payment Source</label>
+                <select
+                  className={s.simSelect}
+                  value={source}
+                  onChange={e => setSource(e.target.value)}
+                >
+                  {TEST_SOURCES.map(t => (
+                    <option key={t.id} value={t.id}>{t.label} · {t.addr}</option>
+                  ))}
+                </select>
               </div>
-            </motion.div>
-          )}
+            </div>
 
-          {/* ── Step 5: Live Payments ── */}
-          {step === 5 && (
-            <motion.div key="payments" className={s.stepContent} {...fadeIn}>
-              <div className={s.card}>
-                <div className={s.cardHeader}>
-                  <span className={s.cardIcon}><BoltIcon size={28} color="#FF6B35" /></span>
-                  <div>
-                    <h2 className={s.cardTitle}>Automated Repayment</h2>
-                    <p className={s.cardDesc}>
-                      Every payment to TranslateBot is oracle-verified and auto-split: {VAULT_CONFIG.repaymentRate}% to vault, {100 - VAULT_CONFIG.repaymentRate}% to agent
-                    </p>
-                  </div>
-                </div>
-                <LivePaymentFeed onPaymentAdded={handlePayments} speed={2200} />
+            {/* Split preview */}
+            <div className={s.simPreview}>
+              <div className={s.simPreviewRow}>
+                <span>Platform fee</span>
+                <span>${preview.platformFee.toFixed(2)}</span>
               </div>
-            </motion.div>
-          )}
-
-          {/* ── Step 6: Waterfall ── */}
-          {step === 6 && (
-            <motion.div key="waterfall" className={s.stepContent} {...fadeIn}>
-              <div className={s.cardWide}>
-                <div className={s.cardHeader}>
-                  <span className={s.cardIcon}><WaveIcon size={28} color="#FF6B35" /></span>
-                  <div>
-                    <h2 className={s.cardTitle}>Waterfall Distribution</h2>
-                    <p className={s.cardDesc}>
-                      Vault repayments distribute in priority order — Senior (NBFC) first, then Mezzanine (LP), then Junior (Treasury)
-                    </p>
-                  </div>
-                </div>
-                <div className={s.waterfallGrid}>
-                  <div className={s.waterfallFeed}>
-                    <LivePaymentFeed onPaymentAdded={handlePayments} speed={2000} maxVisible={5} />
-                  </div>
-                  <div className={s.waterfallPanel}>
-                    <WaterfallBreakdown state={waterfallState} />
-                  </div>
-                </div>
+              <div className={s.simPreviewRow}>
+                <span>To vault (senior + pool + community)</span>
+                <span>${(preview.seniorTranche + preview.liquidityPool + preview.communityInvestors).toFixed(2)}</span>
               </div>
-            </motion.div>
-          )}
-
-          {/* ── Step 7: Completion ── */}
-          {step === 7 && (
-            <motion.div key="complete" className={s.stepContent} {...fadeIn}>
-              <div className={s.card}>
-                <div className={s.cardHeader}>
-                  <span className={s.cardIcon}><CheckCircleIcon size={28} color="#34d399" /></span>
-                  <div>
-                    <h2 className={s.cardTitle}>Loan Completed</h2>
-                    <p className={s.cardDesc}>Total repaid hits target — vault marks as Completed. Everyone wins.</p>
-                  </div>
-                </div>
-                <div className={s.outcomeGrid}>
-                  <div className={`${s.outcomeCard} ${s.outcomeSenior}`}>
-                    <span className={s.outcomeIcon}><ShieldIcon size={28} color="#3b82f6" /></span>
-                    <span className={s.outcomeLabel}>{SENIOR_TRANCHE.name}</span>
-                    <span className={s.outcomeInvested}>Invested {fmtUSD(SENIOR_TRANCHE.amount)}</span>
-                    <span className={s.outcomeReturn}>{fmtUSD(SENIOR_TRANCHE.totalReturn)}</span>
-                    <span className={s.outcomeProfit}>+{fmtUSD(SENIOR_TRANCHE.profit)} ({SENIOR_TRANCHE.yieldRate}%/mo)</span>
-                  </div>
-                  <div className={`${s.outcomeCard} ${s.outcomeMezzanine}`}>
-                    <span className={s.outcomeIcon}><LayersIcon size={28} color="#a855f7" /></span>
-                    <span className={s.outcomeLabel}>{MEZZANINE_TRANCHE.name}</span>
-                    <span className={s.outcomeInvested}>Invested {fmtUSD(MEZZANINE_TRANCHE.amount)}</span>
-                    <span className={s.outcomeReturn}>{fmtUSD(MEZZANINE_TRANCHE.totalReturn)}</span>
-                    <span className={s.outcomeProfit}>+{fmtUSD(MEZZANINE_TRANCHE.profit)} ({MEZZANINE_TRANCHE.yieldRate}%/mo)</span>
-                  </div>
-                  <div className={`${s.outcomeCard} ${s.outcomeJunior}`}>
-                    <span className={s.outcomeIcon}><BankIcon size={28} color="#FF6B35" /></span>
-                    <span className={s.outcomeLabel}>{JUNIOR_TRANCHE.name}</span>
-                    <span className={s.outcomeInvested}>Invested {fmtUSD(JUNIOR_TRANCHE.amount)}</span>
-                    <span className={s.outcomeReturn}>{fmtUSD(JUNIOR_TRANCHE.totalReturn)}</span>
-                    <span className={s.outcomeProfit}>+{fmtUSD(JUNIOR_TRANCHE.profit)} ({JUNIOR_TRANCHE.yieldRate}%/mo) · First-loss</span>
-                  </div>
-                  <div className={`${s.outcomeCard} ${s.outcomeAgent}`}>
-                    <span className={s.outcomeIcon}><TranslateIcon size={28} color="#FF6B35" /></span>
-                    <span className={s.outcomeLabel}>{TRANSLATE_BOT.name}</span>
-                    <span className={s.outcomeInvested}>Received {fmtUSD(VAULT_CONFIG.target)} credit</span>
-                    <span className={s.outcomeReturn}>Kept 85% of revenue</span>
-                    <span className={s.outcomeProfit}>Auto-repaid · Zero default</span>
-                  </div>
-                </div>
-                <div className={s.punchline}>
-                  <p>
-                    AI assessed creditworthiness. Three pools funded the vault. The oracle verified every payment, 
-                    the smart contract enforced the split, and the waterfall guaranteed repayment order.
-                  </p>
-                  <p className={s.punchlineHighlight}>Credit risk = Activity risk.</p>
-                </div>
+              <div className={`${s.simPreviewRow} ${s.simPreviewHighlight}`}>
+                <span>Merchant receives</span>
+                <span>${preview.merchantReceives.toFixed(2)}</span>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+            </div>
 
-      {/* Navigation */}
-      <div className={s.nav}>
-        <button
-          className={s.navBtn}
-          onClick={() => setStep(step - 1)}
-          disabled={!canPrev}
-        >
-          ← Previous
-        </button>
-        <span className={s.navStep}>
-          {step + 1} / {STEPS.length}
-        </span>
-        <button
-          className={`${s.navBtn} ${s.navBtnPrimary}`}
-          onClick={() => setStep(step + 1)}
-          disabled={!canNext}
-        >
-          Next →
-        </button>
+            {/* CTA */}
+            <button
+              className={s.simCta}
+              onClick={handleSimulate}
+              disabled={submitting}
+            >
+              {submitting
+                ? <><Loader2 size={16} className={s.spinning} /> Processing…</>
+                : <><Zap size={16} /> Simulate x402 Payment</>
+              }
+            </button>
+
+            {/* Status */}
+            <AnimatePresence>
+              {(txHash || demoMode) && !submitting && (
+                <motion.div
+                  className={s.simStatus}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <CheckCircle2 size={14} className={s.statusOk} />
+                  {demoMode === 'live' && txHash ? (
+                    <>
+                      <span>Payment confirmed</span>
+                      <a
+                        className={s.txLink}
+                        href={txUrl!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {txHash.slice(0, 10)}…{txHash.slice(-6)}
+                        <ExternalLink size={11} />
+                      </a>
+                    </>
+                  ) : (
+                    <span>Split calculated · oracle offline, demo mode active</span>
+                  )}
+                </motion.div>
+              )}
+              {error && (
+                <motion.div className={s.simError} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  <AlertCircle size={14} /> {error}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Waterfall Visualization ────────────────────────────────── */}
+          <div className={s.wfCard}>
+            <div className={s.wfCardHead}>
+              <span className={s.wfCardTitle}>Payment Waterfall</span>
+              {lastSplit && (
+                <span className={s.wfCardAmount}>
+                  $<AnimatedNumber value={lastSplit.total} decimals={2} /> USDC
+                </span>
+              )}
+            </div>
+
+            {!lastSplit ? (
+              <div className={s.wfEmpty}>
+                <Activity size={36} className={s.wfEmptyIcon} />
+                <p>Simulate a payment to see the real-time waterfall</p>
+                <span>Each tier lights up sequentially as funds flow through the protocol</span>
+              </div>
+            ) : (
+              <div className={s.wfFlow}>
+                {wfTiers.map((tier, i) => (
+                  <WaterfallBox
+                    key={tier.key}
+                    tier={tier}
+                    lit={activeTier >= i}
+                    connectorLit={activeTier > i}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── RIGHT: Vault Health + Payment Log ───────────────────── */}
+        <div className={s.demoRight}>
+
+          {/* Vault Health ───────────────────────────────────────────── */}
+          <div className={s.healthCard}>
+            <div className={s.healthHead}>
+              <span className={s.healthTitle}>Vault Health</span>
+              <span className={s.healthVault}>{DEMO_MERCHANT.vault}</span>
+            </div>
+
+            <div className={s.healthStats}>
+              <div className={s.healthStat}>
+                <span className={s.healthStatLabel}>Total Loan</span>
+                <span className={s.healthStatVal}>
+                  $<AnimatedNumber value={DEMO_LOAN} decimals={2} />
+                </span>
+              </div>
+              <div className={s.healthStat}>
+                <span className={s.healthStatLabel}>Total Repaid</span>
+                <span className={`${s.healthStatVal} ${s.healthGreen}`}>
+                  $<AnimatedNumber value={session.totalRepaid} decimals={2} />
+                </span>
+              </div>
+              <div className={s.healthStat}>
+                <span className={s.healthStatLabel}>Outstanding</span>
+                <span className={s.healthStatVal}>
+                  $<AnimatedNumber value={outstanding} decimals={2} />
+                </span>
+              </div>
+            </div>
+
+            <div className={s.healthProgressWrap}>
+              <div className={s.healthBar}>
+                <motion.div
+                  className={s.healthBarFill}
+                  animate={{ width: `${progressPct}%` }}
+                  transition={{ duration: 0.9, ease: 'easeOut' }}
+                />
+              </div>
+              <div className={s.healthBarMeta}>
+                <span>Progress</span>
+                <span className={s.healthBarPct}>{progressPct.toFixed(1)}%</span>
+              </div>
+            </div>
+
+            <div className={s.healthDivider} />
+
+            {/* Tranche breakdown */}
+            <div className={s.trancheList}>
+              {[
+                { label: 'Senior Pool',          color: '#3b82f6', pct: seniorProgress,    target: SENIOR_TARGET },
+                { label: 'Liquidity Pool',        color: '#a855f7', pct: poolProgress,      target: POOL_TARGET },
+                { label: 'Community Investors',   color: '#f59e0b', pct: communityProgress, target: COMMUNITY_TARGET },
+              ].map(t => (
+                <div key={t.label} className={s.trancheItem}>
+                  <div className={s.trancheItemHead}>
+                    <span className={s.trancheLabel}>{t.label}</span>
+                    <span className={s.tranchePct} style={{ color: t.color }}>{t.pct.toFixed(0)}%</span>
+                  </div>
+                  <div className={s.trancheBar}>
+                    <motion.div
+                      className={s.trancheBarFill}
+                      style={{ background: t.color }}
+                      animate={{ width: `${t.pct}%` }}
+                      transition={{ duration: 1, ease: 'easeOut' }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className={s.healthDivider} />
+
+            <div className={s.healthStats}>
+              <div className={s.healthStat}>
+                <span className={s.healthStatLabel}>Payments Today</span>
+                <span className={s.healthStatVal}>{session.paymentsCount}</span>
+              </div>
+              <div className={s.healthStat}>
+                <span className={s.healthStatLabel}>Revenue Routed</span>
+                <span className={s.healthStatVal}>
+                  {session.revenueRouted > 0
+                    ? <>${session.revenueRouted.toLocaleString()}</>
+                    : '—'}
+                </span>
+              </div>
+              <div className={s.healthStat}>
+                <span className={s.healthStatLabel}>Merchant Earned</span>
+                <span className={`${s.healthStatVal} ${s.healthGreen}`}>
+                  {session.merchantEarned > 0
+                    ? <>${session.merchantEarned.toFixed(2)}</>
+                    : '—'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Payment Log ────────────────────────────────────────────── */}
+          <div className={s.logCard}>
+            <div className={s.logHead}>
+              <span className={s.logTitle}>Recent Payments</span>
+              {payments.length > 0 && (
+                <span className={s.logCount}>{payments.length}</span>
+              )}
+            </div>
+
+            {payments.length === 0 ? (
+              <div className={s.logEmpty}>No payments yet · click Simulate</div>
+            ) : (
+              <div className={s.logList}>
+                <AnimatePresence initial={false}>
+                  {payments.map(p => (
+                    <motion.div
+                      key={p.id}
+                      className={s.logRow}
+                      initial={{ opacity: 0, x: 12, height: 0 }}
+                      animate={{ opacity: 1, x: 0,  height: 'auto' }}
+                      exit={{ opacity: 0, x: -12 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <div className={s.logLeft}>
+                        <span className={s.logSource}>{p.source}</span>
+                        <span className={s.logTime}>{p.ts}</span>
+                      </div>
+                      <div className={s.logRight}>
+                        <span className={s.logAmount}>${p.amount.toLocaleString()}</span>
+                        {p.txHash && (
+                          <a
+                            className={s.logTxBtn}
+                            href={`https://sepolia.basescan.org/tx/${p.txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink size={10} />
+                          </a>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )

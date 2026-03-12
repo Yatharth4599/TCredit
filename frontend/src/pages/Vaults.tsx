@@ -11,6 +11,7 @@ import { WaterfallChart } from '../components/charts/WaterfallChart'
 import { mockVaults } from '../lib/mockData'
 import { X, ExternalLink, Loader2 } from 'lucide-react'
 import { VaultCardSkeleton } from '../components/ui/VaultCardSkeleton'
+import { ErrorState } from '../components/ui/ErrorState'
 import styles from './Vaults.module.css'
 
 const FILTERS = [
@@ -27,18 +28,22 @@ export default function Vaults() {
   const [search, setSearch] = useState('')
   const [vaults, setVaults] = useState<ApiVault[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState(false)
   const [selected, setSelected] = useState<ApiVaultDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [investAmount, setInvestAmount] = useState('')
 
-  useEffect(() => {
+  const loadVaults = () => {
     setLoading(true)
+    setFetchError(false)
     const params = filter !== 'all' ? { state: filter } : undefined
     vaultsApi.list(params)
-      .then(({ data }) => setVaults(data?.vaults ?? []))
-      .catch(() => setVaults([]))
+      .then(({ data }) => { setVaults(data?.vaults ?? []); setFetchError(false) })
+      .catch(() => { setVaults([]); setFetchError(true) })
       .finally(() => setLoading(false))
-  }, [filter])
+  }
+
+  useEffect(() => { loadVaults() }, [filter])
 
   const selectVault = async (vault: ApiVault) => {
     setDetailLoading(true)
@@ -121,6 +126,8 @@ export default function Vaults() {
           <div className={styles.grid}>
             {loading ? (
               <VaultCardSkeleton count={6} />
+            ) : fetchError ? (
+              <ErrorState onRetry={loadVaults} />
             ) : filtered.length === 0 ? (
               <div className={styles.empty}>No vaults match your search.</div>
             ) : (

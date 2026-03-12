@@ -102,13 +102,46 @@ router.get('/:address/milestones', async (req, res, next) => {
     });
     const numTranches = Number(numTranchesRaw as bigint);
 
+    // MilestoneStatus enum: 0=Pending, 1=Submitted, 2=Approved, 3=Rejected
+    const STATUS_NAMES = ['pending', 'submitted', 'approved', 'rejected'] as const;
+    const ZERO_HASH = '0x' + '0'.repeat(64);
+
     const milestones = await Promise.all(
-      Array.from({ length: numTranches }, (_, i) =>
-        getMilestone(vaultAddr, BigInt(i)).catch(() => null)
-      )
+      Array.from({ length: numTranches }, async (_, i) => {
+        try {
+          const raw = await getMilestone(vaultAddr, BigInt(i)) as {
+            vault: string;
+            trancheIndex: bigint;
+            evidenceHash: string;
+            status: number;
+            approvalCount: bigint;
+            rejectionCount: bigint;
+            requiredApprovals: bigint;
+            submittedAt: bigint;
+          };
+          // Skip entirely-uninitialized entries (requiredApprovals === 0)
+          if (raw.requiredApprovals === 0n) return null;
+          const statusName = STATUS_NAMES[Number(raw.status)] ?? 'pending';
+          const submittedAt = raw.submittedAt > 0n
+            ? new Date(Number(raw.submittedAt) * 1000).toISOString()
+            : null;
+          return {
+            vault: raw.vault,
+            trancheIndex: i,
+            status: statusName,
+            evidenceHash: raw.evidenceHash === ZERO_HASH ? null : raw.evidenceHash,
+            approvalCount: Number(raw.approvalCount),
+            submittedAt,
+            approvedAt: statusName === 'approved' ? submittedAt : null,
+          };
+        } catch {
+          return null;
+        }
+      })
     );
 
-    res.json({ milestones, total: numTranches });
+    const initialized = milestones.filter(Boolean);
+    res.json({ milestones: initialized, total: numTranches });
   } catch (err) {
     next(err);
   }

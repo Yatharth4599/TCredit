@@ -857,3 +857,823 @@
   .stepBar { gap: 2px; }
   .stepItem { padding: 6px 10px; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   INTERACTIVE DEMO — Payment Simulator + Waterfall + Vault Health
+   ════════════════════════════════════════════════════════════════ */
+
+/* Override page width for the interactive demo */
+.page { max-width: 1280px; }
+
+/* ── Main grid ──────────────────────────────────────────────── */
+.demoGrid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 20px;
+  align-items: start;
+  position: relative;
+  z-index: 1;
+}
+
+.demoLeft, .demoRight {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Shared card skin ───────────────────────────────────────── */
+.simCard, .wfCard, .healthCard, .logCard {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+}
+
+/* ════════════════════════
+   PAYMENT SIMULATOR CARD
+   ════════════════════════ */
+
+.simCardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 22px 0;
+}
+
+.simCardTitle {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* Mode badge */
+.modeLive {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.25);
+  border-radius: 6px;
+  padding: 3px 9px;
+}
+
+.modeDemo {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 3px 9px;
+}
+
+.liveDot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #34d399;
+  animation: pulse 1.6s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.45; transform: scale(0.8); }
+}
+
+/* Merchant info */
+.simMerchant {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 14px 22px 0;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.simMerchantRow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.simMeta {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.3);
+  min-width: 68px;
+  flex-shrink: 0;
+}
+
+.simMerchantName {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.simAddr {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+  font-style: normal;
+}
+
+.simRepaid {
+  color: #34d399;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Form fields */
+.simFields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 22px 0;
+}
+
+.simField {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.simLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.simInputRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.simInputWrap {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.simCurrSign {
+  padding: 0 10px 0 14px;
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  user-select: none;
+}
+
+.simInput {
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  width: 120px;
+  padding: 10px 14px 10px 0;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.simInput::-webkit-outer-spin-button,
+.simInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.simPresets {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.simPreset {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  appearance: none;
+}
+
+.simPreset:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.simPresetActive {
+  border-color: #FF6B35 !important;
+  color: #FF6B35 !important;
+  background: rgba(255, 107, 53, 0.08) !important;
+}
+
+.simSelect {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(255,255,255,0.3)' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  transition: border-color 0.15s ease;
+}
+
+.simSelect:focus { border-color: #FF6B35; }
+.simSelect option { background: #1a1a2e; }
+
+/* Split preview */
+.simPreview {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 14px 22px 0;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.simPreviewRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.simPreviewRow:last-child { border-bottom: none; }
+
+.simPreviewHighlight {
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 600;
+}
+
+/* CTA */
+.simCta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: calc(100% - 44px);
+  margin: 16px 22px 20px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #FF6B35;
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease, opacity 0.15s ease;
+}
+
+.simCta:hover:not(:disabled) {
+  transform: scale(0.98);
+  filter: brightness(1.1);
+}
+
+.simCta:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.spinning { animation: spin 0.8s linear infinite; }
+
+/* Status line */
+.simStatus {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 22px 16px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  flex-wrap: wrap;
+}
+
+.statusOk { color: #34d399; flex-shrink: 0; }
+
+.txLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'SF Mono', monospace;
+  font-size: 11px;
+  color: #FF6B35;
+  text-decoration: none;
+  opacity: 0.85;
+  transition: opacity 0.15s ease;
+}
+.txLink:hover { opacity: 1; }
+
+.simError {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 22px 16px;
+  font-size: 12px;
+  color: #fc8181;
+}
+
+/* ════════════════════════
+   WATERFALL CARD
+   ════════════════════════ */
+
+.wfCard { padding: 0 0 4px; }
+
+.wfCardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.wfCardTitle {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.wfCardAmount {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Empty state */
+.wfEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 24px;
+  gap: 12px;
+}
+
+.wfEmptyIcon { color: rgba(255, 255, 255, 0.12); }
+
+.wfEmpty p {
+  font-size: 15px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.35);
+  margin: 0;
+}
+
+.wfEmpty span {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.2);
+}
+
+/* Waterfall flow column */
+.wfFlow {
+  padding: 16px 22px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Each tier item = box + optional connector below */
+.wfItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Tier box */
+.wfBox {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  transition: background 0.3s ease;
+}
+
+.wfBoxMerchant {
+  background: rgba(34, 197, 94, 0.04);
+}
+
+/* Lit state */
+.wfBox:has(.wfBoxAmount) { /* modern browsers — no separate class needed */ }
+
+.wfBoxRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wfBoxLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wfBoxName {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.wfBoxPct {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  font-variant-numeric: tabular-nums;
+}
+
+.wfBoxAmount {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.35s ease;
+  white-space: nowrap;
+}
+
+.wfBoxZero {
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 14px;
+}
+
+/* Progress bar inside tier */
+.wfBarWrap {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wfBar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.wfBarFill {
+  height: 100%;
+  border-radius: 2px;
+}
+
+.wfBarLabel {
+  font-family: 'SF Mono', monospace;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.3);
+  text-align: right;
+}
+
+/* Connector (vertical arrow between tiers) */
+.wfConnector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.wfConnectorLine {
+  width: 2px;
+  height: 18px;
+  border-radius: 1px;
+  transition: background 0.3s ease;
+}
+
+.wfArrow {
+  font-size: 9px;
+  line-height: 1;
+  margin-top: -1px;
+  transition: color 0.3s ease;
+}
+
+/* ════════════════════════
+   VAULT HEALTH CARD
+   ════════════════════════ */
+
+.healthCard {
+  padding: 20px;
+}
+
+.healthHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.healthTitle {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.healthVault {
+  font-family: 'SF Mono', monospace;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.healthStats {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.healthStat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.healthStatLabel {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.healthStatVal {
+  font-family: 'SF Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.healthGreen { color: #34d399 !important; }
+
+/* Main progress bar */
+.healthProgressWrap {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.healthBar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.healthBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #FF6B35, #ff8f66);
+  border-radius: 3px;
+}
+
+.healthBarMeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.healthBarPct {
+  font-family: 'SF Mono', monospace;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.healthDivider {
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 14px 0;
+}
+
+/* Per-tranche breakdown list */
+.trancheList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trancheItem {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.trancheItemHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.trancheLabel {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.tranchePct {
+  font-family: 'SF Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.trancheBar {
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.trancheBarFill {
+  height: 100%;
+  border-radius: 2px;
+}
+
+/* ════════════════════════
+   PAYMENT LOG CARD
+   ════════════════════════ */
+
+.logCard { padding: 0; }
+
+.logHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.logTitle {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.logCount {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 2px 7px;
+}
+
+.logEmpty {
+  padding: 20px 18px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.2);
+  text-align: center;
+}
+
+.logList {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.logRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.15s ease;
+}
+
+.logRow:last-child { border-bottom: none; }
+.logRow:hover { background: rgba(255, 255, 255, 0.02); }
+
+.logLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.logSource {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.logTime {
+  font-family: 'SF Mono', monospace;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.logRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logAmount {
+  font-family: 'SF Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #FF6B35;
+  font-variant-numeric: tabular-nums;
+}
+
+.logTxBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.3);
+  text-decoration: none;
+  transition: border-color 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.logTxBtn:hover {
+  border-color: #FF6B35;
+  color: #FF6B35;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .demoGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .demoRight {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 680px) {
+  .page { padding: 80px 16px 32px; }
+
+  .demoRight {
+    grid-template-columns: 1fr;
+  }
+
+  .simInputRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .simPresets {
+    width: 100%;
+  }
+
+  .simPreset {
+    flex: 1;
+    text-align: center;
+  }
+}

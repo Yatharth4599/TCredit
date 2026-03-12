@@ -18,6 +18,7 @@ import kickstartRoutes from './kickstart.js';
 import traderRoutes from './traders.js';
 import waitlistRoutes from './waitlist.js';
 import adminRoutes from './admin.js';
+import demoRoutes from './demo.routes.js';
 const router = Router();
 
 // Health
@@ -58,6 +59,9 @@ router.use('/traders', traderRoutes);
 
 // Waitlist
 router.use('/waitlist', waitlistRoutes);
+
+// Public demo endpoint (no auth)
+router.use('/demo', demoRoutes);
 
 // Admin (API key protected)
 router.use('/admin', adminRoutes);

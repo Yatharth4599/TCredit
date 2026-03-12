@@ -3,9 +3,11 @@ import { lazy, Suspense, useEffect } from 'react'
 import { Toaster } from 'react-hot-toast'
 import ErrorBoundary from './components/ErrorBoundary'
 import Navbar from './components/layout/Navbar'
+import WrongNetworkBanner from './components/layout/WrongNetworkBanner'
 import styles from './App.module.css'
 
 const Home = lazy(() => import('./pages/Home'))
+const Demo = lazy(() => import('./pages/Demo'))
 const VaultsMarketing = lazy(() => import('./pages/VaultsMarketing'))
 const PortfolioMarketing = lazy(() => import('./pages/PortfolioMarketing'))
 const PoolsMarketing = lazy(() => import('./pages/PoolsMarketing'))
@@ -23,6 +25,7 @@ const Kickstart = lazy(() => import('./pages/Kickstart'))
 const TraderDashboard = lazy(() => import('./pages/TraderDashboard'))
 const WaitlistAdmin = lazy(() => import('./pages/WaitlistAdmin'))
 const X402Demo = lazy(() => import('./pages/X402Demo'))
+const LifecycleDemo = lazy(() => import('./pages/LifecycleDemo'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 
 function getThemeFromPath(pathname: string): string {
@@ -37,6 +40,8 @@ function getThemeFromPath(pathname: string): string {
   if (pathname.startsWith('/app/kickstart') || pathname.startsWith('/kickstart')) return 'kickstart'
   if (pathname.startsWith('/app/traders')) return 'merchant'
   if (pathname.startsWith('/x402')) return 'x402'
+  if (pathname.startsWith('/demo')) return 'x402'
+  if (pathname.startsWith('/lifecycle')) return 'x402'
   return 'home'
 }
 
@@ -66,6 +71,7 @@ function App() {
       <Router>
         <ThemeProvider>
           <div className={styles.app}>
+            <WrongNetworkBanner />
             <Navbar />
             <Toaster
               position="bottom-right"
@@ -105,6 +111,8 @@ function App() {
                 <Route path="/app/traders" element={<TraderDashboard />} />
                 <Route path="/admin/waitlist" element={<WaitlistAdmin />} />
                 <Route path="/x402" element={<X402Demo />} />
+                <Route path="/demo" element={<Demo />} />
+                <Route path="/lifecycle" element={<LifecycleDemo />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>

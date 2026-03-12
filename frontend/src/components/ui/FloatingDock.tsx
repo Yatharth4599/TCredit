@@ -9,6 +9,8 @@ export interface DockItem {
   href: string
   onClick?: () => void
   mono?: boolean
+  mobileHide?: boolean
+  accent?: boolean        // renders with orange accent background (for Demo)
 }
 
 interface FloatingDockProps {
@@ -30,7 +32,7 @@ function DockIcon({ item, isActive }: { item: DockItem; isActive: boolean }) {
     <a
       href={item.href}
       onClick={handleClick}
-      className={`${css.dockItem} ${isActive ? css.active : ''}`}
+      className={`${css.dockItem} ${isActive ? css.active : ''} ${item.mobileHide ? css.mobileHide : ''} ${item.accent ? css.accentItem : ''}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >

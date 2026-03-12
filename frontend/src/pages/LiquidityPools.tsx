@@ -10,6 +10,7 @@ import { AnimatedNumber } from '../components/ui/AnimatedNumber'
 import { mockPools, mockPoolsSummary } from '../lib/mockData'
 import { Loader2 } from 'lucide-react'
 import { Skeleton } from '../components/ui/Skeleton'
+import { ErrorState } from '../components/ui/ErrorState'
 import styles from './LiquidityPools.module.css'
 
 export default function LiquidityPools() {
@@ -18,6 +19,7 @@ export default function LiquidityPools() {
     const [pools, setPools] = useState<ApiPool[]>([])
     const [summary, setSummary] = useState<ApiPoolsSummary | null>(null)
     const [loading, setLoading] = useState(true)
+    const [fetchError, setFetchError] = useState(false)
 
     const [actionModal, setActionModal] = useState<{ pool: ApiPool; type: 'deposit' | 'withdraw' } | null>(null)
     const [actionAmount, setActionAmount] = useState('')
@@ -25,19 +27,24 @@ export default function LiquidityPools() {
 
     const { needsApproval, approve } = useUSDCApproval(actionModal?.pool.address || '')
 
-    useEffect(() => {
+    const loadPools = () => {
         setLoading(true)
+        setFetchError(false)
         poolsApi.list()
             .then(({ data }) => {
                 setPools(data?.pools ?? [])
                 setSummary(data?.summary ?? null)
+                setFetchError(false)
             })
             .catch(() => {
                 setPools([])
                 setSummary(null)
+                setFetchError(true)
             })
             .finally(() => setLoading(false))
-    }, [])
+    }
+
+    useEffect(() => { loadPools() }, [])
 
     const handleAction = async () => {
         if (!actionModal || !actionAmount || !walletAddress) return
@@ -145,7 +152,9 @@ export default function LiquidityPools() {
                     <div className={styles.sectionLabel}>Active Pools</div>
 
                     <div className={styles.poolGrid}>
-                        {loading ? (
+                        {fetchError ? (
+                            <ErrorState onRetry={loadPools} />
+                        ) : loading ? (
                             Array.from({ length: 2 }).map((_, i) => (
                                 <div key={i} className={styles.poolCard}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
@@ -230,22 +239,24 @@ export default function LiquidityPools() {
                                     </div>
 
                                     <div className={styles.poolFooter}>
-                                        <div className={styles.poolActions}>
-                                            <button
-                                                className={styles.depositBtn}
-                                                onClick={() => { setActionModal({ pool, type: 'deposit' }); setActionAmount('') }}
-                                                disabled={!walletAddress}
-                                            >
-                                                Deposit
-                                            </button>
-                                            <button
-                                                className={styles.withdrawBtn}
-                                                onClick={() => { setActionModal({ pool, type: 'withdraw' }); setActionAmount('') }}
-                                                disabled={!walletAddress}
-                                            >
-                                                Withdraw
-                                            </button>
-                                        </div>
+                                        {!walletAddress ? (
+                                            <p className={styles.connectHint}>Connect wallet to deposit or withdraw</p>
+                                        ) : (
+                                            <div className={styles.poolActions}>
+                                                <button
+                                                    className={styles.depositBtn}
+                                                    onClick={() => { setActionModal({ pool, type: 'deposit' }); setActionAmount('') }}
+                                                >
+                                                    Deposit
+                                                </button>
+                                                <button
+                                                    className={styles.withdrawBtn}
+                                                    onClick={() => { setActionModal({ pool, type: 'withdraw' }); setActionAmount('') }}
+                                                >
+                                                    Withdraw
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </motion.div>
                             ))

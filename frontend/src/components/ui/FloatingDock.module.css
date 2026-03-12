@@ -68,6 +68,17 @@
   color: var(--accent);
 }
 
+/* Accent item (Demo button) */
+.accentItem .iconWrapper {
+  background: rgba(var(--accent-rgb), 0.15);
+  color: var(--accent);
+  border-radius: 10px;
+}
+
+.accentItem:hover .iconWrapper {
+  background: rgba(var(--accent-rgb), 0.25);
+}
+
 .activeDot {
   display: block;
   width: 4px;
@@ -79,13 +90,17 @@
 
 @media (max-width: 640px) {
   .dock {
-    gap: 2px;
-    padding: 6px 10px;
+    gap: 1px;
+    padding: 6px 8px;
   }
 
   .iconWrapper {
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     border-radius: 10px;
+  }
+
+  .mobileHide {
+    display: none;
   }
 }

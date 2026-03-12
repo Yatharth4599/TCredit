@@ -45,7 +45,8 @@ export function useContractTx() {
 
       setStatus('confirmed');
       setPendingTx({ hash, description: unsignedTx.description, status: 'confirmed' });
-      toast.success('Transaction confirmed!', { id: toastId });
+      const shortHash = `${hash.slice(0, 6)}…${hash.slice(-4)}`;
+      toast.success(`Confirmed! ${shortHash}`, { id: toastId });
 
       return hash;
     } catch (err: unknown) {

@@ -1,62 +1,181 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAccount } from 'wagmi'
-import { motion } from 'motion/react'
-import { investApi } from '../api/client'
-import type { ApiPortfolioInvestment, ApiPortfolioSummary } from '../api/types'
+import { motion, AnimatePresence } from 'motion/react'
+import { investApi, vaultsApi } from '../api/client'
+import type {
+  ApiPortfolioInvestment,
+  ApiPortfolioSummary,
+  ApiVaultDetail,
+  ApiVaultEvent,
+} from '../api/types'
 import { formatUSDC, weiToNumber, truncateAddress } from '../lib/format'
 import { useContractTx } from '../hooks/useContractTx'
 import { AnimatedNumber } from '../components/ui/AnimatedNumber'
-import { mockInvestments, mockPortfolioSummary } from '../lib/mockData'
-import { Loader2, Wallet } from 'lucide-react'
 import { Skeleton } from '../components/ui/Skeleton'
+import { ErrorState } from '../components/ui/ErrorState'
+import { STATUS_CONFIG } from '../lib/statusConfig'
+import { mockInvestments, mockPortfolioSummary } from '../lib/mockData'
+import { Loader2, Wallet, CheckCircle, ExternalLink, ArrowRight, Zap, TrendingUp } from 'lucide-react'
 import styles from './Portfolio.module.css'
 
-const STATUS_CONFIG: Record<string, { label: string; class: string }> = {
-  fundraising: { label: 'Fundraising', class: styles.statusActive },
-  active: { label: 'Active', class: styles.statusActive },
-  repaying: { label: 'Repaying', class: styles.statusRepaying },
-  completed: { label: 'Completed', class: styles.statusCompleted },
-  defaulted: { label: 'Defaulted', class: styles.statusCompleted },
-  cancelled: { label: 'Cancelled', class: styles.statusCompleted },
+// Extract payment amount from vault event data
+function getEventAmount(evt: ApiVaultEvent): number {
+  const d = evt.data
+  for (const key of ['amount', 'totalAmount', 'grossAmount', 'paymentAmount']) {
+    const v = d[key]
+    if (typeof v === 'string' && v.length > 0 && v !== '0') return weiToNumber(v)
+  }
+  return 0
+}
+
+// Estimate investor's share of a vault payment
+// Community investors (direct depositors) receive 5% of net (97.5% of gross)
+// This investor's portion = their share of vault * community pool
+function estimateReturn(gross: number, invested: number, totalRaised: number): number {
+  if (gross <= 0 || totalRaised <= 0 || invested <= 0) return 0
+  return gross * 0.975 * 0.05 * Math.min(invested / totalRaised, 1)
 }
 
 export default function Portfolio() {
   const navigate = useNavigate()
   const { address: walletAddress } = useAccount()
-  const [activeTab, setActiveTab] = useState<'all' | 'active' | 'completed'>('all')
+
+  // ── State ────────────────────────────────────────────────────────────────────
+  const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all')
   const [investments, setInvestments] = useState<ApiPortfolioInvestment[]>([])
   const [summary, setSummary] = useState<ApiPortfolioSummary | null>(null)
+  const [vaultMap, setVaultMap] = useState<Record<string, ApiVaultDetail>>({})
+  const [activityMap, setActivityMap] = useState<Record<string, ApiVaultEvent[]>>({})
   const [loading, setLoading] = useState(false)
+  const [fetchError, setFetchError] = useState(false)
   const [claimingVault, setClaimingVault] = useState<string | null>(null)
+  const [claimingAll, setClaimingAll] = useState(false)
+  const [justClaimed, setJustClaimed] = useState(false)
 
   const { execute: executeTx } = useContractTx()
+
+  // ── Data loading ─────────────────────────────────────────────────────────────
+  const loadPortfolio = useCallback(async (wallet: string) => {
+    setLoading(true)
+    setFetchError(false)
+    try {
+      const { data } = await investApi.portfolio(wallet)
+      const invs = data?.investments ?? []
+      setInvestments(invs)
+      setSummary(data?.summary ?? null)
+
+      // Fetch vault details for active/repaying/fundraising positions in parallel
+      const activeAddrs = invs
+        .filter(inv => ['active', 'repaying', 'fundraising'].includes(inv.state))
+        .map(inv => inv.vaultAddress)
+
+      if (activeAddrs.length > 0) {
+        const results = await Promise.allSettled(
+          activeAddrs.map(addr =>
+            vaultsApi.detail(addr).then(r => ({ addr, vault: r.data }))
+          )
+        )
+        const newMap: Record<string, ApiVaultDetail> = {}
+        for (const r of results) {
+          if (r.status === 'fulfilled') newMap[r.value.addr] = r.value.vault
+        }
+        setVaultMap(newMap)
+      }
+
+      // Fetch recent repayments for top 3 active/repaying vaults
+      const repayingAddrs = invs
+        .filter(inv => inv.state === 'active' || inv.state === 'repaying')
+        .slice(0, 3)
+        .map(inv => inv.vaultAddress)
+
+      if (repayingAddrs.length > 0) {
+        const results = await Promise.allSettled(
+          repayingAddrs.map(addr =>
+            vaultsApi.repayments(addr).then(r => ({
+              addr,
+              events: r.data?.repayments?.slice(0, 5) ?? [],
+            }))
+          )
+        )
+        const newAct: Record<string, ApiVaultEvent[]> = {}
+        for (const r of results) {
+          if (r.status === 'fulfilled' && r.value.events.length > 0) {
+            newAct[r.value.addr] = r.value.events
+          }
+        }
+        setActivityMap(newAct)
+      }
+    } catch {
+      setFetchError(true)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     if (!walletAddress) {
       setInvestments([])
       setSummary(null)
+      setVaultMap({})
+      setActivityMap({})
+      setFetchError(false)
       return
     }
-    setLoading(true)
-    investApi.portfolio(walletAddress)
-      .then(({ data }) => {
-        setInvestments(data?.investments ?? [])
-        setSummary(data?.summary ?? null)
-      })
-      .catch(() => {
-        setInvestments([])
-        setSummary(null)
-      })
-      .finally(() => setLoading(false))
-  }, [walletAddress])
+    loadPortfolio(walletAddress)
+  }, [walletAddress, loadPortfolio])
 
+  // ── Derived data (computed before useMemo hooks) ──────────────────────────────
+  const displayInvestments = investments.length > 0
+    ? investments
+    : (import.meta.env.DEV && walletAddress ? mockInvestments : [])
+
+  const displaySummary = summary
+    ?? (import.meta.env.DEV && walletAddress ? mockPortfolioSummary : null)
+
+  // ── Memos ────────────────────────────────────────────────────────────────────
+  const effectiveApy = useMemo(() => {
+    const active = displayInvestments.filter(
+      inv => inv.state === 'active' || inv.state === 'repaying'
+    )
+    if (active.length === 0) return 0
+    const totalActive = active.reduce((s, inv) => s + weiToNumber(inv.amountInvested), 0)
+    if (totalActive === 0) return 0
+    return +active.reduce((s, inv) =>
+      s + inv.interestRate * (weiToNumber(inv.amountInvested) / totalActive),
+    0).toFixed(1)
+  }, [displayInvestments])
+
+  const allActivity = useMemo(() => {
+    return Object.entries(activityMap)
+      .flatMap(([addr, events]) => events.map(evt => ({ evt, vaultAddress: addr })))
+      .sort((a, b) => new Date(b.evt.timestamp).getTime() - new Date(a.evt.timestamp).getTime())
+  }, [activityMap])
+
+  const filtered = useMemo(() => {
+    return displayInvestments.filter(inv => {
+      if (filter === 'all') return true
+      if (filter === 'active') return ['active', 'repaying', 'fundraising'].includes(inv.state)
+      return ['completed', 'defaulted', 'cancelled'].includes(inv.state)
+    })
+  }, [displayInvestments, filter])
+
+  // ── Summary stats ─────────────────────────────────────────────────────────────
+  const totalInvested = displaySummary ? weiToNumber(displaySummary.totalInvested) : 0
+  const totalClaimable = displaySummary ? weiToNumber(displaySummary.totalClaimable) : 0
+  const activePositions = displayInvestments.filter(
+    inv => ['active', 'repaying', 'fundraising'].includes(inv.state)
+  ).length
+
+  // ── Claim handlers ────────────────────────────────────────────────────────────
   const handleClaim = async (vaultAddress: string) => {
     setClaimingVault(vaultAddress)
     try {
       const { data: unsignedTx } = await investApi.claim({ vaultAddress })
-      await executeTx(unsignedTx)
-      if (walletAddress) {
+      const hash = await executeTx(unsignedTx)
+      if (hash && walletAddress) {
+        setJustClaimed(true)
+        setTimeout(() => setJustClaimed(false), 3000)
         const { data } = await investApi.portfolio(walletAddress)
         setInvestments(data?.investments ?? [])
         setSummary(data?.summary ?? null)
@@ -68,22 +187,33 @@ export default function Portfolio() {
     }
   }
 
-  // Use mock data as fallback in dev
-  const displayInvestments = investments.length > 0 ? investments : (import.meta.env.DEV && walletAddress ? mockInvestments : [])
-  const displaySummary = summary ?? (import.meta.env.DEV && walletAddress ? mockPortfolioSummary : null)
+  const handleClaimAll = async () => {
+    if (!walletAddress || claimingAll) return
+    const claimableInvs = displayInvestments.filter(inv => weiToNumber(inv.claimable) > 0)
+    if (claimableInvs.length === 0) return
+    setClaimingAll(true)
+    try {
+      for (const inv of claimableInvs) {
+        const { data: unsignedTx } = await investApi.claim({ vaultAddress: inv.vaultAddress })
+        const hash = await executeTx(unsignedTx)
+        if (!hash) break // cancelled
+      }
+      setJustClaimed(true)
+      setTimeout(() => setJustClaimed(false), 3000)
+      const { data } = await investApi.portfolio(walletAddress)
+      setInvestments(data?.investments ?? [])
+      setSummary(data?.summary ?? null)
+    } catch {
+      // Error handled by toast
+    } finally {
+      setClaimingAll(false)
+    }
+  }
 
-  const totalInvested = displaySummary ? weiToNumber(displaySummary.totalInvested) : 0
-  const totalClaimable = displaySummary ? weiToNumber(displaySummary.totalClaimable) : 0
-
-  const filteredInvestments = displayInvestments.filter(inv => {
-    if (activeTab === 'all') return true
-    if (activeTab === 'active') return inv.state === 'active' || inv.state === 'repaying' || inv.state === 'fundraising'
-    return inv.state === 'completed'
-  })
-
+  // ── Early returns ─────────────────────────────────────────────────────────────
   if (!walletAddress) {
     return (
-      <div className={styles.portfolio}>
+      <div className={styles.page}>
         <div className={styles.connectPrompt}>
           <Wallet size={48} strokeWidth={1} />
           <h2>Connect Your Wallet</h2>
@@ -93,240 +223,435 @@ export default function Portfolio() {
     )
   }
 
-  return (
-    <div className={styles.portfolio}>
-      {/* Hero Band */}
-      <div className={styles.hero}>
-        <motion.div
-          className={styles.heroInner}
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <div className={styles.heroLabel}>Investor Dashboard</div>
-          <h1 className={styles.heroTitle}>My Portfolio</h1>
-          {!loading && (
-            <div className={styles.heroValue}>
-              <span className={styles.heroCurrency}>$</span>
-              <span className={styles.heroAmount}>
-                <AnimatedNumber value={totalInvested} decimals={0} />
-              </span>
-            </div>
-          )}
-        </motion.div>
-      </div>
-
-      {/* Stats Row (dark bg) */}
-      <div className={styles.statsRow}>
-        {[
-          { value: loading ? null : formatUSDC(displaySummary?.totalInvested || '0'), label: 'Invested' },
-          { value: loading ? null : formatUSDC(displaySummary?.totalClaimable || '0'), label: 'Claimable' },
-          { value: loading ? null : String(displayInvestments.length), label: 'Positions' },
-        ].map((stat, i) => (
-          <motion.div
-            key={stat.label}
-            className={styles.statCard}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 + i * 0.06 }}
-          >
-            <div className={styles.statValue}>
-              {stat.value === null ? <Skeleton width={100} height={28} borderRadius={6} /> : stat.value}
-            </div>
-            <div className={styles.statLabel}>{stat.label}</div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* White Section — Investments */}
-      <div className={styles.body}>
-        <div className={styles.bodyInner}>
-          {totalClaimable > 0 && (
-            <div className={styles.claimBanner}>
-              <div className={styles.claimInfo}>
-                <span className={styles.claimLabel}>Available to Claim</span>
-                <span className={styles.claimValue}>{formatUSDC(displaySummary?.totalClaimable || '0')}</span>
-              </div>
-            </div>
-          )}
-
-          <motion.div
-            className={styles.investmentsCard}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-40px' }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-          >
-            <div className={styles.investmentsHeader}>
-              <span className={styles.investmentsTitle}>Your Investments</span>
-              <div className={styles.tabs}>
-                {(['all', 'active', 'completed'] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    className={`${styles.tab} ${activeTab === tab ? styles.tabActive : ''}`}
-                    onClick={() => setActiveTab(tab)}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className={styles.investmentsList}>
-              {loading ? (
-                <div style={{ padding: '8px 0' }}>
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className={styles.investmentItem}>
-                      <div className={styles.investmentMain}>
-                        <div className={styles.investmentInfo}>
-                          <Skeleton width={100} height={16} borderRadius={6} style={{ marginBottom: 8 }} />
-                          <Skeleton width={160} height={12} borderRadius={4} />
-                        </div>
-                        <div style={{ display: 'flex', gap: 20 }}>
-                          <div>
-                            <Skeleton width={80} height={18} borderRadius={6} style={{ marginBottom: 4 }} />
-                            <Skeleton width={50} height={11} borderRadius={4} />
-                          </div>
-                          <div>
-                            <Skeleton width={80} height={18} borderRadius={6} style={{ marginBottom: 4 }} />
-                            <Skeleton width={50} height={11} borderRadius={4} />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : filteredInvestments.length === 0 ? (
-                <div className={styles.emptyState}>
-                  <p>{displayInvestments.length === 0 ? 'No investments yet' : 'No investments in this category'}</p>
-                  {displayInvestments.length === 0 && (
-                    <button className={styles.claimSmallBtn} onClick={() => navigate('/vaults')}>
-                      Browse Vaults
-                    </button>
-                  )}
-                </div>
-              ) : (
-                filteredInvestments.map((inv, i) => {
-                  const status = STATUS_CONFIG[inv.state] || STATUS_CONFIG.active
-                  const claimable = weiToNumber(inv.claimable)
-
-                  return (
-                    <motion.div
-                      key={inv.vaultAddress}
-                      className={styles.investmentItem}
-                      initial={{ opacity: 0, x: -10 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: i * 0.04 }}
-                    >
-                      <div className={styles.investmentMain}>
-                        <div className={styles.investmentInfo}>
-                          <h4>{truncateAddress(inv.agent, 6)}</h4>
-                          <div className={styles.investmentMeta}>
-                            <span className={status.class}>{status.label}</span>
-                            <span className={styles.investmentDate}>{inv.interestRate}% APY · {inv.durationMonths}mo</span>
-                          </div>
-                        </div>
-                        <div className={styles.investmentStats}>
-                          <div className={styles.investmentStat}>
-                            <span className={styles.investmentStatValue}>{formatUSDC(inv.amountInvested)}</span>
-                            <span className={styles.investmentStatLabel}>Invested</span>
-                          </div>
-                          <div className={styles.investmentStat}>
-                            <span className={styles.investmentStatValue}>{formatUSDC(inv.claimable)}</span>
-                            <span className={styles.investmentStatLabel}>Claimable</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className={styles.investmentActions}>
-                        {claimable > 0 && (
-                          <button
-                            className={styles.claimSmallBtn}
-                            onClick={() => handleClaim(inv.vaultAddress)}
-                            disabled={claimingVault === inv.vaultAddress}
-                          >
-                            {claimingVault === inv.vaultAddress ? (
-                              <><Loader2 size={14} className={styles.spinner} /> Claiming...</>
-                            ) : (
-                              `Claim ${formatUSDC(inv.claimable)}`
-                            )}
-                          </button>
-                        )}
-                        <button
-                          className={styles.detailsBtn}
-                          onClick={() => navigate(`/vaults/${inv.vaultAddress}`)}
-                        >
-                          View Details
-                        </button>
-                      </div>
-                    </motion.div>
-                  )
-                })
-              )}
-            </div>
-          </motion.div>
+  if (loading) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.pageInner}>
+          <Skeleton height={36} width={200} style={{ marginBottom: 32 }} />
+          <Skeleton height={200} borderRadius={16} style={{ marginBottom: 20 }} />
+          <Skeleton height={260} borderRadius={16} style={{ marginBottom: 16 }} />
+          <Skeleton height={260} borderRadius={16} style={{ marginBottom: 16 }} />
+          <Skeleton height={260} borderRadius={16} />
         </div>
       </div>
+    )
+  }
 
-      {/* Allocation (dark bg section) */}
-      {displayInvestments.length > 0 && (
-        <div className={styles.allocationSection}>
-          <div className={styles.allocationInner}>
-            <motion.div
-              className={styles.allocationCard}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-40px' }}
-              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-            >
-              <h3 className={styles.cardTitle}>Allocation by Status</h3>
-              <div className={styles.allocationList}>
-                {['active', 'repaying', 'completed'].map((status) => {
-                  const statusInvestments = displayInvestments.filter(inv => inv.state === status)
-                  const statusTotal = statusInvestments.reduce((sum, inv) => sum + weiToNumber(inv.amountInvested), 0)
-                  const percentage = totalInvested > 0 ? (statusTotal / totalInvested * 100).toFixed(0) : '0'
+  if (fetchError) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.pageInner}>
+          <ErrorState onRetry={() => walletAddress && loadPortfolio(walletAddress)} />
+        </div>
+      </div>
+    )
+  }
 
-                  if (statusTotal === 0) return null
+  if (displayInvestments.length === 0) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.pageInner}>
+          <div className={styles.emptyPrompt}>
+            <div className={styles.emptyIcon}>📊</div>
+            <h2>No Investments Yet</h2>
+            <p>Start earning real yield from on-chain merchant repayments</p>
+            <button className={styles.browseBtn} onClick={() => navigate('/vaults')}>
+              Browse Vaults <ArrowRight size={14} />
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
-                  return (
-                    <div key={status} className={styles.allocationItem}>
-                      <div className={styles.allocationInfo}>
-                        <span className={`${styles.allocationDot} ${styles[`dot${status.charAt(0).toUpperCase() + status.slice(1)}`]}`} />
-                        <span className={styles.allocationName}>{status.charAt(0).toUpperCase() + status.slice(1)}</span>
-                      </div>
-                      <div className={styles.allocationRight}>
-                        <span className={styles.allocationAmount}>${statusTotal.toLocaleString()}</span>
-                        <span className={styles.allocationPercent}>{percentage}%</span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-              <div className={styles.allocationBar}>
-                {['active', 'repaying', 'completed'].map((status) => {
-                  const statusInvestments = displayInvestments.filter(inv => inv.state === status)
-                  const statusTotal = statusInvestments.reduce((sum, inv) => sum + weiToNumber(inv.amountInvested), 0)
-                  const percentage = totalInvested > 0 ? (statusTotal / totalInvested * 100) : 0
+  // ── Main render ───────────────────────────────────────────────────────────────
+  return (
+    <div className={styles.page}>
+      <div className={styles.pageInner}>
 
-                  if (percentage === 0) return null
+        {/* Page header */}
+        <motion.div
+          className={styles.pageHeader}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <h1 className={styles.pageTitle}>My Portfolio</h1>
+          <span className={styles.pageAddr}>{truncateAddress(walletAddress, 5)}</span>
+        </motion.div>
 
+        {/* ══════════════════════════════════════════════════════════
+            SECTION 1: PORTFOLIO SUMMARY
+        ══════════════════════════════════════════════════════════ */}
+        <motion.div
+          className={styles.summaryCard}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+        >
+          {/* Success overlay on claim */}
+          <AnimatePresence>
+            {justClaimed && (
+              <motion.div
+                className={styles.claimedOverlay}
+                initial={{ opacity: 0, scale: 0.92 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.92 }}
+                transition={{ duration: 0.3 }}
+              >
+                <CheckCircle size={36} style={{ color: 'var(--color-success)' }} />
+                <span className={styles.claimedText}>Returns Claimed!</span>
+                <span className={styles.claimedSub}>Your wallet has been credited</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* 3-metric row */}
+          <div className={styles.summaryMetrics}>
+            <div className={styles.summaryMetric}>
+              <span className={styles.metricLabel}>Total Invested</span>
+              <span className={styles.metricValue}>
+                $<AnimatedNumber value={totalInvested} decimals={2} />
+              </span>
+            </div>
+            <div className={styles.metricDivider} />
+            <div className={styles.summaryMetric}>
+              <span className={styles.metricLabel}>Claimable Now</span>
+              <span
+                className={styles.metricValue}
+                style={{ color: totalClaimable > 0 ? 'var(--color-success)' : 'inherit' }}
+              >
+                $<AnimatedNumber value={totalClaimable} decimals={2} />
+              </span>
+            </div>
+            <div className={styles.metricDivider} />
+            <div className={styles.summaryMetric}>
+              <span className={styles.metricLabel}>Active Positions</span>
+              <span className={styles.metricValue}>
+                <AnimatedNumber value={activePositions} decimals={0} />
+              </span>
+            </div>
+          </div>
+
+          {/* Footer: APY + claim all button */}
+          <div className={styles.summaryFooter}>
+            <div className={styles.summaryMeta}>
+              {effectiveApy > 0 && (
+                <span className={styles.apyBadge}>
+                  <TrendingUp size={12} />
+                  {effectiveApy.toFixed(1)}% Effective APY
+                </span>
+              )}
+              <span className={styles.summaryNote}>
+                {displayInvestments.length} position{displayInvestments.length !== 1 ? 's' : ''} · yield from on-chain x402 payments
+              </span>
+            </div>
+            {totalClaimable > 0 && (
+              <button
+                className={styles.claimAllBtn}
+                onClick={handleClaimAll}
+                disabled={claimingAll}
+              >
+                {claimingAll ? (
+                  <><Loader2 size={15} className={styles.spinner} /> Claiming...</>
+                ) : (
+                  <>Claim All Returns ({formatUSDC(displaySummary?.totalClaimable || '0')})</>
+                )}
+              </button>
+            )}
+          </div>
+
+          {/* Allocation bar */}
+          {totalInvested > 0 && (
+            <div className={styles.allocWrap}>
+              <div className={styles.allocBar}>
+                {(['active', 'repaying', 'fundraising', 'completed'] as const).map(st => {
+                  const pct = displayInvestments
+                    .filter(inv => inv.state === st)
+                    .reduce((s, inv) => s + weiToNumber(inv.amountInvested) / totalInvested * 100, 0)
+                  if (pct < 0.5) return null
+                  const COLOR: Record<string, string> = {
+                    active: 'var(--color-success)',
+                    repaying: '#60a5fa',
+                    fundraising: 'var(--accent)',
+                    completed: 'var(--text-tertiary)',
+                  }
                   return (
                     <motion.div
-                      key={status}
-                      className={`${styles.allocationBarSegment} ${styles[`bar${status.charAt(0).toUpperCase() + status.slice(1)}`]}`}
+                      key={st}
+                      className={styles.allocSegment}
+                      style={{ background: COLOR[st] ?? 'var(--text-tertiary)' }}
                       initial={{ width: 0 }}
-                      whileInView={{ width: `${percentage}%` }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.4 }}
+                      title={`${st}: ${pct.toFixed(0)}%`}
                     />
                   )
                 })}
               </div>
-            </motion.div>
+              <div className={styles.allocLegend}>
+                {['active', 'repaying', 'fundraising', 'completed'].map(st => {
+                  const count = displayInvestments.filter(inv => inv.state === st).length
+                  if (count === 0) return null
+                  const COLOR: Record<string, string> = {
+                    active: 'var(--color-success)',
+                    repaying: '#60a5fa',
+                    fundraising: 'var(--accent)',
+                    completed: 'var(--text-tertiary)',
+                  }
+                  return (
+                    <span key={st} className={styles.allocLegendItem}>
+                      <span className={styles.allocDot} style={{ background: COLOR[st] ?? 'var(--text-tertiary)' }} />
+                      {st.charAt(0).toUpperCase() + st.slice(1)} ({count})
+                    </span>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </motion.div>
+
+        {/* ══════════════════════════════════════════════════════════
+            SECTION 2: POSITIONS
+        ══════════════════════════════════════════════════════════ */}
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Active Positions</h2>
+          <div className={styles.filterPills}>
+            {([
+              { key: 'all', label: 'All' },
+              { key: 'active', label: 'Active' },
+              { key: 'completed', label: 'Closed' },
+            ] as const).map(({ key, label }) => (
+              <button
+                key={key}
+                className={`${styles.pill} ${filter === key ? styles.pillActive : ''}`}
+                onClick={() => setFilter(key)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
-      )}
+
+        {filtered.length === 0 ? (
+          <div className={styles.emptyFilter}>
+            No {filter === 'active' ? 'active' : 'closed'} positions
+          </div>
+        ) : (
+          <div className={styles.positionsList}>
+            {filtered.map((inv, i) => {
+              const status = STATUS_CONFIG[inv.state] ?? STATUS_CONFIG.active
+              const claimable = weiToNumber(inv.claimable)
+              const invested = weiToNumber(inv.amountInvested)
+              const estReturn = invested * inv.interestRate / 100 * inv.durationMonths / 12
+              const vaultData = vaultMap[inv.vaultAddress]
+              const isActive = inv.state === 'active' || inv.state === 'repaying'
+              const isFund = inv.state === 'fundraising'
+              const activityCount = activityMap[inv.vaultAddress]?.length ?? 0
+
+              // Compute vault progress bar
+              let progressPct = 0
+              let progressLabel = ''
+              let progressColor = 'var(--accent)'
+              if (isActive && vaultData) {
+                const repaid = weiToNumber(vaultData.totalRepaid)
+                const toRepay = weiToNumber(vaultData.totalToRepay)
+                progressPct = toRepay > 0 ? Math.min(repaid / toRepay * 100, 100) : 0
+                progressLabel = `${progressPct.toFixed(1)}% repaid`
+                progressColor = 'var(--color-success)'
+              } else if (isFund && vaultData) {
+                progressPct = Math.min(vaultData.percentFunded, 100)
+                progressLabel = `${progressPct.toFixed(0)}% funded`
+                progressColor = 'var(--accent)'
+              }
+
+              return (
+                <motion.div
+                  key={inv.vaultAddress}
+                  className={styles.positionCard}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.1 + i * 0.07 }}
+                >
+                  {/* Top row: status + claim button */}
+                  <div className={styles.posTop}>
+                    <div className={styles.posLeft}>
+                      <span
+                        className={styles.posStatus}
+                        style={{
+                          color: status.color,
+                          background: `${status.color}18`,
+                          border: `1px solid ${status.color}33`,
+                        }}
+                      >
+                        <span className={styles.statusDot} style={{ background: status.color }} />
+                        {status.label}
+                      </span>
+                      <span className={styles.posAgent}>{truncateAddress(inv.agent, 6)}</span>
+                    </div>
+                    {claimable > 0 && (
+                      <button
+                        className={styles.claimBtn}
+                        onClick={() => handleClaim(inv.vaultAddress)}
+                        disabled={!!claimingVault}
+                      >
+                        {claimingVault === inv.vaultAddress ? (
+                          <><Loader2 size={13} className={styles.spinner} /> Claiming...</>
+                        ) : (
+                          `Claim ${formatUSDC(inv.claimable)}`
+                        )}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Rate + term */}
+                  <div className={styles.posRate}>
+                    {inv.interestRate}% APY &middot; {inv.durationMonths} months
+                  </div>
+
+                  {/* 3-stat row */}
+                  <div className={styles.posStats}>
+                    <div className={styles.posStat}>
+                      <span className={styles.posStatLabel}>Your Investment</span>
+                      <span className={styles.posStatValue}>
+                        $<AnimatedNumber value={invested} decimals={2} />
+                      </span>
+                    </div>
+                    <div className={styles.posStatDivider} />
+                    <div className={styles.posStat}>
+                      <span className={styles.posStatLabel}>Claimable Now</span>
+                      <span
+                        className={styles.posStatValue}
+                        style={{ color: claimable > 0 ? 'var(--color-success)' : 'var(--text-tertiary)' }}
+                      >
+                        {claimable > 0
+                          ? <>${'$'}<AnimatedNumber value={claimable} decimals={2} /></>
+                          : '—'}
+                      </span>
+                    </div>
+                    <div className={styles.posStatDivider} />
+                    <div className={styles.posStat}>
+                      <span className={styles.posStatLabel}>Est. Total Return</span>
+                      <span className={styles.posStatValue}>
+                        +$<AnimatedNumber value={estReturn} decimals={2} />
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Vault progress bar */}
+                  {(isActive || isFund) && progressPct > 0 && (
+                    <div className={styles.posProgress}>
+                      <div className={styles.posProgressTrack}>
+                        <motion.div
+                          className={styles.posProgressFill}
+                          style={{ background: progressColor }}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${progressPct}%` }}
+                          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.3 + i * 0.05 }}
+                        />
+                      </div>
+                      <span className={styles.posProgressLabel}>{progressLabel}</span>
+                    </div>
+                  )}
+
+                  {/* Yield source note */}
+                  {isActive && (
+                    <div className={styles.yieldNote}>
+                      <Zap size={12} />
+                      <span>
+                        Returns come from x402 payments routed through the on-chain PaymentRouter.
+                        {activityCount > 0 && ` ${activityCount} recent payment${activityCount !== 1 ? 's' : ''} verified.`}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* View vault link */}
+                  <button
+                    className={styles.viewVaultBtn}
+                    onClick={() => navigate(`/vaults/${inv.vaultAddress}`)}
+                  >
+                    View Vault Details <ArrowRight size={13} />
+                  </button>
+                </motion.div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════
+            SECTION 3: RETURNS HISTORY (vault activity)
+        ══════════════════════════════════════════════════════════ */}
+        {allActivity.length > 0 && (
+          <motion.div
+            className={styles.card}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-40px' }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <div className={styles.cardHeader}>
+              <div>
+                <h2 className={styles.cardTitle}>Returns History</h2>
+                <p className={styles.cardDesc}>
+                  Every return is traceable to a specific x402 payment processed through the waterfall on-chain.
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.activityTable}>
+              <div className={styles.activityHead}>
+                <span>Date</span>
+                <span>Vault</span>
+                <span>Payment In</span>
+                <span>Your Return</span>
+                <span>Tx</span>
+              </div>
+
+              {allActivity.slice(0, 10).map(({ evt, vaultAddress }) => {
+                const gross = getEventAmount(evt)
+                const inv = displayInvestments.find(i => i.vaultAddress === vaultAddress)
+                const vd = vaultMap[vaultAddress]
+                const invested = inv ? weiToNumber(inv.amountInvested) : 0
+                const totalRaised = vd ? weiToNumber(vd.totalRaised) : 0
+                const yourReturn = estimateReturn(gross, invested, totalRaised)
+
+                return (
+                  <div key={evt.id} className={styles.activityRow}>
+                    <span className={styles.actDate}>
+                      {new Date(evt.timestamp).toLocaleDateString('en-US', {
+                        month: 'short', day: 'numeric',
+                      })}
+                    </span>
+                    <span className={styles.actVault}>
+                      {truncateAddress(vaultAddress, 4)}
+                    </span>
+                    <span className={styles.actAmount}>
+                      {gross > 0 ? formatUSDC(String(Math.round(gross * 1e6))) : '—'}
+                    </span>
+                    <span
+                      className={styles.actReturn}
+                      style={{ color: yourReturn > 0 ? 'var(--color-success)' : 'var(--text-tertiary)' }}
+                    >
+                      {yourReturn > 0
+                        ? `+${formatUSDC(String(Math.round(yourReturn * 1e6)))}`
+                        : '—'}
+                    </span>
+                    <a
+                      href={`https://sepolia.basescan.org/tx/${evt.txHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.actTx}
+                    >
+                      {truncateAddress(evt.txHash, 4)} <ExternalLink size={11} />
+                    </a>
+                  </div>
+                )
+              })}
+            </div>
+          </motion.div>
+        )}
+
+      </div>
     </div>
   )
 }

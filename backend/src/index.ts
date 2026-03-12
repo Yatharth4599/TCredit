@@ -7,9 +7,9 @@ import { startKeeper, stopKeeper } from './services/keeper.service.js';
 import { startWebhookProcessor, stopWebhookProcessor } from './services/webhook.service.js';
 
 const server = app.listen(env.PORT, () => {
-  console.log(`[TCredit] Server running on port ${env.PORT}`);
-  console.log(`[TCredit] Environment: ${env.NODE_ENV}`);
-  console.log(`[TCredit] Health: http://localhost:${env.PORT}/api/v1/health`);
+  console.log(`[Krexa] Server running on port ${env.PORT}`);
+  console.log(`[Krexa] Environment: ${env.NODE_ENV}`);
+  console.log(`[Krexa] Health: http://localhost:${env.PORT}/api/v1/health`);
   startRetryProcessor();
   startEventIndexer();
   startKeeper();
@@ -17,14 +17,14 @@ const server = app.listen(env.PORT, () => {
 });
 
 function shutdown() {
-  console.log('[TCredit] Shutting down...');
+  console.log('[Krexa] Shutting down...');
   stopRetryProcessor();
   stopEventIndexer();
   stopKeeper();
   stopWebhookProcessor();
   server.close(async () => {
     await prisma.$disconnect();
-    console.log('[TCredit] Server closed');
+    console.log('[Krexa] Server closed');
     process.exit(0);
   });
 }

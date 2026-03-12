@@ -1,818 +1,351 @@
 import { useNavigate } from 'react-router-dom'
 import { useEffect, useState, useRef } from 'react'
-import { platformApi, waitlistApi } from '../api/client'
-import { weiToNumber } from '../lib/format'
+import { platformApi, vaultsApi, waitlistApi } from '../api/client'
+import { weiToNumber, formatUSDCCompact } from '../lib/format'
 import { AnimatedNumber } from '../components/ui/AnimatedNumber'
 import DecryptedText from '../components/ui/DecryptedText'
-import CardSwap, { Card } from '../components/ui/CardSwap'
 import NoiseBackground from '../components/ui/NoiseBackground'
-import WaterfallFlow from '../components/ui/WaterfallFlow'
-import { AnimatedCoinStackIcon, AnimatedVaultIcon, AnimatedLockIcon } from '../components/ui/AnimatedPixelIcons'
-import ProblemBackground from '../components/ui/ProblemBackground'
-import MerchantBackground from '../components/ui/MerchantBackground'
-import InvestorBackground from '../components/ui/InvestorBackground'
-import TigerCanvas from '../components/ui/TigerCanvas'
-import { useScrollAnimations } from '../hooks/useScrollAnimations'
+import RevenueRoutingNode from '../components/ui/RevenueRoutingNode'
+import type { ApiVault } from '../api/types'
 
 import styles from './Home.module.css'
 
-function InvestorCounter({ visible, end, prefix = '', suffix = '', decimals = 0, duration = 1500 }: {
-    visible: boolean; end: number; prefix?: string; suffix?: string; decimals?: number; duration?: number
-}) {
-    const [value, setValue] = useState(0)
-    const rafRef = useRef<number>(0)
+// ── Vault state badge helpers ─────────────────────────────────────────────────
+const STATE_COLOR: Record<string, string> = {
+    fundraising: '#f59e0b',
+    active:      '#22c55e',
+    repaying:    '#3b82f6',
+    completed:   '#6b7280',
+    defaulted:   '#ef4444',
+    cancelled:   '#6b7280',
+}
 
-    useEffect(() => {
-        if (!visible) { setValue(0); return }
-        const start = performance.now()
-        const tick = (now: number) => {
-            const elapsed = now - start
-            const progress = Math.min(elapsed / duration, 1)
-            const eased = 1 - Math.pow(1 - progress, 3)
-            setValue(eased * end)
-            if (progress < 1) rafRef.current = requestAnimationFrame(tick)
-        }
-        rafRef.current = requestAnimationFrame(tick)
-        return () => cancelAnimationFrame(rafRef.current)
-    }, [visible, end, duration])
-
-    const formatted = decimals > 0
-        ? value.toFixed(decimals)
-        : Math.round(value).toLocaleString()
-
-    return <>{prefix}{formatted}{suffix}</>
+function VaultMiniCard({ vault }: { vault: ApiVault }) {
+    const navigate = useNavigate()
+    const pct = Math.min(vault.percentFunded, 100)
+    const color = STATE_COLOR[vault.state] ?? '#6b7280'
+    const shortAddr = `${vault.address.slice(0, 6)}…${vault.address.slice(-4)}`
+    return (
+        <button className={styles.vaultCard} onClick={() => navigate(`/app/vaults/${vault.address}`)}>
+            <div className={styles.vaultCardHeader}>
+                <span className={styles.vaultAddr}>{shortAddr}</span>
+                <span className={styles.vaultBadge} style={{ color, borderColor: `${color}44`, background: `${color}11` }}>
+                    {vault.state}
+                </span>
+            </div>
+            <div className={styles.vaultTarget}>{formatUSDCCompact(vault.targetAmount)}</div>
+            <div className={styles.vaultMeta}>
+                {vault.interestRate.toFixed(1)}% APY &middot; {vault.numTranches} tranches &middot; {vault.durationMonths}mo
+            </div>
+            <div className={styles.vaultBarWrap}>
+                <div className={styles.vaultBarFill} style={{ width: `${pct}%`, background: color }} />
+            </div>
+            <div className={styles.vaultPct}>{pct.toFixed(0)}% funded</div>
+        </button>
+    )
 }
 
 export default function Home() {
     const navigate = useNavigate()
     const [mounted, setMounted] = useState(false)
     const [liveStats, setLiveStats] = useState<{ tvl: string; poolLiquidity: string; activeVaults: number } | null>({
-        tvl: '20000000000000',          // $20M USDC (20_000_000 × 1e6)
-        poolLiquidity: '15000000000000', // $15M USDC
-        activeVaults: 25,
+        tvl:           '20000000000000',
+        poolLiquidity: '15000000000000',
+        activeVaults:  25,
     })
-    const [hoveredFlywheel, setHoveredFlywheel] = useState<number | null>(null)
+    const [vaults, setVaults] = useState<ApiVault[]>([])
     const [showWaitlist, setShowWaitlist] = useState(false)
     const [waitlistEmail, setWaitlistEmail] = useState('')
     const [waitlistLoading, setWaitlistLoading] = useState(false)
     const [waitlistDone, setWaitlistDone] = useState(false)
     const [waitlistError, setWaitlistError] = useState('')
-    const [activeProblem, setActiveProblem] = useState(0)
-    const [investorCardVisible, setInvestorCardVisible] = useState(false)
-    const investorCardRef = useRef<HTMLDivElement>(null)
-    const [merchantCardVisible, setMerchantCardVisible] = useState(false)
-    const [merchantScore, setMerchantScore] = useState(0)
-    const merchantCardRef = useRef<HTMLDivElement>(null)
 
-    useEffect(() => {
-        platformApi.stats().then(({ data }) => setLiveStats(data)).catch(() => {})
-    }, [])
+    // Ticker offset for the stats bar
+    const tickerRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         setMounted(true)
+        platformApi.stats().then(({ data }) => setLiveStats(data)).catch(() => {})
+        vaultsApi.list().then(({ data }) => setVaults(data.vaults.slice(0, 6))).catch(() => {})
     }, [])
 
-    // Auto-advance problem showcase
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setActiveProblem(prev => (prev + 1) % 3)
-        }, 4000)
-        return () => clearInterval(timer)
-    }, [])
-
-    useEffect(() => {
-        const node = investorCardRef.current
-        if (!node) return
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    setInvestorCardVisible(true)
-                    observer.disconnect()
-                }
-            },
-            { threshold: 0.3 }
-        )
-        observer.observe(node)
-        return () => observer.disconnect()
-    }, [])
-
-    useEffect(() => {
-        const node = merchantCardRef.current
-        if (!node) return
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    setMerchantCardVisible(true)
-                    observer.disconnect()
-                }
-            },
-            { threshold: 0.3 }
-        )
-        observer.observe(node)
-        return () => observer.disconnect()
-    }, [])
-
-    useEffect(() => {
-        if (!merchantCardVisible) return
-        const target = 785
-        const duration = 1200
-        const startTime = performance.now()
-        let rafId: number
-        const animate = (now: number) => {
-            const elapsed = now - startTime
-            const progress = Math.min(elapsed / duration, 1)
-            const eased = 1 - Math.pow(1 - progress, 3)
-            setMerchantScore(Math.round(eased * target))
-            if (progress < 1) {
-                rafId = requestAnimationFrame(animate)
-            }
-        }
-        rafId = requestAnimationFrame(animate)
-        return () => cancelAnimationFrame(rafId)
-    }, [merchantCardVisible])
-
-    // GSAP ScrollTrigger animations for all non-hero sections
-    useScrollAnimations()
-
-    const flywheelCards = [
-        { num: '01', title: 'Payments generate data', desc: 'Every x402 transaction creates verifiable, on-chain payment history that no bank or credit bureau can replicate.', color: '#2CFF05', hoverBg: '#0a2d05' },
-        { num: '02', title: 'Data unlocks credit', desc: 'FairScale scores — built from live revenue data — enable access to structured credit pools without collateral.', color: '#00FFF0', hoverBg: '#052d2a' },
-        { num: '03', title: 'Credit grows business', desc: 'Working capital funds inventory, expansion, and new markets. Businesses grow faster with programmatic access to capital.', color: '#FF2A55', hoverBg: '#2d0515' },
-        { num: '04', title: 'Growth fuels payments', desc: 'Larger businesses process more volume through Krexa, feeding the credit engine and restarting the cycle.', color: '#FF5C00', hoverBg: '#2d1505' },
-    ]
-
-    const problemSlides = [
-        {
-            cardTitle: 'Traditional Finance',
-            cardDetail: '65% of global SMEs cannot access formal credit. Banks demand collateral, physical presence, and 4–6 week review cycles. Productive businesses are locked out.',
-            icon: <AnimatedCoinStackIcon size={120} />,
-            headline: 'Legacy credit',
-            desc: 'Collateral-based systems exclude productive businesses from capital markets.',
-        },
-        {
-            cardTitle: 'DeFi Lending Today',
-            cardDetail: 'Overcollateralized protocols cannot evaluate real businesses. 150% collateral requirements make DeFi credit pointless for working capital.',
-            icon: <AnimatedVaultIcon size={120} />,
-            headline: 'Broken DeFi',
-            desc: 'Current protocols ignore real-world productivity and cash flow entirely.',
-        },
-        {
-            cardTitle: 'No Enforcement Layer',
-            cardDetail: 'Capital pools exist. Borrowers exist. But there is no mechanism to verify revenue, route repayment from cash flow, or enforce terms without courts.',
-            icon: <AnimatedLockIcon size={120} />,
-            headline: 'Missing infrastructure',
-            desc: 'Capital cannot follow commerce — no protocol routes repayment from revenue.',
-        },
-    ]
+    const tvlNum  = liveStats ? weiToNumber(liveStats.tvl) : 0
+    const liqNum  = liveStats ? weiToNumber(liveStats.poolLiquidity) : 0
+    const fmt     = (v: number) => v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${(v / 1e3).toFixed(0)}K` : `$${v.toFixed(0)}`
 
     return (
-        <div id="home-scroller" className={styles.home}>
+        <div className={styles.home}>
 
-            {/* ── Hero ── */}
+            {/* ══════════════════════════════════════════════════════════
+                SECTION 1 — HERO  +  REVENUE ROUTING NODE
+                ══════════════════════════════════════════════════════════ */}
             <section className={styles.hero} id="hero">
-                <TigerCanvas opacity={0.55} />
-                <div className={styles.heroContent}>
-                    <span className={`${styles.overline} ${mounted ? styles.visible : ''}`}>
-                        The Programmable Credit Network
-                    </span>
+                {/* subtle radial glow */}
+                <div className={styles.heroBg} />
 
-                    <h1 className={styles.headline}>
-                        <span className={`${styles.line} ${mounted ? styles.visible : ''}`}>
-                            <DecryptedText
-                                text="Revenue-Backed"
-                                parentClassName={styles.decryptedWord}
-                                encryptedClassName={styles.encryptedChar}
-                                animateOn="view"
-                                speed={40}
-                                maxIterations={40}
-                                sequential={true}
-                                revealDirection="start"
-                            />
-                        </span>
-                        <span className={`${styles.line} ${styles.line2} ${mounted ? styles.visible : ''}`}>
-                            <DecryptedText
-                                text="Programmable Credit"
-                                parentClassName={styles.decryptedGradient}
-                                encryptedClassName={styles.encryptedChar}
-                                animateOn="view"
-                                speed={40}
-                                maxIterations={40}
-                                sequential={true}
-                                revealDirection="start"
-                            />
-                        </span>
-                    </h1>
+                <div className={`${styles.heroInner} ${mounted ? styles.heroReady : ''}`}>
+                    {/* ── Left: text ── */}
+                    <div className={styles.heroText}>
+                        <span className={styles.overline}>The Programmable Credit Network</span>
 
-                    <p className={`${styles.subtitle} ${mounted ? styles.visible : ''}`}>
-                        Lend against enforceable payment flow — not collateral, not reputation.
-                        <br />
-                        <span className={styles.subtitleHighlight}>When revenue is programmable, repayment becomes automatic.</span>
+                        <h1 className={styles.headline}>
+                            <span className={styles.headlineLine}>
+                                <DecryptedText
+                                    text="Revenue-Backed"
+                                    parentClassName={styles.decryptedWord}
+                                    encryptedClassName={styles.encryptedChar}
+                                    animateOn="view"
+                                    speed={40}
+                                    maxIterations={40}
+                                    sequential
+                                    revealDirection="start"
+                                />
+                            </span>
+                            <span className={`${styles.headlineLine} ${styles.headlineGradient}`}>
+                                <DecryptedText
+                                    text="Programmable Credit"
+                                    parentClassName={styles.decryptedGradient}
+                                    encryptedClassName={styles.encryptedChar}
+                                    animateOn="view"
+                                    speed={40}
+                                    maxIterations={40}
+                                    sequential
+                                    revealDirection="start"
+                                />
+                            </span>
+                        </h1>
+
+                        <p className={styles.subtitle}>
+                            Lend against enforceable payment flow — not collateral, not reputation.{' '}
+                            <span className={styles.subtitleAccent}>
+                                When revenue is programmable, repayment becomes automatic.
+                            </span>
+                        </p>
+
+                        <div className={styles.heroCta}>
+                            <NoiseBackground gradientColors={['#FF5C00', '#CC4A00', '#FF8533']}>
+                                <button className={styles.primaryBtn} onClick={() => navigate('/app/vaults')}>
+                                    Launch App
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                        <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                </button>
+                            </NoiseBackground>
+                            <button className={styles.secondaryBtn} onClick={() => setShowWaitlist(true)}>
+                                Join Waitlist
+                            </button>
+                        </div>
+
+                        {/* Hero mini-stats */}
+                        <div className={styles.heroStats}>
+                            <div className={styles.heroStat}>
+                                <AnimatedNumber value={tvlNum} format={fmt} className={styles.heroStatVal} />
+                                <span className={styles.heroStatLabel}>TVL</span>
+                            </div>
+                            <div className={styles.heroStatDiv} />
+                            <div className={styles.heroStat}>
+                                <AnimatedNumber value={liqNum} format={fmt} className={styles.heroStatVal} />
+                                <span className={styles.heroStatLabel}>Pool Liquidity</span>
+                            </div>
+                            <div className={styles.heroStatDiv} />
+                            <div className={styles.heroStat}>
+                                <AnimatedNumber value={liveStats?.activeVaults ?? 0} decimals={0} className={styles.heroStatVal} />
+                                <span className={styles.heroStatLabel}>Active Vaults</span>
+                            </div>
+                            <div className={styles.heroStatDiv} />
+                            <div className={styles.heroStat}>
+                                <span className={styles.heroStatVal}>100%</span>
+                                <span className={styles.heroStatLabel}>On-Chain</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ── Right: animated node ── */}
+                    <div className={styles.heroNode}>
+                        <RevenueRoutingNode className={styles.nodesvg} />
+                        <p className={styles.nodeCaption}>Every payment routed & split on-chain</p>
+                    </div>
+                </div>
+
+                {/* Scroll indicator */}
+                <div className={`${styles.scrollIndicator} ${mounted ? styles.scrollVisible : ''}`}>
+                    <div className={styles.scrollLine} />
+                </div>
+            </section>
+
+            {/* ══════════════════════════════════════════════════════════
+                SECTION 2 — LIVE STATS TICKER BAR
+                ══════════════════════════════════════════════════════════ */}
+            <div className={styles.statsBar}>
+                <div className={styles.statsBarInner} ref={tickerRef}>
+                    {[
+                        { label: 'TVL',            val: tvlNum,                   fmt },
+                        { label: 'Pool Liquidity', val: liqNum,                   fmt },
+                        { label: 'Active Vaults',  val: liveStats?.activeVaults ?? 0, fmt: (v: number) => v.toFixed(0) },
+                        { label: 'Protocol',       val: 0, fmt: () => 'x402'        },
+                        { label: 'Network',        val: 0, fmt: () => 'Base'         },
+                        { label: 'On-Chain',       val: 100, fmt: (v: number) => `${v.toFixed(0)}%` },
+                    ].map((item, i) => (
+                        <span key={i} className={styles.statsBarItem}>
+                            <span className={styles.statsBarLabel}>{item.label}</span>
+                            <span className={styles.statsBarVal}>{item.fmt(item.val)}</span>
+                            <span className={styles.statsBarSep}>·</span>
+                        </span>
+                    ))}
+                </div>
+            </div>
+
+            {/* ══════════════════════════════════════════════════════════
+                SECTION 3 — HOW IT WORKS (3 steps)
+                ══════════════════════════════════════════════════════════ */}
+            <section className={styles.hiwSection} id="how-it-works">
+                <div className={styles.sectionContainer}>
+                    <div className={styles.sectionHeader}>
+                        <span className={styles.sectionLabel}>How It Works</span>
+                        <h2 className={styles.sectionTitle}>Three steps to <span className={styles.gradientInline}>programmable credit</span></h2>
+                    </div>
+
+                    <div className={styles.stepsGrid}>
+                        {[
+                            {
+                                step: '01',
+                                title: 'Route payments through Krexa',
+                                desc:  'Bill customers using x402 endpoints. Every payment is recorded on-chain as verifiable revenue history — your living credit profile.',
+                                color: '#3b82f6',
+                                icon: (
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                        <path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" />
+                                    </svg>
+                                ),
+                            },
+                            {
+                                step: '02',
+                                title: 'Access working capital instantly',
+                                desc:  'Your FairScale score unlocks structured credit vaults. No collateral needed — your revenue consistency is the underwriting signal.',
+                                color: '#FF5C00',
+                                icon: (
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                    </svg>
+                                ),
+                            },
+                            {
+                                step: '03',
+                                title: 'Repayment happens automatically',
+                                desc:  'Incoming payments auto-split via waterfall — senior lenders first, then pool, community, finally merchant. Enforced by smart contract, no manual installments.',
+                                color: '#22c55e',
+                                icon: (
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                        <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+                                    </svg>
+                                ),
+                            },
+                        ].map((s, i) => (
+                            <div key={i} className={styles.stepCard} style={{ '--step-color': s.color } as React.CSSProperties}>
+                                <div className={styles.stepIconWrap} style={{ color: s.color }}>
+                                    {s.icon}
+                                </div>
+                                <span className={styles.stepNum}>{s.step}</span>
+                                <h3 className={styles.stepTitle}>{s.title}</h3>
+                                <p className={styles.stepDesc}>{s.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* ══════════════════════════════════════════════════════════
+                SECTION 4 — LIVE VAULTS PREVIEW
+                ══════════════════════════════════════════════════════════ */}
+            <section className={styles.vaultsSection} id="vaults">
+                <div className={styles.sectionContainer}>
+                    <div className={styles.vaultsSectionHeader}>
+                        <div>
+                            <span className={styles.sectionLabel}>Live Vaults</span>
+                            <h2 className={styles.sectionTitle}>On-chain credit in <span className={styles.gradientInline}>real time</span></h2>
+                        </div>
+                        <button className={styles.viewAllBtn} onClick={() => navigate('/app/vaults')}>
+                            View All Vaults →
+                        </button>
+                    </div>
+
+                    {vaults.length === 0 ? (
+                        <div className={styles.vaultsEmpty}>Loading vaults…</div>
+                    ) : (
+                        <div className={styles.vaultsGrid}>
+                            {vaults.map(v => <VaultMiniCard key={v.address} vault={v} />)}
+                        </div>
+                    )}
+                </div>
+            </section>
+
+            {/* ══════════════════════════════════════════════════════════
+                SECTION 5 — WHY KREXA COMPARISON TABLE
+                ══════════════════════════════════════════════════════════ */}
+            <section className={styles.compareSection} id="why-krexa">
+                <div className={styles.sectionContainer}>
+                    <div className={styles.sectionHeader}>
+                        <span className={styles.sectionLabel}>Why Krexa</span>
+                        <h2 className={styles.sectionTitle}>What <span className={styles.gradientInline}>existing infrastructure</span> cannot do</h2>
+                    </div>
+
+                    <div className={styles.compareTable}>
+                        {/* Header row */}
+                        <div className={styles.compareRow + ' ' + styles.compareHeader}>
+                            <span />
+                            <span className={styles.compareColLabel}>Traditional Bank</span>
+                            <span className={styles.compareColLabel}>DeFi Protocols</span>
+                            <span className={`${styles.compareColLabel} ${styles.compareColKrexa}`}>Krexa</span>
+                        </div>
+
+                        {[
+                            { feature: 'Credit assessment',       bank: 'Annual review',           defi: 'None',               krexa: 'Real-time x402 data' },
+                            { feature: 'Collateral required',     bank: 'Physical assets',          defi: '150%+ overcollat.',  krexa: 'Revenue history' },
+                            { feature: 'Repayment enforcement',   bank: 'Legal process',           defi: 'Liquidation',        krexa: 'Smart contract auto-split' },
+                            { feature: 'Settlement time',         bank: '4–6 weeks',               defi: 'Instant, but risky', krexa: 'Instant, enforceable' },
+                            { feature: 'Global liquidity',        bank: 'Restricted',              defi: 'Permissionless',     krexa: 'Permissionless' },
+                            { feature: 'Transparency',            bank: 'Opaque',                  defi: 'On-chain',           krexa: 'Fully on-chain' },
+                        ].map((row, i) => (
+                            <div key={i} className={styles.compareRow}>
+                                <span className={styles.compareFeature}>{row.feature}</span>
+                                <span className={styles.compareCell + ' ' + styles.compareNeg}>{row.bank}</span>
+                                <span className={styles.compareCell + ' ' + styles.compareMid}>{row.defi}</span>
+                                <span className={styles.compareCell + ' ' + styles.comparePos}>{row.krexa}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* ══════════════════════════════════════════════════════════
+                SECTION 6 — CTA FOOTER BAND
+                ══════════════════════════════════════════════════════════ */}
+            <section className={styles.ctaBand}>
+                <div className={styles.ctaBandInner}>
+                    <h2 className={styles.ctaTitle}>Ready to connect your revenue to capital?</h2>
+                    <p className={styles.ctaSubtitle}>
+                        Whether you're a merchant seeking working capital or an investor seeking structured yield —
+                        Krexa is the only protocol where repayment is automatic.
                     </p>
-
-                    <div className={`${styles.cta} ${mounted ? styles.visible : ''}`}>
+                    <div className={styles.ctaActions}>
                         <NoiseBackground gradientColors={['#FF5C00', '#CC4A00', '#FF8533']}>
                             <button className={styles.primaryBtn} onClick={() => navigate('/app/vaults')}>
-                                <span>Launch App</span>
+                                Launch App
                                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                                     <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                             </button>
                         </NoiseBackground>
                         <button className={styles.secondaryBtn} onClick={() => setShowWaitlist(true)}>
-                            <span>Join Waitlist</span>
+                            Join Waitlist
                         </button>
                     </div>
-
-                    {/* ── Waitlist Modal ── */}
-                    {showWaitlist && (
-                        <div className={styles.waitlistBackdrop} onClick={() => { if (!waitlistLoading) setShowWaitlist(false) }}>
-                            <div className={styles.waitlistModal} onClick={e => e.stopPropagation()}>
-                                <button className={styles.waitlistClose} onClick={() => setShowWaitlist(false)} aria-label="Close">✕</button>
-                                {waitlistDone ? (
-                                    <div className={styles.waitlistSuccess}>
-                                        <div className={styles.waitlistSuccessIcon}>✓</div>
-                                        <h3>You're on the list!</h3>
-                                        <p>We'll reach out when early access opens.</p>
-                                        <button className={styles.waitlistDoneBtn} onClick={() => setShowWaitlist(false)}>Close</button>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <h3 className={styles.waitlistTitle}>Get Early Access</h3>
-                                        <p className={styles.waitlistSubtitle}>Be first when Krexa launches. No spam, ever.</p>
-                                        {waitlistError && <p className={styles.waitlistError}>{waitlistError}</p>}
-                                        <form className={styles.waitlistForm} onSubmit={async (e) => {
-                                            e.preventDefault()
-                                            if (!waitlistEmail.trim()) return
-                                            setWaitlistLoading(true)
-                                            setWaitlistError('')
-                                            try {
-                                                await waitlistApi.join(waitlistEmail.trim())
-                                                setWaitlistDone(true)
-                                            } catch (err: unknown) {
-                                                const msg = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data?.message
-                                                    || (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data?.error
-                                                    || 'Something went wrong. Try again.'
-                                                setWaitlistError(msg)
-                                            } finally {
-                                                setWaitlistLoading(false)
-                                            }
-                                        }}>
-                                            <input
-                                                type="email"
-                                                className={styles.waitlistInput}
-                                                placeholder="your@email.com"
-                                                value={waitlistEmail}
-                                                onChange={e => setWaitlistEmail(e.target.value)}
-                                                required
-                                                autoFocus
-                                            />
-                                            <button
-                                                type="submit"
-                                                className={styles.waitlistSubmit}
-                                                disabled={waitlistLoading || !waitlistEmail.trim()}
-                                            >
-                                                {waitlistLoading ? 'Joining...' : 'Join Waitlist'}
-                                            </button>
-                                        </form>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    <div className={`${styles.stats} ${mounted ? styles.visible : ''}`}>
-                        <div className={styles.stat}>
-                            {liveStats
-                                ? <AnimatedNumber
-                                    value={weiToNumber(liveStats.tvl)}
-                                    format={(v) => v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${(v / 1e3).toFixed(0)}K` : `$${v.toFixed(0)}`}
-                                    className={styles.statValue}
-                                />
-                                : <span className={styles.statValue}>$—</span>
-                            }
-                            <span className={styles.statLabel}>TVL</span>
-                        </div>
-                        <div className={styles.statDivider} />
-                        <div className={styles.stat}>
-                            {liveStats
-                                ? <AnimatedNumber
-                                    value={weiToNumber(liveStats.poolLiquidity)}
-                                    format={(v) => v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${(v / 1e3).toFixed(0)}K` : `$${v.toFixed(0)}`}
-                                    className={styles.statValue}
-                                />
-                                : <span className={styles.statValue}>$—</span>
-                            }
-                            <span className={styles.statLabel}>Pool Liquidity</span>
-                        </div>
-                        <div className={styles.statDivider} />
-                        <div className={styles.stat}>
-                            {liveStats
-                                ? <AnimatedNumber value={liveStats.activeVaults} decimals={0} className={styles.statValue} />
-                                : <span className={styles.statValue}>—</span>
-                            }
-                            <span className={styles.statLabel}>Active Vaults</span>
-                        </div>
-                        <div className={styles.statDivider} />
-                        <div className={styles.stat}>
-                            <AnimatedNumber value={100} suffix="%" decimals={0} className={styles.statValue} />
-                            <span className={styles.statLabel}>On-Chain</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className={`${styles.scrollIndicator} ${mounted ? styles.visible : ''}`}>
-                    <div className={styles.scrollLine} />
                 </div>
             </section>
 
-            {/* ── Cinematic Brand Break ── */}
-            <section className={styles.cinematicSection} id="cinematic">
-                <div className={styles.cinematicImageWrap}>
-                    <picture>
-                        <source srcSet="/images/mustang-hero.webp" type="image/webp" />
-                        <img
-                            src="/images/mustang-hero.jpg"
-                            alt="Orange Shelby GT500 at speed"
-                            className={styles.cinematicImage}
-                            loading="lazy"
-                        />
-                    </picture>
-                    <div className={styles.cinematicOverlay} />
-                </div>
-                <div data-anim="cinematic-content" className={styles.cinematicContent}>
-                    <div className={styles.cinematicTextBlock}>
-                        <span className={styles.cinematicLabel}>Krexa powers DeFi Credit</span>
-                        <p className={styles.cinematicHeadline}>
-                            From structured vaults to instant settlements — <span className={styles.cinematicAccent}>Krexa is building the future of on-chain credit.</span>
-                        </p>
-                    </div>
-                    <div className={styles.cinematicStats}>
-                        <div className={styles.cinematicStat}>
-                            <span className={styles.cinematicStatValue}>
-                                {liveStats
-                                    ? <AnimatedNumber
-                                        value={weiToNumber(liveStats.tvl)}
-                                        format={(v) => v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M+` : v >= 1e3 ? `$${(v / 1e3).toFixed(0)}K+` : `$${v.toFixed(0)}`}
-                                    />
-                                    : '$0'
-                                }
-                            </span>
-                            <span className={styles.cinematicStatLabel}>Total Value Locked</span>
-                        </div>
-                        <div className={styles.cinematicStat}>
-                            <span className={styles.cinematicStatValue}>
-                                {liveStats
-                                    ? <AnimatedNumber value={liveStats.activeVaults} decimals={0} />
-                                    : '0'
-                                }
-                            </span>
-                            <span className={styles.cinematicStatLabel}>Active Vaults</span>
-                        </div>
-                        <div className={styles.cinematicStat}>
-                            <span className={styles.cinematicStatValue}>100%</span>
-                            <span className={styles.cinematicStatLabel}>On-Chain</span>
-                        </div>
-                        <div className={styles.cinematicStat}>
-                            <span className={styles.cinematicStatValue}>x402</span>
-                            <span className={styles.cinematicStatLabel}>Protocol Standard</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* ── The Problem — Square cards with pixel art ── */}
-            <section className={styles.problemSection} id="problem">
-                <div className={styles.sectionContainer}>
-                    <div className={styles.sectionHeader}>
-                        <span className={styles.sectionLabel}>The Problem</span>
-                        <h2 className={styles.sectionTitle}>Why existing systems <span className={styles.gradientInline}>fail</span></h2>
-                        <p className={styles.problemDesc}>
-                            $65 trillion in global SME credit demand goes unmet every year. Legacy banks require
-                            collateral. DeFi ignores revenue. Neither can underwrite a real business.
-                        </p>
-                    </div>
-
-                    <div className={styles.problemShowcase}>
-                        <ProblemBackground activeProblem={activeProblem} className={styles.problemBg} />
-                        <div className={styles.showcaseStage}>
-                            {problemSlides.map((slide, i) => (
-                                <div
-                                    key={i}
-                                    className={`${styles.showcaseCard} ${
-                                        activeProblem === i ? styles.showcaseCardActive :
-                                        activeProblem === (i + 1) % problemSlides.length ? styles.showcaseCardPrev :
-                                        styles.showcaseCardNext
-                                    }`}
-                                >
-                                    <div className={styles.showcaseCardPixel}>
-                                        {slide.icon}
-                                    </div>
-                                    <h3 className={styles.showcaseCardTitle}>{slide.cardTitle}</h3>
-                                    <p className={styles.showcaseCardDesc}>{slide.cardDetail}</p>
-                                </div>
-                            ))}
-                        </div>
-                        <div className={styles.showcaseDots}>
-                            {problemSlides.map((_, i) => (
-                                <button
-                                    key={i}
-                                    className={`${styles.showcaseDot} ${activeProblem === i ? styles.showcaseDotActive : ''}`}
-                                    onClick={() => setActiveProblem(i)}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                    <p className={styles.problemCallout}>
-                        Krexa solves this with a single primitive: <strong>revenue-backed, programmable credit.</strong>
-                    </p>
-                </div>
-            </section>
-
-            {/* ── How It Works — 1inch-style Horizontal Card Carousel ── */}
-            <section className={styles.hiwSection} id="how-it-works">
-                <div className={styles.hiwInner}>
-                    <div className={styles.hiwHeading}>
-                        <span className={styles.sectionLabel}>How It Works</span>
-                        <h2 className={styles.sectionTitle}>Five primitives. <span className={styles.gradientInline}>One protocol.</span></h2>
-                        <p className={styles.hiwSubtitle}>Route. Score. Borrow. Fund. Repay. Everything on-chain.</p>
-                    </div>
-                    <div data-anim="hiw-track" className={styles.hiwTrack}>
-                        <div className={styles.hiwCard} style={{ background: '#2CFF05' }}>
-                            <span className={styles.hiwStep}>01</span>
-                            <span className={styles.hiwBadge}>Payment Routing</span>
-                            <h3 className={styles.hiwCardTitle}>Route payments through Krexa</h3>
-                            <p className={styles.hiwCardDesc}>Businesses bill customers using Krexa x402 payment endpoints. Customers pay via local rails or stablecoins. Every transaction is recorded on-chain as verifiable payment history.</p>
-                            <div className={styles.hiwCardDetail}><span>Supports USDC, local bank rails, and card payments via on-ramp partners.</span></div>
-                            <button className={styles.hiwCardBtn} onClick={() => navigate('/merchant')}>Learn More</button>
-                        </div>
-                        <div className={styles.hiwCard} style={{ background: '#00FFF0' }}>
-                            <span className={styles.hiwStep}>02</span>
-                            <span className={styles.hiwBadge}>Financial Identity</span>
-                            <h3 className={styles.hiwCardTitle}>Build a live credit profile</h3>
-                            <p className={styles.hiwCardDesc}>Transaction behaviour builds a live credit profile — revenue consistency, volume, frequency, counterparty diversity. Your FairScale score updates with every payment, not once a year.</p>
-                            <div className={styles.hiwCardDetail}><span>FairScale scores range 0–1000 across four credit tiers: A, B, C, D.</span></div>
-                            <button className={styles.hiwCardBtn} onClick={() => navigate('/merchant')}>Learn More</button>
-                        </div>
-                        <div className={styles.hiwCard} style={{ background: '#FFD700' }}>
-                            <span className={styles.hiwStep}>03</span>
-                            <span className={styles.hiwBadge}>Capital Advance</span>
-                            <h3 className={styles.hiwCardTitle}>Access working capital instantly</h3>
-                            <p className={styles.hiwCardDesc}>Request working capital, invoice financing, or trade finance against your receivables. Typical cost: ~2% monthly. No collateral needed — your revenue history is the collateral.</p>
-                            <div className={styles.hiwCardDetail}><span>Loan terms from 3–12 months. Structured vault with milestone-gated tranches.</span></div>
-                            <button className={styles.hiwCardBtn} onClick={() => navigate('/vaults')}>Learn More</button>
-                        </div>
-                        <div className={styles.hiwCard} style={{ background: '#FF2A55' }}>
-                            <span className={`${styles.hiwStep} ${styles.hiwStepLight}`}>04</span>
-                            <span className={`${styles.hiwBadge} ${styles.hiwBadgeLight}`}>Liquidity Funding</span>
-                            <h3 className={`${styles.hiwCardTitle} ${styles.hiwCardTitleLight}`}>Fund through structured tranches</h3>
-                            <p className={`${styles.hiwCardDesc} ${styles.hiwCardDescLight}`}>On-chain vaults fund loans via structured tranches — senior lenders get priority repayment, liquidity pools provide stable backing, and community investors earn higher yield at higher risk.</p>
-                            <div className={`${styles.hiwCardDetail} ${styles.hiwCardDetailLight}`}><span>Waterfall distribution: Senior &rarr; Pool &rarr; Community &rarr; Merchant.</span></div>
-                            <button className={styles.hiwCardBtn} onClick={() => navigate('/pools')}>Learn More</button>
-                        </div>
-                        <div className={styles.hiwCard} style={{ background: '#FFFFFF' }}>
-                            <span className={styles.hiwStep}>05</span>
-                            <span className={styles.hiwBadge}>Automated Repayment</span>
-                            <h3 className={styles.hiwCardTitle}>Repayment happens automatically</h3>
-                            <p className={styles.hiwCardDesc}>Incoming payments auto-split: lender repayment first, remaining balance to the merchant. No manual installments, no missed payments. Late fees are calculated and enforced on-chain.</p>
-                            <div className={styles.hiwCardDetail}><span>x402 settlement splits enforce repayment at the protocol layer.</span></div>
-                            <button className={styles.hiwCardBtn} onClick={() => navigate('/vaults')}>Learn More</button>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* ── Capital Structure / Waterfall ── */}
-            <section className={`${styles.capitalSection} ${styles.dividerBottom} ${styles.dividerToGreen}`} id="capital">
-                <div className={styles.sectionContainer}>
-                    <div data-anim="capital-header" className={styles.sectionHeader}>
-                        <span className={styles.sectionLabel}>Capital Structure</span>
-                        <h2 className={styles.sectionTitle}>Structured liquidity with <span className={styles.gradientInline}>waterfall repayment</span></h2>
-                        <p className={styles.sectionDesc}>
-                            Each vault is funded through three layers of capital. When revenue flows in,
-                            repayment cascades top-down — senior lenders are paid first, then liquidity pools,
-                            then community investors. The merchant receives surplus only after all obligations are met.
-                        </p>
-                    </div>
-                    <WaterfallFlow />
-                </div>
-            </section>
-
-            {/* ── For Investors ── */}
-            <section className={`${styles.forUsers} ${styles.dividerBottom} ${styles.dividerToPurple}`} id="for-users">
-                <InvestorBackground className={styles.investorBg} />
-                <div className={styles.sectionContainer}>
-                    <div className={styles.splitSection}>
-                        <div data-anim="forusers-content" className={styles.splitContent}>
-                            <span className={styles.sectionLabel}>For Investors</span>
-                            <h2 className={styles.splitTitle}>Earn yield from <span className={styles.gradientInline}>real revenue</span></h2>
-                            <p className={styles.splitDesc}>
-                                Fund merchant vaults and earn returns backed by actual business cash flow.
-                                Repayment is enforced by the protocol at the smart-contract level — not by
-                                borrower goodwill, not by legal process.
-                            </p>
-                            <ul className={styles.featureList}>
-                                <li><span className={styles.checkIcon}>✓</span> Structured tranches — choose your risk/return profile</li>
-                                <li><span className={styles.checkIcon}>✓</span> Waterfall protection — senior tranche is always paid first</li>
-                                <li><span className={styles.checkIcon}>✓</span> Continuous yield from x402 payment stream, not periodic coupons</li>
-                                <li><span className={styles.checkIcon}>✓</span> Full transparency — every repayment auditable on BaseScan</li>
-                            </ul>
-                            <button className={styles.outlineBtn} onClick={() => navigate('/app/vaults')}>
-                                Browse Vaults
-                            </button>
-                        </div>
-
-                        <div data-anim="forusers-visual" className={styles.splitVisual}>
-                            <div ref={investorCardRef} className={`${styles.visualCard} ${investorCardVisible ? styles.visualCardAnimated : ''}`}>
-                                <div className={styles.shimmerOverlay} />
-                                <div className={styles.visualCardHeader}>
-                                    <span>Portfolio Overview</span>
-                                    <span className={styles.visualBadge}>
-                                        <span className={styles.liveDot} />
-                                        Live
-                                    </span>
-                                </div>
-                                <div className={styles.visualStat}>
-                                    <span className={styles.visualStatValue}>
-                                        <InvestorCounter visible={investorCardVisible} end={24500} prefix="$" duration={1800} />
-                                    </span>
-                                    <span className={styles.visualStatLabel}>Total Invested</span>
-                                </div>
-                                <div className={styles.visualRow}>
-                                    <div>
-                                        <span className={styles.visualSmallValue}>
-                                            <InvestorCounter visible={investorCardVisible} end={2847} prefix="$" duration={1600} />
-                                        </span>
-                                        <span className={styles.visualSmallLabel}>Returns Earned</span>
-                                    </div>
-                                    <div>
-                                        <span className={styles.visualSmallValue}>
-                                            <InvestorCounter visible={investorCardVisible} end={11.6} prefix="+" suffix="%" decimals={1} duration={1400} />
-                                        </span>
-                                        <span className={styles.visualSmallLabel}>Blended APY</span>
-                                    </div>
-                                </div>
-                                <div className={styles.visualBar}>
-                                    <div className={styles.visualBarFill} style={{ width: investorCardVisible ? '73%' : '0%' }} />
-                                </div>
-                                <div className={styles.visualDivider} />
-                                <div className={styles.visualRow}>
-                                    <div>
-                                        <span className={styles.visualSmallValue}>
-                                            <InvestorCounter visible={investorCardVisible} end={3} duration={800} />
-                                        </span>
-                                        <span className={styles.visualSmallLabel}>Active Vaults</span>
-                                    </div>
-                                    <div>
-                                        <span className={styles.visualSmallValue}>Senior</span>
-                                        <span className={styles.visualSmallLabel}>Primary Tranche</span>
-                                    </div>
-                                </div>
-                                <div className={styles.visualRow}>
-                                    <div>
-                                        <span className={styles.visualSmallValue}>
-                                            <InvestorCounter visible={investorCardVisible} end={18200} prefix="$" duration={1600} />
-                                        </span>
-                                        <span className={styles.visualSmallLabel}>Principal Remaining</span>
-                                    </div>
-                                    <div>
-                                        <span className={styles.visualSmallValue}>
-                                            <InvestorCounter visible={investorCardVisible} end={42} suffix=" days" duration={1200} />
-                                        </span>
-                                        <span className={styles.visualSmallLabel}>Avg. Maturity</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* ── For Merchants ── */}
-            <section className={`${styles.forMerchants} ${styles.dividerBottom} ${styles.dividerToDark}`} id="for-merchants">
-                <MerchantBackground className={styles.merchantBg} />
-                <div className={styles.sectionContainer}>
-                    <div className={`${styles.splitSection} ${styles.splitReverse}`}>
-                        <div data-anim="formerchants-content" className={styles.splitContent}>
-                            <span className={styles.sectionLabel}>For Merchants</span>
-                            <h2 className={styles.splitTitle}>Stream capital as you <span className={styles.gradientInline}>perform</span></h2>
-                            <p className={styles.splitDesc}>
-                                Bill through Krexa x402 endpoints. Your payment history becomes your credit score
-                                in real-time. Access working capital, invoice financing, or trade finance — up to 12 months,
-                                with rates that improve as your FairScale score grows.
-                            </p>
-                            <ul className={styles.featureList}>
-                                <li><span className={styles.checkIcon}>✓</span> x402 payment endpoints — plug into any billing system via API</li>
-                                <li><span className={styles.checkIcon}>✓</span> No collateral required — credit scored purely by revenue flow</li>
-                                <li><span className={styles.checkIcon}>✓</span> Auto-repayment from incoming payments — no manual installments</li>
-                                <li><span className={styles.checkIcon}>✓</span> Better rates as your FairScale score improves over time</li>
-                            </ul>
-                            <button className={styles.outlineBtn} onClick={() => navigate('/app/merchant')}>
-                                Apply for Funding
-                            </button>
-                        </div>
-
-                        <div data-anim="formerchants-visual" className={styles.splitVisual}>
-                            <div ref={merchantCardRef} className={`${styles.visualCard} ${merchantCardVisible ? styles.merchantCardAnimated : ''}`}>
-                                <div className={styles.merchantCardScanline} />
-                                <div className={styles.visualCardHeader}>
-                                    <span>Merchant Profile</span>
-                                    <span className={`${styles.visualBadgeGreen} ${merchantCardVisible ? styles.badgePopIn : ''}`}>Excellent</span>
-                                </div>
-                                <div className={styles.creditScore}>
-                                    <div className={`${styles.creditRingGlow} ${merchantCardVisible ? styles.creditRingGlowActive : ''}`} />
-                                    <span className={styles.creditValue}>{merchantScore}</span>
-                                    <svg className={styles.creditRing} viewBox="0 0 100 100">
-                                        <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="8" />
-                                        <circle cx="50" cy="50" r="45" fill="none" stroke="#FFFFFF" strokeWidth="8" strokeDasharray="220" strokeDashoffset={merchantCardVisible ? 50 : 220} strokeLinecap="round" transform="rotate(-90 50 50)" className={styles.creditRingProgress} />
-                                    </svg>
-                                </div>
-                                <div className={styles.creditDetails}>
-                                    {[
-                                        { label: 'FairScale Score', value: 'Tier A' },
-                                        { label: 'Revenue Consistency', value: '98%' },
-                                        { label: 'x402 Payments Processed', value: '1,247' },
-                                        { label: 'Total Capital Accessed', value: '$185,000' },
-                                        { label: 'Current Repayment Rate', value: '100%' },
-                                        { label: 'Active Vault', value: '1 of 2' },
-                                    ].map((row, i) => (
-                                        <div
-                                            key={i}
-                                            className={`${styles.creditDetailRow} ${merchantCardVisible ? styles.creditDetailRowVisible : ''}`}
-                                            style={{ transitionDelay: merchantCardVisible ? `${0.6 + i * 0.1}s` : '0s' }}
-                                        >
-                                            <span>{row.label}</span><span>{row.value}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* ── The Economic Flywheel — pinned scatter cards ── */}
-            <section
-                className={`${styles.flywheelSection} ${styles.dividerBottom} ${styles.dividerToCyan}`}
-                id="flywheel"
-                style={{
-                    backgroundColor: hoveredFlywheel !== null ? flywheelCards[hoveredFlywheel].hoverBg : undefined,
-                    transition: 'background-color 0.8s cubic-bezier(.4, 0, .2, 1)',
-                }}
-            >
-                <div className={styles.flywheelScatter}>
-                    {flywheelCards.map((card, i) => (
-                        <div
-                            key={i}
-                            data-anim="flywheel-card"
-                            className={`${styles.scatterCard} ${styles[`scatterPos${i}` as keyof typeof styles]} ${hoveredFlywheel !== null && hoveredFlywheel !== i ? styles.scatterDimmed : ''}`}
-                            onMouseEnter={() => setHoveredFlywheel(i)}
-                            onMouseLeave={() => setHoveredFlywheel(null)}
-                            style={{
-                                borderColor: hoveredFlywheel === i ? card.color : undefined,
-                                boxShadow: hoveredFlywheel === i ? `0 0 40px ${card.color}33, 0 8px 32px rgba(0,0,0,0.3)` : undefined,
-                            } as React.CSSProperties}
-                        >
-                            <span className={styles.scatterCardNum}>{card.num}</span>
-                            <h4 className={styles.scatterCardTitle}>{card.title}</h4>
-                            <p className={styles.scatterCardDesc}>{card.desc}</p>
-                        </div>
-                    ))}
-
-                    <div data-anim="flywheel-center" className={styles.flywheelCenterText}>
-                        <span className={styles.sectionLabel}>The Flywheel</span>
-                        <h2 className={styles.sectionTitle}>Every payment builds the next loan.</h2>
-                        <p className={styles.flywheelSubtext}>
-                            Payments generate data. Data unlocks credit. Credit grows revenue. Revenue drives more payments. The loop never stops.
-                        </p>
-                    </div>
-                </div>
-            </section>
-
-            {/* ── Why Blockchain ── */}
-            <section className={styles.security} id="why-blockchain">
-                <div className={styles.sectionContainer}>
-                    <div className={styles.whySplit}>
-                        {/* Left: CardSwap */}
-                        <div className={styles.cardSwapWrapper}>
-                            <CardSwap
-                                width={420}
-                                height={280}
-                                cardDistance={-35}
-                                verticalDistance={30}
-                                delay={1750}
-                                pauseOnHover={true}
-                                skewAmount={-4}
-                                easing="linear"
-                            >
-                                <Card>
-                                    <div className={styles.swapCard}>
-                                        <div className={styles.swapCardHeader}>
-                                            <span className={styles.swapCardNumber}>01</span>
-                                            <div className={styles.swapCardIcon}>
-                                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                                    <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <h3 className={styles.swapCardTitle}>Global Liquidity</h3>
-                                        <p className={styles.swapCardDesc}>Anyone worldwide can provide capital to productive businesses — no geographic restrictions or intermediaries.</p>
-                                    </div>
-                                </Card>
-                                <Card>
-                                    <div className={`${styles.swapCard} ${styles.swapCardAlt}`}>
-                                        <div className={styles.swapCardHeader}>
-                                            <span className={styles.swapCardNumber}>02</span>
-                                            <div className={styles.swapCardIcon}>
-                                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <h3 className={styles.swapCardTitle}>Transparent Yield</h3>
-                                        <p className={styles.swapCardDesc}>Every repayment, fee, and distribution is verifiable on-chain. No hidden charges or opaque intermediaries.</p>
-                                    </div>
-                                </Card>
-                                <Card>
-                                    <div className={styles.swapCard}>
-                                        <div className={styles.swapCardHeader}>
-                                            <span className={styles.swapCardNumber}>03</span>
-                                            <div className={styles.swapCardIcon}>
-                                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <h3 className={styles.swapCardTitle}>Programmable Enforcement</h3>
-                                        <p className={styles.swapCardDesc}>x402 settlement and waterfall splits enforced by smart contracts — not by legal process or human action.</p>
-                                    </div>
-                                </Card>
-                                <Card>
-                                    <div className={`${styles.swapCard} ${styles.swapCardAlt}`}>
-                                        <div className={styles.swapCardHeader}>
-                                            <span className={styles.swapCardNumber}>04</span>
-                                            <div className={styles.swapCardIcon}>
-                                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                                    <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <h3 className={styles.swapCardTitle}>Continuous Underwriting</h3>
-                                        <p className={styles.swapCardDesc}>Credit scores update in real-time from payment data — not from annual reviews or manual audits.</p>
-                                    </div>
-                                </Card>
-                            </CardSwap>
-                        </div>
-
-                        {/* Right: Text */}
-                        <div data-anim="why-text" className={styles.whyText}>
-                            <span className={styles.sectionLabel}>Why Blockchain</span>
-                            <h2 className={styles.sectionTitle}>
-                                <DecryptedText text="What traditional infrastructure " speed={40} animateOn="view" />
-                                <span className={styles.gradientInline}>
-                                    <DecryptedText text="cannot do" speed={40} animateOn="view" />
-                                </span>
-                            </h2>
-                            <p className={styles.whyDesc}>
-                                Blockchain removes every failure point that makes traditional credit inaccessible —
-                                geographic restrictions, opaque intermediaries, manual enforcement, and stale data.
-                                Krexa turns these into protocol-level guarantees.
-                            </p>
-                            <ul className={styles.stepsList}>
-                                <li className={styles.stepsListItem}>
-                                    <span className={styles.stepsListNum}>01</span>
-                                    <div>
-                                        <strong>Global liquidity access</strong>
-                                        <span className={styles.stepsListSub}>Any lender, anywhere in the world, can fund productive businesses.</span>
-                                    </div>
-                                </li>
-                                <li className={styles.stepsListItem}>
-                                    <span className={styles.stepsListNum}>02</span>
-                                    <div>
-                                        <strong>Full auditability</strong>
-                                        <span className={styles.stepsListSub}>Every transaction, repayment, and distribution is verifiable on-chain.</span>
-                                    </div>
-                                </li>
-                                <li className={styles.stepsListItem}>
-                                    <span className={styles.stepsListNum}>03</span>
-                                    <div>
-                                        <strong>Programmatic enforcement</strong>
-                                        <span className={styles.stepsListSub}>Repayment is enforced by smart contracts, not courts or legal process.</span>
-                                    </div>
-                                </li>
-                                <li className={styles.stepsListItem}>
-                                    <span className={styles.stepsListNum}>04</span>
-                                    <div>
-                                        <strong>Real-time underwriting</strong>
-                                        <span className={styles.stepsListSub}>Credit profiles update from live payment data — not annual reviews.</span>
-                                    </div>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* ── Footer — 1inch-style ── */}
+            {/* ══════════════════════════════════════════════════════════
+                FOOTER
+                ══════════════════════════════════════════════════════════ */}
             <footer className={styles.footer}>
                 <div className={styles.footerTop}>
                     <div className={styles.footerBrand}>
@@ -873,6 +406,65 @@ export default function Home() {
                     </div>
                 </div>
             </footer>
+
+            {/* ══════════════════════════════════════════════════════════
+                WAITLIST MODAL
+                ══════════════════════════════════════════════════════════ */}
+            {showWaitlist && (
+                <div className={styles.waitlistBackdrop} onClick={() => { if (!waitlistLoading) setShowWaitlist(false) }}>
+                    <div className={styles.waitlistModal} onClick={e => e.stopPropagation()}>
+                        <button className={styles.waitlistClose} onClick={() => setShowWaitlist(false)} aria-label="Close">✕</button>
+                        {waitlistDone ? (
+                            <div className={styles.waitlistSuccess}>
+                                <div className={styles.waitlistSuccessIcon}>✓</div>
+                                <h3>You're on the list!</h3>
+                                <p>We'll reach out when early access opens.</p>
+                                <button className={styles.waitlistDoneBtn} onClick={() => setShowWaitlist(false)}>Close</button>
+                            </div>
+                        ) : (
+                            <>
+                                <h3 className={styles.waitlistTitle}>Get Early Access</h3>
+                                <p className={styles.waitlistSubtitle}>Be first when Krexa launches. No spam, ever.</p>
+                                {waitlistError && <p className={styles.waitlistError}>{waitlistError}</p>}
+                                <form className={styles.waitlistForm} onSubmit={async (e) => {
+                                    e.preventDefault()
+                                    if (!waitlistEmail.trim()) return
+                                    setWaitlistLoading(true)
+                                    setWaitlistError('')
+                                    try {
+                                        await waitlistApi.join(waitlistEmail.trim())
+                                        setWaitlistDone(true)
+                                    } catch (err: unknown) {
+                                        const msg = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data?.message
+                                            || (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data?.error
+                                            || 'Something went wrong. Try again.'
+                                        setWaitlistError(msg)
+                                    } finally {
+                                        setWaitlistLoading(false)
+                                    }
+                                }}>
+                                    <input
+                                        type="email"
+                                        className={styles.waitlistInput}
+                                        placeholder="your@email.com"
+                                        value={waitlistEmail}
+                                        onChange={e => setWaitlistEmail(e.target.value)}
+                                        required
+                                        autoFocus
+                                    />
+                                    <button
+                                        type="submit"
+                                        className={styles.waitlistSubmit}
+                                        disabled={waitlistLoading || !waitlistEmail.trim()}
+                                    >
+                                        {waitlistLoading ? 'Joining...' : 'Join Waitlist'}
+                                    </button>
+                                </form>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

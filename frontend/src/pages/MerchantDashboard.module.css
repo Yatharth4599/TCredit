@@ -577,6 +577,334 @@
 .spinner { animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ─── Quick Apply Card ─────────────────────── */
+.quickApply {
+  max-width: 1280px;
+  margin: 0 auto 24px;
+  background: #0C0F14;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.qaHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 28px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-wrap: wrap;
+}
+
+.qaEyebrow {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.qaTitle {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #fff;
+  flex: 1;
+}
+
+.qaMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.qaTierBadge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid;
+}
+
+.qaTierBadge[data-tier="A"] {
+  background: rgba(82, 255, 161, 0.12);
+  border-color: rgba(82, 255, 161, 0.35);
+  color: #52FFA1;
+}
+
+.qaTierBadge[data-tier="B"] {
+  background: rgba(82, 200, 255, 0.12);
+  border-color: rgba(82, 200, 255, 0.35);
+  color: #52C8FF;
+}
+
+.qaTierBadge[data-tier="C"] {
+  background: rgba(255, 200, 82, 0.12);
+  border-color: rgba(255, 200, 82, 0.35);
+  color: #FFC852;
+}
+
+.qaTierBadge[data-tier="D"] {
+  background: rgba(229, 62, 62, 0.1);
+  border-color: rgba(229, 62, 62, 0.3);
+  color: #FC8181;
+}
+
+/* Controls area */
+.qaControls {
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.qaField {}
+
+.qaFieldHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.qaFieldLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.qaAmountVal {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+/* Range slider */
+.qaSlider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+
+.qaSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 0 0 3px rgba(82, 255, 161, 0.2);
+  transition: box-shadow 0.15s ease;
+}
+
+.qaSlider::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 0 5px rgba(82, 255, 161, 0.25);
+}
+
+.qaSliderBounds {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Term pills */
+.qaTermPills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.qaTermPill {
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.qaTermPill:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.qaTermActive {
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+  background: rgba(82, 255, 161, 0.08) !important;
+}
+
+/* Summary row */
+.qaSummary {
+  display: flex;
+  gap: 32px;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  flex-wrap: wrap;
+}
+
+.qaSummaryRow {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.qaSummaryRow .qaFieldLabel {
+  font-size: 0.65rem;
+}
+
+.qaSummaryVal {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* Footer */
+.qaFooter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 28px 24px;
+  flex-wrap: wrap;
+}
+
+.qaCta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 13px 28px;
+  border-radius: 10px;
+  background: var(--accent);
+  border: none;
+  color: #000;
+  font-weight: 800;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.qaCta:hover {
+  transform: scale(0.97);
+  filter: brightness(1.08);
+}
+
+.qaCta:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+}
+
+.qaExplorerLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--accent);
+  text-decoration: none;
+  opacity: 0.8;
+  transition: opacity 0.15s ease;
+}
+
+.qaExplorerLink:hover { opacity: 1; }
+
+/* Advanced Options toggle */
+.advancedToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: color 0.15s ease;
+  padding: 0;
+}
+
+.advancedToggle:hover { color: rgba(255, 255, 255, 0.7); }
+
+.advancedChevron {
+  transition: transform 0.25s ease;
+  flex-shrink: 0;
+}
+
+.advancedChevronOpen {
+  transform: rotate(180deg);
+}
+
+/* Advanced expandable section */
+.advancedSection {
+  overflow: hidden;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.advancedInner {
+  padding: 20px 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.advancedTitle {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.3);
+  margin-bottom: 4px;
+}
+
+.advancedActions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 8px;
+}
+
+/* Tier D blocked state */
+.qaBlocked {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: rgba(229, 62, 62, 0.08);
+  border: 1px solid rgba(229, 62, 62, 0.25);
+  border-radius: 10px;
+  font-size: 0.85rem;
+  color: #FC8181;
+  line-height: 1.5;
+}
+
 /* ─── Responsive ───────────────────────────── */
 @media (max-width: 1024px) {
   .contentGrid { grid-template-columns: 1fr; }

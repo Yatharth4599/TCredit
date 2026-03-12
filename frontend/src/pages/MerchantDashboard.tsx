@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { motion } from 'motion/react'
+import { useState, useEffect, useMemo } from 'react'
+import { motion, AnimatePresence } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
 import { useAccount } from 'wagmi'
 import { merchantApi, vaultsApi, oracleApi } from '../api/client'
@@ -9,30 +9,53 @@ import { useContractTx } from '../hooks/useContractTx'
 import { WaterfallChart } from '../components/charts/WaterfallChart'
 import { mockMerchantStats, mockVaults, mockPayments } from '../lib/mockData'
 import { StatRowSkeleton } from '../components/ui/StatRowSkeleton'
-import { Star, ChevronRight, Plus, Activity, Wallet, Loader2 } from 'lucide-react'
+import { Star, ChevronRight, ChevronDown, Activity, Wallet, Loader2, Zap } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { STATUS_CONFIG } from '../lib/statusConfig'
 import styles from './MerchantDashboard.module.css'
 
+// ─── Credit tier parameters ───────────────────────────────────────────────────
+// Based on a demo estimated monthly revenue of $120,000
+const MONTHLY_REVENUE_ESTIMATE = 120_000
+
+interface TierParams {
+  limitMultiplier: number  // × monthly revenue → credit limit
+  apy: number              // annual percentage rate
+  maxMonths: number        // maximum loan term
+  label: string
+}
+
+const TIER_PARAMS: Record<string, TierParams> = {
+  A: { limitMultiplier: 1.5, apy: 12, maxMonths: 12, label: 'Full access, best rates' },
+  B: { limitMultiplier: 1.0, apy: 14, maxMonths: 9,  label: 'Full access' },
+  C: { limitMultiplier: 0.5, apy: 16, maxMonths: 6,  label: 'Full access' },
+  D: { limitMultiplier: 0,   apy: 20, maxMonths: 0,  label: 'Blocked — improve score' },
+}
+
 export default function MerchantDashboard() {
   const navigate = useNavigate()
   const { address: walletAddress } = useAccount()
-  const { execute: executeTx } = useContractTx()
+  const { execute: executeTx, txHash, txUrl, status: txStatus } = useContractTx()
 
   const [merchant, setMerchant] = useState<ApiMerchantStats | null>(null)
   const [vaults, setVaults] = useState<ApiVault[]>([])
   const [payments, setPayments] = useState<ApiOraclePayment[]>([])
   const [loading, setLoading] = useState(false)
-  const [showCreateModal, setShowCreateModal] = useState(false)
   const [creating, setCreating] = useState(false)
   const [isRegistered, setIsRegistered] = useState<boolean | null>(null)
   const [registering, setRegistering] = useState(false)
 
+  // Quick Apply state
+  const [quickAmount, setQuickAmount] = useState(50_000)
+  const [quickMonths, setQuickMonths] = useState(6)
+  const [showAdvanced, setShowAdvanced] = useState(false)
+
+  // Advanced form state (power-user customisation)
   const [form, setForm] = useState({
-    targetAmount: '',
+    targetAmount: '50000',
     interestRate: '12',
     durationMonths: '6',
-    numTranches: '3',
+    numTranches: '2',
     lateFeeBps: '100',
     gracePeriodDays: '7',
   })
@@ -42,21 +65,48 @@ export default function MerchantDashboard() {
 
   useEffect(() => {
     if (!walletAddress) {
-      setMerchant(null)
-      setVaults([])
-      setPayments([])
+      setMerchant(null); setVaults([]); setPayments([])
       return
     }
     setLoading(true)
     Promise.all([
       merchantApi.stats(walletAddress)
         .then(r => { setMerchant(r.data ?? null); setIsRegistered(true) })
-        .catch((err) => { setMerchant(null); setIsRegistered(err?.response?.status === 404 ? false : null) }),
+        .catch((err) => {
+          setMerchant(null)
+          setIsRegistered(err?.response?.status === 404 ? false : null)
+        }),
       merchantApi.vaults(walletAddress).then(r => setVaults(r.data?.vaults ?? [])).catch(() => setVaults([])),
       oracleApi.payments({ limit: 10 }).then(r => setPayments(r.data?.payments ?? [])).catch(() => setPayments([])),
     ]).finally(() => setLoading(false))
   }, [walletAddress])
 
+  // ── Credit limit derived from tier ──────────────────────────────────────────
+  const displayMerchant = merchant ?? (import.meta.env.DEV && walletAddress ? mockMerchantStats : null)
+  const displayVaults = vaults.length > 0 ? vaults : (import.meta.env.DEV && walletAddress ? mockVaults.slice(0, 3) : [])
+  const displayPayments = payments.length > 0 ? payments : (import.meta.env.DEV && walletAddress ? mockPayments : [])
+
+  const tier = displayMerchant?.creditTier ?? 'D'
+  const tierParams = TIER_PARAMS[tier] ?? TIER_PARAMS.D
+  const creditLimit = Math.round(MONTHLY_REVENUE_ESTIMATE * tierParams.limitMultiplier / 1000) * 1000
+
+  const clampedAmount = Math.min(quickAmount, creditLimit)
+  const monthlyRepayment = useMemo(() => {
+    const principal = clampedAmount / quickMonths
+    const interest = (clampedAmount * tierParams.apy) / 100 / 12
+    return Math.round(principal + interest)
+  }, [clampedAmount, quickMonths, tierParams.apy])
+
+  const totalToRepay = useMemo(() =>
+    Math.round(clampedAmount + (clampedAmount * tierParams.apy / 100) * (quickMonths / 12)),
+    [clampedAmount, quickMonths, tierParams.apy]
+  )
+
+  const availableTerms = [3, 6, 9, 12].filter(m => m <= tierParams.maxMonths)
+  const hasVault = displayVaults.length > 0
+  const isEligible = isRegistered && displayMerchant?.creditValid && tier !== 'D'
+
+  // ── Register ────────────────────────────────────────────────────────────────
   const handleRegister = async () => {
     if (!walletAddress) return
     setRegistering(true)
@@ -67,14 +117,44 @@ export default function MerchantDashboard() {
         setIsRegistered(true)
         merchantApi.stats(walletAddress).then(r => setMerchant(r.data ?? null)).catch(() => {})
       }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Registration failed'
-      toast.error(msg)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Registration failed')
     } finally {
       setRegistering(false)
     }
   }
 
+  // ── Quick Apply (one-click) ──────────────────────────────────────────────────
+  const handleQuickApply = async () => {
+    if (!walletAddress) return
+    setCreating(true)
+    try {
+      const params: CreateVaultParams = {
+        agent: walletAddress,
+        targetAmount: parseUSDCToWei(String(clampedAmount)),
+        interestRateBps: tierParams.apy * 100,
+        durationSeconds: Math.round(quickMonths * 30.44 * 86400),
+        numTranches: 2,
+        lateFeeBps: 100,
+        gracePeriodSeconds: 7 * 86400,
+      }
+      const { data: unsignedTx } = await vaultsApi.create(params)
+      const hash = await executeTx(unsignedTx)
+      if (hash) {
+        toast.success('Vault created! It will appear shortly.')
+        setTimeout(() => {
+          if (walletAddress)
+            merchantApi.vaults(walletAddress).then(r => setVaults(r.data?.vaults ?? [])).catch(() => {})
+        }, 6000)
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create vault')
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  // ── Advanced form submit ─────────────────────────────────────────────────────
   const validateForm = (): FormErrors => {
     const errors: FormErrors = {}
     const amount = parseFloat(form.targetAmount)
@@ -92,7 +172,7 @@ export default function MerchantDashboard() {
     return errors
   }
 
-  const handleCreateVault = async () => {
+  const handleCreateCustomVault = async () => {
     if (!walletAddress) return
     const errors = validateForm()
     if (Object.keys(errors).length > 0) { setFormErrors(errors); return }
@@ -103,26 +183,29 @@ export default function MerchantDashboard() {
         agent: walletAddress,
         targetAmount: parseUSDCToWei(form.targetAmount),
         interestRateBps: Math.round(parseFloat(form.interestRate) * 100),
-        durationSeconds: Math.round(parseFloat(form.durationMonths) * 30 * 24 * 3600),
+        durationSeconds: Math.round(parseFloat(form.durationMonths) * 30.44 * 86400),
         numTranches: parseInt(form.numTranches),
         lateFeeBps: parseInt(form.lateFeeBps),
         gracePeriodSeconds: parseInt(form.gracePeriodDays) * 86400,
       }
-      await vaultsApi.create(params)
-      setShowCreateModal(false)
-      merchantApi.vaults(walletAddress).then(r => setVaults(r.data?.vaults ?? [])).catch(() => {})
+      const { data: unsignedTx } = await vaultsApi.create(params)
+      const hash = await executeTx(unsignedTx)
+      if (hash) {
+        toast.success('Vault submitted!')
+        setShowAdvanced(false)
+        setTimeout(() => {
+          if (walletAddress)
+            merchantApi.vaults(walletAddress).then(r => setVaults(r.data?.vaults ?? [])).catch(() => {})
+        }, 6000)
+      }
     } catch {
-      // Error handled by toast
+      // toast handled by executeTx
     } finally {
       setCreating(false)
     }
   }
 
-  // Mock data fallback in dev
-  const displayMerchant = merchant ?? (import.meta.env.DEV && walletAddress ? mockMerchantStats : null)
-  const displayVaults = vaults.length > 0 ? vaults : (import.meta.env.DEV && walletAddress ? mockVaults.slice(0, 3) : [])
-  const displayPayments = payments.length > 0 ? payments : (import.meta.env.DEV && walletAddress ? mockPayments : [])
-
+  // ── Early returns ────────────────────────────────────────────────────────────
   if (!walletAddress) {
     return (
       <div className={styles.page}>
@@ -141,7 +224,7 @@ export default function MerchantDashboard() {
         <div className={styles.connectPrompt}>
           <Star size={48} strokeWidth={1} />
           <h2>Not Registered as Merchant</h2>
-          <p>You need to register your wallet as a merchant before creating vaults.</p>
+          <p>Register your wallet to start accessing working capital.</p>
           <button
             className={styles.createBtn}
             onClick={handleRegister}
@@ -193,7 +276,7 @@ export default function MerchantDashboard() {
         </motion.div>
       </div>
 
-      {/* Stats Row (dark bg) */}
+      {/* Stats Row */}
       <div className={styles.statsRow}>
         {[
           { value: totalBorrowed, label: 'Total Borrowed', sub: `${activeLoanCount} active loans` },
@@ -216,8 +299,242 @@ export default function MerchantDashboard() {
         ))}
       </div>
 
-      {/* White Section — Content Panels */}
+      {/* White Section */}
       <div className={styles.body}>
+
+        {/* ── Quick Apply Card (shown when no vault yet) ── */}
+        {!hasVault && (
+          <motion.div
+            className={styles.quickApply}
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+          >
+            {/* Header */}
+            <div className={styles.qaHeader}>
+              <div>
+                <div className={styles.qaEyebrow}>Working Capital Available</div>
+                <div className={styles.qaTitle}>
+                  {isEligible
+                    ? `Credit Limit: $${creditLimit.toLocaleString()}`
+                    : tier === 'D' ? 'Credit Blocked — Tier D' : 'Credit Score Expired'}
+                </div>
+                <div className={styles.qaMeta}>
+                  Based on Tier {tier} credit score and estimated revenue ($120K/month)
+                  {isEligible && ` · ${tierParams.apy}% APY · Up to ${tierParams.maxMonths} months`}
+                </div>
+              </div>
+              <div className={styles.qaTierBadge} data-tier={tier}>
+                Tier {tier}
+              </div>
+            </div>
+
+            {isEligible ? (
+              <>
+                {/* Controls */}
+                <div className={styles.qaControls}>
+                  {/* Amount Slider */}
+                  <div className={styles.qaField}>
+                    <div className={styles.qaFieldHeader}>
+                      <span className={styles.qaFieldLabel}>Loan Amount</span>
+                      <span className={styles.qaAmountVal}>${quickAmount.toLocaleString()}</span>
+                    </div>
+                    <input
+                      type="range"
+                      className={styles.qaSlider}
+                      min={10_000}
+                      max={creditLimit}
+                      step={5_000}
+                      value={quickAmount}
+                      onChange={e => setQuickAmount(Number(e.target.value))}
+                    />
+                    <div className={styles.qaSliderBounds}>
+                      <span>$10,000</span>
+                      <span>${creditLimit.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  {/* Term Pills */}
+                  <div className={styles.qaField}>
+                    <span className={styles.qaFieldLabel}>Term</span>
+                    <div className={styles.qaTermPills}>
+                      {availableTerms.map(m => (
+                        <button
+                          key={m}
+                          className={`${styles.qaTermPill} ${quickMonths === m ? styles.qaTermActive : ''}`}
+                          onClick={() => setQuickMonths(m)}
+                        >
+                          {m} mo
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Summary */}
+                  <div className={styles.qaSummary}>
+                    <div className={styles.qaSummaryRow}>
+                      <span>Monthly repayment</span>
+                      <span className={styles.qaSummaryVal}>~${monthlyRepayment.toLocaleString()}</span>
+                    </div>
+                    <div className={styles.qaSummaryRow}>
+                      <span>Total to repay</span>
+                      <span className={styles.qaSummaryVal}>${totalToRepay.toLocaleString()}</span>
+                    </div>
+                    <div className={styles.qaSummaryRow}>
+                      <span>Payment split</span>
+                      <span className={styles.qaSummaryVal}>20% of incoming x402 payments</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* CTA */}
+                <div className={styles.qaFooter}>
+                  <button
+                    className={styles.qaCta}
+                    onClick={handleQuickApply}
+                    disabled={creating || txStatus === 'signing' || txStatus === 'confirming'}
+                  >
+                    {creating ? (
+                      <><Loader2 size={16} className={styles.spinner} /> Processing...</>
+                    ) : (
+                      <><Zap size={16} /> Get Working Capital</>
+                    )}
+                  </button>
+
+                  {txHash && txUrl && (
+                    <a className={styles.qaExplorerLink} href={txUrl} target="_blank" rel="noopener noreferrer">
+                      View on BaseScan ↗
+                    </a>
+                  )}
+
+                  <button
+                    className={styles.advancedToggle}
+                    onClick={() => setShowAdvanced(v => !v)}
+                  >
+                    Advanced Options
+                    <ChevronDown
+                      size={14}
+                      className={`${styles.advancedChevron} ${showAdvanced ? styles.advancedChevronOpen : ''}`}
+                    />
+                  </button>
+                </div>
+
+                {/* Advanced Options (collapsible) */}
+                <AnimatePresence>
+                  {showAdvanced && (
+                    <motion.div
+                      className={styles.advancedSection}
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                      style={{ overflow: 'hidden' }}
+                    >
+                      <div className={styles.advancedInner}>
+                        <div className={styles.advancedTitle}>Custom Terms</div>
+
+                        {displayMerchant && (displayMerchant.creditTier === 'D' || !displayMerchant.creditValid) && (
+                          <div className={styles.creditWarning}>
+                            {displayMerchant.creditTier === 'D'
+                              ? 'Tier D — vault creation blocked. Improve your credit score first.'
+                              : 'Credit score expired. Renew your score before creating a vault.'}
+                          </div>
+                        )}
+
+                        <div className={styles.formRow}>
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Target Amount (USDC)</label>
+                            <input
+                              className={`${styles.formInput} ${formErrors.targetAmount ? styles.inputError : ''}`}
+                              type="number" placeholder="50000"
+                              value={form.targetAmount}
+                              onChange={e => setForm(f => ({ ...f, targetAmount: e.target.value }))}
+                            />
+                            {formErrors.targetAmount && <span className={styles.fieldError}>{formErrors.targetAmount}</span>}
+                          </div>
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Interest Rate (%)</label>
+                            <input
+                              className={`${styles.formInput} ${formErrors.interestRate ? styles.inputError : ''}`}
+                              type="number" placeholder="12"
+                              value={form.interestRate}
+                              onChange={e => setForm(f => ({ ...f, interestRate: e.target.value }))}
+                            />
+                            {formErrors.interestRate && <span className={styles.fieldError}>{formErrors.interestRate}</span>}
+                          </div>
+                        </div>
+                        <div className={styles.formRow}>
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Duration (Months)</label>
+                            <input
+                              className={`${styles.formInput} ${formErrors.durationMonths ? styles.inputError : ''}`}
+                              type="number" placeholder="6"
+                              value={form.durationMonths}
+                              onChange={e => setForm(f => ({ ...f, durationMonths: e.target.value }))}
+                            />
+                            {formErrors.durationMonths && <span className={styles.fieldError}>{formErrors.durationMonths}</span>}
+                          </div>
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Number of Tranches</label>
+                            <input
+                              className={`${styles.formInput} ${formErrors.numTranches ? styles.inputError : ''}`}
+                              type="number" placeholder="2"
+                              value={form.numTranches}
+                              onChange={e => setForm(f => ({ ...f, numTranches: e.target.value }))}
+                            />
+                            {formErrors.numTranches && <span className={styles.fieldError}>{formErrors.numTranches}</span>}
+                          </div>
+                        </div>
+                        <div className={styles.formRow}>
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Late Fee (BPS)</label>
+                            <input
+                              className={`${styles.formInput} ${formErrors.lateFeeBps ? styles.inputError : ''}`}
+                              type="number" placeholder="100"
+                              value={form.lateFeeBps}
+                              onChange={e => setForm(f => ({ ...f, lateFeeBps: e.target.value }))}
+                            />
+                            {formErrors.lateFeeBps && <span className={styles.fieldError}>{formErrors.lateFeeBps}</span>}
+                          </div>
+                          <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Grace Period (Days)</label>
+                            <input
+                              className={`${styles.formInput} ${formErrors.gracePeriodDays ? styles.inputError : ''}`}
+                              type="number" placeholder="7"
+                              value={form.gracePeriodDays}
+                              onChange={e => setForm(f => ({ ...f, gracePeriodDays: e.target.value }))}
+                            />
+                            {formErrors.gracePeriodDays && <span className={styles.fieldError}>{formErrors.gracePeriodDays}</span>}
+                          </div>
+                        </div>
+
+                        <div className={styles.advancedActions}>
+                          <button
+                            className={styles.submitBtn}
+                            onClick={handleCreateCustomVault}
+                            disabled={creating || displayMerchant?.creditTier === 'D'}
+                          >
+                            {creating
+                              ? <><Loader2 size={14} className={styles.spinner} /> Creating...</>
+                              : 'Create with Custom Terms'}
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </>
+            ) : (
+              <div className={styles.qaBlocked}>
+                {tier === 'D'
+                  ? 'Your credit tier (D) does not qualify for working capital. Improve your on-chain payment history to unlock access.'
+                  : 'Your credit score has expired. Contact your account manager to renew it.'}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* ── Content Panels ── */}
         <div className={styles.contentGrid}>
           {/* Oracle Payments */}
           <motion.div
@@ -276,13 +593,8 @@ export default function MerchantDashboard() {
           >
             <div className={styles.sectionHeader}>
               <div className={styles.sectionTitle}>Your Vaults</div>
-              <button className={styles.createBtn} onClick={() => setShowCreateModal(true)}>
-                <Plus size={13} />
-                New Vault
-              </button>
             </div>
 
-            {/* Waterfall if applicable */}
             {displayVaults.length > 0 && weiToNumber(displayVaults[0].totalRaised) > 0 && (
               <div style={{ marginBottom: 20 }}>
                 <WaterfallChart
@@ -297,12 +609,11 @@ export default function MerchantDashboard() {
             <div className={styles.vaultList}>
               {displayVaults.length === 0 ? (
                 <div className={styles.emptyVaults}>
-                  <p>No vaults yet. Create one to get started.</p>
+                  <p>No vaults yet. Use the Quick Apply above to get started.</p>
                 </div>
               ) : (
                 displayVaults.map((vault, i) => {
                   const status = STATUS_CONFIG[vault.state] ?? STATUS_CONFIG.fundraising
-
                   return (
                     <motion.div
                       key={vault.address}
@@ -356,10 +667,7 @@ export default function MerchantDashboard() {
                       <div className={styles.vaultActions}>
                         <button
                           className={styles.copyBtn}
-                          onClick={() => {
-                            navigator.clipboard.writeText(vault.address)
-                            toast.success('Vault address copied!')
-                          }}
+                          onClick={() => { navigator.clipboard.writeText(vault.address); toast.success('Copied!') }}
                           title={vault.address}
                         >
                           Copy Address
@@ -376,115 +684,6 @@ export default function MerchantDashboard() {
           </motion.div>
         </div>
       </div>
-
-      {/* Create Vault Modal */}
-      {showCreateModal && (
-        <div className={styles.modalOverlay} onClick={() => setShowCreateModal(false)}>
-          <motion.div
-            className={styles.modal}
-            onClick={(e) => e.stopPropagation()}
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <div className={styles.modalHeader}>
-              <h2>Create New Vault</h2>
-              <button className={styles.modalClose} onClick={() => setShowCreateModal(false)}>✕</button>
-            </div>
-            <div className={styles.modalBody}>
-              {displayMerchant && (displayMerchant.creditTier === 'D' || !displayMerchant.creditValid) && (
-                <div className={styles.creditWarning}>
-                  {displayMerchant.creditTier === 'D'
-                    ? 'D-tier credit — vault may not raise funding. Improve your FairScale score first.'
-                    : 'Credit score expired — renew your score before creating a vault.'}
-                </div>
-              )}
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Target Amount (USDC)</label>
-                  <input
-                    className={`${styles.formInput} ${formErrors.targetAmount ? styles.inputError : ''}`}
-                    type="number"
-                    placeholder="50000"
-                    value={form.targetAmount}
-                    onChange={(e) => setForm(f => ({ ...f, targetAmount: e.target.value }))}
-                  />
-                  {formErrors.targetAmount && <span className={styles.fieldError}>{formErrors.targetAmount}</span>}
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Interest Rate (%)</label>
-                  <input
-                    className={`${styles.formInput} ${formErrors.interestRate ? styles.inputError : ''}`}
-                    type="number"
-                    placeholder="12"
-                    value={form.interestRate}
-                    onChange={(e) => setForm(f => ({ ...f, interestRate: e.target.value }))}
-                  />
-                  {formErrors.interestRate && <span className={styles.fieldError}>{formErrors.interestRate}</span>}
-                </div>
-              </div>
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Duration (Months)</label>
-                  <input
-                    className={`${styles.formInput} ${formErrors.durationMonths ? styles.inputError : ''}`}
-                    type="number"
-                    placeholder="6"
-                    value={form.durationMonths}
-                    onChange={(e) => setForm(f => ({ ...f, durationMonths: e.target.value }))}
-                  />
-                  {formErrors.durationMonths && <span className={styles.fieldError}>{formErrors.durationMonths}</span>}
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Number of Tranches</label>
-                  <input
-                    className={`${styles.formInput} ${formErrors.numTranches ? styles.inputError : ''}`}
-                    type="number"
-                    placeholder="3"
-                    value={form.numTranches}
-                    onChange={(e) => setForm(f => ({ ...f, numTranches: e.target.value }))}
-                  />
-                  {formErrors.numTranches && <span className={styles.fieldError}>{formErrors.numTranches}</span>}
-                </div>
-              </div>
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Late Fee (BPS)</label>
-                  <input
-                    className={`${styles.formInput} ${formErrors.lateFeeBps ? styles.inputError : ''}`}
-                    type="number"
-                    placeholder="100"
-                    value={form.lateFeeBps}
-                    onChange={(e) => setForm(f => ({ ...f, lateFeeBps: e.target.value }))}
-                  />
-                  {formErrors.lateFeeBps && <span className={styles.fieldError}>{formErrors.lateFeeBps}</span>}
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Grace Period (Days)</label>
-                  <input
-                    className={`${styles.formInput} ${formErrors.gracePeriodDays ? styles.inputError : ''}`}
-                    type="number"
-                    placeholder="7"
-                    value={form.gracePeriodDays}
-                    onChange={(e) => setForm(f => ({ ...f, gracePeriodDays: e.target.value }))}
-                  />
-                  {formErrors.gracePeriodDays && <span className={styles.fieldError}>{formErrors.gracePeriodDays}</span>}
-                </div>
-              </div>
-            </div>
-            <div className={styles.modalFooter}>
-              <button className={styles.cancelBtn} onClick={() => setShowCreateModal(false)}>Cancel</button>
-              <button
-                className={styles.submitBtn}
-                onClick={handleCreateVault}
-                disabled={creating || (displayMerchant?.creditTier === 'D' && !displayMerchant?.creditValid)}
-              >
-                {creating ? <><Loader2 size={14} className={styles.spinner} /> Creating...</> : 'Create Vault'}
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
     </div>
   )
 }

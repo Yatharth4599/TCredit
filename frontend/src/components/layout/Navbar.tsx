@@ -12,6 +12,27 @@ export default function Navbar() {
 
   const items: DockItem[] = [
     {
+      title: 'Live Demo',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+        </svg>
+      ),
+      href: '/lifecycle',
+      onClick: () => navigate('/lifecycle'),
+      accent: true,
+    },
+    {
+      title: 'Demo',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <polygon points="5 3 19 12 5 21 5 3" />
+        </svg>
+      ),
+      href: '/demo',
+      onClick: () => navigate('/demo'),
+    },
+    {
       title: 'Home',
       icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -62,56 +83,6 @@ export default function Navbar() {
       onClick: () => navigate('/merchant'),
     },
     {
-      title: 'Wallets',
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M3 7V5a2 2 0 012-2h12a2 2 0 012 2v2" /><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M2 11h6a2 2 0 012 2v0a2 2 0 01-2 2H2" /><circle cx="7" cy="13" r="0.5" fill="currentColor" />
-        </svg>
-      ),
-      href: '/app/wallets',
-      onClick: () => navigate('/app/wallets'),
-    },
-    {
-      title: 'Identity',
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M12 10a3 3 0 100-6 3 3 0 000 6z" /><path d="M2 21a10 10 0 0120 0" /><path d="M12 14v4" /><path d="M8 18h8" />
-        </svg>
-      ),
-      href: '/app/identity',
-      onClick: () => navigate('/app/identity'),
-    },
-    {
-      title: 'Gateway',
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M2 20h20M6 20V10M10 20V4M14 20V8M18 20V14" />
-        </svg>
-      ),
-      href: '/app/gateway',
-      onClick: () => navigate('/app/gateway'),
-    },
-    {
-      title: 'Kickstart',
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M4.5 16.5c-1.5 1.38-3 2.5-3 2.5s3.12 1 6.5 0c3.38-1 6-3.5 8-6.5 2-3 3-6 3-6s-2.5 1-4.5 2.5M12 15l-3-3M9.5 2L11 5.5M2 9.5L5.5 11M15 21.5L13 18" />
-        </svg>
-      ),
-      href: '/app/kickstart',
-      onClick: () => navigate('/app/kickstart'),
-    },
-    {
-      title: 'Traders',
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M3 3l18 18M21 3l-6.5 6.5M7 7L3 3M21 3h-6M21 3v6" /><path d="M3 21h6M3 21v-6M10 14l4-4" />
-        </svg>
-      ),
-      href: '/app/traders',
-      onClick: () => navigate('/app/traders'),
-    },
-    {
       title: 'x402 Demo',
       icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -129,6 +100,7 @@ export default function Navbar() {
         </svg>
       ),
       href: 'https://x.com/tigerbnkHQ',
+      mobileHide: true,
     },
     {
       title: 'GitHub',
@@ -138,6 +110,7 @@ export default function Navbar() {
         </svg>
       ),
       href: 'https://github.com/Yatharth4599/TCredit',
+      mobileHide: true,
     },
     {
       title: 'Telegram',
@@ -147,6 +120,7 @@ export default function Navbar() {
         </svg>
       ),
       href: 'https://t.me/tigerpayx',
+      mobileHide: true,
     },
     {
       title: isConnected ? truncateAddress(address!, 4) : 'Connect Wallet',

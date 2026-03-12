@@ -68,8 +68,8 @@ export async function processWebhookDeliveries(): Promise<number> {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-TCredit-Signature': signature,
-          'X-TCredit-Event': delivery.eventType,
+          'X-Krexa-Signature': signature,
+          'X-Krexa-Event': delivery.eventType,
         },
         body,
         signal: AbortSignal.timeout(10_000),

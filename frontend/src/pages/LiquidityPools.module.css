@@ -302,6 +302,13 @@
   font-size: 0.9rem;
 }
 
+.connectHint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: rgba(245, 245, 247, 0.35);
+  font-style: italic;
+}
+
 /* ─── Modal (dark bg) ─────────────────────── */
 .modalOverlay {
   position: fixed;
