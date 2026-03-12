@@ -138,9 +138,8 @@ export default function MerchantDashboard() {
         lateFeeBps: 100,
         gracePeriodSeconds: 7 * 86400,
       }
-      const { data: unsignedTx } = await vaultsApi.create(params)
-      const hash = await executeTx(unsignedTx)
-      if (hash) {
+      const { data: result } = await vaultsApi.create(params)
+      if (result.txHash) {
         toast.success('Vault created! It will appear shortly.')
         setTimeout(() => {
           if (walletAddress)
@@ -188,9 +187,8 @@ export default function MerchantDashboard() {
         lateFeeBps: parseInt(form.lateFeeBps),
         gracePeriodSeconds: parseInt(form.gracePeriodDays) * 86400,
       }
-      const { data: unsignedTx } = await vaultsApi.create(params)
-      const hash = await executeTx(unsignedTx)
-      if (hash) {
+      const { data: result } = await vaultsApi.create(params)
+      if (result.txHash) {
         toast.success('Vault submitted!')
         setShowAdvanced(false)
         setTimeout(() => {
@@ -199,7 +197,7 @@ export default function MerchantDashboard() {
         }, 6000)
       }
     } catch {
-      // toast handled by executeTx
+      // error handled by toast
     } finally {
       setCreating(false)
     }
