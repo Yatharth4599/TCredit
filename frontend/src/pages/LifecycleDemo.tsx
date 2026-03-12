@@ -78,7 +78,7 @@ const INITIAL_STATE: DemoState = {
   finalResult:  null,
 }
 
-const DEMO_MERCHANT = '0xA1090527B7E0F5C649f1D0fcd40b2E7cA1eE7d2'
+const DEMO_MERCHANT = '0xA1090527ac5c019Abc3989F405a5a63bB008008D'
 const BASESCAN_TX   = (hash: string) => `https://sepolia.basescan.org/tx/${hash}`
 const BASESCAN_ADDR = (addr: string) => `https://sepolia.basescan.org/address/${addr}`
 
