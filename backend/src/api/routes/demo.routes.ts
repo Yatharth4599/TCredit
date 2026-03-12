@@ -291,52 +291,79 @@ router.post('/full-lifecycle', async (req, res) => {
     const targetWei = BigInt(loanUSDC) * 1_000_000n; // USDC has 6 decimals
 
     // ────────────────────────────────────────────────────────────────────────
-    // STEP 1 — Create vault
+    // STEP 1 — Create vault (or reuse existing one for this agent)
     // ────────────────────────────────────────────────────────────────────────
     send(1, 'step_start', { message: 'Creating vault on Base Sepolia…' });
 
-    const createHash = await walletClient.writeContract({
-      address:      addresses.vaultFactory,
-      abi:          VaultFactoryABI,
-      functionName: 'createVault',
-      args: [
-        merchantAddress,
-        targetWei,
-        1200n,                                                     // 12% APY
-        BigInt(90 * 24 * 3600),                                   // 3-month term
-        1n,                                                        // 1 tranche (simple)
-        2000,                                                      // repaymentRateBps
-        60n,                                                       // minPaymentInterval (60 s)
-        0n,                                                        // maxSinglePayment (no cap)
-        100,                                                       // lateFeeBps (1%)
-        BigInt(86400),                                             // gracePeriod (1 day)
-        BigInt(Math.floor(Date.now() / 1000) + 30 * 24 * 3600),  // fundraising deadline
-      ],
-    });
+    let vaultAddress: Address;
+    let createTxHash: string | null = null;
 
-    const createReceipt = await publicClient.waitForTransactionReceipt({ hash: createHash });
+    try {
+      const createHash = await walletClient.writeContract({
+        address:      addresses.vaultFactory,
+        abi:          VaultFactoryABI,
+        functionName: 'createVault',
+        args: [
+          merchantAddress,
+          targetWei,
+          1200n,                                                     // 12% APY
+          BigInt(90 * 24 * 3600),                                   // 3-month term
+          1n,                                                        // 1 tranche (simple)
+          2000,                                                      // repaymentRateBps
+          60n,                                                       // minPaymentInterval (60 s)
+          0n,                                                        // maxSinglePayment (no cap)
+          100,                                                       // lateFeeBps (1%)
+          BigInt(86400),                                             // gracePeriod (1 day)
+          BigInt(Math.floor(Date.now() / 1000) + 30 * 24 * 3600),  // fundraising deadline
+        ],
+      });
 
-    // Extract the new vault address from the VaultCreated event log
-    // VaultCreated(address indexed agent, address indexed vault, …)
-    //   topics[0] = selector, topics[1] = agent, topics[2] = vault
-    const factoryLog = createReceipt.logs.find(
-      (l) => l.address.toLowerCase() === addresses.vaultFactory.toLowerCase()
-    );
-    if (!factoryLog || (factoryLog.topics?.length ?? 0) < 3) {
-      sendError('Could not find VaultCreated event in transaction receipt');
-      return;
+      const createReceipt = await publicClient.waitForTransactionReceipt({ hash: createHash });
+      createTxHash = createHash;
+
+      // Extract the new vault address from the VaultCreated event log
+      // VaultCreated(address indexed agent, address indexed vault, …)
+      //   topics[0] = selector, topics[1] = agent, topics[2] = vault
+      const factoryLog = createReceipt.logs.find(
+        (l) => l.address.toLowerCase() === addresses.vaultFactory.toLowerCase()
+      );
+      if (!factoryLog || (factoryLog.topics?.length ?? 0) < 3) {
+        sendError('Could not find VaultCreated event in transaction receipt');
+        return;
+      }
+      const vaultTopic = factoryLog.topics[2];
+      if (!vaultTopic) {
+        sendError('VaultCreated event missing vault topic in receipt');
+        return;
+      }
+      vaultAddress = `0x${vaultTopic.slice(-40)}` as Address;
+    } catch (createErr) {
+      const errMsg = createErr instanceof Error ? createErr.message : String(createErr);
+      if (!errMsg.includes('VaultAlreadyExists')) {
+        sendError(`Vault creation failed: ${errMsg}`);
+        return;
+      }
+
+      // VaultAlreadyExists — look up the existing vault for this agent
+      const existing = await publicClient.readContract({
+        address:      addresses.vaultFactory,
+        abi:          VaultFactoryABI,
+        functionName: 'agentToVault',
+        args:         [merchantAddress],
+      }) as Address;
+
+      if (!existing || existing === '0x0000000000000000000000000000000000000000') {
+        sendError('Vault already exists but could not look up its address');
+        return;
+      }
+      vaultAddress = existing;
     }
-    const vaultTopic = factoryLog.topics[2];
-    if (!vaultTopic) {
-      sendError('VaultCreated event missing vault topic in receipt');
-      return;
-    }
-    const vaultAddress = `0x${vaultTopic.slice(-40)}` as Address;
 
     send(1, 'vault_created', {
       vaultAddress,
-      txHash: createHash,
-      txUrl:  `https://sepolia.basescan.org/tx/${createHash}`,
+      txHash: createTxHash,
+      txUrl:  createTxHash ? `https://sepolia.basescan.org/tx/${createTxHash}` : null,
+      reused: createTxHash === null,
     });
     await sleep(800);
 
@@ -348,7 +375,7 @@ router.post('/full-lifecycle', async (req, res) => {
     const seniorAmt  = (targetWei * 60n) / 100n;
     const generalAmt = targetWei - seniorAmt;
 
-    let fundingTxHash = createHash; // fallback
+    let fundingTxHash = createTxHash ?? vaultAddress; // fallback
 
     try {
       const seniorHash = await walletClient.writeContract({
