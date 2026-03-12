@@ -38,9 +38,9 @@ const PAYABLE_STATES: VaultState[] = ['active', 'repaying'];
 // ── Demo payer pool (deterministic addresses, no real funds needed) ───────────
 // These are the synthetic payers we use when submitting demo payments on-chain.
 const DEMO_PAYERS: Address[] = [
-  '0x3cF168E6B4e5A2F4ee0A9B2B43b2e5c9b7a3F1d' as Address, // shopbot
-  '0x9eA2b3C4D5E6F7A8B9C0D1E2F3A4B5C6D7E8F9A' as Address, // databot
-  '0x5dB832A1C2D3E4F5A6B7C8D9E0F1A2B3C4D5E6' as Address, // codebot
+  '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf' as Address, // shopbot
+  '0x2B5AD5c4795c026514f8317c7a215E218DcCD6cF' as Address, // databot
+  '0x6813Eb9362372EEF6200f3b1dbC3f819671cBA69' as Address, // codebot
 ];
 
 // Legacy named payers (backward compat with { source } field)
@@ -48,11 +48,11 @@ const LEGACY_PAYERS: Record<string, Address> = {
   shopbot:   DEMO_PAYERS[0],
   databot:   DEMO_PAYERS[1],
   codebot:   DEMO_PAYERS[2],
-  customer1: '0x2aE4B5C6D7E8F9A0B1C2D3E4F5A6B7C8D9E0F1' as Address,
+  customer1: '0x1efF47bc3a10a45D4B230B5d10E37751FE6AA718' as Address,
 };
 
 // Default demo merchant for legacy calls (GlobalTextiles from SeedDemo)
-const LEGACY_DEMO_MERCHANT: Address = '0xA1090527B7E0F5C649f1D0fcd40b2E7cA1eE7d2';
+const LEGACY_DEMO_MERCHANT: Address = '0xA1090527ac5c019Abc3989F405a5a63bB008008D';
 
 // ── In-memory rate limiter (per vault + global) ───────────────────────────────
 // Key → last allowed timestamp (ms).  Simple enough for demo load.
