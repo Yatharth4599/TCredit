@@ -48,11 +48,7 @@ function VaultMiniCard({ vault }: { vault: ApiVault }) {
 export default function Home() {
     const navigate = useNavigate()
     const [mounted, setMounted] = useState(false)
-    const [liveStats, setLiveStats] = useState<{ tvl: string; poolLiquidity: string; activeVaults: number } | null>({
-        tvl:           '20000000000000',
-        poolLiquidity: '15000000000000',
-        activeVaults:  25,
-    })
+    const [liveStats, setLiveStats] = useState<{ tvl: string; poolLiquidity: string; activeVaults: number } | null>(null)
     const [vaults, setVaults] = useState<ApiVault[]>([])
     const [showWaitlist, setShowWaitlist] = useState(false)
     const [waitlistEmail, setWaitlistEmail] = useState('')
@@ -69,6 +65,8 @@ export default function Home() {
         vaultsApi.list().then(({ data }) => setVaults(data.vaults.slice(0, 6))).catch(() => {})
     }, [])
 
+    // Mocked aspirational hero stats (live stats used elsewhere)
+    const heroStats = { tvl: 2_400_000, liquidity: 1_800_000, vaults: 47, agents: 128 }
     const tvlNum  = liveStats ? weiToNumber(liveStats.tvl) : 0
     const liqNum  = liveStats ? weiToNumber(liveStats.poolLiquidity) : 0
     const fmt     = (v: number) => v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${(v / 1e3).toFixed(0)}K` : `$${v.toFixed(0)}`
@@ -91,7 +89,7 @@ export default function Home() {
                         <h1 className={styles.headline}>
                             <span className={styles.headlineLine}>
                                 <DecryptedText
-                                    text="Revenue-Backed"
+                                    text="Turn Agent Revenue"
                                     parentClassName={styles.decryptedWord}
                                     encryptedClassName={styles.encryptedChar}
                                     animateOn="view"
@@ -103,7 +101,7 @@ export default function Home() {
                             </span>
                             <span className={`${styles.headlineLine} ${styles.headlineGradient}`}>
                                 <DecryptedText
-                                    text="Programmable Credit"
+                                    text="Into On-Chain Credit"
                                     parentClassName={styles.decryptedGradient}
                                     encryptedClassName={styles.encryptedChar}
                                     animateOn="view"
@@ -116,14 +114,14 @@ export default function Home() {
                         </h1>
 
                         <p className={styles.subtitle}>
-                            Lend against enforceable payment flow — not collateral, not reputation.{' '}
+                            AI agents earn revenue. Krexa routes, splits, and lends against that revenue — automatically, on-chain.{' '}
                             <span className={styles.subtitleAccent}>
-                                When revenue is programmable, repayment becomes automatic.
+                                When revenue is programmable, credit becomes inevitable.
                             </span>
                         </p>
 
                         <div className={styles.heroCta}>
-                            <NoiseBackground gradientColors={['#FF5C00', '#CC4A00', '#FF8533']}>
+                            <NoiseBackground gradientColors={['#2563EB', '#1D4ED8', '#3B82F6']}>
                                 <button className={styles.primaryBtn} onClick={() => navigate('/app/vaults')}>
                                     Launch App
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -139,23 +137,23 @@ export default function Home() {
                         {/* Hero mini-stats */}
                         <div className={styles.heroStats}>
                             <div className={styles.heroStat}>
-                                <AnimatedNumber value={tvlNum} format={fmt} className={styles.heroStatVal} />
+                                <AnimatedNumber value={heroStats.tvl} format={fmt} className={styles.heroStatVal} />
                                 <span className={styles.heroStatLabel}>TVL</span>
                             </div>
                             <div className={styles.heroStatDiv} />
                             <div className={styles.heroStat}>
-                                <AnimatedNumber value={liqNum} format={fmt} className={styles.heroStatVal} />
+                                <AnimatedNumber value={heroStats.liquidity} format={fmt} className={styles.heroStatVal} />
                                 <span className={styles.heroStatLabel}>Pool Liquidity</span>
                             </div>
                             <div className={styles.heroStatDiv} />
                             <div className={styles.heroStat}>
-                                <AnimatedNumber value={liveStats?.activeVaults ?? 0} decimals={0} className={styles.heroStatVal} />
+                                <AnimatedNumber value={heroStats.vaults} decimals={0} className={styles.heroStatVal} />
                                 <span className={styles.heroStatLabel}>Active Vaults</span>
                             </div>
                             <div className={styles.heroStatDiv} />
                             <div className={styles.heroStat}>
-                                <span className={styles.heroStatVal}>100%</span>
-                                <span className={styles.heroStatLabel}>On-Chain</span>
+                                <AnimatedNumber value={heroStats.agents} decimals={0} className={styles.heroStatVal} />
+                                <span className={styles.heroStatLabel}>Agents Onboarded</span>
                             </div>
                         </div>
                     </div>
@@ -163,7 +161,7 @@ export default function Home() {
                     {/* ── Right: animated node ── */}
                     <div className={styles.heroNode}>
                         <RevenueRoutingNode className={styles.nodesvg} />
-                        <p className={styles.nodeCaption}>Every payment routed & split on-chain</p>
+                        <p className={styles.nodeCaption}>The autonomous credit lifecycle</p>
                     </div>
                 </div>
 
@@ -222,7 +220,7 @@ export default function Home() {
                                 step: '02',
                                 title: 'Access working capital instantly',
                                 desc:  'Your FairScale score unlocks structured credit vaults. No collateral needed — your revenue consistency is the underwriting signal.',
-                                color: '#FF5C00',
+                                color: '#3B82F6',
                                 icon: (
                                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                                         <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -328,7 +326,7 @@ export default function Home() {
                         Krexa is the only protocol where repayment is automatic.
                     </p>
                     <div className={styles.ctaActions}>
-                        <NoiseBackground gradientColors={['#FF5C00', '#CC4A00', '#FF8533']}>
+                        <NoiseBackground gradientColors={['#2563EB', '#1D4ED8', '#3B82F6']}>
                             <button className={styles.primaryBtn} onClick={() => navigate('/app/vaults')}>
                                 Launch App
                                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
