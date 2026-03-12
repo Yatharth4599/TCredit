@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useEffect, useState, useRef } from 'react'
-import { platformApi, vaultsApi, waitlistApi } from '../api/client'
-import { weiToNumber, formatUSDCCompact } from '../lib/format'
+import { vaultsApi, waitlistApi } from '../api/client'
+import { formatUSDCCompact } from '../lib/format'
 import { AnimatedNumber } from '../components/ui/AnimatedNumber'
 import DecryptedText from '../components/ui/DecryptedText'
 import NoiseBackground from '../components/ui/NoiseBackground'
@@ -48,7 +48,6 @@ function VaultMiniCard({ vault }: { vault: ApiVault }) {
 export default function Home() {
     const navigate = useNavigate()
     const [mounted, setMounted] = useState(false)
-    const [liveStats, setLiveStats] = useState<{ tvl: string; poolLiquidity: string; activeVaults: number } | null>(null)
     const [vaults, setVaults] = useState<ApiVault[]>([])
     const [showWaitlist, setShowWaitlist] = useState(false)
     const [waitlistEmail, setWaitlistEmail] = useState('')
@@ -61,14 +60,11 @@ export default function Home() {
 
     useEffect(() => {
         setMounted(true)
-        platformApi.stats().then(({ data }) => setLiveStats(data)).catch(() => {})
         vaultsApi.list().then(({ data }) => setVaults(data.vaults.slice(0, 6))).catch(() => {})
     }, [])
 
-    // Mocked aspirational hero stats (live stats used elsewhere)
+    // Mocked aspirational hero stats (live stats used for vault cards below)
     const heroStats = { tvl: 2_400_000, liquidity: 1_800_000, vaults: 47, agents: 128 }
-    const tvlNum  = liveStats ? weiToNumber(liveStats.tvl) : 0
-    const liqNum  = liveStats ? weiToNumber(liveStats.poolLiquidity) : 0
     const fmt     = (v: number) => v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${(v / 1e3).toFixed(0)}K` : `$${v.toFixed(0)}`
 
     return (
@@ -177,12 +173,12 @@ export default function Home() {
             <div className={styles.statsBar}>
                 <div className={styles.statsBarInner} ref={tickerRef}>
                     {[
-                        { label: 'TVL',            val: tvlNum,                   fmt },
-                        { label: 'Pool Liquidity', val: liqNum,                   fmt },
-                        { label: 'Active Vaults',  val: liveStats?.activeVaults ?? 0, fmt: (v: number) => v.toFixed(0) },
+                        { label: 'TVL',            val: heroStats.tvl,       fmt },
+                        { label: 'Agents',         val: heroStats.agents,    fmt: (v: number) => v.toFixed(0) },
+                        { label: 'Active Vaults',  val: heroStats.vaults,    fmt: (v: number) => v.toFixed(0) },
                         { label: 'Protocol',       val: 0, fmt: () => 'x402'        },
                         { label: 'Network',        val: 0, fmt: () => 'Base'         },
-                        { label: 'On-Chain',       val: 100, fmt: (v: number) => `${v.toFixed(0)}%` },
+                        { label: 'Avg APY',        val: 12.5, fmt: (v: number) => `${v.toFixed(1)}%` },
                     ].map((item, i) => (
                         <span key={i} className={styles.statsBarItem}>
                             <span className={styles.statsBarLabel}>{item.label}</span>
@@ -194,22 +190,22 @@ export default function Home() {
             </div>
 
             {/* ══════════════════════════════════════════════════════════
-                SECTION 3 — HOW IT WORKS (3 steps)
+                SECTION 3 — HOW IT WORKS (4 steps)
                 ══════════════════════════════════════════════════════════ */}
             <section className={styles.hiwSection} id="how-it-works">
                 <div className={styles.sectionContainer}>
                     <div className={styles.sectionHeader}>
                         <span className={styles.sectionLabel}>How It Works</span>
-                        <h2 className={styles.sectionTitle}>Three steps to <span className={styles.gradientInline}>programmable credit</span></h2>
+                        <h2 className={styles.sectionTitle}>How the <span className={styles.gradientInline}>agent credit lifecycle</span> works</h2>
                     </div>
 
                     <div className={styles.stepsGrid}>
                         {[
                             {
                                 step: '01',
-                                title: 'Route payments through Krexa',
-                                desc:  'Bill customers using x402 endpoints. Every payment is recorded on-chain as verifiable revenue history — your living credit profile.',
-                                color: '#3b82f6',
+                                title: 'Agents earn via x402',
+                                desc:  'AI agents monetize APIs, tasks, and services. Every payment flows through Krexa\'s PaymentRouter — oracle-signed, nonce-protected, settled on Base in under 2 seconds.',
+                                color: '#3B82F6',
                                 icon: (
                                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                                         <path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" />
@@ -218,9 +214,20 @@ export default function Home() {
                             },
                             {
                                 step: '02',
-                                title: 'Access working capital instantly',
-                                desc:  'Your FairScale score unlocks structured credit vaults. No collateral needed — your revenue consistency is the underwriting signal.',
-                                color: '#3B82F6',
+                                title: 'Credit score builds automatically',
+                                desc:  'Payment history creates a real-time on-chain credit score. FairScale 0–1000, Tiers A–D. No applications, no credit bureaus — your revenue consistency is the underwriting signal.',
+                                color: '#06B6D4',
+                                icon: (
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                        <path d="M3 20h18" /><path d="M5 20V10" /><path d="M9 20V4" /><path d="M13 20V14" /><path d="M17 20V8" />
+                                    </svg>
+                                ),
+                            },
+                            {
+                                step: '03',
+                                title: 'Revenue-backed credit line',
+                                desc:  'Tier A/B/C agents unlock structured credit vaults. Capital comes from Senior pools, LP pools, and community investors — all on-chain, all transparent.',
+                                color: '#8B5CF6',
                                 icon: (
                                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                                         <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -228,13 +235,13 @@ export default function Home() {
                                 ),
                             },
                             {
-                                step: '03',
-                                title: 'Repayment happens automatically',
-                                desc:  'Incoming payments auto-split via waterfall — senior lenders first, then pool, community, finally merchant. Enforced by smart contract, no manual installments.',
-                                color: '#22c55e',
+                                step: '04',
+                                title: 'Automatic waterfall repayment',
+                                desc:  'Every incoming payment auto-splits on-chain: Platform Fee → Senior → Pool → Community → Agent. No manual payments. No collections. Enforced by smart contract.',
+                                color: '#10B981',
                                 icon: (
                                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                        <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+                                        <path d="M4 4v5h5M20 20v-5h-5" /><path d="M20.49 9A9 9 0 0 0 5.64 5.64L4 4m16 16l-1.64-1.64A9 9 0 0 1 3.51 15" />
                                     </svg>
                                 ),
                             },
@@ -284,25 +291,25 @@ export default function Home() {
                 <div className={styles.sectionContainer}>
                     <div className={styles.sectionHeader}>
                         <span className={styles.sectionLabel}>Why Krexa</span>
-                        <h2 className={styles.sectionTitle}>What <span className={styles.gradientInline}>existing infrastructure</span> cannot do</h2>
+                        <h2 className={styles.sectionTitle}>Why AI agents need a <span className={styles.gradientInline}>new credit layer</span></h2>
                     </div>
 
                     <div className={styles.compareTable}>
                         {/* Header row */}
                         <div className={styles.compareRow + ' ' + styles.compareHeader}>
                             <span />
-                            <span className={styles.compareColLabel}>Traditional Bank</span>
-                            <span className={styles.compareColLabel}>DeFi Protocols</span>
+                            <span className={styles.compareColLabel}>Traditional Banks</span>
+                            <span className={styles.compareColLabel}>DeFi (Aave, etc.)</span>
                             <span className={`${styles.compareColLabel} ${styles.compareColKrexa}`}>Krexa</span>
                         </div>
 
                         {[
-                            { feature: 'Credit assessment',       bank: 'Annual review',           defi: 'None',               krexa: 'Real-time x402 data' },
-                            { feature: 'Collateral required',     bank: 'Physical assets',          defi: '150%+ overcollat.',  krexa: 'Revenue history' },
-                            { feature: 'Repayment enforcement',   bank: 'Legal process',           defi: 'Liquidation',        krexa: 'Smart contract auto-split' },
-                            { feature: 'Settlement time',         bank: '4–6 weeks',               defi: 'Instant, but risky', krexa: 'Instant, enforceable' },
-                            { feature: 'Global liquidity',        bank: 'Restricted',              defi: 'Permissionless',     krexa: 'Permissionless' },
-                            { feature: 'Transparency',            bank: 'Opaque',                  defi: 'On-chain',           krexa: 'Fully on-chain' },
+                            { feature: 'Agent-compatible',        bank: 'No (requires KYC)',        defi: 'Partial (collateral only)', krexa: 'Yes — x402-native' },
+                            { feature: 'Collateral required',     bank: 'Physical assets',          defi: '150%+ overcollat.',         krexa: 'Revenue history only' },
+                            { feature: 'Credit assessment',       bank: 'Annual review, paperwork', defi: 'None (purely collateral)',   krexa: 'Real-time FairScale score' },
+                            { feature: 'Repayment enforcement',   bank: 'Legal process',            defi: 'Liquidation',               krexa: 'Smart contract auto-split' },
+                            { feature: 'Settlement speed',        bank: '4–6 weeks',                defi: 'Instant, but risky',        krexa: 'Instant, enforceable' },
+                            { feature: 'Transparency',            bank: 'Opaque',                   defi: 'On-chain',                  krexa: 'Fully on-chain + verifiable' },
                         ].map((row, i) => (
                             <div key={i} className={styles.compareRow}>
                                 <span className={styles.compareFeature}>{row.feature}</span>
@@ -320,10 +327,10 @@ export default function Home() {
                 ══════════════════════════════════════════════════════════ */}
             <section className={styles.ctaBand}>
                 <div className={styles.ctaBandInner}>
-                    <h2 className={styles.ctaTitle}>Ready to connect your revenue to capital?</h2>
+                    <h2 className={styles.ctaTitle}>The credit layer for the agent economy</h2>
                     <p className={styles.ctaSubtitle}>
-                        Whether you're a merchant seeking working capital or an investor seeking structured yield —
-                        Krexa is the only protocol where repayment is automatic.
+                        Whether you're building AI agents that need capital or seeking yield from real agent revenue —
+                        Krexa is the protocol where repayment is enforced by code, not courts.
                     </p>
                     <div className={styles.ctaActions}>
                         <NoiseBackground gradientColors={['#2563EB', '#1D4ED8', '#3B82F6']}>
