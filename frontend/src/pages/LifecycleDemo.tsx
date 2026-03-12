@@ -85,9 +85,9 @@ const BASESCAN_ADDR = (addr: string) => `https://sepolia.basescan.org/address/${
 const STEP_LABELS: Record<number, string> = {
   1: 'Create Vault',
   2: 'Fund Vault',
-  3: 'Disburse to Merchant',
+  3: 'Disburse to Agent',
   4: 'Revenue Payments',
-  5: 'Loan Status',
+  5: 'Credit Status',
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -292,9 +292,9 @@ export default function LifecycleDemo() {
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         >
           <div className={styles.heroLabel}>Live Demonstration</div>
-          <h1 className={styles.heroTitle}>Full Loan Lifecycle Demo</h1>
+          <h1 className={styles.heroTitle}>Agent Credit Lifecycle Demo</h1>
           <p className={styles.heroSubtitle}>
-            Watch a loan go from creation to full repayment.{' '}
+            Watch an AI agent go from earning revenue to full credit repayment.{' '}
             <strong>Every step is a real on-chain transaction on Base Sepolia.</strong>
           </p>
         </motion.div>
@@ -313,16 +313,16 @@ export default function LifecycleDemo() {
           >
             <div className={styles.configRow}>
               <div className={styles.configItem}>
-                <label className={styles.configLabel}>Merchant</label>
+                <label className={styles.configLabel}>Agent</label>
                 <div className={styles.configValue}>
-                  <span className={styles.merchantName}>GlobalTextiles</span>
-                  <span className={styles.merchantBadge}>Score: 780 · Tier A</span>
+                  <span className={styles.merchantName}>DataServiceBot</span>
+                  <span className={styles.merchantBadge}>FairScale: 780 · Tier A</span>
                 </div>
                 <div className={styles.configAddr}>{truncateAddress(DEMO_MERCHANT, 6)}</div>
               </div>
               <div className={styles.configDivider} />
               <div className={styles.configItem}>
-                <label className={styles.configLabel}>Loan Amount (USDC)</label>
+                <label className={styles.configLabel}>Credit Line (USDC)</label>
                 <div className={styles.configInputRow}>
                   {[1000, 2500, 5000, 10000].map(amt => (
                     <button
@@ -358,7 +358,7 @@ export default function LifecycleDemo() {
 
             <button className={styles.startBtn} onClick={startDemo}>
               <Play size={16} />
-              Start Full Lifecycle Demo
+              Start Agent Credit Demo
             </button>
           </motion.div>
         )}
@@ -481,7 +481,7 @@ export default function LifecycleDemo() {
                     </span>
                   </div>
                   <div className={styles.stepDetailRow}>
-                    <span className={styles.detailKey}>Recipient</span>
+                    <span className={styles.detailKey}>Agent Wallet</span>
                     <span className={styles.detailVal}>{truncateAddress(DEMO_MERCHANT, 6)}</span>
                   </div>
                   {s.txHashes.tranche && (
@@ -568,7 +568,7 @@ export default function LifecycleDemo() {
                             <WaterfallPill label="Senior"    val={pmt.waterfall.senior}      color="var(--accent)" />
                             <WaterfallPill label="Pool"      val={pmt.waterfall.pool}        color="#60a5fa" />
                             <WaterfallPill label="Community" val={pmt.waterfall.community}   color="#a78bfa" />
-                            <WaterfallPill label="Merchant"  val={pmt.waterfall.merchant}    color="var(--color-success)" />
+                            <WaterfallPill label="Agent"     val={pmt.waterfall.merchant}    color="var(--color-success)" />
                           </div>
                         </motion.div>
                       ))}
@@ -629,14 +629,14 @@ export default function LifecycleDemo() {
                   <CheckCircle2 size={44} />
                 </motion.div>
 
-                <h2 className={styles.celebrationTitle}>Loan Fully Repaid</h2>
+                <h2 className={styles.celebrationTitle}>Credit Fully Repaid</h2>
                 <p className={styles.celebrationSub}>
                   {s.finalResult.numPayments} automatic payments · {elapsed}s · 100% on-chain
                 </p>
 
                 {/* Stats grid */}
                 <div className={styles.finalStats}>
-                  <FinalStat label="Loan Amount"   value={`$${s.finalResult.loanAmount.toLocaleString()}`} />
+                  <FinalStat label="Credit Amount" value={`$${s.finalResult.loanAmount.toLocaleString()}`} />
                   <FinalStat label="Total Repaid"  value={`$${s.finalResult.totalRepaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} />
                   <FinalStat label="Interest Paid" value={`$${s.finalResult.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} highlight />
                   <FinalStat label="Time to Repay" value={elapsed >= 60 ? `${Math.floor(elapsed/60)}m ${elapsed%60}s` : `${elapsed}s`} />
@@ -649,7 +649,7 @@ export default function LifecycleDemo() {
                     <ReturnRow label="Senior Pool earned"  val={s.finalResult.returns.senior}      color="var(--accent)" />
                     <ReturnRow label="General Pool earned" val={s.finalResult.returns.general}     color="#60a5fa" />
                     <ReturnRow label="Community earned"    val={s.finalResult.returns.community}   color="#a78bfa" />
-                    <ReturnRow label="Merchant retained"   val={s.finalResult.returns.merchant}    color="var(--color-success)" />
+                    <ReturnRow label="Agent retained"      val={s.finalResult.returns.merchant}    color="var(--color-success)" />
                     <ReturnRow label="Platform fee"        val={s.finalResult.returns.platformFee} color="rgba(255,255,255,0.4)" />
                   </div>
                 </div>
@@ -657,7 +657,7 @@ export default function LifecycleDemo() {
                 <p className={styles.celebrationNote}>
                   <Zap size={13} />
                   Every transaction is on-chain. Every split was automatic.
-                  The merchant never made a manual repayment.
+                  The agent never made a manual repayment.
                 </p>
 
                 {/* CTA buttons */}
