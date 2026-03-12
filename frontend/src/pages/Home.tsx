@@ -360,11 +360,11 @@ export default function Home() {
                     <div className={styles.footerColumns}>
                         <div className={styles.footerCol}>
                             <h4>Products</h4>
-                            <a href="/vaults">Vaults</a>
-                            <a href="/pools">Liquidity Pools</a>
-                            <a href="/portfolio">Portfolio</a>
-                            <a href="/merchant">Merchant Dashboard</a>
-                            <a href="/x402">x402 Payments</a>
+                            <a href="/app/vaults">Vaults</a>
+                            <a href="/app/pools">Liquidity Pools</a>
+                            <a href="/app/portfolio">Portfolio</a>
+                            <a href="/app/merchant">Merchant Dashboard</a>
+                            <a href="/app/x402">x402 Payments</a>
                         </div>
                         <div className={styles.footerCol}>
                             <h4>Company</h4>

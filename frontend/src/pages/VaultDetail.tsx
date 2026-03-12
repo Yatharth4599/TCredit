@@ -126,7 +126,7 @@ export default function VaultDetail() {
     return (
       <div className={styles.page}>
         <div className={styles.pageInner}>
-          <button className={styles.backButton} onClick={() => navigate('/vaults')}>
+          <button className={styles.backButton} onClick={() => navigate('/app/vaults')}>
             <ArrowLeft size={15} /> Back to Vaults
           </button>
           <ErrorState onRetry={loadVault} />
@@ -143,7 +143,7 @@ export default function VaultDetail() {
             <AlertTriangle size={32} />
             <h2>Vault not found</h2>
             <p>No vault exists at this address.</p>
-            <button className={styles.backButton} onClick={() => navigate('/vaults')}>
+            <button className={styles.backButton} onClick={() => navigate('/app/vaults')}>
               <ArrowLeft size={15} /> Back to Vaults
             </button>
           </div>
@@ -184,7 +184,7 @@ export default function VaultDetail() {
       <div className={styles.pageInner}>
 
         {/* Back button */}
-        <button className={styles.backButton} onClick={() => navigate('/vaults')}>
+        <button className={styles.backButton} onClick={() => navigate('/app/vaults')}>
           <ArrowLeft size={15} /> Back to Vaults
         </button>
 
@@ -394,7 +394,7 @@ export default function VaultDetail() {
                 {/* CTA */}
                 <button
                   className={styles.tryLiveBtn}
-                  onClick={() => navigate('/x402')}
+                  onClick={() => navigate('/app/x402')}
                 >
                   Try it Live — Simulate a Payment <ExternalLink size={13} />
                 </button>
@@ -680,7 +680,7 @@ export default function VaultDetail() {
 
                   <button
                     className={styles.tryBtn}
-                    onClick={() => navigate('/x402')}
+                    onClick={() => navigate('/app/x402')}
                   >
                     <Zap size={13} /> Simulate a Payment
                   </button>

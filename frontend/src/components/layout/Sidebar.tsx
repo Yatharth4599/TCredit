@@ -7,10 +7,10 @@ import {
 import styles from './Sidebar.module.css'
 
 const navItems = [
-  { path: '/', icon: Home, label: 'Home' },
-  { path: '/vaults', icon: Layers, label: 'Vaults' },
-  { path: '/portfolio', icon: PieChart, label: 'Portfolio' },
-  { path: '/merchant', icon: Store, label: 'Merchant' },
+  { path: '/app', icon: Home, label: 'Home' },
+  { path: '/app/vaults', icon: Layers, label: 'Vaults' },
+  { path: '/app/portfolio', icon: PieChart, label: 'Portfolio' },
+  { path: '/app/merchant', icon: Store, label: 'Merchant' },
   { path: '/settings', icon: Settings, label: 'Settings' },
 ]
 
@@ -29,7 +29,7 @@ export default function Sidebar() {
           <NavLink
             key={path}
             to={path}
-            end={path === '/'}
+            end={path === '/app'}
             className={({ isActive }) =>
               `${styles.navItem} ${isActive ? styles.navItemActive : ''}`
             }

@@ -670,7 +670,7 @@ export default function MerchantDashboard() {
                         >
                           Copy Address
                         </button>
-                        <button className={styles.manageBtn} onClick={() => navigate(`/vaults/${vault.address}`)}>
+                        <button className={styles.manageBtn} onClick={() => navigate(`/app/vaults/${vault.address}`)}>
                           Details
                         </button>
                       </div>

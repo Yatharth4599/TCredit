@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { lazy, Suspense, useEffect } from 'react'
 import { Toaster } from 'react-hot-toast'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -6,6 +6,7 @@ import Navbar from './components/layout/Navbar'
 import WrongNetworkBanner from './components/layout/WrongNetworkBanner'
 import styles from './App.module.css'
 
+const LandingPage = lazy(() => import('./pages/LandingPage'))
 const Home = lazy(() => import('./pages/Home'))
 const Demo = lazy(() => import('./pages/Demo'))
 const VaultsMarketing = lazy(() => import('./pages/VaultsMarketing'))
@@ -29,9 +30,11 @@ const LifecycleDemo = lazy(() => import('./pages/LifecycleDemo'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 
 // Kickstart gets special EasyA green theme; all other pages use default blue
+// Landing page (/) gets light mode — removes 'dark' class from <html>
 function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation()
   const isKickstart = pathname.startsWith('/app/kickstart') || pathname.startsWith('/kickstart')
+  const isLanding = pathname === '/'
 
   useEffect(() => {
     if (isKickstart) {
@@ -40,6 +43,14 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
       document.documentElement.removeAttribute('data-theme')
     }
   }, [isKickstart])
+
+  useEffect(() => {
+    if (isLanding) {
+      document.documentElement.classList.remove('dark')
+    } else {
+      document.documentElement.classList.add('dark')
+    }
+  }, [isLanding])
 
   return <>{children}</>
 }
@@ -52,58 +63,74 @@ function PageLoader() {
   )
 }
 
+function AppShell() {
+  const { pathname } = useLocation()
+  const isLanding = pathname === '/'
+
+  return (
+    <div className={styles.app}>
+      {!isLanding && <WrongNetworkBanner />}
+      {!isLanding && <Navbar />}
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          style: {
+            background: '#111827',
+            color: '#F1F5F9',
+            border: '1px solid #1E293B',
+            borderRadius: '9999px',
+            fontSize: '13px',
+            fontFamily: "'Inter', -apple-system, sans-serif",
+            padding: '10px 20px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          },
+        }}
+      />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* Marketing landing page — light theme, no app chrome */}
+          <Route path="/" element={<LandingPage />} />
+          {/* App home */}
+          <Route path="/app" element={<Home />} />
+          {/* Marketing pages */}
+          <Route path="/vaults" element={<VaultsMarketing />} />
+          <Route path="/portfolio" element={<PortfolioMarketing />} />
+          <Route path="/pools" element={<PoolsMarketing />} />
+          <Route path="/merchant" element={<MerchantMarketing />} />
+          {/* Functional app pages */}
+          <Route path="/app/vaults" element={<Vaults />} />
+          <Route path="/app/vaults/:address" element={<VaultDetail />} />
+          <Route path="/vaults/:address" element={<VaultDetail />} />
+          <Route path="/app/portfolio" element={<Portfolio />} />
+          <Route path="/app/pools" element={<LiquidityPools />} />
+          <Route path="/app/merchant" element={<MerchantDashboard />} />
+          <Route path="/app/wallets" element={<AgentWallets />} />
+          <Route path="/app/wallets/:address" element={<WalletDetail />} />
+          <Route path="/app/identity" element={<AgentIdentity />} />
+          <Route path="/app/gateway" element={<Gateway />} />
+          <Route path="/app/kickstart" element={<Kickstart />} />
+          <Route path="/app/traders" element={<TraderDashboard />} />
+          <Route path="/app/x402" element={<X402Demo />} />
+          <Route path="/app/demo" element={<Demo />} />
+          <Route path="/app/lifecycle" element={<LifecycleDemo />} />
+          <Route path="/admin/waitlist" element={<WaitlistAdmin />} />
+          {/* Legacy redirects — keep old paths working */}
+          <Route path="/x402" element={<Navigate to="/app/x402" replace />} />
+          <Route path="/demo" element={<Navigate to="/app/demo" replace />} />
+          <Route path="/lifecycle" element={<Navigate to="/app/lifecycle" replace />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    </div>
+  )
+}
+
 function App() {
   return (
     <ErrorBoundary>
       <Router>
         <ThemeProvider>
-          <div className={styles.app}>
-            <WrongNetworkBanner />
-            <Navbar />
-            <Toaster
-              position="bottom-right"
-              toastOptions={{
-                style: {
-                  background: '#111827',
-                  color: '#F1F5F9',
-                  border: '1px solid #1E293B',
-                  borderRadius: '9999px',
-                  fontSize: '13px',
-                  fontFamily: "'Inter', -apple-system, sans-serif",
-                  padding: '10px 20px',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                },
-              }}
-            />
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                {/* Marketing pages */}
-                <Route path="/vaults" element={<VaultsMarketing />} />
-                <Route path="/portfolio" element={<PortfolioMarketing />} />
-                <Route path="/pools" element={<PoolsMarketing />} />
-                <Route path="/merchant" element={<MerchantMarketing />} />
-                {/* Functional app pages */}
-                <Route path="/app/vaults" element={<Vaults />} />
-                <Route path="/app/vaults/:address" element={<VaultDetail />} />
-                <Route path="/vaults/:address" element={<VaultDetail />} />
-                <Route path="/app/portfolio" element={<Portfolio />} />
-                <Route path="/app/pools" element={<LiquidityPools />} />
-                <Route path="/app/merchant" element={<MerchantDashboard />} />
-                <Route path="/app/wallets" element={<AgentWallets />} />
-                <Route path="/app/wallets/:address" element={<WalletDetail />} />
-                <Route path="/app/identity" element={<AgentIdentity />} />
-                <Route path="/app/gateway" element={<Gateway />} />
-                <Route path="/app/kickstart" element={<Kickstart />} />
-                <Route path="/app/traders" element={<TraderDashboard />} />
-                <Route path="/admin/waitlist" element={<WaitlistAdmin />} />
-                <Route path="/x402" element={<X402Demo />} />
-                <Route path="/demo" element={<Demo />} />
-                <Route path="/lifecycle" element={<LifecycleDemo />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </div>
+          <AppShell />
         </ThemeProvider>
       </Router>
     </ErrorBoundary>

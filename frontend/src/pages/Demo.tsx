@@ -232,7 +232,7 @@ export default function Demo() {
             </span>
           ))}
         </div>
-        <button className={styles.lifecycleBtn} onClick={() => navigate('/lifecycle')}>
+        <button className={styles.lifecycleBtn} onClick={() => navigate('/app/lifecycle')}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
           </svg>
@@ -275,7 +275,7 @@ export default function Demo() {
               <button
                 className={styles.stepCta}
                 style={{ '--cta-color': STEP_COLORS[0] } as React.CSSProperties}
-                onClick={() => navigate('/x402')}
+                onClick={() => navigate('/app/x402')}
               >
                 View Live x402 Payments
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -355,7 +355,7 @@ export default function Demo() {
               <button
                 className={styles.stepCta}
                 style={{ '--cta-color': STEP_COLORS[1] } as React.CSSProperties}
-                onClick={() => navigate('/merchant')}
+                onClick={() => navigate('/app/merchant')}
               >
                 View Merchant Profile
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -460,7 +460,7 @@ export default function Demo() {
                 <button
                   className={styles.stepCta}
                   style={{ '--cta-color': STEP_COLORS[3] } as React.CSSProperties}
-                  onClick={() => navigate('/x402')}
+                  onClick={() => navigate('/app/x402')}
                 >
                   Try the Payment Simulator
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -469,7 +469,7 @@ export default function Demo() {
                 </button>
                 <button
                   className={styles.stepCtaSecondary}
-                  onClick={() => navigate('/lifecycle')}
+                  onClick={() => navigate('/app/lifecycle')}
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                     <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
@@ -503,7 +503,7 @@ export default function Demo() {
                   <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
                 </svg>
                 After a loan is fully repaid, investors can claim their returns directly from the vault.{' '}
-                <button className={styles.inlineLink} onClick={() => navigate('/lifecycle')}>
+                <button className={styles.inlineLink} onClick={() => navigate('/app/lifecycle')}>
                   Run the full lifecycle demo
                 </button>{' '}
                 to see this happen live.
@@ -535,7 +535,7 @@ export default function Demo() {
               <button
                 className={styles.stepCta}
                 style={{ '--cta-color': STEP_COLORS[4] } as React.CSSProperties}
-                onClick={() => navigate('/portfolio')}
+                onClick={() => navigate('/app/portfolio')}
               >
                 View Investor Portfolio
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none">

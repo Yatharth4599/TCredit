@@ -18,8 +18,8 @@ export default function Navbar() {
           <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
         </svg>
       ),
-      href: '/lifecycle',
-      onClick: () => navigate('/lifecycle'),
+      href: '/app/lifecycle',
+      onClick: () => navigate('/app/lifecycle'),
       accent: true,
     },
     {
@@ -29,8 +29,8 @@ export default function Navbar() {
           <polygon points="5 3 19 12 5 21 5 3" />
         </svg>
       ),
-      href: '/demo',
-      onClick: () => navigate('/demo'),
+      href: '/app/demo',
+      onClick: () => navigate('/app/demo'),
     },
     {
       title: 'Home',
@@ -39,8 +39,8 @@ export default function Navbar() {
           <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
         </svg>
       ),
-      href: '/',
-      onClick: () => navigate('/'),
+      href: '/app',
+      onClick: () => navigate('/app'),
     },
     {
       title: 'Vaults',
@@ -49,8 +49,8 @@ export default function Navbar() {
           <rect x="2" y="4" width="20" height="16" rx="2" /><circle cx="12" cy="12" r="3" /><line x1="12" y1="9" x2="12" y2="7" /><line x1="12" y1="17" x2="12" y2="15" /><line x1="9" y1="12" x2="7" y2="12" /><line x1="17" y1="12" x2="15" y2="12" /><rect x="18" y="8" width="2" height="3" rx="0.5" />
         </svg>
       ),
-      href: '/vaults',
-      onClick: () => navigate('/vaults'),
+      href: '/app/vaults',
+      onClick: () => navigate('/app/vaults'),
     },
     {
       title: 'Pools',
@@ -59,8 +59,8 @@ export default function Navbar() {
           <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
         </svg>
       ),
-      href: '/pools',
-      onClick: () => navigate('/pools'),
+      href: '/app/pools',
+      onClick: () => navigate('/app/pools'),
     },
     {
       title: 'Portfolio',
@@ -69,8 +69,8 @@ export default function Navbar() {
           <path d="M2 20h20M6 20V10M10 20V4M14 20V8M18 20V14" />
         </svg>
       ),
-      href: '/portfolio',
-      onClick: () => navigate('/portfolio'),
+      href: '/app/portfolio',
+      onClick: () => navigate('/app/portfolio'),
     },
     {
       title: 'Merchant',
@@ -79,8 +79,8 @@ export default function Navbar() {
           <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 01-8 0" />
         </svg>
       ),
-      href: '/merchant',
-      onClick: () => navigate('/merchant'),
+      href: '/app/merchant',
+      onClick: () => navigate('/app/merchant'),
     },
     {
       title: 'x402 Demo',
@@ -89,8 +89,8 @@ export default function Navbar() {
           <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
         </svg>
       ),
-      href: '/x402',
-      onClick: () => navigate('/x402'),
+      href: '/app/x402',
+      onClick: () => navigate('/app/x402'),
     },
     {
       title: 'Twitter / X',

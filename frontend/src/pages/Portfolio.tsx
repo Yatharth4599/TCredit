@@ -255,7 +255,7 @@ export default function Portfolio() {
             <div className={styles.emptyIcon}>📊</div>
             <h2>No Investments Yet</h2>
             <p>Start earning real yield from on-chain merchant repayments</p>
-            <button className={styles.browseBtn} onClick={() => navigate('/vaults')}>
+            <button className={styles.browseBtn} onClick={() => navigate('/app/vaults')}>
               Browse Vaults <ArrowRight size={14} />
             </button>
           </div>
@@ -568,7 +568,7 @@ export default function Portfolio() {
                   {/* View vault link */}
                   <button
                     className={styles.viewVaultBtn}
-                    onClick={() => navigate(`/vaults/${inv.vaultAddress}`)}
+                    onClick={() => navigate(`/app/vaults/${inv.vaultAddress}`)}
                   >
                     View Vault Details <ArrowRight size={13} />
                   </button>
