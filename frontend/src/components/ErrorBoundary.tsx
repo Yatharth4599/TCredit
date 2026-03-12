@@ -41,10 +41,10 @@ export default class ErrorBoundary extends Component<Props, State> {
           style={{
             marginTop: '8px',
             padding: '10px 24px',
-            background: 'linear-gradient(135deg, #FF6B35, #ff8f6b)',
+            background: 'linear-gradient(135deg, #3B82F6, #60A5FA)',
             border: 'none',
             borderRadius: '10px',
-            color: '#000',
+            color: '#fff',
             fontWeight: 700,
             fontSize: '0.85rem',
             cursor: 'pointer',

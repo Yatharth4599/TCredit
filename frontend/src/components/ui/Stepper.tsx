@@ -140,8 +140,8 @@ function StepIndicator({ step, currentStep, onClickStep, disabled }: {
       <motion.div
         variants={{
           inactive: { scale: 1, backgroundColor: '#222', color: '#a3a3a3' },
-          active: { scale: 1, backgroundColor: '#FF6B35', color: '#FF6B35' },
-          complete: { scale: 1, backgroundColor: '#FF6B35', color: '#FF6B35' },
+          active: { scale: 1, backgroundColor: '#3B82F6', color: '#3B82F6' },
+          complete: { scale: 1, backgroundColor: '#3B82F6', color: '#3B82F6' },
         }}
         transition={{ duration: 0.3 }}
         className={css.indicatorInner}
@@ -167,7 +167,7 @@ function StepConnector({ isComplete }: { isComplete: boolean }) {
   return (
     <div className={css.connector}>
       <motion.div className={css.connectorInner}
-        variants={{ incomplete: { width: 0, backgroundColor: 'transparent' }, complete: { width: '100%', backgroundColor: '#FF6B35' } }}
+        variants={{ incomplete: { width: 0, backgroundColor: 'transparent' }, complete: { width: '100%', backgroundColor: '#3B82F6' } }}
         initial={false} animate={isComplete ? 'complete' : 'incomplete'} transition={{ duration: 0.4 }}
       />
     </div>

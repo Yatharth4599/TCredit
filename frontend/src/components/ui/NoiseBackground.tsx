@@ -9,7 +9,7 @@ interface NoiseBackgroundProps {
 
 export default function NoiseBackground({
   children,
-  gradientColors = ['#FF6B35', '#E85A28', '#FF9B70'],
+  gradientColors = ['#3B82F6', '#2563EB', '#60A5FA'],
   containerClassName = '',
 }: NoiseBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)

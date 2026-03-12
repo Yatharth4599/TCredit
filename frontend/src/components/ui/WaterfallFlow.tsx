@@ -5,7 +5,7 @@ const TIERS = [
   {
     name: 'Senior Capital',
     desc: 'NBFC institutional lenders — priority repayment, lowest risk',
-    color: '#FF6B35',
+    color: '#3B82F6',
     principal: 25_000,
     totalReturn: 26_500,
     yieldRate: '1%/mo',
@@ -67,7 +67,7 @@ function WaterfallBackground({ playing }: { playing: boolean }) {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    const colors = ['#FF6B35', '#3b82f6', '#34d399']
+    const colors = ['#3B82F6', '#3b82f6', '#34d399']
 
     const resize = () => {
       const parent = canvas.parentElement

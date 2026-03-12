@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react'
 
-const ACCENT_LEFT = ['#FF8C42', '#FF6B6B', '#FFAAAA', '#FF9B8C']
+const ACCENT_LEFT = ['#3B82F6', '#60A5FA', '#93C5FD', '#2563EB']
 const ACCENT_RIGHT = ['#40E0D0', '#80F0E8', '#A8F0F0', '#88D8E8']
 const WHITES = ['#FFFFFF', '#E8E8EE', '#C8CED6', '#D0D4DA']
 

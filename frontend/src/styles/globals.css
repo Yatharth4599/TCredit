@@ -18,16 +18,24 @@ body,
   width: 100%;
   font-family: var(--font-body);
   font-size: 15px;
-  background-color: var(--bg-dark);
-  background-image: var(--glow-aurora-primary);
-  background-attachment: fixed;
-  background-position: center bottom;
-  background-repeat: no-repeat;
-  background-size: 100% 60%;
+  background-color: var(--bg-deepest);
   color: var(--text-primary);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Subtle grid pattern behind all pages */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(30, 41, 59, 0.25) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 41, 59, 0.25) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+  z-index: -1;
 }
 
 /* ─── Elements ───────────────────────────────── */
@@ -72,7 +80,7 @@ input, textarea, select {
   justify-content: center;
   gap: 8px;
   background: var(--accent);
-  color: #000;
+  color: #fff;
   font-family: var(--font-body);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);

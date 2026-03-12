@@ -52,7 +52,7 @@
 
 .searchInput:focus {
   outline: none;
-  border-color: rgba(255, 107, 53, 0.3);
+  border-color: rgba(59, 130, 246, 0.3);
 }
 
 .right {

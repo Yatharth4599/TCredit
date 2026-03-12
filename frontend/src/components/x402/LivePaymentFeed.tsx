@@ -102,7 +102,7 @@ export default function LivePaymentFeed({
             >
               <div className={s.paymentMain}>
                 <span className={s.agentAvatar}>
-                  <AgentAvatar avatarKey={p.from.avatar} size={18} color="#FF6B35" />
+                  <AgentAvatar avatarKey={p.from.avatar} size={18} color="#3B82F6" />
                 </span>
                 <div className={s.paymentRoute}>
                   <span className={s.agentName}>{p.from.name}</span>

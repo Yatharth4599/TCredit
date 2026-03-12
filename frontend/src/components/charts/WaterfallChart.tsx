@@ -17,8 +17,8 @@ function getCSSVar(name: string, fallback: string): string {
 
 function getColors() {
   return {
-    senior: getCSSVar('--accent', '#FF6B35'),
-    pool: getCSSVar('--accent-light', '#FF8C5A'),
+    senior: getCSSVar('--accent', '#3B82F6'),
+    pool: getCSSVar('--accent-light', '#60A5FA'),
     user: getCSSVar('--text-secondary', 'rgba(245,245,247,0.6)'),
   }
 }

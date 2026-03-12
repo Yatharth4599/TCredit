@@ -19,7 +19,7 @@ export function BentoCard({
   style,
   colSpan,
   rowSpan,
-  glowColor = '255, 107, 53',
+  glowColor = '59, 130, 246',
 }: BentoCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
 

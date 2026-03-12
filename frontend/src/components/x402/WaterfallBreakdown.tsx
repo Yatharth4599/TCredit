@@ -97,8 +97,8 @@ export default function WaterfallBreakdown({ state }: WaterfallBreakdownProps) {
           sublabel={`${JUNIOR_TRANCHE.yieldRate}%/mo · First-loss · Highest yield`}
           current={state.juniorRepaid}
           target={state.juniorTarget}
-          color="#FF6B35"
-          icon={<BankIcon size={20} color="#FF6B35" />}
+          color="#3B82F6"
+          icon={<BankIcon size={20} color="#3B82F6" />}
         />
       </div>
     </div>

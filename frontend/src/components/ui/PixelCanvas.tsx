@@ -34,7 +34,7 @@ export default function PixelCanvas({
     direction = 180,
     opacity = 0.1,
     particleCount = 20,
-    particleColor = 'rgba(255, 107, 53, 0.3)',
+    particleColor = 'rgba(59, 130, 246, 0.3)',
     gap = 2,
     className,
 }: PixelCanvasProps) {

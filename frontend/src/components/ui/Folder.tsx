@@ -19,7 +19,7 @@ function darkenColor(hex: string, percent: number): string {
   return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)
 }
 
-export default function Folder({ color = '#FF6B35', size = 1, items = [], label, className = '' }: FolderProps) {
+export default function Folder({ color = '#3B82F6', size = 1, items = [], label, className = '' }: FolderProps) {
   const maxItems = 3
   const papers = items.slice(0, maxItems)
   while (papers.length < maxItems) papers.push(null)

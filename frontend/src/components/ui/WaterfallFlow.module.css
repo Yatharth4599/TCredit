@@ -81,8 +81,8 @@
 }
 
 .counterDone {
-    color: #FF6B35;
-    text-shadow: 0 0 16px rgba(255, 107, 53, 0.45);
+    color: #3B82F6;
+    text-shadow: 0 0 16px rgba(59, 130, 246, 0.45);
 }
 
 .counterLabel {
@@ -141,12 +141,12 @@
 .playing .bullet2 { opacity: 1; transform: translateX(0); transition-delay: 0.6s; }
 .playing .bullet3 { opacity: 1; transform: translateX(0); transition-delay: 0.75s; }
 
-.check { color: #FF6B35; font-weight: 700; }
+.check { color: #3B82F6; font-weight: 700; }
 
 .footerNote {
     margin-top: 20px;
     font-size: 0.78rem;
-    color: rgba(255, 107, 53, 0.7);
+    color: rgba(59, 130, 246, 0.7);
     letter-spacing: 0.3px;
     opacity: 0;
     transform: translateY(6px);
@@ -179,7 +179,7 @@
     border-radius: 24px;
     background: radial-gradient(
         ellipse at center,
-        rgba(255, 107, 53, 0.06) 0%,
+        rgba(59, 130, 246, 0.06) 0%,
         rgba(59, 130, 246, 0.04) 40%,
         rgba(52, 211, 153, 0.03) 70%,
         transparent 100%
@@ -591,7 +591,7 @@
     background: radial-gradient(
         ellipse at center,
         rgba(255, 255, 255, 0.15) 0%,
-        rgba(255, 107, 53, 0.08) 30%,
+        rgba(59, 130, 246, 0.08) 30%,
         transparent 70%
     );
     animation: flashBurst 0.6s ease forwards;
@@ -610,7 +610,7 @@
     pointer-events: none;
     background: linear-gradient(
         180deg,
-        rgba(255, 107, 53, 0.12) 0%,
+        rgba(59, 130, 246, 0.12) 0%,
         rgba(59, 130, 246, 0.10) 50%,
         rgba(52, 211, 153, 0.12) 100%
     );

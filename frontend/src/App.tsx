@@ -28,31 +28,18 @@ const X402Demo = lazy(() => import('./pages/X402Demo'))
 const LifecycleDemo = lazy(() => import('./pages/LifecycleDemo'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 
-function getThemeFromPath(pathname: string): string {
-  if (pathname === '/') return 'home'
-  if (pathname.startsWith('/app/vaults') || pathname.startsWith('/vaults')) return 'vaults'
-  if (pathname.startsWith('/app/portfolio') || pathname.startsWith('/portfolio')) return 'portfolio'
-  if (pathname.startsWith('/app/merchant') || pathname.startsWith('/merchant')) return 'merchant'
-  if (pathname.startsWith('/app/pools') || pathname.startsWith('/pools')) return 'pools'
-  if (pathname.startsWith('/app/wallets')) return 'merchant'
-  if (pathname.startsWith('/app/identity')) return 'merchant'
-  if (pathname.startsWith('/app/gateway')) return 'merchant'
-  if (pathname.startsWith('/app/kickstart') || pathname.startsWith('/kickstart')) return 'kickstart'
-  if (pathname.startsWith('/app/traders')) return 'merchant'
-  if (pathname.startsWith('/x402')) return 'x402'
-  if (pathname.startsWith('/demo')) return 'x402'
-  if (pathname.startsWith('/lifecycle')) return 'x402'
-  return 'home'
-}
-
+// Kickstart gets special EasyA green theme; all other pages use default blue
 function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation()
-  const theme = getThemeFromPath(pathname)
+  const isKickstart = pathname.startsWith('/app/kickstart') || pathname.startsWith('/kickstart')
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-    return () => document.documentElement.removeAttribute('data-theme')
-  }, [theme])
+    if (isKickstart) {
+      document.documentElement.setAttribute('data-theme', 'kickstart')
+    } else {
+      document.documentElement.removeAttribute('data-theme')
+    }
+  }, [isKickstart])
 
   return <>{children}</>
 }
@@ -77,14 +64,14 @@ function App() {
               position="bottom-right"
               toastOptions={{
                 style: {
-                  background: '#10141C',
-                  color: '#F5F5F7',
-                  border: 'none',
+                  background: '#111827',
+                  color: '#F1F5F9',
+                  border: '1px solid #1E293B',
                   borderRadius: '9999px',
                   fontSize: '13px',
                   fontFamily: "'Inter', -apple-system, sans-serif",
                   padding: '10px 20px',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
                 },
               }}
             />
