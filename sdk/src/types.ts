@@ -1,5 +1,183 @@
 // All monetary values are USDC wei strings (6 decimals)
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Agent Credit System (Solana) + Chain-agnostic types
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type Chain = 'solana' | 'base';
+
+/** Unsigned Solana transaction (base64-encoded, ready for wallet signing). */
+export interface UnsignedSolanaTx {
+  transaction: string;   // base64
+  encoding: 'base64';
+  description?: string;
+}
+
+export interface AgentWalletState {
+  agentPubkey?: string;  // Solana
+  address?: string;       // Base EVM
+  chain: Chain;
+  ownerPubkey: string;
+  creditLevel: number;
+  creditLimit: string;    // USDC base units
+  creditDrawn: string;
+  totalDebt: string;
+  collateralShares: string;
+  dailySpendLimit: string;
+  dailySpent: string;
+  healthFactorBps: number;
+  healthFactor: string;   // human-readable "1.3500"
+  isFrozen: boolean;
+  isLiquidating: boolean;
+  totalTrades: string;
+  totalVolume: string;
+  totalRepaid: string;
+  lastHealthCheck: string;
+  createdAt: string;
+}
+
+export interface CreditLineState {
+  exists: boolean;
+  creditLimit: string;
+  creditDrawn: string;
+  accruedInterest: string;
+  totalOwed: string;
+  interestRateBps: number;
+  isActive: boolean;
+  healthFactorBps: number | null;
+  isFrozen: boolean | null;
+  originatedAt: string;
+}
+
+export interface CreditEligibility {
+  eligible: boolean;
+  creditLevel: number;
+  maxCreditUsdc: number;
+  reason: string;
+  agentPubkey: string;
+  creditScore: number;
+  kyaTier: number;
+}
+
+export interface CreditScore {
+  agentPubkey: string;
+  score: number;
+  level: number;
+  history: Array<{
+    score: number;
+    level: number;
+    components: { repayment: number; profit: number; behavior: number; usage: number; age: number };
+    snapshotAt: string;
+  }>;
+}
+
+export interface KyaStatus {
+  agentPubkey: string;
+  onChainTier: number;
+  onChainLevel: number;
+  verifications: Array<{
+    id: string;
+    tier: number;
+    method: string;
+    status: 'pending' | 'approved' | 'rejected';
+    verifiedAt: string | null;
+  }>;
+}
+
+export interface KyaSubmitResult {
+  status: 'approved' | 'pending' | 'rejected';
+  tier: number;
+  verificationId: string;
+  txSignature?: string;
+  reason?: string;
+}
+
+export interface AgentStatus {
+  wallet: AgentWalletState | null;
+  credit: CreditLineState | null;
+  eligibility: CreditEligibility | null;
+  kya: KyaStatus | null;
+  balance: { balanceBaseUnits: string; balanceUsdc: string } | null;
+}
+
+export interface SolanaVaultStats {
+  initialized: boolean;
+  totalDepositsUsdc: string;
+  availableLiquidityUsdc: string;
+  utilizationPct: string;
+  utilizationCapBps: number;
+  baseInterestRateBps: number;
+  isPaused: boolean;
+  insuranceBalanceUsdc: string;
+}
+
+export interface TradeParams {
+  venue: string;       // e.g. "jupiter"
+  from: string;        // token symbol or mint, e.g. "USDC"
+  to: string;          // token symbol or mint, e.g. "SOL"
+  amount: number;      // in USDC (or from-token units)
+}
+
+export interface PayX402Params {
+  recipient: string;   // merchant address
+  amount: number;      // in USDC
+  paymentId?: string;
+}
+
+export interface WithdrawParams {
+  amount: number;      // in USDC
+  toAddress: string;   // destination wallet/ATA
+}
+
+export interface RepayParams {
+  amount: number;      // in USDC
+  callerAddress?: string;
+}
+
+export interface DepositParams {
+  amount: number;      // in USDC
+  ownerAddress: string;
+}
+
+export interface RequestCreditParams {
+  amount: number;      // in USDC
+  rateBps?: number;
+  creditLevel?: number;
+  collateralValueUsdc?: number;
+}
+
+/** Generic operation result for write operations. */
+export interface OperationResult {
+  success: boolean;
+  signature?: string;           // Solana tx signature
+  txHash?: string;              // EVM tx hash
+  transaction?: string;         // unsigned base64 (Solana) for manual signing
+  description?: string;
+  error?: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// x402 Payment types
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface X402PaymentRequirement {
+  scheme: 'exact';
+  network: string;
+  maxAmountRequired: string;    // USDC base units
+  resource: string;             // full URL being accessed
+  description: string;
+  payTo: string;                // merchant address
+  maxTimeoutSeconds: number;
+  asset: string;                // USDC contract address
+}
+
+export interface X402Challenge {
+  type: 'x402';
+  version: '1';
+  accepts: X402PaymentRequirement[];
+  error?: string;
+}
+
 export interface UnsignedTx {
   to: string;
   data: string;

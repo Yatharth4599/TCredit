@@ -16,11 +16,11 @@ export function toTxConfig(unsignedTx: UnsignedTx): TxConfig {
  *
  * @example
  * ```ts
- * import { createTCreditClient, sendTx } from '@tcredit/sdk';
+ * import { createKrexaClient, sendTx } from '@krexa/sdk';
  * import { createWalletClient, http } from 'viem';
  * import { baseSepolia } from 'viem/chains';
  *
- * const client = createTCreditClient({ baseUrl: 'http://localhost:3001' });
+ * const client = createKrexaClient({ baseUrl: 'http://localhost:3001' });
  * const wallet = createWalletClient({ chain: baseSepolia, transport: http() });
  *
  * const unsignedTx = await client.investments.invest(vaultAddress, amount);

@@ -3,11 +3,11 @@ import { addresses } from './contracts.js';
 export const openApiSpec = {
   openapi: '3.0.3',
   info: {
-    title: 'TCredit API',
+    title: 'Krexa API',
     version: '0.1.0',
     description:
-      'TCredit (TigerPayX) — programmable credit vaults on Base. All monetary values are USDC wei strings (6 decimals). All write endpoints return unsigned transactions `{ to, data }` for client-side signing.',
-    contact: { name: 'TCredit', url: 'https://github.com/Yatharth4599/TCredit' },
+      'Krexa — programmable credit vaults on Base. All monetary values are USDC wei strings (6 decimals). All write endpoints return unsigned transactions `{ to, data }` for client-side signing.',
+    contact: { name: 'Krexa', url: 'https://github.com/Yatharth4599/TCredit' },
   },
   servers: [
     { url: '/api/v1', description: 'Canonical API (v1)' },

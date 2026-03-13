@@ -1,10 +1,10 @@
-# TCredit — Programmable Credit Network
+# Krexa — Programmable Credit Network
 
 **Chain:** Base L2 (EVM) · **Status:** MVP Live on Base Sepolia · **Contracts:** 6 deployed + verified
 
-TCredit is a **programmable credit network** that makes real-world business revenue natively lendable on-chain.
+Krexa is a **programmable credit network** that makes real-world business revenue natively lendable on-chain.
 
-Instead of lending against assets or reputation, TCredit lends against **enforceable payment flow**. Businesses bill customers through x402 payment endpoints. Every incoming payment is automatically split on-chain — loan repayment first, merchant net second — before funds ever reach the borrower.
+Instead of lending against assets or reputation, Krexa lends against **enforceable payment flow**. Businesses bill customers through x402 payment endpoints. Every incoming payment is automatically split on-chain — loan repayment first, merchant net second — before funds ever reach the borrower.
 
 > **Core insight: Credit risk becomes activity risk. Repayment is structural, not behavioural.**
 
@@ -91,7 +91,7 @@ TCredit/
 ### 5-Step Flow
 
 ```
-1. PAYMENT ROUTING     — Business bills customers via TCredit x402 endpoint (USDC)
+1. PAYMENT ROUTING     — Business bills customers via Krexa x402 endpoint (USDC)
 2. CREDIT PROFILE      — x402 volume builds live on-chain credit score (FairScale 0–1000)
 3. CAPITAL ADVANCE     — Merchant requests a vault: target amount, APY, term, tranches
 4. LIQUIDITY FUNDING   — Retail investors fund vault; gaps filled by Senior/General pools
@@ -419,4 +419,4 @@ forge script script/Deploy.s.sol \
 
 ---
 
-*TCredit Protocol — Programmable Credit on Base*
+*Krexa — Programmable Credit on Base*

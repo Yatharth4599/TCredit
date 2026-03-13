@@ -1,6 +1,6 @@
-# TCredit Backend
+# Krexa Backend
 
-Express + TypeScript + Prisma 6 + viem — REST API for the TCredit programmable credit protocol.
+Express + TypeScript + Prisma 6 + viem — REST API for the Krexa programmable credit protocol.
 
 ## Stack
 

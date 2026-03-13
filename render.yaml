@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: krexa-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        sync: false
+      - key: SOLANA_RPC_URL
+        value: https://api.devnet.solana.com
+      - key: SOLANA_REGISTRY_PROGRAM_ID
+        value: ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG
+      - key: SOLANA_VAULT_PROGRAM_ID
+        value: 26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N
+      - key: SOLANA_WALLET_PROGRAM_ID
+        value: 35t8yWLsUZNTLT71ej7DF59P81HrtZTx2uZeMhwuhhf6
+      - key: SOLANA_VENUE_PROGRAM_ID
+        value: HyWQrHG14Sw6KpKYSMiBDmVj5u7PXfLWvim6FHbBLmua
+      - key: SOLANA_ROUTER_PROGRAM_ID
+        value: 2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8
+      - key: SOLANA_USDC_MINT
+        value: H2SYsnzdRXrXpHpcDkedARksoxiQLGXjtAvkJg158ETP
+      - key: KREXA_ORACLE_PUBKEY
+        value: DsPPrsGWzZdiFVMLPfdYEQnkWaRV94uvH3RnNvgbj5tS
+      - key: KREXA_KEEPER_PUBKEY
+        value: tTNCsxo79Swnc6SCWgHP2ow4d1zh8H1B8JXKw2g3Vhe
+      - key: KREXA_TREASURY_ATA
+        value: 5v86BdV1SS23TKdsp9tdVcm8sGj1UdhefxnJGTgJeWBi
+      - key: SOLANA_ORACLE_PRIVATE_KEY
+        sync: false
+      - key: SOLANA_KEEPER_PRIVATE_KEY
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false

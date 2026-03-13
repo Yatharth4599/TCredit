@@ -10,7 +10,7 @@ router.get('/', (_req, res) => {
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>TCredit API Docs</title>
+  <title>Krexa API Docs</title>
   <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
   <style>
     body { margin: 0; background: #1a1a2e; }

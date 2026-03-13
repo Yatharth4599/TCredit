@@ -166,3 +166,131 @@ model WaitlistEntry {
   walletAddress String?
   createdAt     DateTime @default(now())
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Solana — Agent Credit System
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Mirrors on-chain AgentWallet PDA state (keeper-synced every 2s)
+model SolanaAgentWallet {
+  agentPubkey      String   @id
+  ownerPubkey      String
+  creditLevel      Int      @default(0)
+  creditDrawn      BigInt   @default(0)
+  creditLimit      BigInt   @default(0)
+  totalDebt        BigInt   @default(0)
+  collateralShares BigInt   @default(0)
+  healthFactorBps  Int      @default(10000)
+  dailySpendLimit  BigInt   @default(0)
+  isFrozen         Boolean  @default(false)
+  isLiquidating    Boolean  @default(false)
+  totalTrades      BigInt   @default(0)
+  totalVolume      BigInt   @default(0)
+  totalRepaid      BigInt   @default(0)
+  lastHealthCheck  DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  trades           SolanaAgentTrade[]
+  healthSnapshots  HealthSnapshot[]
+  kyaVerifications KyaVerification[]
+  scoreSnapshots   ScoreSnapshot[]
+
+  @@index([healthFactorBps])
+  @@index([isFrozen])
+}
+
+/// Individual trade records emitted by execute_trade events
+model SolanaAgentTrade {
+  id           String             @id @default(uuid())
+  agentPubkey  String
+  wallet       SolanaAgentWallet  @relation(fields: [agentPubkey], references: [agentPubkey])
+  venue        String
+  amount       BigInt
+  direction    String             // "buy" | "sell"
+  txSignature  String             @unique
+  executedAt   DateTime
+
+  @@index([agentPubkey])
+  @@index([executedAt])
+}
+
+/// Periodic health factor snapshots stored by the keeper
+model HealthSnapshot {
+  id              String             @id @default(uuid())
+  agentPubkey     String
+  wallet          SolanaAgentWallet  @relation(fields: [agentPubkey], references: [agentPubkey])
+  healthFactorBps Int
+  creditDrawn     BigInt
+  totalDebt       BigInt
+  walletUsdc      BigInt
+  collateralValue BigInt
+  snapshotAt      DateTime           @default(now())
+
+  @@index([agentPubkey, snapshotAt])
+}
+
+/// Daily credit score snapshots with component breakdown
+model ScoreSnapshot {
+  id          String             @id @default(uuid())
+  agentPubkey String
+  wallet      SolanaAgentWallet  @relation(fields: [agentPubkey], references: [agentPubkey])
+  score       Int
+  level       Int
+  components  Json               // { repayment, profit, behavior, usage, age }
+  snapshotAt  DateTime           @default(now())
+
+  @@index([agentPubkey, snapshotAt])
+}
+
+/// KYA verification records (basic + enhanced)
+model KyaVerification {
+  id          String             @id @default(uuid())
+  agentPubkey String
+  wallet      SolanaAgentWallet? @relation(fields: [agentPubkey], references: [agentPubkey])
+  tier        Int                // 1 = basic, 2 = enhanced
+  method      String             // "auto" | "sumsub"
+  status      String             @default("pending") // pending | approved | rejected
+  reason      String?
+  sumsubRef   String?
+  verifiedAt  DateTime?
+  createdAt   DateTime           @default(now())
+
+  @@index([agentPubkey])
+}
+
+/// Whitelisted trading venues (mirrors on-chain WhitelistedVenue)
+model SolanaVenueWhitelist {
+  venuePubkey String   @id
+  name        String?
+  isActive    Boolean  @default(true)
+  addedAt     DateTime @default(now())
+}
+
+/// Insurance fund snapshot (read from on-chain VaultConfig)
+model InsuranceFund {
+  id        String   @id @default("singleton")
+  balance   BigInt   @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+/// Parsed Anchor events from all 5 programs
+model SolanaEvent {
+  id          String   @id @default(uuid())
+  eventType   String
+  data        Json
+  txSignature String
+  slot        Int
+  indexedAt   DateTime @default(now())
+
+  @@unique([txSignature, eventType])
+  @@index([eventType])
+  @@index([slot])
+}
+
+/// Tracks the last indexed transaction signature per program
+model SolanaIndexerState {
+  id            String   @id
+  lastSignature String?
+  updatedAt     DateTime @updatedAt
+}

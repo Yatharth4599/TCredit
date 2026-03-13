@@ -1,7 +1,7 @@
 {
-  "name": "@tcredit/sdk",
+  "name": "@krexa/sdk",
   "version": "0.1.0",
-  "description": "TypeScript SDK for the TCredit API — programmable credit vaults on Base",
+  "description": "TypeScript SDK for the Krexa API — programmable credit vaults on Base",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -19,7 +19,7 @@
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": ["tcredit", "defi", "base", "usdc", "credit", "vaults"],
+  "keywords": ["krexa", "defi", "base", "usdc", "credit", "vaults"],
   "license": "MIT",
   "devDependencies": {
     "tsup": "^8.0.0",

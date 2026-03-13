@@ -1,0 +1,22 @@
+[workspace]
+members = [
+    "programs/krexa-common",
+    "programs/krexa-agent-registry",
+    "programs/krexa-credit-vault",
+    "programs/krexa-agent-wallet",
+    "programs/krexa-venue-whitelist",
+    "programs/krexa-payment-router",
+]
+resolver = "2"
+
+[profile.release]
+overflow-checks = true
+lto = "fat"
+codegen-units = 1
+
+[profile.release.build-override]
+opt-level = 3
+
+[profile.dev.package."*"]
+opt-level = 3
+

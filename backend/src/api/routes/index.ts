@@ -19,6 +19,10 @@ import traderRoutes from './traders.js';
 import waitlistRoutes from './waitlist.js';
 import adminRoutes from './admin.js';
 import demoRoutes from './demo.routes.js';
+import solanaWalletRoutes from './agent-wallet.routes.js';
+import solanaCreditRoutes from './agent-credit.routes.js';
+import solanaKyaRoutes from './kya.routes.js';
+import solanaVaultRoutes from './solana-vault.routes.js';
 const router = Router();
 
 // Health
@@ -62,6 +66,12 @@ router.use('/waitlist', waitlistRoutes);
 
 // Public demo endpoint (no auth)
 router.use('/demo', demoRoutes);
+
+// ── Solana Agent Credit System ─────────────────────────────────────────────
+router.use('/solana/wallets', solanaWalletRoutes);
+router.use('/solana/credit',  solanaCreditRoutes);
+router.use('/solana/kya',     solanaKyaRoutes);
+router.use('/solana/vault',   solanaVaultRoutes);
 
 // Admin (API key protected)
 router.use('/admin', adminRoutes);

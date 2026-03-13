@@ -5,15 +5,25 @@ import { startRetryProcessor, stopRetryProcessor } from './services/oracle.servi
 import { startEventIndexer, stopEventIndexer } from './services/indexer.service.js';
 import { startKeeper, stopKeeper } from './services/keeper.service.js';
 import { startWebhookProcessor, stopWebhookProcessor } from './services/webhook.service.js';
+import { startSolanaKeeper, stopSolanaKeeper } from './services/solana-keeper.js';
+import { startSolanaIndexer, stopSolanaIndexer } from './indexer/solana-indexer.js';
+import { startCreditScoreJob, stopCreditScoreJob } from './services/credit-score.js';
 
 const server = app.listen(env.PORT, () => {
   console.log(`[Krexa] Server running on port ${env.PORT}`);
   console.log(`[Krexa] Environment: ${env.NODE_ENV}`);
   console.log(`[Krexa] Health: http://localhost:${env.PORT}/api/v1/health`);
+
+  // Base chain services
   startRetryProcessor();
   startEventIndexer();
   startKeeper();
   startWebhookProcessor();
+
+  // Solana services
+  startSolanaKeeper();
+  startSolanaIndexer();
+  startCreditScoreJob();
 });
 
 function shutdown() {
@@ -22,6 +32,9 @@ function shutdown() {
   stopEventIndexer();
   stopKeeper();
   stopWebhookProcessor();
+  stopSolanaKeeper();
+  stopSolanaIndexer();
+  stopCreditScoreJob();
   server.close(async () => {
     await prisma.$disconnect();
     console.log('[Krexa] Server closed');

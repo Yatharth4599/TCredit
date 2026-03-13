@@ -1,4 +1,4 @@
-# TCredit — AI Agent Development Rules
+# Krexa — AI Agent Development Rules
 
 **Repo:** https://github.com/Yatharth4599/TCredit
 **Chain:** Base L2 (EVM) — Solidity 0.8.24, Foundry
@@ -13,7 +13,7 @@
 
 ---
 
-These rules are mandatory for all AI agents working on the TCredit codebase. They ensure professional-grade, audit-ready code and prevent "vibecoding" (lazy patterns, placeholders, shortcuts).
+These rules are mandatory for all AI agents working on the Krexa codebase. They ensure professional-grade, audit-ready code and prevent "vibecoding" (lazy patterns, placeholders, shortcuts).
 
 ---
 important always ask when Opus is needed i will switch the model immediately ensure the right model is selected for the best quality of output tokens can be compromised for quality 

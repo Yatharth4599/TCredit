@@ -1,5 +1,5 @@
 {
-  "name": "tcredit-backend",
+  "name": "krexa-backend",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,14 +12,18 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "copy-abis": "cp ../base-contracts/deployments/contracts.ts src/config/abis.ts",
-    "predev": "npm run copy-abis && npm run db:generate",
-    "prebuild": "npm run copy-abis && npm run db:generate",
+    "predev": "npm run db:generate",
+    "prebuild": "npm run db:generate",
     "demo": "tsx src/scripts/demo-lifecycle.ts",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down"
   },
   "dependencies": {
+    "@noble/ed25519": "^2.2.3",
     "@prisma/client": "^6.19.2",
+    "@solana/spl-token": "^0.4.9",
+    "@solana/web3.js": "^1.98.0",
+    "bs58": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",

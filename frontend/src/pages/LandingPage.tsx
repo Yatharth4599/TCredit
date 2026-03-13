@@ -136,7 +136,7 @@ export default function LandingPage() {
         >
           <motion.div variants={fadeUp} className={styles.heroLabel}>
             <span className={styles.heroDot} />
-            Live on Base Sepolia
+            Live on Solana
           </motion.div>
 
           <motion.h1 variants={fadeUp} className={styles.heroHeadline}>
@@ -146,7 +146,7 @@ export default function LandingPage() {
 
           <motion.p variants={fadeUp} className={styles.heroSubtitle}>
             Revenue-enforced credit infrastructure for AI agents and digital commerce.
-            Built on Base. Repayment enforced by code, not courts.
+            Built on Solana. Repayment enforced by code, not courts.
           </motion.p>
 
           <motion.div variants={fadeUp} style={{ width: '100%', maxWidth: 460 }}>
@@ -155,15 +155,15 @@ export default function LandingPage() {
           </motion.div>
 
           <motion.div variants={fadeUp} className={styles.techBadges}>
-            <span className={styles.techBadge}>Base</span>
+            <span className={styles.techBadge}>Solana</span>
             <span className={styles.techSep}>·</span>
             <span className={styles.techBadge}>USDC</span>
             <span className={styles.techSep}>·</span>
             <span className={styles.techBadge}>x402</span>
             <span className={styles.techSep}>·</span>
-            <span className={styles.techBadge}>160 Tests Passing</span>
+            <span className={styles.techBadge}>Anchor Programs</span>
             <span className={styles.techSep}>·</span>
-            <span className={styles.techBadge}>6 Contracts Deployed</span>
+            <span className={styles.techBadge}>5 Programs Deployed</span>
           </motion.div>
         </motion.div>
       </section>
@@ -214,7 +214,7 @@ export default function LandingPage() {
                 {
                   num: '01',
                   title: 'Agents Earn via x402',
-                  desc: 'AI agents monetize APIs, tasks, and services. Every payment flows through Krexa\'s PaymentRouter — oracle-signed, nonce-protected, settled on Base in under 2 seconds.',
+                  desc: 'AI agents monetize APIs, tasks, and services. Every payment flows through Krexa\'s PaymentRouter — oracle-signed, nonce-protected, settled on Solana in under 400ms.',
                 },
                 {
                   num: '02',
@@ -352,18 +352,18 @@ export default function LandingPage() {
 
             <motion.div variants={fadeUp} className={styles.codeBlock}>
               <span className={styles.codeLine}><span className={styles.codeComment}>{'// Route payments through Krexa PaymentRouter'}</span></span>
-              <span className={styles.codeLine}><span className={styles.codeKeyword}>const</span> <span className={styles.codeDefault}>krexa</span> <span className={styles.codeDefault}>=</span> <span className={styles.codeKeyword}>new</span> <span className={styles.codeFunc}>KrexaSDK</span><span className={styles.codeDefault}>({'{ network: '}</span><span className={styles.codeString}>'base'</span><span className={styles.codeDefault}>{' }'})</span></span>
+              <span className={styles.codeLine}><span className={styles.codeKeyword}>const</span> <span className={styles.codeDefault}>krexa</span> <span className={styles.codeDefault}>=</span> <span className={styles.codeKeyword}>new</span> <span className={styles.codeFunc}>KrexaSDK</span><span className={styles.codeDefault}>({'{ chain: '}</span><span className={styles.codeString}>'solana'</span><span className={styles.codeDefault}>{', agentAddress }'})</span></span>
               <span className={styles.codeLine}> </span>
               <span className={styles.codeLine}><span className={styles.codeComment}>{'// Every payment auto-splits through the waterfall'}</span></span>
-              <span className={styles.codeLine}><span className={styles.codeKeyword}>await</span> <span className={styles.codeDefault}>krexa.</span><span className={styles.codeFunc}>routePayment</span><span className={styles.codeDefault}>{'({'}</span></span>
-              <span className={styles.codeLine}><span className={styles.codeDefault}>{'  agent:    '}</span><span className={styles.codeString}>'0xDataServiceBot…'</span><span className={styles.codeDefault}>,</span></span>
-              <span className={styles.codeLine}><span className={styles.codeDefault}>{'  amount:   '}</span><span className={styles.codeString}>'2500.00'</span><span className={styles.codeDefault}>,</span></span>
-              <span className={styles.codeLine}><span className={styles.codeDefault}>{'  currency: '}</span><span className={styles.codeString}>'USDC'</span></span>
+              <span className={styles.codeLine}><span className={styles.codeKeyword}>await</span> <span className={styles.codeDefault}>krexa.agent.</span><span className={styles.codeFunc}>payX402</span><span className={styles.codeDefault}>{'({'}</span></span>
+              <span className={styles.codeLine}><span className={styles.codeDefault}>{'  recipient: '}</span><span className={styles.codeString}>'AgntVx9dMz…rK4f'</span><span className={styles.codeDefault}>,</span></span>
+              <span className={styles.codeLine}><span className={styles.codeDefault}>{'  amount:    '}</span><span className={styles.codeString}>25.00</span><span className={styles.codeDefault}>,</span></span>
+              <span className={styles.codeLine}><span className={styles.codeDefault}>{'  paymentId: '}</span><span className={styles.codeString}>'task-7f3a'</span></span>
               <span className={styles.codeLine}><span className={styles.codeDefault}>{'})'}</span></span>
               <span className={styles.codeLine}> </span>
               <span className={styles.codeLine}><span className={styles.codeComment}>{'// Check credit eligibility via FairScale score'}</span></span>
-              <span className={styles.codeLine}><span className={styles.codeKeyword}>const</span> <span className={styles.codeDefault}>credit</span> <span className={styles.codeDefault}>=</span> <span className={styles.codeKeyword}>await</span> <span className={styles.codeDefault}>krexa.</span><span className={styles.codeFunc}>getCreditLimit</span><span className={styles.codeDefault}>(</span><span className={styles.codeString}>'0xDataServiceBot…'</span><span className={styles.codeDefault}>)</span></span>
-              <span className={styles.codeLine}><span className={styles.codeComment}>{'// { limit: 180000, tier: '}<span className={styles.codeString}>'A'</span>{", score: 780 }"}</span></span>
+              <span className={styles.codeLine}><span className={styles.codeKeyword}>const</span> <span className={styles.codeDefault}>score</span> <span className={styles.codeDefault}>=</span> <span className={styles.codeKeyword}>await</span> <span className={styles.codeDefault}>krexa.credit.</span><span className={styles.codeFunc}>getScore</span><span className={styles.codeDefault}>()</span></span>
+              <span className={styles.codeLine}><span className={styles.codeComment}>{'// { score: 780, level: 3, eligible: true }'}</span></span>
             </motion.div>
 
             <motion.div variants={fadeUp} className={styles.codeLinks}>
@@ -448,7 +448,7 @@ export default function LandingPage() {
 
           <div className={styles.footerBottom}>
             <div className={styles.footerCopyright}>
-              © 2026 Krexa Protocol. All rights reserved. Built on Base.
+              © 2026 Krexa Protocol. All rights reserved. Built on Solana.
             </div>
             <div className={styles.footerSocials}>
               <a href="https://x.com/tigerbnkHQ" target="_blank" rel="noopener noreferrer" className={styles.footerSocialLink} aria-label="X (Twitter)">

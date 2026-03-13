@@ -1,5 +1,7 @@
 # Environment variables
 .env
+.env.*
+!.env.example
 
 # Rust / Anchor build artifacts
 target/
@@ -46,3 +48,14 @@ base-contracts/broadcast/
 base-contracts/cache/
 .openzeppelin/
 .vercel
+
+# Solana keypairs and devnet secrets (contain private keys)
+solana-programs/scripts/*-keypair.json
+solana-programs/scripts/usdc-mint.json
+solana-programs/scripts/seed-output.json
+solana-programs/target/
+
+# Claude / agent state
+.claude/
+.agents/
+skills-lock.json

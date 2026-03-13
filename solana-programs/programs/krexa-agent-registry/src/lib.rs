@@ -1,0 +1,501 @@
+use anchor_lang::prelude::*;
+use krexa_common::constants::{
+    DEFAULT_CREDIT_SCORE, MAX_CREDIT_SCORE, MIN_CREDIT_SCORE, SCORE_EXPIRY_SECONDS,
+};
+
+declare_id!("ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG");
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Accounts
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[account]
+pub struct RegistryConfig {
+    pub admin: Pubkey,
+    pub oracle: Pubkey,
+    pub wallet_program: Pubkey, // the krexa-agent-wallet program authorised to CPI here
+    pub total_agents: u64,
+    pub is_paused: bool,
+    pub bump: u8,
+}
+
+impl RegistryConfig {
+    pub const LEN: usize = 8 + 32 + 32 + 32 + 8 + 1 + 1;
+    pub const SEED: &'static [u8] = b"registry_config";
+}
+
+#[account]
+pub struct AgentProfile {
+    pub agent: Pubkey,
+    pub owner: Pubkey,
+    pub name: [u8; 32],
+
+    // Credit identity
+    pub credit_score: u16,
+    pub credit_level: u8,
+    pub kya_tier: u8,
+    pub kya_verified_at: i64,
+    pub score_updated_at: i64,
+
+    // Lifetime stats (updated via CPI from agent wallet)
+    pub total_volume_usd: u64,
+    pub total_trades: u64,
+    pub total_repaid: u64,
+    pub total_borrowed: u64,
+    pub liquidation_count: u8,
+
+    // Links
+    pub wallet_pda: Pubkey,
+    pub has_wallet: bool,
+
+    // Status
+    pub is_active: bool,
+    pub registered_at: i64,
+    pub bump: u8,
+}
+
+impl AgentProfile {
+    pub const LEN: usize = 8 + 32 + 32 + 32 + 2 + 1 + 1 + 8 + 8
+        + 8 + 8 + 8 + 8 + 1 + 32 + 1 + 1 + 8 + 1;
+    pub const SEED: &'static [u8] = b"agent_profile";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Level calculation (pure — no IO, usable everywhere)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Derive the correct credit level from score + KYA tier.
+/// Level can go up OR down — called on every score/KYA change.
+pub fn calculate_level(score: u16, kya_tier: u8) -> u8 {
+    match (score, kya_tier) {
+        (s, k) if s >= 750 && k >= 3 => 4, // Elite
+        (s, k) if s >= 650 && k >= 2 => 3, // Trusted
+        (s, k) if s >= 500 && k >= 2 => 2, // Established
+        (s, k) if s >= 400 && k >= 1 => 1, // Starter
+        _ => 0,                             // KyaOnly
+    }
+}
+
+/// Returns true if the agent is eligible for the requested credit level.
+/// Callers must pass the current unix timestamp for expiry checking.
+pub fn is_agent_eligible(profile: &AgentProfile, required_level: u8, now: i64) -> bool {
+    if !profile.is_active {
+        return false;
+    }
+    if profile.credit_level < required_level {
+        return false;
+    }
+    // Score must have been updated within the last 90 days
+    if profile.kya_tier > 0 && (now - profile.score_updated_at) > SCORE_EXPIRY_SECONDS {
+        return false;
+    }
+    true
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Events
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[event]
+pub struct AgentRegistered {
+    pub agent: Pubkey,
+    pub owner: Pubkey,
+    pub name: [u8; 32],
+}
+
+#[event]
+pub struct KyaUpdated {
+    pub agent: Pubkey,
+    pub old_tier: u8,
+    pub new_tier: u8,
+    pub new_level: u8,
+}
+
+#[event]
+pub struct CreditScoreUpdated {
+    pub agent: Pubkey,
+    pub old_score: u16,
+    pub new_score: u16,
+    pub old_level: u8,
+    pub new_level: u8,
+}
+
+#[event]
+pub struct LiquidationRecorded {
+    pub agent: Pubkey,
+    pub new_score: u16,
+    pub new_level: u8,
+    pub liquidation_count: u8,
+}
+
+#[event]
+pub struct AgentDeactivated {
+    pub agent: Pubkey,
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Errors
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[error_code]
+pub enum RegistryError {
+    #[msg("Signer is not the admin")]
+    NotAdmin,
+    #[msg("Signer is not the oracle")]
+    NotOracle,
+    #[msg("Signer is not admin or oracle")]
+    NotAdminOrOracle,
+    #[msg("Caller is not the authorised wallet program")]
+    NotWalletProgram,
+    #[msg("Registry is paused")]
+    Paused,
+    #[msg("Invalid KYA tier — must be 0–3")]
+    InvalidKyaTier,
+    #[msg("Invalid credit score — must be 200–850")]
+    InvalidCreditScore,
+    #[msg("Agent is not active")]
+    AgentNotActive,
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Program
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[program]
+pub mod krexa_agent_registry {
+    use super::*;
+
+    /// One-time setup: store admin, oracle, and the authorised wallet program ID.
+    pub fn initialize(
+        ctx: Context<Initialize>,
+        oracle: Pubkey,
+        wallet_program: Pubkey,
+    ) -> Result<()> {
+        let cfg = &mut ctx.accounts.config;
+        cfg.admin = ctx.accounts.admin.key();
+        cfg.oracle = oracle;
+        cfg.wallet_program = wallet_program;
+        cfg.total_agents = 0;
+        cfg.is_paused = false;
+        cfg.bump = ctx.bumps.config;
+        Ok(())
+    }
+
+    /// Register a new agent. Both the agent keypair and the human owner must sign.
+    pub fn register_agent(ctx: Context<RegisterAgent>, name: [u8; 32]) -> Result<()> {
+        require!(!ctx.accounts.config.is_paused, RegistryError::Paused);
+
+        let now = Clock::get()?.unix_timestamp;
+        let profile = &mut ctx.accounts.profile;
+
+        profile.agent = ctx.accounts.agent.key();
+        profile.owner = ctx.accounts.owner.key();
+        profile.name = name;
+        profile.credit_score = DEFAULT_CREDIT_SCORE;
+        profile.credit_level = 0;
+        profile.kya_tier = 0;
+        profile.kya_verified_at = 0;
+        profile.score_updated_at = now;
+        profile.total_volume_usd = 0;
+        profile.total_trades = 0;
+        profile.total_repaid = 0;
+        profile.total_borrowed = 0;
+        profile.liquidation_count = 0;
+        profile.wallet_pda = Pubkey::default();
+        profile.has_wallet = false;
+        profile.is_active = true;
+        profile.registered_at = now;
+        profile.bump = ctx.bumps.profile;
+
+        ctx.accounts.config.total_agents =
+            ctx.accounts.config.total_agents.saturating_add(1);
+
+        emit!(AgentRegistered {
+            agent: profile.agent,
+            owner: profile.owner,
+            name,
+        });
+        Ok(())
+    }
+
+    /// Admin or oracle updates an agent's KYA tier.
+    /// Auto-grants Starter (level 1) if KYA Basic is reached and agent is still at level 0.
+    pub fn update_kya(ctx: Context<UpdateKya>, new_tier: u8) -> Result<()> {
+        require!(!ctx.accounts.config.is_paused, RegistryError::Paused);
+        require!(new_tier <= 3, RegistryError::InvalidKyaTier);
+
+        let signer = ctx.accounts.authority.key();
+        let cfg = &ctx.accounts.config;
+        require!(
+            signer == cfg.admin || signer == cfg.oracle,
+            RegistryError::NotAdminOrOracle
+        );
+
+        let now = Clock::get()?.unix_timestamp;
+        let profile = &mut ctx.accounts.profile;
+        require!(profile.is_active, RegistryError::AgentNotActive);
+
+        let old_tier = profile.kya_tier;
+        profile.kya_tier = new_tier;
+        profile.kya_verified_at = now;
+
+        // Auto-upgrade to Starter when KYA Basic is first granted
+        if new_tier >= 1 && profile.credit_level == 0 {
+            profile.credit_level = 1;
+        }
+
+        emit!(KyaUpdated {
+            agent: profile.agent,
+            old_tier,
+            new_tier,
+            new_level: profile.credit_level,
+        });
+        Ok(())
+    }
+
+    /// Oracle updates an agent's credit score and recalculates credit level.
+    /// Level can go up OR down — bad behaviour costs privileges.
+    pub fn update_credit_score(ctx: Context<UpdateCreditScore>, new_score: u16) -> Result<()> {
+        require!(!ctx.accounts.config.is_paused, RegistryError::Paused);
+        require!(
+            ctx.accounts.authority.key() == ctx.accounts.config.oracle,
+            RegistryError::NotOracle
+        );
+        require!(
+            new_score >= MIN_CREDIT_SCORE && new_score <= MAX_CREDIT_SCORE,
+            RegistryError::InvalidCreditScore
+        );
+
+        let now = Clock::get()?.unix_timestamp;
+        let profile = &mut ctx.accounts.profile;
+        require!(profile.is_active, RegistryError::AgentNotActive);
+
+        let old_score = profile.credit_score;
+        let old_level = profile.credit_level;
+
+        profile.credit_score = new_score;
+        profile.score_updated_at = now;
+        profile.credit_level = calculate_level(new_score, profile.kya_tier);
+
+        emit!(CreditScoreUpdated {
+            agent: profile.agent,
+            old_score,
+            new_score,
+            old_level,
+            new_level: profile.credit_level,
+        });
+        Ok(())
+    }
+
+    /// Increment lifetime stats. Called via CPI from krexa-agent-wallet.
+    pub fn update_agent_stats(
+        ctx: Context<UpdateAgentStats>,
+        volume: u64,
+        trades: u64,
+        repaid: u64,
+        borrowed: u64,
+    ) -> Result<()> {
+        let profile = &mut ctx.accounts.profile;
+        profile.total_volume_usd = profile.total_volume_usd.saturating_add(volume);
+        profile.total_trades = profile.total_trades.saturating_add(trades);
+        profile.total_repaid = profile.total_repaid.saturating_add(repaid);
+        profile.total_borrowed = profile.total_borrowed.saturating_add(borrowed);
+        Ok(())
+    }
+
+    /// Record a liquidation event. Drops score by 100 (floor 200) and recalculates level.
+    pub fn record_liquidation(ctx: Context<RecordLiquidation>) -> Result<()> {
+        let profile = &mut ctx.accounts.profile;
+        profile.liquidation_count = profile.liquidation_count.saturating_add(1);
+        profile.credit_score = profile.credit_score.saturating_sub(100).max(MIN_CREDIT_SCORE);
+        profile.credit_level = calculate_level(profile.credit_score, profile.kya_tier);
+
+        emit!(LiquidationRecorded {
+            agent: profile.agent,
+            new_score: profile.credit_score,
+            new_level: profile.credit_level,
+            liquidation_count: profile.liquidation_count,
+        });
+        Ok(())
+    }
+
+    /// Link a newly-created agent wallet PDA to this profile. Called via CPI from agent-wallet.
+    pub fn link_wallet(ctx: Context<LinkWallet>, wallet_pda: Pubkey) -> Result<()> {
+        let profile = &mut ctx.accounts.profile;
+        profile.wallet_pda = wallet_pda;
+        profile.has_wallet = true;
+        Ok(())
+    }
+
+    /// Admin permanently deactivates an agent and strips credit level.
+    pub fn deactivate_agent(ctx: Context<DeactivateAgent>) -> Result<()> {
+        let profile = &mut ctx.accounts.profile;
+        profile.is_active = false;
+        profile.credit_level = 0;
+        emit!(AgentDeactivated { agent: profile.agent });
+        Ok(())
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Contexts
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[derive(Accounts)]
+pub struct Initialize<'info> {
+    #[account(
+        init,
+        payer = admin,
+        space = RegistryConfig::LEN,
+        seeds = [RegistryConfig::SEED],
+        bump,
+    )]
+    pub config: Account<'info, RegistryConfig>,
+
+    #[account(mut)]
+    pub admin: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct RegisterAgent<'info> {
+    #[account(
+        seeds = [RegistryConfig::SEED],
+        bump = config.bump,
+    )]
+    pub config: Account<'info, RegistryConfig>,
+
+    #[account(
+        init,
+        payer = owner,
+        space = AgentProfile::LEN,
+        seeds = [AgentProfile::SEED, agent.key().as_ref()],
+        bump,
+    )]
+    pub profile: Account<'info, AgentProfile>,
+
+    /// The AI agent's own signing keypair
+    pub agent: Signer<'info>,
+
+    /// The human owner pays rent and co-signs
+    #[account(mut)]
+    pub owner: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct UpdateKya<'info> {
+    #[account(
+        seeds = [RegistryConfig::SEED],
+        bump = config.bump,
+    )]
+    pub config: Account<'info, RegistryConfig>,
+
+    #[account(
+        mut,
+        seeds = [AgentProfile::SEED, profile.agent.as_ref()],
+        bump = profile.bump,
+    )]
+    pub profile: Account<'info, AgentProfile>,
+
+    /// Must be admin or oracle — checked in handler
+    pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct UpdateCreditScore<'info> {
+    #[account(
+        seeds = [RegistryConfig::SEED],
+        bump = config.bump,
+    )]
+    pub config: Account<'info, RegistryConfig>,
+
+    #[account(
+        mut,
+        seeds = [AgentProfile::SEED, profile.agent.as_ref()],
+        bump = profile.bump,
+    )]
+    pub profile: Account<'info, AgentProfile>,
+
+    /// Must be the oracle
+    pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct UpdateAgentStats<'info> {
+    #[account(
+        seeds = [RegistryConfig::SEED],
+        bump = config.bump,
+    )]
+    pub config: Account<'info, RegistryConfig>,
+
+    #[account(
+        mut,
+        seeds = [AgentProfile::SEED, profile.agent.as_ref()],
+        bump = profile.bump,
+    )]
+    pub profile: Account<'info, AgentProfile>,
+
+    /// Must equal config.wallet_program — the only authorised caller
+    #[account(address = config.wallet_program @ RegistryError::NotWalletProgram)]
+    pub wallet_program_authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct RecordLiquidation<'info> {
+    #[account(
+        seeds = [RegistryConfig::SEED],
+        bump = config.bump,
+    )]
+    pub config: Account<'info, RegistryConfig>,
+
+    #[account(
+        mut,
+        seeds = [AgentProfile::SEED, profile.agent.as_ref()],
+        bump = profile.bump,
+    )]
+    pub profile: Account<'info, AgentProfile>,
+
+    #[account(address = config.wallet_program @ RegistryError::NotWalletProgram)]
+    pub wallet_program_authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct LinkWallet<'info> {
+    #[account(
+        seeds = [RegistryConfig::SEED],
+        bump = config.bump,
+    )]
+    pub config: Account<'info, RegistryConfig>,
+
+    #[account(
+        mut,
+        seeds = [AgentProfile::SEED, profile.agent.as_ref()],
+        bump = profile.bump,
+    )]
+    pub profile: Account<'info, AgentProfile>,
+
+    #[account(address = config.wallet_program @ RegistryError::NotWalletProgram)]
+    pub wallet_program_authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct DeactivateAgent<'info> {
+    #[account(
+        seeds = [RegistryConfig::SEED],
+        bump = config.bump,
+        has_one = admin @ RegistryError::NotAdmin,
+    )]
+    pub config: Account<'info, RegistryConfig>,
+
+    #[account(
+        mut,
+        seeds = [AgentProfile::SEED, profile.agent.as_ref()],
+        bump = profile.bump,
+    )]
+    pub profile: Account<'info, AgentProfile>,
+
+    pub admin: Signer<'info>,
+}

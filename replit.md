@@ -1,4 +1,4 @@
-# TCredit / TigerPay - Programmable Credit Network
+# Krexa - Programmable Credit Network
 
 ## Project Overview
 
