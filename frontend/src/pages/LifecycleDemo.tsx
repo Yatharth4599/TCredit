@@ -78,14 +78,14 @@ const INITIAL_STATE: DemoState = {
   finalResult:  null,
 }
 
-const DEMO_MERCHANT = '0xA1090527ac5c019Abc3989F405a5a63bB008008D'
-const BASESCAN_TX   = (hash: string) => `https://sepolia.basescan.org/tx/${hash}`
-const BASESCAN_ADDR = (addr: string) => `https://sepolia.basescan.org/address/${addr}`
+const DEMO_AGENT   = '28SWEhYwWyvDic4wyK8AG9pXLYHwGaVPw2mTgEjRk1cj'
+const SOLSCAN_TX   = (sig:  string) => `https://solscan.io/tx/${sig}?cluster=devnet`
+const SOLSCAN_ADDR = (addr: string) => `https://solscan.io/account/${addr}?cluster=devnet`
 
 const STEP_LABELS: Record<number, string> = {
-  1: 'Create Vault',
-  2: 'Fund Vault',
-  3: 'Disburse to Agent',
+  1: 'Credit Assessment',
+  2: 'Vault Liquidity',
+  3: 'Extend Credit',
   4: 'Revenue Payments',
   5: 'Credit Status',
 }
@@ -142,7 +142,7 @@ export default function LifecycleDemo() {
       const response = await fetch(`${BASE_URL}/v1/demo/full-lifecycle`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ merchantAddress: DEMO_MERCHANT, loanAmount, numPayments }),
+        body:    JSON.stringify({ agentPubkey: DEMO_AGENT, loanAmount, numPayments }),
         signal:  ctrl.signal,
       })
 
@@ -295,7 +295,7 @@ export default function LifecycleDemo() {
           <h1 className={styles.heroTitle}>Agent Credit Lifecycle Demo</h1>
           <p className={styles.heroSubtitle}>
             Watch an AI agent go from earning revenue to full credit repayment.{' '}
-            <strong>Every step is a real on-chain transaction on Base Sepolia.</strong>
+            <strong>Credit assessment and score updates are real on-chain transactions on Solana devnet.</strong>
           </p>
         </motion.div>
       </div>
@@ -315,10 +315,10 @@ export default function LifecycleDemo() {
               <div className={styles.configItem}>
                 <label className={styles.configLabel}>Agent</label>
                 <div className={styles.configValue}>
-                  <span className={styles.merchantName}>DataServiceBot</span>
-                  <span className={styles.merchantBadge}>FairScale: 780 · Tier A</span>
+                  <span className={styles.merchantName}>DataBot-Alpha</span>
+                  <span className={styles.merchantBadge}>KYA-2 · FairScore 720</span>
                 </div>
-                <div className={styles.configAddr}>{truncateAddress(DEMO_MERCHANT, 6)}</div>
+                <div className={styles.configAddr}>{truncateAddress(DEMO_AGENT, 6)}</div>
               </div>
               <div className={styles.configDivider} />
               <div className={styles.configItem}>
@@ -388,7 +388,7 @@ export default function LifecycleDemo() {
             <div className={styles.runningMeta}>
               {isRunning && <span className={styles.liveDot} />}
               <span className={styles.runningLabel}>
-                {isCompleted ? 'Demo Complete' : isRunning ? 'Running live on Base Sepolia…' : 'Stopped'}
+                {isCompleted ? 'Demo Complete' : isRunning ? 'Running on Solana devnet…' : 'Stopped'}
               </span>
               {elapsed > 0 && (
                 <span className={styles.elapsed}>
@@ -415,9 +415,9 @@ export default function LifecycleDemo() {
               {s.vaultAddress && (
                 <div className={styles.stepDetail}>
                   <div className={styles.stepDetailRow}>
-                    <span className={styles.detailKey}>Vault Address</span>
+                    <span className={styles.detailKey}>Agent Profile PDA</span>
                     <a
-                      href={BASESCAN_ADDR(s.vaultAddress)}
+                      href={SOLSCAN_ADDR(s.vaultAddress)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className={styles.addrLink}
@@ -427,11 +427,11 @@ export default function LifecycleDemo() {
                     </a>
                   </div>
                   {s.txHashes.vault && (
-                    <TxRow label="Transaction" hash={s.txHashes.vault} />
+                    <TxRow label="Score Tx" hash={s.txHashes.vault} />
                   )}
                   <div className={styles.stepDetailRow}>
-                    <span className={styles.detailKey}>Config</span>
-                    <span className={styles.detailVal}>12% APY · 3mo · 1 tranche</span>
+                    <span className={styles.detailKey}>Credit Score</span>
+                    <span className={styles.detailVal}>720 → 790 · KYA-2 · Trusted</span>
                   </div>
                 </div>
               )}
@@ -447,20 +447,20 @@ export default function LifecycleDemo() {
                 <div className={styles.stepDetail}>
                   <div className={styles.fundingBars}>
                     <FundingBar
-                      label="Senior Pool"
-                      pct={60}
-                      amount={+(loanAmount * 0.60).toFixed(0)}
+                      label="LP Deposits"
+                      pct={70}
+                      amount={+(loanAmount * 0.70).toFixed(0)}
                       color="var(--accent)"
                     />
                     <FundingBar
-                      label="General Pool"
-                      pct={40}
-                      amount={+(loanAmount * 0.40).toFixed(0)}
+                      label="Insurance Reserve"
+                      pct={30}
+                      amount={+(loanAmount * 0.30).toFixed(0)}
                       color="#60a5fa"
                     />
                   </div>
                   {s.txHashes.funding && (
-                    <TxRow label="Complete Fundraising Tx" hash={s.txHashes.funding} />
+                    <TxRow label="Vault Tx" hash={s.txHashes.funding} />
                   )}
                 </div>
               )}
@@ -482,7 +482,7 @@ export default function LifecycleDemo() {
                   </div>
                   <div className={styles.stepDetailRow}>
                     <span className={styles.detailKey}>Agent Wallet</span>
-                    <span className={styles.detailVal}>{truncateAddress(DEMO_MERCHANT, 6)}</span>
+                    <span className={styles.detailVal}>{truncateAddress(DEMO_AGENT, 6)}</span>
                   </div>
                   {s.txHashes.tranche && (
                     <TxRow label="Release Tranche Tx" hash={s.txHashes.tranche} />
@@ -553,7 +553,7 @@ export default function LifecycleDemo() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className={styles.pmtTx}
-                                title="View on BaseScan"
+                                title="View on Solscan"
                               >
                                 {truncateAddress(pmt.txHash, 4)}
                                 <ExternalLink size={10} />
@@ -664,12 +664,12 @@ export default function LifecycleDemo() {
                 <div className={styles.celebrationActions}>
                   {s.finalResult.vaultAddress && (
                     <a
-                      href={BASESCAN_ADDR(s.finalResult.vaultAddress)}
+                      href={SOLSCAN_ADDR(s.finalResult.vaultAddress)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className={styles.ctaLink}
                     >
-                      View Vault on BaseScan <ExternalLink size={13} />
+                      View Vault on Solscan <ExternalLink size={13} />
                     </a>
                   )}
                   <button
@@ -753,7 +753,7 @@ function TxRow({ label, hash }: { label: string; hash: string }) {
     <div className={styles.stepDetailRow}>
       <span className={styles.detailKey}>{label}</span>
       <a
-        href={BASESCAN_TX(hash)}
+        href={SOLSCAN_TX(hash)}
         target="_blank"
         rel="noopener noreferrer"
         className={styles.txLink}

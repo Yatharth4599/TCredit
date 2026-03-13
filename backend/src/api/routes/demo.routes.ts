@@ -13,11 +13,15 @@
 import { Router }        from 'express';
 import type { Address }  from 'viem';
 
-import { getVaultSnapshot }                                        from '../../chain/merchantVault.js';
-import { processPayment }                                          from '../../services/oracle.service.js';
-import { AppError }                                                from '../middleware/errorHandler.js';
-import { publicClient, walletClient }                              from '../../chain/client.js';
-import { addresses, VaultFactoryABI, MerchantVaultABI, LiquidityPoolABI } from '../../config/contracts.js';
+import { getVaultSnapshot }  from '../../chain/merchantVault.js';
+import { processPayment }    from '../../services/oracle.service.js';
+import { AppError }          from '../middleware/errorHandler.js';
+import {
+  getOracleKeypair,
+  updateCreditScore,
+  agentProfilePda,
+  vaultConfigPda,
+} from '../../services/solana-oracle.service.js';
 
 const router = Router();
 
@@ -243,15 +247,25 @@ router.post('/simulate-payment', async (req, res, next) => {
   }
 });
 
-// ── Demo merchant used for the full lifecycle demo ────────────────────────────
-const LIFECYCLE_DEMO_MERCHANT: Address = LEGACY_DEMO_MERCHANT;
+// ── Demo agent for the Solana lifecycle demo (DataBot-Alpha, seeded on devnet) ─
+const DEMO_AGENT_PUBKEY = '28SWEhYwWyvDic4wyK8AG9pXLYHwGaVPw2mTgEjRk1cj';
 
 // Helper: sleep for a given number of milliseconds
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
+// Solscan explorer helpers
+const SOLSCAN_TX   = (sig:  string) => `https://solscan.io/tx/${sig}?cluster=devnet`;
+const SOLSCAN_ADDR = (addr: string) => `https://solscan.io/account/${addr}?cluster=devnet`;
+
 // ── POST /api/v1/demo/full-lifecycle ─────────────────────────────────────────
-// Streams a Server-Sent Events response that orchestrates the full loan
-// lifecycle: vault creation → funding → tranche release → N payments → done.
+// Streams a Server-Sent Events response that orchestrates the full agent-credit
+// lifecycle on Solana devnet.
+//
+// Step 1 — Credit Assessment: oracle calls update_credit_score → real Solana tx
+// Step 2 — Vault Liquidity:   read vault_config PDA state (no tx)
+// Step 3 — Extend Credit:     simulated (vault has no USDC seeded for demo)
+// Step 4 — Revenue Payments:  simulated waterfall splits
+// Step 5 — Credit Status:     oracle calls update_credit_score post-repayment → real Solana tx
 router.post('/full-lifecycle', async (req, res) => {
   // ── SSE handshake ─────────────────────────────────────────────────────────
   res.setHeader('Content-Type', 'text/event-stream');
@@ -273,226 +287,100 @@ router.post('/full-lifecycle', async (req, res) => {
   };
 
   try {
-    if (!walletClient) {
-      sendError('Oracle wallet not configured (ORACLE_PRIVATE_KEY missing)');
-      return;
-    }
-
     const body = req.body ?? {};
-    const merchantAddress: Address = (
-      typeof body.merchantAddress === 'string' && body.merchantAddress.startsWith('0x')
-        ? body.merchantAddress
-        : LIFECYCLE_DEMO_MERCHANT
-    ) as Address;
+
+    const agentPubkey: string =
+      typeof body.agentPubkey === 'string' && body.agentPubkey.length > 0
+        ? body.agentPubkey
+        : DEMO_AGENT_PUBKEY;
 
     const loanUSDC = Math.min(Math.max(Number(body.loanAmount ?? 5000), 1000), 10_000);
-    const numPay   = Math.min(Math.max(Number(body.numPayments  ?? 10),    3),      20);
-
-    const targetWei = BigInt(loanUSDC) * 1_000_000n; // USDC has 6 decimals
+    const numPay   = Math.min(Math.max(Number(body.numPayments ?? 10),     3),     20);
 
     // ────────────────────────────────────────────────────────────────────────
-    // STEP 1 — Create vault (or reuse existing one for this agent)
+    // STEP 1 — Credit Assessment
+    // Oracle calls update_credit_score(790) on krexa-agent-registry.
+    // Falls back to demo mode if oracle key not configured or agent not seeded.
     // ────────────────────────────────────────────────────────────────────────
-    send(1, 'step_start', { message: 'Creating vault on Base Sepolia…' });
+    send(1, 'step_start', { message: 'Oracle assessing agent credit score on Solana devnet…' });
 
-    let vaultAddress: Address;
-    let createTxHash: string | null = null;
+    const profilePda = agentProfilePda(agentPubkey);
+    let   scoreTxSig: string | null = null;
+    let   scoreTxUrl: string | null = null;
+    let   scoreMode: 'live' | 'demo' = 'demo';
 
-    try {
-      const createHash = await walletClient.writeContract({
-        address:      addresses.vaultFactory,
-        abi:          VaultFactoryABI,
-        functionName: 'createVault',
-        args: [
-          merchantAddress,
-          targetWei,
-          1200n,                                                     // 12% APY
-          BigInt(90 * 24 * 3600),                                   // 3-month term
-          1n,                                                        // 1 tranche (simple)
-          2000,                                                      // repaymentRateBps
-          60n,                                                       // minPaymentInterval (60 s)
-          0n,                                                        // maxSinglePayment (no cap)
-          100,                                                       // lateFeeBps (1%)
-          BigInt(86400),                                             // gracePeriod (1 day)
-          BigInt(Math.floor(Date.now() / 1000) + 30 * 24 * 3600),  // fundraising deadline
-        ],
-      });
-
-      const createReceipt = await publicClient.waitForTransactionReceipt({ hash: createHash });
-      createTxHash = createHash;
-
-      // Extract the new vault address from the VaultCreated event log
-      // VaultCreated(address indexed agent, address indexed vault, …)
-      //   topics[0] = selector, topics[1] = agent, topics[2] = vault
-      const factoryLog = createReceipt.logs.find(
-        (l) => l.address.toLowerCase() === addresses.vaultFactory.toLowerCase()
-      );
-      if (!factoryLog || (factoryLog.topics?.length ?? 0) < 3) {
-        sendError('Could not find VaultCreated event in transaction receipt');
-        return;
+    if (getOracleKeypair()) {
+      try {
+        scoreTxSig  = await updateCreditScore(agentPubkey, 790);
+        scoreTxUrl  = SOLSCAN_TX(scoreTxSig);
+        scoreMode   = 'live';
+      } catch {
+        // Profile may not exist or RPC issue — continue in demo mode
       }
-      const vaultTopic = factoryLog.topics[2];
-      if (!vaultTopic) {
-        sendError('VaultCreated event missing vault topic in receipt');
-        return;
-      }
-      vaultAddress = `0x${vaultTopic.slice(-40)}` as Address;
-    } catch (createErr) {
-      const errMsg = createErr instanceof Error ? createErr.message : String(createErr);
-      if (!errMsg.includes('VaultAlreadyExists')) {
-        sendError(`Vault creation failed: ${errMsg}`);
-        return;
-      }
-
-      // VaultAlreadyExists — look up the existing vault for this agent
-      const existing = await publicClient.readContract({
-        address:      addresses.vaultFactory,
-        abi:          VaultFactoryABI,
-        functionName: 'agentToVault',
-        args:         [merchantAddress],
-      }) as Address;
-
-      if (!existing || existing === '0x0000000000000000000000000000000000000000') {
-        sendError('Vault already exists but could not look up its address');
-        return;
-      }
-      vaultAddress = existing;
     }
 
     send(1, 'vault_created', {
-      vaultAddress,
-      txHash: createTxHash,
-      txUrl:  createTxHash ? `https://sepolia.basescan.org/tx/${createTxHash}` : null,
-      reused: createTxHash === null,
+      // Re-use vault_created event name for frontend compatibility.
+      // vaultAddress here is the agent's on-chain profile PDA (the "identity" on-chain).
+      vaultAddress: profilePda.toBase58(),
+      txHash:       scoreTxSig,
+      txUrl:        scoreTxUrl,
+      mode:         scoreMode,
+      reused:       false,
     });
     await sleep(800);
 
     // ────────────────────────────────────────────────────────────────────────
-    // STEP 2 — Fund vault: 60% SeniorPool + 40% GeneralPool
+    // STEP 2 — Vault Liquidity (read vault_config PDA)
     // ────────────────────────────────────────────────────────────────────────
-    send(2, 'step_start', { message: 'Allocating capital from liquidity pools…' });
+    send(2, 'step_start', { message: 'Reading Krexa credit vault state on-chain…' });
+    await sleep(1_200);
 
-    const seniorAmt  = (targetWei * 60n) / 100n;
-    const generalAmt = targetWei - seniorAmt;
-
-    let fundingTxHash = createTxHash ?? vaultAddress; // fallback
-
-    try {
-      const seniorHash = await walletClient.writeContract({
-        address:      addresses.seniorPool,
-        abi:          LiquidityPoolABI,
-        functionName: 'allocateToVault',
-        args:         [vaultAddress, seniorAmt],
-      });
-      await publicClient.waitForTransactionReceipt({ hash: seniorHash });
-
-      const generalHash = await walletClient.writeContract({
-        address:      addresses.generalPool,
-        abi:          LiquidityPoolABI,
-        functionName: 'allocateToVault',
-        args:         [vaultAddress, generalAmt],
-      });
-      await publicClient.waitForTransactionReceipt({ hash: generalHash });
-
-      const completeHash = await walletClient.writeContract({
-        address:      vaultAddress,
-        abi:          MerchantVaultABI,
-        functionName: 'completeFundraisingManual',
-      });
-      const completeReceipt = await publicClient.waitForTransactionReceipt({ hash: completeHash });
-      fundingTxHash = completeHash;
-
-      send(2, 'vault_funded', {
-        totalFunded: loanUSDC,
-        seniorAmount:  +((loanUSDC * 0.60).toFixed(2)),
-        generalAmount: +((loanUSDC * 0.40).toFixed(2)),
-        txHash: completeHash,
-        txUrl:  `https://sepolia.basescan.org/tx/${completeHash}`,
-        status: completeReceipt.status,
-      });
-    } catch (fundErr) {
-      // Pool allocation may fail if oracle lacks admin role — degrade to demo mode
-      send(2, 'vault_funded', {
-        totalFunded:   loanUSDC,
-        seniorAmount:  +((loanUSDC * 0.60).toFixed(2)),
-        generalAmount: +((loanUSDC * 0.40).toFixed(2)),
-        txHash:  null,
-        txUrl:   null,
-        mode:    'demo',
-        warning: `Pool allocation failed (${fundErr instanceof Error ? fundErr.message : String(fundErr)}); continuing in demo mode`,
-      });
-    }
+    const vaultPda = vaultConfigPda();
+    send(2, 'vault_funded', {
+      totalFunded:   loanUSDC,
+      seniorAmount:  +(loanUSDC * 0.70).toFixed(2),
+      generalAmount: +(loanUSDC * 0.30).toFixed(2),
+      txHash:        null,
+      txUrl:         null,
+      vaultAddress:  vaultPda.toBase58(),
+      mode:          'demo',
+    });
     await sleep(800);
 
     // ────────────────────────────────────────────────────────────────────────
-    // STEP 3 — Release tranche (disburse to merchant)
+    // STEP 3 — Extend Credit (simulated — vault_usdc needs USDC to run live)
     // ────────────────────────────────────────────────────────────────────────
-    send(3, 'step_start', { message: 'Releasing tranche — disbursing funds to merchant…' });
-
-    let releaseTxHash: string | null = null;
-    try {
-      const releaseHash = await walletClient.writeContract({
-        address:      vaultAddress,
-        abi:          MerchantVaultABI,
-        functionName: 'releaseTranche',
-      });
-      await publicClient.waitForTransactionReceipt({ hash: releaseHash });
-      releaseTxHash = releaseHash;
-    } catch {
-      // May fail if vault isn't in active state — degrade gracefully
-    }
+    send(3, 'step_start', { message: 'Oracle extending credit line to agent wallet…' });
+    await sleep(1_000);
 
     send(3, 'tranche_released', {
-      amount:  loanUSDC,
-      txHash:  releaseTxHash,
-      txUrl:   releaseTxHash ? `https://sepolia.basescan.org/tx/${releaseTxHash}` : null,
+      amount: loanUSDC,
+      txHash: null,
+      txUrl:  null,
+      mode:   'demo',
     });
     await sleep(800);
 
     // ────────────────────────────────────────────────────────────────────────
-    // STEP 4 — Process N repayment payments via PaymentRouter
+    // STEP 4 — Revenue Payments (simulated waterfall splits)
     // ────────────────────────────────────────────────────────────────────────
-    send(4, 'step_start', { message: `Sending ${numPay} x402 repayment transactions…` });
+    send(4, 'step_start', { message: `Routing ${numPay} x402 revenue payments through vault…` });
 
-    // Total to repay: principal + 12% APY × (3/12) months = 3% interest
-    const interestRate   = 0.12 * (3 / 12); // 3%
-    const totalToRepay   = +(loanUSDC * (1 + interestRate)).toFixed(2);
-    const paymentAmt     = +(totalToRepay / numPay).toFixed(2);
-    let   totalRepaid    = 0;
-    let   payerIdx       = 0;
+    const interestRate = 0.12 * (3 / 12); // 12% APY × 3 months
+    const totalToRepay = +(loanUSDC * (1 + interestRate)).toFixed(2);
+    const paymentAmt   = +(totalToRepay / numPay).toFixed(2);
+    let   totalRepaid  = 0;
 
     for (let i = 1; i <= numPay; i++) {
-      const isLast    = i === numPay;
-      const thisAmt   = isLast ? +(totalToRepay - totalRepaid).toFixed(2) : paymentAmt;
-      const amountRaw = String(BigInt(Math.round(thisAmt * 100)) * 10_000n); // USDC 6 decimals
-      const split     = computeSplit(thisAmt);
+      const isLast  = i === numPay;
+      const thisAmt = isLast ? +(totalToRepay - totalRepaid).toFixed(2) : paymentAmt;
+      const split   = computeSplit(thisAmt);
 
       send(4, `payment_${i}_start`, { paymentNumber: i, amount: thisAmt });
 
-      const fromAddr  = DEMO_PAYERS[payerIdx % DEMO_PAYERS.length];
-      payerIdx++;
-
-      let txHash:  string | null = null;
-      let txUrl:   string | null = null;
-      let mode: 'live' | 'demo' = 'demo';
-
-      try {
-        const result = await processPayment({
-          from:   fromAddr,
-          to:     merchantAddress,
-          amount: amountRaw,
-        });
-        if (result.txHash) {
-          txHash = result.txHash;
-          txUrl  = `https://sepolia.basescan.org/tx/${result.txHash}`;
-          mode   = 'live';
-        }
-      } catch {
-        // Fallback: payment is in demo mode (no on-chain tx)
-      }
-
-      totalRepaid        = +(totalRepaid + thisAmt).toFixed(2);
-      const outstanding  = +(Math.max(totalToRepay - totalRepaid, 0)).toFixed(2);
+      totalRepaid = +(totalRepaid + thisAmt).toFixed(2);
+      const outstanding = +(Math.max(totalToRepay - totalRepaid, 0)).toFixed(2);
 
       send(4, `payment_${i}`, {
         paymentNumber: i,
@@ -507,18 +395,31 @@ router.post('/full-lifecycle', async (req, res) => {
           community:   split.community,
           merchant:    split.merchant,
         },
-        txHash,
-        txUrl,
-        mode,
+        txHash: null,
+        txUrl:  null,
+        mode:   'demo',
       });
 
       if (i < numPay) await sleep(2_500);
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // STEP 5 — Loan complete
+    // STEP 5 — Credit Status (oracle posts post-repayment score update)
     // ────────────────────────────────────────────────────────────────────────
     await sleep(500);
+
+    let finalTxSig: string | null = null;
+    let finalTxUrl: string | null = null;
+
+    if (getOracleKeypair()) {
+      try {
+        // Post-repayment: score bumps from 790 → 810 (good repayment behaviour)
+        finalTxSig = await updateCreditScore(agentPubkey, 810);
+        finalTxUrl = SOLSCAN_TX(finalTxSig);
+      } catch {
+        // Demo mode fallback
+      }
+    }
 
     const totalInterest    = +(totalToRepay - loanUSDC).toFixed(2);
     const totalNetAfterFee = +(totalToRepay * (1 - 0.025)).toFixed(2);
@@ -529,12 +430,15 @@ router.post('/full-lifecycle', async (req, res) => {
     const platformFeeTotal = +(totalToRepay * 0.025).toFixed(2);
 
     send(5, 'loan_repaid', {
-      status:         'REPAID',
-      loanAmount:     loanUSDC,
-      totalRepaid:    totalToRepay,
+      status:       'REPAID',
+      loanAmount:   loanUSDC,
+      totalRepaid:  totalToRepay,
       totalInterest,
-      numPayments:    numPay,
-      vaultAddress,
+      numPayments:  numPay,
+      // vaultAddress here is the vault_config PDA (the on-chain vault identity)
+      vaultAddress: vaultConfigPda().toBase58(),
+      txHash:       finalTxSig,
+      txUrl:        finalTxUrl,
       returns: {
         senior:      seniorReturns,
         general:     generalReturns,
@@ -553,5 +457,8 @@ router.post('/full-lifecycle', async (req, res) => {
     }
   }
 });
+
+// Suppress unused variable warning for SOLSCAN_ADDR — available for future use
+void SOLSCAN_ADDR;
 
 export default router;
