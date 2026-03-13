@@ -12,11 +12,13 @@
  * Updated on-chain via update_credit_score oracle instruction.
  */
 
+import { createHash } from 'crypto';
 import { PublicKey, Transaction, sendAndConfirmTransaction } from '@solana/web3.js';
 import { solanaConnection, oracleSolanaKeypair } from '../chain/solana/connection.js';
 import { readAgentProfile } from '../chain/solana/reader.js';
 import { buildUpdateCreditScore } from '../chain/solana/builder.js';
 import { prisma } from '../config/prisma.js';
+import { dispatchWebhook } from './webhook.service.js';
 
 // ---------------------------------------------------------------------------
 // Weights
@@ -135,6 +137,32 @@ async function computeScore(stats: AgentStats): Promise<{
 }
 
 // ---------------------------------------------------------------------------
+// Level calculation (mirrors on-chain calculate_level)
+// ---------------------------------------------------------------------------
+
+function calculateLevelFromScore(score: number, kyaTier: number): number {
+  if (score >= 750 && kyaTier >= 3) return 4;
+  if (score >= 650 && kyaTier >= 2) return 3;
+  if (score >= 500 && kyaTier >= 2) return 2;
+  if (score >= 400 && kyaTier >= 1) return 1;
+  return 0;
+}
+
+// ---------------------------------------------------------------------------
+// Score Attestation — keccak256(agent, score, level, timestamp)
+// ---------------------------------------------------------------------------
+
+function computeAttestationHash(agent: string, score: number, level: number, timestamp: number): string {
+  const data = Buffer.concat([
+    Buffer.from(agent),
+    Buffer.from(score.toString()),
+    Buffer.from(level.toString()),
+    Buffer.from(timestamp.toString()),
+  ]);
+  return createHash('sha256').update(data).digest('hex');
+}
+
+// ---------------------------------------------------------------------------
 // Update on-chain
 // ---------------------------------------------------------------------------
 
@@ -192,14 +220,22 @@ export async function runDailyCreditScoreUpdate(): Promise<void> {
       };
 
       const { score, components } = await computeScore(stats);
+      const level = profile?.creditLevel ?? 0;
+      const oldScore = profile?.creditScore ?? 0;
+      const oldLevel = level;
 
-      // Persist snapshot
+      // Compute attestation hash
+      const timestamp = Math.floor(Date.now() / 1000);
+      const attestationHash = computeAttestationHash(w.agentPubkey, score, level, timestamp);
+
+      // Persist snapshot with attestation
       await prisma.scoreSnapshot.create({
         data: {
           agentPubkey: w.agentPubkey,
           score,
-          level: profile?.creditLevel ?? 0,
+          level,
           components,
+          attestationHash,
         },
       });
 
@@ -207,6 +243,24 @@ export async function runDailyCreditScoreUpdate(): Promise<void> {
       const sig = await updateScoreOnChain(new PublicKey(w.agentPubkey), score);
       if (sig) {
         console.log(`[CreditScore] Updated ${w.agentPubkey} → ${score} — sig: ${sig}`);
+      }
+
+      // Dispatch score_changed webhook if score actually changed
+      if (score !== oldScore) {
+        const newLevel = profile
+          ? calculateLevelFromScore(score, profile.kyaTier)
+          : level;
+        await dispatchWebhook('score_changed', {
+          agent: w.agentPubkey,
+          oldScore,
+          newScore: score,
+          oldLevel,
+          newLevel,
+          attestationHash,
+          timestamp: new Date().toISOString(),
+        }).catch((err) => {
+          console.error(`[CreditScore] Webhook dispatch failed for ${w.agentPubkey}:`, err);
+        });
       }
 
       updated++;

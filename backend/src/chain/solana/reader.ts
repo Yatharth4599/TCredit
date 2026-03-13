@@ -36,9 +36,16 @@ export interface AgentProfile {
   liquidationCount: number;
   walletPda: PublicKey;
   hasWallet: boolean;
+  // Phase 1 fields
+  legalAgreementHash: Buffer;    // [u8; 32]
+  legalAgreementSignedAt: bigint; // i64
+  scoreAttestationHash: Buffer;   // [u8; 32]
+  // Status
   isActive: boolean;
   registeredAt: bigint;
   bump: number;
+  // Phase 2 fields (backward-compat: defaults to 0 for old accounts)
+  ownerType: number;             // 0 = EOA, 1 = Multisig
 }
 
 export interface VaultConfig {
@@ -123,6 +130,8 @@ export interface AgentWallet {
   createdAt: bigint;
   bump: number;
   usdcBump: number;
+  // Phase 2 fields (backward-compat: defaults to 0 for old accounts)
+  ownerType: number;  // 0 = EOA, 1 = Multisig
 }
 
 export interface RouterConfig {
@@ -231,13 +240,24 @@ function decodeAgentProfile(data: Buffer): AgentProfile {
   let liquidationCount: number; [liquidationCount, o] = readU8(data, o);
   let walletPda: PublicKey;   [walletPda, o] = readPubkey(data, o);
   let hasWallet: boolean;     [hasWallet, o] = readBool(data, o);
+  // Phase 1 fields
+  const legalAgreementHash = data.subarray(o, o + 32); o += 32;
+  let legalAgreementSignedAt: bigint; [legalAgreementSignedAt, o] = readI64(data, o);
+  const scoreAttestationHash = data.subarray(o, o + 32); o += 32;
+  // Status
   let isActive: boolean;      [isActive, o] = readBool(data, o);
   let registeredAt: bigint;   [registeredAt, o] = readI64(data, o);
   let bump: number;           [bump, o] = readU8(data, o);
+  // owner_type added in Phase 2 — old accounts (272 bytes) default to EOA = 0
+  let ownerType = 0;
+  if (o < data.length) {
+    [ownerType, o] = readU8(data, o);
+  }
   return {
     agent, owner, name, creditScore, creditLevel, kyaTier, kyaVerifiedAt,
     scoreUpdatedAt, totalVolumeUsd, totalTrades, totalRepaid, totalBorrowed,
-    liquidationCount, walletPda, hasWallet, isActive, registeredAt, bump,
+    liquidationCount, walletPda, hasWallet, legalAgreementHash, legalAgreementSignedAt,
+    scoreAttestationHash, isActive, registeredAt, bump, ownerType,
   };
 }
 
@@ -348,11 +368,16 @@ function decodeAgentWallet(data: Buffer): AgentWallet {
   let createdAt: bigint;          [createdAt, o] = readI64(data, o);
   let bump: number;               [bump, o] = readU8(data, o);
   let usdcBump: number;           [usdcBump, o] = readU8(data, o);
+  // owner_type added in Phase 2 — old accounts have zeroed padding here = EOA = 0
+  let ownerType = 0;
+  if (o < data.length) {
+    [ownerType, o] = readU8(data, o);
+  }
   return {
     agent, owner, config, walletUsdc, collateralShares, creditLimit, creditDrawn,
     totalDebt, dailySpendLimit, dailySpent, lastDailyReset, healthFactorBps,
     lastHealthCheck, creditLevel, isFrozen, isLiquidating, totalTrades,
-    totalVolume, totalRepaid, createdAt, bump, usdcBump,
+    totalVolume, totalRepaid, createdAt, bump, usdcBump, ownerType,
   };
 }
 

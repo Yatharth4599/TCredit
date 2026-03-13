@@ -143,6 +143,7 @@ import {
   createKyaNamespace,
   KrexaError,
 } from './agent.js';
+import { createCreditBureauNamespace } from './credit-bureau.js';
 
 export interface KrexaSDKConfig {
   /** Krexa API key (required for authenticated endpoints). */
@@ -194,6 +195,9 @@ export class KrexaSDK {
   /** Access KYA verification operations. */
   readonly kya: ReturnType<typeof createKyaNamespace>;
 
+  /** Access Credit Bureau — score lookups, reports, and history. */
+  readonly creditBureau: ReturnType<typeof createCreditBureauNamespace>;
+
   /** Low-level access to the full Krexa REST client. */
   readonly raw: KrexaClient;
 
@@ -206,6 +210,7 @@ export class KrexaSDK {
     this.agent  = createAgentNamespace(this._apiBase, this._apiKey, this._chain, this._agentAddress);
     this.credit = createCreditNamespace(this._apiBase, this._apiKey, this._chain, this._agentAddress);
     this.kya    = createKyaNamespace(this._apiBase, this._apiKey, this._chain, this._agentAddress);
+    this.creditBureau = createCreditBureauNamespace(this._apiBase, this._apiKey);
 
     this.raw = createKrexaClient({
       baseUrl: config.baseUrl ?? 'https://api.krexa.xyz',

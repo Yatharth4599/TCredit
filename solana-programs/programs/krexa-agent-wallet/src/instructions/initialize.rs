@@ -8,6 +8,7 @@ pub fn handle(
     agent_registry_program: Pubkey,
     venue_whitelist_program: Pubkey,
     payment_router_program: Pubkey,
+    platform_treasury: Pubkey,
 ) -> Result<()> {
     let cfg = &mut ctx.accounts.config;
     cfg.admin = ctx.accounts.admin.key();
@@ -17,6 +18,7 @@ pub fn handle(
     cfg.payment_router_program = payment_router_program;
     cfg.usdc_mint = ctx.accounts.usdc_mint.key();
     cfg.keeper = keeper;
+    cfg.platform_treasury = platform_treasury;
     cfg.total_wallets = 0;
     cfg.is_paused = false;
     cfg.bump = ctx.bumps.config;

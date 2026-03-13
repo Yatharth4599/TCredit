@@ -57,6 +57,9 @@ const EVENT_DISCS: Record<string, string> = {
   HealthChecked:   eventDisc('HealthChecked'),
   WalletDeleveraged: eventDisc('WalletDeleveraged'),
   WalletLiquidated:  eventDisc('WalletLiquidated'),
+  OwnershipTransferProposed:  eventDisc('OwnershipTransferProposed'),
+  OwnershipTransferAccepted:  eventDisc('OwnershipTransferAccepted'),
+  OwnershipTransferCancelled: eventDisc('OwnershipTransferCancelled'),
 
   // krexa-payment-router
   RouterInitialized:  eventDisc('RouterInitialized'),
@@ -202,6 +205,52 @@ async function handlePaymentRouted(data: Buffer, txSig: string, slot: number): P
   }, txSig, slot);
 }
 
+async function handleOwnershipTransferProposed(data: Buffer, txSig: string, slot: number): Promise<void> {
+  // OwnershipTransferProposed { agent: Pubkey, current_owner: Pubkey, proposed_owner: Pubkey, proposed_owner_type: u8 }
+  if (data.length < 97) return;
+  const agentPubkey = new PublicKey(data.subarray(0, 32)).toBase58();
+  const proposedOwner = new PublicKey(data.subarray(64, 96)).toBase58();
+
+  await prisma.solanaAgentWallet.updateMany({
+    where: { agentPubkey },
+    data: { pendingOwner: proposedOwner },
+  }).catch(() => {});
+
+  await storeEvent('OwnershipTransferProposed', { agentPubkey, proposedOwner }, txSig, slot);
+}
+
+async function handleOwnershipTransferAccepted(data: Buffer, txSig: string, slot: number): Promise<void> {
+  // OwnershipTransferAccepted { agent: Pubkey, old_owner: Pubkey, new_owner: Pubkey, new_owner_type: u8 }
+  if (data.length < 97) return;
+  const agentPubkey = new PublicKey(data.subarray(0, 32)).toBase58();
+  const newOwner = new PublicKey(data.subarray(64, 96)).toBase58();
+  const newOwnerType = data.readUInt8(96);
+
+  await prisma.solanaAgentWallet.updateMany({
+    where: { agentPubkey },
+    data: {
+      ownerPubkey: newOwner,
+      ownerType: newOwnerType === 1 ? 'multisig' : 'eoa',
+      pendingOwner: null,
+    },
+  }).catch(() => {});
+
+  await storeEvent('OwnershipTransferAccepted', { agentPubkey, newOwner, newOwnerType }, txSig, slot);
+}
+
+async function handleOwnershipTransferCancelled(data: Buffer, txSig: string, slot: number): Promise<void> {
+  // OwnershipTransferCancelled { agent: Pubkey, cancelled_by: Pubkey }
+  if (data.length < 64) return;
+  const agentPubkey = new PublicKey(data.subarray(0, 32)).toBase58();
+
+  await prisma.solanaAgentWallet.updateMany({
+    where: { agentPubkey },
+    data: { pendingOwner: null },
+  }).catch(() => {});
+
+  await storeEvent('OwnershipTransferCancelled', { agentPubkey }, txSig, slot);
+}
+
 // ---------------------------------------------------------------------------
 // Generic event storage
 // ---------------------------------------------------------------------------
@@ -241,6 +290,9 @@ async function processSignature(sig: string): Promise<void> {
         case 'WalletCreated':      await handleWalletCreated(event.data, sig, slot); break;
         case 'TradeExecuted':      await handleTradeExecuted(event.data, sig, slot); break;
         case 'PaymentRouted':      await handlePaymentRouted(event.data, sig, slot); break;
+        case 'OwnershipTransferProposed':  await handleOwnershipTransferProposed(event.data, sig, slot); break;
+        case 'OwnershipTransferAccepted':  await handleOwnershipTransferAccepted(event.data, sig, slot); break;
+        case 'OwnershipTransferCancelled': await handleOwnershipTransferCancelled(event.data, sig, slot); break;
         default:
           await storeEvent(event.name, { raw: event.raw }, sig, slot);
       }

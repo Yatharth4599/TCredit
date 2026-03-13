@@ -1,27 +1,14 @@
 /* ============================================
-   PORTFOLIO MARKETING PAGE — Full Cyan #00FFF0
+   PORTFOLIO MARKETING PAGE — 1inch-style
+   Color flow: cyan hero → dark middle → white CTA
+   Sharp cards, no glow effects
    ============================================ */
 
 .page {
     min-height: 100vh;
-    background: #00FFF0;
+    background: #0a0a0a;
     position: relative;
-    overflow-x: hidden;
-}
-
-.page::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: radial-gradient(ellipse at 30% 50%, rgba(255, 255, 255, 0.18) 0%, transparent 55%);
-    pointer-events: none;
-    z-index: 0;
-    animation: glowPulse 8s ease-in-out infinite;
-}
-
-@keyframes glowPulse {
-    0%, 100% { opacity: 0.7; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.05); }
+    overflow-x: clip;
 }
 
 /* ─── Hero ──────────────────────────────────── */
@@ -29,48 +16,349 @@
 .hero {
     min-height: 100vh;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 140px 24px 80px;
+    align-items: stretch;
     position: relative;
     z-index: 1;
-    text-align: center;
+    padding: 120px 48px 48px;
+    background: #00FFF0;
 }
 
-.heroLabel {
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    color: rgba(0, 0, 0, 0.45);
-    margin-bottom: 20px;
+.heroInner {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: calc(100vh - 168px);
+    position: relative;
+    z-index: 1;
 }
 
 .heroTitle {
     font-family: var(--font-display);
-    font-size: clamp(3.5rem, 9vw, 7rem);
+    font-size: clamp(2.8rem, 5.5vw, 4.5rem);
     font-weight: 900;
     color: #000;
-    line-height: 0.95;
-    letter-spacing: -0.05em;
-    margin: 0 0 24px;
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+    margin: 0;
+    max-width: 600px;
 }
 
-.heroSubtitle {
-    font-size: clamp(1.05rem, 2.2vw, 1.3rem);
-    line-height: 1.65;
-    color: rgba(0, 0, 0, 0.5);
-    max-width: 620px;
-    margin: 0 auto 36px;
+.heroCardArea {
+    display: flex;
+    justify-content: center;
+    padding: 40px 0;
+    flex: 1;
+    align-items: center;
 }
 
-.heroActions {
+/* ─── Showcase Card — Sharp Corners ──────────── */
+
+.showcaseCardWrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.showcaseCard {
+    background: #0C0F14;
+    border-radius: 0;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    width: 400px;
+    height: 320px;
+    max-width: 90vw;
+    overflow: hidden;
     display: flex;
     align-items: center;
+    justify-content: center;
+}
+
+.showcaseScreenWrap {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+.cardCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* ─── Hero Bottom Bar ───────────────────────── */
+
+.heroBottomBar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 40px;
+    padding-top: 20px;
+}
+
+.heroBottomLeft {
+    max-width: 420px;
+    min-height: 80px;
+}
+
+.heroBottomTitle {
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 2.5vw, 1.8rem);
+    font-weight: 900;
+    color: #000;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    margin: 0 0 8px;
+}
+
+.heroBottomDesc {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: rgba(0, 0, 0, 0.45);
+    margin: 0;
+}
+
+.heroBottomRight {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-shrink: 0;
+}
+
+.heroPagination {
+    display: flex;
     gap: 16px;
-    margin-bottom: 60px;
+}
+
+.paginationNum {
+    background: none;
+    border: none;
+    font-family: var(--font-mono);
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: rgba(0, 0, 0, 0.55);
+    cursor: pointer;
+    padding: 4px 4px;
+    transition: color 0.2s;
+    line-height: 1;
+}
+
+.paginationActive {
+    color: #000;
+    font-weight: 800;
+}
+
+.connectBtn {
+    display: inline-flex;
+    align-items: center;
+    padding: 14px 32px;
+    background: #000;
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+/* ─── Scroll-Locked Keywords Section ──────────── */
+
+.scrollKeywordsOuter {
+    height: 400vh;
+    position: relative;
+    z-index: 1;
+}
+
+.scrollKeywordsSticky {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    background: #0a0a0a;
+    display: flex;
+    align-items: flex-start;
+    padding: 120px 24px 0;
+}
+
+.scrollKeywordsContent {
+    max-width: 1200px;
+    width: 100%;
+    padding: 80px 48px;
+    display: flex;
+    gap: 60px;
+    height: 100%;
+}
+
+.scrollKeywordsLeft {
+    flex: 0 0 340px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding-top: 20px;
+}
+
+.scrollKeywordsHeadline {
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 3vw, 2.4rem);
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.15;
+    letter-spacing: -0.04em;
+    margin: 0;
+}
+
+.scrollKeywordsRight {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.scrollKeywordsWords {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.scrollKeyword {
+    font-family: var(--font-display);
+    font-size: clamp(3rem, 7vw, 5.5rem);
+    font-weight: 900;
+    color: rgba(255, 255, 255, 0.12);
+    line-height: 1.15;
+    letter-spacing: -0.04em;
+    transition: color 0.4s ease;
+}
+
+.scrollKeywordActive {
+    color: #fff;
+}
+
+.scrollKeywordsDesc {
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 2.5vw, 1.8rem);
+    line-height: 1.45;
+    font-weight: 800;
+    color: #fff;
+    margin: 80px 0 0;
+    min-height: 80px;
+    letter-spacing: -0.02em;
+    transition: opacity 0.4s ease;
+    max-width: 500px;
+}
+
+/* ─── Statement ─────────────────────────────── */
+.statement { padding: 80px 24px; position: relative; z-index: 1; background: #0a0a0a; }
+.statementText { font-family: var(--font-display); font-size: clamp(1.6rem, 3.5vw, 2.8rem); font-weight: 800; color: #fff; line-height: 1.2; letter-spacing: -0.03em; max-width: 900px; margin: 0 auto; text-align: center; }
+
+/* ─── Feature Sections ──────────────────────── */
+.featureSection { padding: 80px 24px; position: relative; z-index: 1; background: #0a0a0a; }
+.featureInner { max-width: 1140px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+.featureReverse { direction: rtl; }
+.featureReverse > * { direction: ltr; }
+.featureLabel { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: #00FFF0; margin-bottom: 12px; }
+.featureTitle { font-family: var(--font-display); font-size: clamp(2rem, 4vw, 3rem); font-weight: 900; color: #fff; line-height: 1.05; letter-spacing: -0.04em; margin: 0 0 20px; }
+.featureDesc { font-size: 1.05rem; line-height: 1.75; color: rgba(255,255,255,0.65); margin: 0 0 28px; }
+.featureList { list-style: none; padding: 0; margin: 0; }
+.featureList li { display: flex; align-items: flex-start; gap: 12px; font-size: 0.95rem; color: rgba(255,255,255,0.85); padding: 10px 0; line-height: 1.5; }
+.checkIcon { color: #00FFF0; flex-shrink: 0; margin-top: 2px; }
+
+/* ─── Dark Cards ────────────────────────────── */
+.card { background: #0C0F14; border-radius: 16px; padding: 28px; position: relative; overflow: hidden; transition: box-shadow 0.4s ease; will-change: transform; }
+.card:hover { box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 30px rgba(0,255,240,0.15); }
+.cardHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; font-size: 0.85rem; font-weight: 500; color: rgba(255,255,255,0.5); }
+.liveBadge { padding: 4px 10px; background: rgba(0,255,240,0.12); color: #00FFF0; font-size: 0.7rem; font-weight: 600; border-radius: 100px; display: flex; align-items: center; gap: 5px; }
+.liveDot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #00FFF0; animation: livePulse 2s ease-in-out infinite; }
+@keyframes livePulse { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,255,240,0.5); } 50% { opacity: 0.5; box-shadow: 0 0 6px 3px rgba(0,255,240,0.25); } }
+.divider { height: 1px; background: rgba(255,255,255,0.08); margin: 16px 0; }
+
+/* ─── Investment List Card ──────────────────── */
+.wideCardList { display: flex; flex-direction: column; gap: 8px; }
+.wideCardItem { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: rgba(255,255,255,0.03); border-radius: 4px; border: 1px solid rgba(255,255,255,0.04); }
+.wideCardItemLeft { display: flex; flex-direction: column; gap: 3px; }
+.wideCardItemName { font-size: 0.9rem; font-weight: 600; color: rgba(255,255,255,0.85); }
+.wideCardItemMeta { font-size: 0.72rem; color: rgba(255,255,255,0.4); font-family: var(--font-mono); }
+.wideCardItemRight { text-align: right; display: flex; flex-direction: column; gap: 3px; }
+.wideCardItemAmount { font-family: var(--font-mono); font-size: 0.9rem; font-weight: 700; color: #fff; }
+.wideCardItemClaim { font-size: 0.72rem; font-weight: 600; color: #00FFF0; }
+
+/* ─── Allocation Viz ───────────────────────── */
+.allocationViz { width: 100%; }
+.allocationBarWrap { height: 12px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; display: flex; margin-bottom: 32px; }
+.allocationSegment { height: 100%; }
+.allocationLegend { display: flex; gap: 40px; flex-wrap: wrap; }
+.legendItem { display: flex; align-items: center; gap: 10px; font-size: 0.88rem; }
+.legendDot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.legendName { color: rgba(255,255,255,0.6); }
+.legendValue { font-family: var(--font-mono); font-weight: 600; color: #fff; }
+
+/* ─── Vault Comparison ─────────────────────── */
+.vaultCompare { background: #0a0a0a; padding: 100px 24px; position: relative; z-index: 1; }
+.vaultCompareInner { max-width: 1140px; width: 100%; margin: 0 auto; }
+.vaultCompareTitle { font-family: var(--font-display); font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 900; color: #fff; line-height: 1.1; letter-spacing: -0.04em; margin: 0 0 16px; }
+.vaultCompareDesc { font-size: 1.05rem; line-height: 1.7; color: rgba(255,255,255,0.4); margin: 0 0 48px; max-width: 560px; }
+.vaultCardsStatic { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.vaultCard { background: #0C0F14; border-radius: 16px; padding: 28px; min-height: 340px; display: flex; flex-direction: column; justify-content: space-between; }
+.vaultCardName { font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; color: #fff; }
+.vaultCardBottom { display: flex; align-items: flex-end; justify-content: space-between; }
+.vaultCardCurrency { font-family: var(--font-mono); font-size: 0.85rem; color: rgba(255,255,255,0.45); }
+.vaultCardApy { font-family: var(--font-mono); font-size: 1rem; font-weight: 700; color: #00FFF0; }
+
+/* ─── Vault Card Inner Animations ──────────── */
+.vaultAnimInner { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px 0; }
+.vaultAnimLabel { font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.35); }
+.vaultAnimBig { font-family: var(--font-mono); font-size: 1.6rem; font-weight: 800; color: #fff; }
+.progressTrack { width: 100%; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
+.progressFill { height: 100%; width: 0%; background: #00FFF0; border-radius: 3px; animation: progressGrow 3s ease-in-out infinite; }
+@keyframes progressGrow { 0% { width: 0%; } 60% { width: 80%; } 100% { width: 80%; } }
+.progressLabels { display: flex; justify-content: space-between; width: 100%; font-family: var(--font-mono); font-size: 0.65rem; color: rgba(255,255,255,0.3); }
+.yieldBars { display: flex; align-items: flex-end; gap: 3px; height: 60px; width: 100%; }
+.yieldBar { flex: 1; background: #00FFF0; border-radius: 1px 1px 0 0; animation: barWave 2s ease-in-out infinite; opacity: 0.7; }
+@keyframes barWave { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.4); } }
+.repaymentTimeline { display: flex; align-items: center; gap: 24px; width: 100%; justify-content: center; position: relative; padding: 16px 0; }
+.timelineStep { display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; }
+.timelineDot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); background: transparent; }
+.timelineDotDone { border-color: #00FFF0; background: #00FFF0; }
+.timelineLabel { font-family: var(--font-mono); font-size: 0.65rem; color: rgba(255,255,255,0.4); }
+.timelineLine { position: absolute; top: 22px; left: 15%; right: 15%; height: 2px; background: rgba(255,255,255,0.1); z-index: 0; }
+
+/* ─── CTA Footer — White Background ───────── */
+
+.ctaSection {
+    padding: 120px 48px 140px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    background: #0a0a0a;
+}
+
+.ctaTitle {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+    margin: 0 0 16px;
+}
+
+.ctaSubtitle {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0 0 40px;
+}
+
+.ctaActions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
 }
 
 .launchBtn {
@@ -78,209 +366,103 @@
     align-items: center;
     gap: 10px;
     padding: 16px 36px;
-    background: #000;
-    color: #00FFF0;
+    background: #00FFF0;
+    color: #000;
     font-family: var(--font-body);
     font-size: 1rem;
     font-weight: 700;
     border: none;
     border-radius: 999px;
     cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease;
 }
 
 .launchBtn:hover {
     transform: scale(1.04);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
 }
 
-.ghostBtn {
+.secondaryBtn {
     display: inline-flex;
     align-items: center;
-    padding: 16px 28px;
+    gap: 8px;
+    padding: 14px 28px;
     background: transparent;
-    color: #000;
+    color: #fff;
     font-family: var(--font-body);
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 600;
-    border: 1.5px solid rgba(0, 0, 0, 0.2);
+    border: 1.5px solid rgba(255, 255, 255, 0.3);
     border-radius: 999px;
     cursor: pointer;
     text-decoration: none;
-    transition: border-color 0.2s, background 0.2s;
-}
-
-.ghostBtn:hover { border-color: rgba(0, 0, 0, 0.5); background: rgba(0, 0, 0, 0.04); }
-
-.heroStats { display: flex; gap: 40px; flex-wrap: wrap; justify-content: center; }
-.heroStat { text-align: center; }
-.heroStatValue { display: block; font-family: var(--font-mono); font-size: 1.4rem; font-weight: 800; color: #000; letter-spacing: -0.02em; }
-.heroStatLabel { font-size: 0.72rem; color: rgba(0, 0, 0, 0.45); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
-
-/* ─── Statement ─────────────────────────────── */
-
-.statement { padding: 80px 24px; position: relative; z-index: 1; }
-
-.statementText {
-    font-family: var(--font-display);
-    font-size: clamp(1.6rem, 3.5vw, 2.8rem);
-    font-weight: 800;
-    color: #000;
-    line-height: 1.2;
-    letter-spacing: -0.03em;
-    max-width: 900px;
-    margin: 0 auto;
-    text-align: center;
-}
-
-/* ─── Feature Sections ──────────────────────── */
-
-.featureSection { padding: 80px 24px; position: relative; z-index: 1; }
-
-.featureInner {
-    max-width: 1140px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 80px;
-    align-items: center;
-}
-
-.featureReverse { direction: rtl; }
-.featureReverse > * { direction: ltr; }
-
-.featureLabel { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(0, 0, 0, 0.45); margin-bottom: 12px; }
-
-.featureTitle {
-    font-family: var(--font-display);
-    font-size: clamp(2rem, 4vw, 3rem);
-    font-weight: 900;
-    color: #000;
-    line-height: 1.05;
-    letter-spacing: -0.04em;
-    margin: 0 0 20px;
-}
-
-.featureDesc { font-size: 1.05rem; line-height: 1.75; color: rgba(0, 0, 0, 0.55); margin: 0 0 28px; }
-
-.featureList { list-style: none; padding: 0; margin: 0; }
-.featureList li { display: flex; align-items: flex-start; gap: 12px; font-size: 0.95rem; color: rgba(0, 0, 0, 0.7); padding: 10px 0; line-height: 1.5; }
-.checkIcon { color: #000; flex-shrink: 0; margin-top: 2px; }
-
-/* ─── Dark Cards ────────────────────────────── */
-
-.card { background: #0C0F14; border-radius: 16px; padding: 28px; position: relative; overflow: hidden; }
-
-.shimmer {
-    position: absolute; top: 0; left: -100%; width: 60%; height: 100%;
-    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 40%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 60%, transparent 100%);
-    pointer-events: none; z-index: 2;
-    animation: shimmerSweep 4s ease-in-out 1.5s infinite;
-}
-
-@keyframes shimmerSweep { 0% { left: -100%; } 50% { left: 200%; } 100% { left: 200%; } }
-
-.cardHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; font-size: 0.85rem; font-weight: 500; color: rgba(255, 255, 255, 0.5); }
-
-.liveBadge { padding: 4px 10px; background: rgba(0, 255, 240, 0.12); color: #00FFF0; font-size: 0.7rem; font-weight: 600; border-radius: 100px; display: flex; align-items: center; gap: 5px; }
-
-.liveDot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #00FFF0; animation: livePulse 2s ease-in-out infinite; }
-
-@keyframes livePulse {
-    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 255, 240, 0.5); }
-    50% { opacity: 0.5; box-shadow: 0 0 6px 3px rgba(0, 255, 240, 0.25); }
-}
-
-.bigStat { margin-bottom: 4px; }
-.statBig { display: block; font-family: var(--font-mono); font-size: 2.4rem; font-weight: 800; color: #fff; margin-bottom: 4px; letter-spacing: -0.02em; }
-.statLabel { font-size: 0.8rem; color: rgba(255, 255, 255, 0.4); }
-.statRow { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
-.statSmallValue { display: block; font-family: var(--font-mono); font-size: 1.25rem; font-weight: 700; color: #00FFF0; margin-bottom: 4px; }
-.statSmallLabel { font-size: 0.75rem; color: rgba(255, 255, 255, 0.4); }
-.divider { height: 1px; background: rgba(255, 255, 255, 0.08); margin: 16px 0; }
-
-/* ─── Investment List ────────────────────── */
-
-.investmentList { display: flex; flex-direction: column; gap: 8px; }
-
-.investmentItem {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 16px;
-    background: rgba(255, 255, 255, 0.04);
-    border-radius: 10px;
-}
-
-.investmentLeft { display: flex; flex-direction: column; gap: 3px; }
-.investmentName { font-size: 0.88rem; font-weight: 600; color: rgba(255, 255, 255, 0.85); font-family: var(--font-mono); }
-.investmentApy { font-size: 0.72rem; color: rgba(255, 255, 255, 0.4); }
-.investmentRight { text-align: right; display: flex; flex-direction: column; gap: 3px; }
-.investmentAmount { font-family: var(--font-mono); font-size: 0.9rem; font-weight: 700; color: #fff; }
-.investmentClaimable { font-size: 0.72rem; font-weight: 600; color: #00FFF0; }
-
-/* ─── Allocation Card ───────────────────── */
-
-.allocationBar { height: 8px; background: rgba(255, 255, 255, 0.06); border-radius: 4px; overflow: hidden; display: flex; margin-bottom: 20px; }
-.allocationSegment { height: 100%; }
-.allocationLegend { display: flex; flex-direction: column; gap: 10px; }
-.legendItem { display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; }
-.legendLeft { display: flex; align-items: center; gap: 8px; color: rgba(255, 255, 255, 0.7); }
-.legendDot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.legendValue { font-family: var(--font-mono); font-weight: 600; color: #fff; }
-
-/* ─── Steps Grid ─────────────────────────── */
-
-.stepsSection { padding: 80px 24px; position: relative; z-index: 1; }
-.stepsHeader { max-width: 1140px; margin: 0 auto 48px; text-align: center; }
-.stepsTitle { font-family: var(--font-display); font-size: clamp(2rem, 4vw, 3rem); font-weight: 900; color: #000; line-height: 1.1; letter-spacing: -0.04em; margin: 0; }
-.stepsGrid { max-width: 1140px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-
-.stepCard { background: #0C0F14; border-radius: 16px; padding: 28px 24px; }
-.stepIcon { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: rgba(0, 255, 240, 0.1); border-radius: 10px; color: #00FFF0; margin-bottom: 16px; }
-.stepTitle { font-family: var(--font-display); font-size: 1.1rem; font-weight: 700; color: #fff; margin: 0 0 10px; line-height: 1.2; }
-.stepDesc { font-size: 0.88rem; line-height: 1.6; color: rgba(255, 255, 255, 0.45); margin: 0; }
-
-/* ─── Stats Band ─────────────────────────── */
-
-.statsBand { background: #06070A; padding: 80px 24px; position: relative; z-index: 1; }
-.statsBandInner { max-width: 1140px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
-.bandCard { text-align: center; padding: 24px 16px; }
-.bandValue { font-family: var(--font-mono); font-size: clamp(1.8rem, 3.5vw, 2.6rem); font-weight: 800; color: #fff; margin-bottom: 8px; letter-spacing: -0.02em; }
-.bandLabel { font-size: 0.78rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 0.08em; }
-
-/* ─── CTA Footer ─────────────────────────── */
-
-.ctaSection { padding: 120px 24px 140px; text-align: center; position: relative; z-index: 1; }
-.ctaTitle { font-family: var(--font-display); font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 900; color: #000; line-height: 1.05; letter-spacing: -0.04em; margin: 0 0 16px; }
-.ctaSubtitle { font-size: 1.1rem; color: rgba(0, 0, 0, 0.5); margin: 0 0 40px; }
-.ctaActions { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; }
-
-.secondaryBtn {
-    display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px;
-    background: transparent; color: #000; font-family: var(--font-body); font-size: 0.9rem; font-weight: 600;
-    border: 1.5px solid rgba(0, 0, 0, 0.2); border-radius: 999px; cursor: pointer; text-decoration: none;
     transition: border-color 0.2s ease, background 0.2s ease;
 }
 
-.secondaryBtn:hover { border-color: rgba(0, 0, 0, 0.5); background: rgba(0, 0, 0, 0.04); }
+.secondaryBtn:hover {
+    border-color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.08);
+}
 
 /* ─── Responsive ──────────────────────────── */
 
-@media (max-width: 1024px) { .featureInner { gap: 48px; } .stepsGrid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 1024px) {
+    .featureInner { gap: 48px; }
+    .vaultCardsStatic { grid-template-columns: repeat(2, 1fr); }
+    .hero { padding: 120px 32px 40px; }
+    .scrollKeywordsContent { padding: 60px 32px; gap: 40px; }
+    .scrollKeywordsLeft { flex: 0 0 260px; }
+    .vaultCompare { padding: 80px 24px; }
+    .ctaSection { padding: 80px 32px 100px; }
+}
 
 @media (max-width: 768px) {
-    .hero { padding: 120px 20px 60px; min-height: 85vh; }
-    .heroTitle { font-size: clamp(2.8rem, 12vw, 4.5rem); }
-    .heroActions { flex-direction: column; }
-    .heroStats { gap: 24px; }
+    .hero { padding: 100px 20px 32px; min-height: auto; }
+    .heroInner { min-height: auto; }
+    .heroTitle { font-size: clamp(2.2rem, 10vw, 3.2rem); }
+    .heroCardArea { padding: 24px 0; }
+    .showcaseCard { width: 100%; min-height: 280px; }
+    .heroBottomBar { flex-direction: column; align-items: flex-start; gap: 24px; }
+    .heroBottomRight { width: 100%; justify-content: space-between; }
+    .paginationNum { font-size: 1.4rem; }
+    .scrollKeywordsOuter { height: 300vh; }
+    .scrollKeywordsContent { padding: 40px 20px; flex-direction: column; gap: 32px; }
+    .scrollKeywordsLeft { flex: 1; width: 100%; }
+    .scrollKeywordsHeadline { font-size: clamp(1.4rem, 6vw, 2rem); }
+    .scrollKeyword { font-size: clamp(2.2rem, 12vw, 3.5rem); }
     .featureSection { padding: 60px 20px; }
     .featureInner { grid-template-columns: 1fr; gap: 40px; }
     .featureReverse { direction: ltr; }
     .statement { padding: 60px 20px; }
-    .statsBandInner { grid-template-columns: repeat(2, 1fr); gap: 16px; }
-    .stepsSection { padding: 60px 20px; }
-    .ctaSection { padding: 80px 20px 100px; }
+    .vaultCompare { padding: 60px 20px; }
+    .vaultCard { min-height: 280px; }
+    .vaultCardsStatic { grid-template-columns: 1fr; }
+    .allocationLegend { flex-direction: column; gap: 16px; }
+    .ctaSection { padding: 60px 20px 80px; }
 }
 
-@media (max-width: 480px) { .heroTitle { font-size: 2.8rem; } .stepsGrid { grid-template-columns: 1fr; } .statRow { grid-template-columns: 1fr; } }
+@media (max-width: 480px) {
+    .heroTitle { font-size: 2rem; }
+    .paginationNum { font-size: 1.2rem; }
+    .connectBtn { padding: 12px 24px; font-size: 0.82rem; }
+    .heroBottomBar { gap: 16px; }
+    .heroBottomRight { flex-wrap: wrap; }
+    .scrollKeywordsSticky { padding: 60px 16px 0; }
+    .scrollKeywordsContent { padding: 20px 0; gap: 24px; }
+    .scrollKeyword { font-size: clamp(1.8rem, 12vw, 2.8rem); }
+    .scrollKeywordsDesc { margin: 40px 0 0; font-size: clamp(1.1rem, 4vw, 1.4rem); }
+    .vaultCardsStatic { gap: 16px; }
+    .vaultCard { padding: 24px 20px; min-height: 260px; }
+    .ctaSection { padding: 60px 16px 60px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .liveDot { animation: none; }
+    .launchBtn { transition: none; }
+    .card { transition: none; }
+    .paginationNum { transition: none; }
+    .scrollKeyword { transition: none; }
+    .scrollKeywordsOuter { height: auto !important; }
+    .scrollKeywordsSticky { position: relative; }
+    .progressFill { animation: none; width: 80%; }
+    .yieldBar { animation: none; }
+}

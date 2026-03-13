@@ -28,6 +28,10 @@ contract AgentWallet is IAgentWallet, ReentrancyGuard {
     address public creditVault;
     bool public frozen;
 
+    address public pendingOwner;
+    uint8 public ownerType;       // 0 = EOA, 1 = Gnosis Safe
+    uint8 public pendingOwnerType;
+
     modifier onlyOwner() {
         if (msg.sender != owner) revert Errors.Unauthorized();
         _;
@@ -120,6 +124,31 @@ contract AgentWallet is IAgentWallet, ReentrancyGuard {
     function unfreeze() external onlyOwner {
         frozen = false;
         emit Unfrozen(msg.sender);
+    }
+
+    function proposeOwnershipTransfer(address newOwner, uint8 newOwnerType) external onlyOwner {
+        if (newOwner == address(0)) revert Errors.ZeroAddress();
+        if (newOwnerType > 1) revert Errors.InvalidAmount();
+        pendingOwner = newOwner;
+        pendingOwnerType = newOwnerType;
+        emit OwnershipTransferProposed(owner, newOwner, newOwnerType);
+    }
+
+    function acceptOwnershipTransfer() external {
+        if (msg.sender != pendingOwner) revert Errors.Unauthorized();
+        address oldOwner = owner;
+        owner = pendingOwner;
+        ownerType = pendingOwnerType;
+        pendingOwner = address(0);
+        pendingOwnerType = 0;
+        emit OwnershipTransferAccepted(oldOwner, owner, ownerType);
+    }
+
+    function cancelOwnershipTransfer() external onlyOwner {
+        address cancelled = pendingOwner;
+        pendingOwner = address(0);
+        pendingOwnerType = 0;
+        emit OwnershipTransferCancelled(cancelled);
     }
 
     /// @notice Emergency withdraw all USDC — only owner

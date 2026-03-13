@@ -141,6 +141,10 @@ pub enum RouterError {
     ZeroAmount,
     #[msg("Arithmetic overflow")]
     Overflow,
+    #[msg("Merchant USDC account does not belong to the settlement merchant")]
+    InvalidMerchantAccount,
+    #[msg("Vault config account is not owned by the vault program")]
+    InvalidVaultConfig,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -383,10 +387,49 @@ pub mod krexa_payment_router {
         Ok(())
     }
 
+    // ── 5b. reactivate_settlement ───────────────────────────────────────────
+    // SOL-033 fix: Allow reactivating previously deactivated settlements.
+
+    pub fn reactivate_settlement(
+        ctx: Context<OracleAction>,
+        _merchant: Pubkey,
+    ) -> Result<()> {
+        require!(!ctx.accounts.config.is_paused, RouterError::Paused);
+        require!(!ctx.accounts.settlement.is_active, RouterError::SettlementAlreadyActive);
+        ctx.accounts.settlement.is_active = true;
+        Ok(())
+    }
+
     // ── 6. set_paused ──────────────────────────────────────────────────────
 
     pub fn set_paused(ctx: Context<AdminConfig>, paused: bool) -> Result<()> {
         ctx.accounts.config.is_paused = paused;
+        Ok(())
+    }
+
+    // ── 7. update_config ─────────────────────────────────────────────────
+    // Admin can rotate oracle, treasury, and fee params.
+
+    pub fn update_config(
+        ctx: Context<AdminConfig>,
+        new_admin: Option<Pubkey>,
+        new_oracle: Option<Pubkey>,
+        new_platform_treasury: Option<Pubkey>,
+        new_platform_fee_bps: Option<u16>,
+    ) -> Result<()> {
+        let cfg = &mut ctx.accounts.config;
+        if let Some(admin) = new_admin {
+            cfg.admin = admin;
+        }
+        if let Some(oracle) = new_oracle {
+            cfg.oracle = oracle;
+        }
+        if let Some(treasury) = new_platform_treasury {
+            cfg.platform_treasury = treasury;
+        }
+        if let Some(fee) = new_platform_fee_bps {
+            cfg.platform_fee_bps = fee;
+        }
         Ok(())
     }
 }
@@ -473,10 +516,14 @@ pub struct ExecutePayment<'info> {
     )]
     pub payer_usdc: Account<'info, TokenAccount>,
 
-    /// Merchant's destination USDC account.
+    /// SOL-007 fix: Merchant's USDC account — must belong to settlement merchant or their wallet PDA.
+    /// Previously had no owner validation — oracle could accidentally/maliciously route to wrong account.
     #[account(
         mut,
         token::mint = config.usdc_mint,
+        constraint = merchant_usdc.owner == settlement.merchant
+            || merchant_usdc.owner == settlement.agent_wallet_pda
+            @ RouterError::InvalidMerchantAccount,
     )]
     pub merchant_usdc: Account<'info, TokenAccount>,
 
@@ -488,8 +535,13 @@ pub struct ExecutePayment<'info> {
     pub platform_treasury_token: Account<'info, TokenAccount>,
 
     // ── Vault CPI accounts (only used when repayment > 0) ────────────────
-    /// CHECK: validated by vault program
-    #[account(mut)]
+    /// SOL-008 fix: vault_config must be owned by the vault program (defense-in-depth).
+    /// CHECK: Account data is validated by vault program via PDA seeds during CPI.
+    /// We additionally verify the owner to prevent passing a spoofed account.
+    #[account(
+        mut,
+        constraint = *vault_config.owner == vault_program.key() @ RouterError::InvalidVaultConfig,
+    )]
     pub vault_config: UncheckedAccount<'info>,
 
     /// Vault's USDC pool token account — receives repayment.

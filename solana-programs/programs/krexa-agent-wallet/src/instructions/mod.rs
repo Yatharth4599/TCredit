@@ -10,3 +10,4 @@ pub mod check_health;
 pub mod deleverage;
 pub mod liquidate;
 pub mod freeze;
+pub mod transfer_ownership;

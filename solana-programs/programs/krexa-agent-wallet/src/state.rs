@@ -13,6 +13,7 @@ pub struct WalletConfig {
     pub payment_router_program: Pubkey,  // krexa-payment-router (future)
     pub usdc_mint: Pubkey,
     pub keeper: Pubkey,                  // authorised keeper bot
+    pub platform_treasury: Pubkey,       // SOL-013: treasury for platform fees
 
     pub total_wallets: u64,
     pub is_paused: bool,
@@ -20,8 +21,8 @@ pub struct WalletConfig {
 }
 
 impl WalletConfig {
-    // 8 + 7*32 + 8 + 1 + 1 + 16 pad = 258
-    pub const LEN: usize = 8 + 7 * 32 + 8 + 2 + 16;
+    // 8 + 8*32 + 8 + 1 + 1 + 16 pad
+    pub const LEN: usize = 8 + 8 * 32 + 8 + 2 + 16;
     pub const SEED: &'static [u8] = b"wallet_config";
 }
 
@@ -65,11 +66,30 @@ pub struct AgentWallet {
 
     pub bump: u8,
     pub usdc_bump: u8,
+    pub owner_type: u8,  // 0 = EOA, 1 = Multisig (Squads v4)
 }
 
 impl AgentWallet {
-    // 8 + 4*32 + 4*8 + 3*8 + 2 + 8 + 3 + 4*8 + 2 + 16 pad = 8+128+32+24+2+8+3+32+2+16 = 255 → 298
-    pub const LEN: usize = 8 + 4 * 32 + 7 * 8 + 2 + 8 + 3 + 4 * 8 + 2 + 16;
+    // 8 + 4*32 + 7*8 + 2 + 8 + 3 + 4*8 + 2 + 1 + 15 pad = 255 (same total, owner_type uses 1 pad byte)
+    pub const LEN: usize = 8 + 4 * 32 + 7 * 8 + 2 + 8 + 3 + 4 * 8 + 2 + 1 + 15;
     pub const SEED: &'static [u8] = b"agent_wallet";
     pub const USDC_SEED: &'static [u8] = b"wallet_usdc";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OwnershipTransfer — temporary PDA created during a 2-step ownership transfer
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[account]
+pub struct OwnershipTransfer {
+    pub agent: Pubkey,
+    pub proposed_owner: Pubkey,
+    pub proposed_owner_type: u8,
+    pub proposed_at: i64,
+    pub bump: u8,
+}
+
+impl OwnershipTransfer {
+    pub const LEN: usize = 8 + 32 + 32 + 1 + 8 + 1; // 82
+    pub const SEED: &'static [u8] = b"ownership_transfer";
 }

@@ -60,6 +60,7 @@ export async function processWebhookDeliveries(): Promise<number> {
       timestamp: new Date().toISOString(),
     });
 
+    // BUG-031: Secret stored plaintext — industry standard for webhook HMAC (same as Stripe/GitHub)
     const signature = signPayload(body, delivery.endpoint.secret);
     const attempt = delivery.attempts + 1;
 

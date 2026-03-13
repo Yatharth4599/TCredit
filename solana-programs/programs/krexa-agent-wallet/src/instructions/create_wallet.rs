@@ -2,7 +2,10 @@ use anchor_lang::prelude::*;
 use crate::{CreateWallet, WalletConfig, WalletError};
 use crate::events::WalletCreated;
 
-pub fn handle(ctx: Context<CreateWallet>, daily_spend_limit: u64) -> Result<()> {
+pub fn handle(ctx: Context<CreateWallet>, daily_spend_limit: u64, owner_type: u8) -> Result<()> {
+    // SOL-022 fix: Respect pause status
+    require!(!ctx.accounts.config.is_paused, WalletError::Paused);
+
     let profile = &ctx.accounts.agent_profile;
 
     require!(profile.credit_level >= 1, WalletError::AgentNotEligible);
@@ -33,6 +36,7 @@ pub fn handle(ctx: Context<CreateWallet>, daily_spend_limit: u64) -> Result<()> 
     wallet.created_at = now;
     wallet.bump = ctx.bumps.agent_wallet;
     wallet.usdc_bump = ctx.bumps.wallet_usdc;
+    wallet.owner_type = owner_type;
 
     ctx.accounts.config.total_wallets =
         ctx.accounts.config.total_wallets.saturating_add(1);

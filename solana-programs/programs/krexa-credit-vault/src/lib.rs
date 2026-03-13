@@ -116,11 +116,20 @@ impl CreditLine {
 // Pure helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// SOL-004 fix: Prevent share inflation attack by requiring shares > 0
+/// and enforcing minimum initial deposit of 1000 units (0.001 USDC).
+const MINIMUM_INITIAL_DEPOSIT: u64 = 1_000; // 0.001 USDC (6 decimals)
+
 fn calculate_shares(amount: u64, total_shares: u64, total_deposits: u64) -> Result<u64> {
     if total_shares == 0 || total_deposits == 0 {
+        // First deposit: enforce minimum to prevent share manipulation
+        require!(amount >= MINIMUM_INITIAL_DEPOSIT, VaultError::ZeroAmount);
         return Ok(amount); // 1:1 initial rate
     }
-    Ok((amount as u128 * total_shares as u128 / total_deposits as u128) as u64)
+    let shares = (amount as u128 * total_shares as u128 / total_deposits as u128) as u64;
+    // SOL-004: Never mint zero shares — prevents silent fund absorption
+    require!(shares > 0, VaultError::ZeroAmount);
+    Ok(shares)
 }
 
 fn shares_to_amount(shares: u64, total_shares: u64, total_deposits: u64) -> u64 {
@@ -349,11 +358,13 @@ pub mod krexa_credit_vault {
             // First deposit — initialise position
             pos.depositor = ctx.accounts.depositor.key();
             pos.deposited_amount = 0;
-            pos.deposit_timestamp = now;
             pos.is_collateral = false;
             pos.agent_pubkey = Pubkey::default();
             pos.bump = ctx.bumps.deposit_position;
         }
+        // SOL-029 fix: Update timestamp on every deposit (not just first).
+        // Prevents bypassing lockup by depositing after lockup expires and immediately withdrawing all.
+        pos.deposit_timestamp = now;
         pos.shares = pos.shares.saturating_add(shares);
         pos.deposited_amount = pos.deposited_amount.saturating_add(amount);
 
@@ -546,6 +557,13 @@ pub mod krexa_credit_vault {
         require!(amount > 0, VaultError::ZeroAmount);
         require!(credit_level >= 1, VaultError::NoCreditLevel);
 
+        // SOL-014 fix: Prevent overwriting an active credit line — must be inactive or fresh
+        let existing = &ctx.accounts.credit_line;
+        require!(
+            !existing.is_active || existing.agent == Pubkey::default(),
+            VaultError::CreditLineAlreadyActive
+        );
+
         // Level-based cap
         let cap = credit_limit_for_level(credit_level, collateral_value);
         require!(amount <= cap, VaultError::ExceedsCreditLimit);
@@ -553,6 +571,8 @@ pub mod krexa_credit_vault {
         // Liquidity & utilization
         let cfg = &ctx.accounts.config;
         require!(amount <= cfg.available_liquidity(), VaultError::InsufficientLiquidity);
+        // SOL-028 fix: Guard against division by zero when pool has no deposits
+        require!(cfg.total_deposits > 0, VaultError::InsufficientLiquidity);
         let new_deployed = cfg.total_deployed.saturating_add(amount);
         let new_util = (new_deployed as u128 * 10_000 / cfg.total_deposits as u128) as u64;
         require!(
@@ -719,20 +739,24 @@ pub mod krexa_credit_vault {
         let cl = &mut ctx.accounts.credit_line;
         require!(cl.is_active, VaultError::NoCreditLine);
 
-        let loss = cl.credit_drawn.saturating_add(cl.accrued_interest);
-        let insurance_covered = loss.min(ctx.accounts.config.insurance_balance);
-        let lp_absorbed = loss.saturating_sub(insurance_covered);
+        let principal_loss = cl.credit_drawn;
+        let interest_loss = cl.accrued_interest;
+        let total_loss = principal_loss.saturating_add(interest_loss);
+        let insurance_covered = total_loss.min(ctx.accounts.config.insurance_balance);
+        let lp_absorbed = total_loss.saturating_sub(insurance_covered);
 
         cl.is_active = false;
         cl.credit_drawn = 0;
         cl.accrued_interest = 0;
 
         let cfg = &mut ctx.accounts.config;
-        cfg.total_deployed = cfg.total_deployed.saturating_sub(loss);
+        // SOL-027 fix: Only subtract the principal from total_deployed (interest was never "deployed")
+        // Previously subtracted full loss including accrued interest, causing underflow
+        cfg.total_deployed = cfg.total_deployed.saturating_sub(principal_loss);
         cfg.insurance_balance = cfg.insurance_balance.saturating_sub(insurance_covered);
         // LP share price drops by absorbing the uninsured portion
         cfg.total_deposits = cfg.total_deposits.saturating_sub(lp_absorbed);
-        cfg.total_defaults = cfg.total_defaults.saturating_add(loss);
+        cfg.total_defaults = cfg.total_defaults.saturating_add(total_loss);
 
         emit!(BadDebtWrittenOff {
             agent: cl.agent,
@@ -747,6 +771,40 @@ pub mod krexa_credit_vault {
 
     pub fn set_paused(ctx: Context<SetPaused>, paused: bool) -> Result<()> {
         ctx.accounts.config.is_paused = paused;
+        Ok(())
+    }
+
+    // ── 11. update_config ───────────────────────────────────────────────
+    // SOL-017 equivalent: Admin can rotate oracle, wallet_program, and utilization params.
+
+    pub fn update_config(
+        ctx: Context<UpdateVaultConfig>,
+        new_admin: Option<Pubkey>,
+        new_oracle: Option<Pubkey>,
+        new_wallet_program: Option<Pubkey>,
+        new_utilization_cap_bps: Option<u16>,
+        new_base_interest_rate_bps: Option<u16>,
+        new_lockup_seconds: Option<i64>,
+    ) -> Result<()> {
+        let cfg = &mut ctx.accounts.config;
+        if let Some(admin) = new_admin {
+            cfg.admin = admin;
+        }
+        if let Some(oracle) = new_oracle {
+            cfg.oracle = oracle;
+        }
+        if let Some(wp) = new_wallet_program {
+            cfg.wallet_program = wp;
+        }
+        if let Some(cap) = new_utilization_cap_bps {
+            cfg.utilization_cap_bps = cap;
+        }
+        if let Some(rate) = new_base_interest_rate_bps {
+            cfg.base_interest_rate_bps = rate;
+        }
+        if let Some(lockup) = new_lockup_seconds {
+            cfg.lockup_seconds = lockup;
+        }
         Ok(())
     }
 }
@@ -767,8 +825,9 @@ pub struct InitializeVault<'info> {
     )]
     pub config: Box<Account<'info, VaultConfig>>,
 
-    /// CHECK: stored as pubkey only; validated by SPL token on later deposits
-    pub usdc_mint: UncheckedAccount<'info>,
+    /// SOL-031 fix: Validate usdc_mint is a real SPL Mint at initialization time.
+    /// Previously UncheckedAccount — attacker could pass any account as the mint.
+    pub usdc_mint: Account<'info, Mint>,
 
     #[account(mut)]
     pub admin: Signer<'info>,
@@ -784,6 +843,7 @@ pub struct CreateVaultToken<'info> {
         seeds = [VaultConfig::SEED],
         bump = config.bump,
         has_one = admin @ VaultError::NotAdmin,
+        has_one = usdc_mint @ VaultError::NotAdmin,
     )]
     pub config: Box<Account<'info, VaultConfig>>,
 
@@ -815,6 +875,7 @@ pub struct CreateInsuranceToken<'info> {
         seeds = [VaultConfig::SEED],
         bump = config.bump,
         has_one = admin @ VaultError::NotAdmin,
+        has_one = usdc_mint @ VaultError::NotAdmin,
     )]
     pub config: Box<Account<'info, VaultConfig>>,
 
@@ -973,7 +1034,13 @@ pub struct WithdrawCollateral<'info> {
     )]
     pub collateral_position: Account<'info, DepositPosition>,
 
-    /// CHECK: may or may not exist — checked in handler
+    /// SOL-005 fix: credit_line MUST be the correct PDA for this agent.
+    /// Previously was UncheckedAccount with no validation — attacker could pass any account.
+    /// CHECK: We validate seeds derive correctly. Account may not be initialized (no credit line exists).
+    #[account(
+        seeds = [CreditLine::SEED, _agent.as_ref()],
+        bump,
+    )]
     pub credit_line: UncheckedAccount<'info>,
 
     #[account(
@@ -987,6 +1054,10 @@ pub struct WithdrawCollateral<'info> {
     #[account(address = collateral_position.depositor)]
     pub depositor: SystemAccount<'info>,
 
+    /// SOL-047 fix: owner must match depositor — only the original depositor can withdraw
+    #[account(
+        constraint = owner.key() == depositor.key() @ VaultError::NotAdmin
+    )]
     pub owner: Signer<'info>,
     pub token_program: Program<'info, Token>,
 }
@@ -1112,6 +1183,19 @@ pub struct WriteBadDebt<'info> {
 
 #[derive(Accounts)]
 pub struct SetPaused<'info> {
+    #[account(
+        mut,
+        seeds = [VaultConfig::SEED],
+        bump = config.bump,
+        has_one = admin @ VaultError::NotAdmin,
+    )]
+    pub config: Account<'info, VaultConfig>,
+
+    pub admin: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct UpdateVaultConfig<'info> {
     #[account(
         mut,
         seeds = [VaultConfig::SEED],

@@ -43,8 +43,10 @@ pub fn handle(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
         amount,
     )?;
 
+    // SOL-024 fix: Reload balance after transfer to get accurate post-transfer amount
+    ctx.accounts.wallet_usdc.reload()?;
     let now = Clock::get()?.unix_timestamp;
-    let new_balance = ctx.accounts.wallet_usdc.amount.saturating_sub(amount);
+    let new_balance = ctx.accounts.wallet_usdc.amount;
     let vault_cfg = &ctx.accounts.vault_config;
     let wallet = &mut ctx.accounts.agent_wallet;
 

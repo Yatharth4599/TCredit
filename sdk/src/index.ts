@@ -5,6 +5,11 @@ export { KrexaSDK, KrexaError, type KrexaSDKConfig } from './client.js';
 export { createKrexaClient, type KrexaClient, type KrexaConfig } from './client.js';
 export { toTxConfig, sendTx, waitForTx } from './tx.js';
 
+// ── Credit Bureau ─────────────────────────────────────────────────────────────
+export type {
+  BureauScore, BureauReport, BureauEvent, BureauHistory, HistoryOptions,
+} from './credit-bureau.js';
+
 // ── Types ────────────────────────────────────────────────────────────────────
 export type {
   // Base chain (original)

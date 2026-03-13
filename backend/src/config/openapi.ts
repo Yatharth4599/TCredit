@@ -23,6 +23,8 @@ export const openApiSpec = {
     { name: 'Oracle', description: 'Payment oracle (ECDSA webhook)' },
     { name: 'Payments', description: 'Payment history (event-indexed)' },
     { name: 'Admin', description: 'API keys and webhook management (requires API key)' },
+    { name: 'Credit Bureau', description: 'Agent credit scores, reports, and history — the CIBIL moat. Score lookup is free (100 req/day); full reports and history require a paid-tier API key.' },
+    { name: 'Agent Credit', description: 'Credit eligibility, extension, repayment, score breakdown, and legal e-signing for Solana agents.' },
   ],
   paths: {
     // ── Health ──
@@ -391,6 +393,76 @@ export const openApiSpec = {
       },
     },
 
+    // ── Credit Bureau ──
+    '/credit-bureau/{agent}/score': {
+      get: {
+        tags: ['Credit Bureau'],
+        summary: 'Agent credit score lookup (free tier)',
+        description: 'Returns the agent\'s current credit score, level, and attestation hash. No API key required. Rate-limited to 100 req/day for anonymous requests.',
+        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' }, description: 'Solana agent public key' }],
+        responses: { 200: { description: 'Credit score', content: { 'application/json': { schema: { $ref: '#/components/schemas/CreditScore' } } } } },
+      },
+    },
+    '/credit-bureau/{agent}/report': {
+      get: {
+        tags: ['Credit Bureau'],
+        summary: 'Full credit report (paid tier)',
+        description: 'Returns comprehensive credit report including score components, payment history, health history, risk flags, and 30-day score trend. Requires paid-tier API key.',
+        security: [{ ApiKeyAuth: [] }],
+        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' }, description: 'Solana agent public key' }],
+        responses: {
+          200: { description: 'Full credit report', content: { 'application/json': { schema: { $ref: '#/components/schemas/CreditReport' } } } },
+          401: { description: 'API key required' },
+          403: { description: 'Paid-tier API key required' },
+        },
+      },
+    },
+    '/credit-bureau/{agent}/history': {
+      get: {
+        tags: ['Credit Bureau'],
+        summary: 'Credit event history (paid tier)',
+        description: 'Returns paginated timeline of credit events: borrowings, repayments, liquidations, trades, score changes, and legal agreements. Requires paid-tier API key.',
+        security: [{ ApiKeyAuth: [] }],
+        parameters: [
+          { name: 'agent', in: 'path', required: true, schema: { type: 'string' }, description: 'Solana agent public key' },
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'pageSize', in: 'query', schema: { type: 'integer', default: 50, maximum: 100 } },
+        ],
+        responses: {
+          200: { description: 'Credit history', content: { 'application/json': { schema: { $ref: '#/components/schemas/CreditHistory' } } } },
+          401: { description: 'API key required' },
+          403: { description: 'Paid-tier API key required' },
+        },
+      },
+    },
+
+    // ── Agent Credit (Solana) ──
+    '/solana/credit/{agent}/score-breakdown': {
+      get: {
+        tags: ['Agent Credit'],
+        summary: '5-component score breakdown',
+        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: 'Score with component breakdown', content: { 'application/json': { schema: { $ref: '#/components/schemas/ScoreBreakdown' } } } } },
+      },
+    },
+    '/solana/credit/{agent}/sign-agreement': {
+      post: {
+        tags: ['Agent Credit'],
+        summary: 'Initiate legal agreement for L3-L4 credit',
+        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['creditLevel'], properties: { creditLevel: { type: 'integer', enum: [3, 4] } } } } } },
+        responses: { 200: { description: 'Agreement initiated with hash for on-chain signing' } },
+      },
+    },
+    '/solana/credit/{agent}/agreement-status': {
+      get: {
+        tags: ['Agent Credit'],
+        summary: 'Check legal agreement signing status',
+        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: 'Agreement status' } },
+      },
+    },
+
     // ── Admin: API Keys ──
     '/admin/keys': {
       get: {
@@ -703,12 +775,63 @@ export const openApiSpec = {
           createdAt: { type: 'string', format: 'date-time' },
         },
       },
+      CreditScore: {
+        type: 'object',
+        properties: {
+          agent: { type: 'string' },
+          score: { type: 'integer', minimum: 200, maximum: 850 },
+          level: { type: 'integer', minimum: 0, maximum: 4 },
+          lastUpdated: { type: 'string', format: 'date-time', nullable: true },
+          isExpired: { type: 'boolean' },
+          attestationHash: { type: 'string', nullable: true, description: 'SHA256 attestation hash — verifiable on-chain' },
+        },
+      },
+      CreditReport: {
+        type: 'object',
+        properties: {
+          agent: { type: 'string' },
+          score: { type: 'integer' },
+          level: { type: 'integer' },
+          components: { type: 'object', description: '5-component breakdown: repayment, profit, behavior, usage, age (0-100 each)', nullable: true },
+          activeCreditLine: { type: 'object', nullable: true },
+          wallet: { type: 'object', nullable: true },
+          paymentHistory: { type: 'object', properties: { totalBorrowed: { type: 'string' }, totalRepaid: { type: 'string' }, liquidationCount: { type: 'integer' }, repaymentRate: { type: 'number' } } },
+          healthHistory: { type: 'array', items: { type: 'object', properties: { healthFactorBps: { type: 'integer' }, snapshotAt: { type: 'string', format: 'date-time' } } } },
+          riskFlags: { type: 'array', items: { type: 'string' }, description: 'AGENT_DEACTIVATED, WALLET_FROZEN, LIQUIDATION_IN_PROGRESS, LOW_HEALTH_FACTOR, HAS_LIQUIDATION_HISTORY, STALE_SCORE' },
+          scoreHistory30d: { type: 'array', items: { type: 'object', properties: { score: { type: 'integer' }, level: { type: 'integer' }, snapshotAt: { type: 'string', format: 'date-time' } } } },
+          legalAgreementSigned: { type: 'boolean' },
+          lastUpdated: { type: 'string', format: 'date-time', nullable: true },
+        },
+      },
+      CreditHistory: {
+        type: 'object',
+        properties: {
+          events: { type: 'array', items: { type: 'object', properties: { type: { type: 'string' }, timestamp: { type: 'string', format: 'date-time' }, details: { type: 'object' } } } },
+          total: { type: 'integer' },
+          page: { type: 'integer' },
+          pageSize: { type: 'integer' },
+        },
+      },
+      ScoreBreakdown: {
+        type: 'object',
+        properties: {
+          agentPubkey: { type: 'string' },
+          score: { type: 'integer' },
+          components: { type: 'object', properties: { repayment: { type: 'number' }, profit: { type: 'number' }, behavior: { type: 'number' }, usage: { type: 'number' }, age: { type: 'number' } }, nullable: true },
+          level: { type: 'integer' },
+          nextLevelScore: { type: 'integer', nullable: true },
+          pointsToNextLevel: { type: 'integer', nullable: true },
+          attestationHash: { type: 'string', nullable: true },
+          lastUpdated: { type: 'string', format: 'date-time', nullable: true },
+        },
+      },
       ApiKey: {
         type: 'object',
         properties: {
           id: { type: 'string', format: 'uuid' },
           key: { type: 'string', description: 'tck_ prefixed API key (shown only on creation)' },
           name: { type: 'string' },
+          tier: { type: 'string', enum: ['free', 'paid'], description: 'API key tier — free: score lookup (100/day), paid: full reports (10K/day)' },
           rateLimit: { type: 'integer' },
           active: { type: 'boolean' },
           createdAt: { type: 'string', format: 'date-time' },

@@ -23,6 +23,7 @@ import solanaWalletRoutes from './agent-wallet.routes.js';
 import solanaCreditRoutes from './agent-credit.routes.js';
 import solanaKyaRoutes from './kya.routes.js';
 import solanaVaultRoutes from './solana-vault.routes.js';
+import creditBureauRoutes from './credit-bureau.routes.js';
 const router = Router();
 
 // Health
@@ -64,7 +65,7 @@ router.use('/traders', traderRoutes);
 // Waitlist
 router.use('/waitlist', waitlistRoutes);
 
-// Public demo endpoint (no auth)
+// Demo endpoints (admin auth required — BUG-027/028)
 router.use('/demo', demoRoutes);
 
 // ── Solana Agent Credit System ─────────────────────────────────────────────
@@ -72,6 +73,9 @@ router.use('/solana/wallets', solanaWalletRoutes);
 router.use('/solana/credit',  solanaCreditRoutes);
 router.use('/solana/kya',     solanaKyaRoutes);
 router.use('/solana/vault',   solanaVaultRoutes);
+
+// ── Credit Bureau (Phase 2 — CIBIL moat) ─────────────────────────────────
+router.use('/credit-bureau', creditBureauRoutes);
 
 // Admin (API key protected)
 router.use('/admin', adminRoutes);

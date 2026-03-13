@@ -18,6 +18,7 @@ pub mod utils;
 pub use state::*;
 pub use events::*;
 pub use errors::WalletError;
+pub use state::{OwnershipTransfer};
 
 declare_id!("35t8yWLsUZNTLT71ej7DF59P81HrtZTx2uZeMhwuhhf6");
 
@@ -36,8 +37,8 @@ pub struct Initialize<'info> {
     )]
     pub config: Account<'info, WalletConfig>,
 
-    /// CHECK: just stored as the USDC mint address
-    pub usdc_mint: AccountInfo<'info>,
+    /// SOL-009 fix: Validate usdc_mint is a real SPL Mint account
+    pub usdc_mint: Account<'info, Mint>,
 
     #[account(mut)]
     pub admin: Signer<'info>,
@@ -193,6 +194,23 @@ pub struct RequestCredit<'info> {
     )]
     pub vault_token: Account<'info, TokenAccount>,
 
+    /// SOL-002 fix: Require collateral_position on-chain to compute collateral_value
+    #[account(
+        seeds = [b"collateral", agent_wallet.agent.as_ref()],
+        seeds::program = config.credit_vault_program,
+        bump,
+    )]
+    pub collateral_position: Account<'info, DepositPosition>,
+
+    /// SOL-020 fix: Require agent_profile to validate credit_level on-chain
+    #[account(
+        seeds = [b"agent_profile", agent_wallet.agent.as_ref()],
+        seeds::program = config.agent_registry_program,
+        bump = agent_profile.bump,
+        constraint = agent_profile.is_active @ WalletError::AgentNotEligible,
+    )]
+    pub agent_profile: Account<'info, AgentProfile>,
+
     /// CHECK: credit_line may not exist yet — created by vault.extend_credit CPI inside this ix.
     /// Seeds and discriminator are validated by the vault program during the CPI.
     #[account(mut)]
@@ -200,6 +218,12 @@ pub struct RequestCredit<'info> {
 
     #[account(mut, address = vault_config.oracle @ WalletError::NotOracle)]
     pub oracle: Signer<'info>,
+
+    /// SOL-003 fix: Agent or owner must also sign credit requests (dual authorization)
+    #[account(
+        constraint = agent_or_owner.key() == agent_wallet.owner || agent_or_owner.key() == agent_wallet.agent @ WalletError::UnauthorizedOwner
+    )]
+    pub agent_or_owner: Signer<'info>,
 
     pub vault_program: Program<'info, krexa_credit_vault::program::KrexaCreditVault>,
     pub token_program: Program<'info, Token>,
@@ -286,6 +310,14 @@ pub struct PayX402<'info> {
         token::mint = config.usdc_mint,
     )]
     pub facilitator_token: Account<'info, TokenAccount>,
+
+    /// SOL-013 fix: Platform treasury receives platform fee on x402 payments.
+    #[account(
+        mut,
+        token::mint = config.usdc_mint,
+        token::authority = config.platform_treasury,
+    )]
+    pub platform_treasury_token: Account<'info, TokenAccount>,
 
     #[account(
         seeds = [b"venue", facilitator.as_ref()],
@@ -414,7 +446,10 @@ pub struct Repay<'info> {
     )]
     pub agent_profile: Account<'info, AgentProfile>,
 
-    /// Agent or owner may repay
+    /// SOL-001 fix: Only agent or owner may repay — caller must match one of them
+    #[account(
+        constraint = caller.key() == agent_wallet.owner || caller.key() == agent_wallet.agent @ WalletError::UnauthorizedOwner
+    )]
     pub caller: Signer<'info>,
 
     pub vault_program: Program<'info, krexa_credit_vault::program::KrexaCreditVault>,
@@ -540,10 +575,20 @@ pub struct Liquidate<'info> {
     )]
     pub agent_profile: Account<'info, AgentProfile>,
 
-    #[account(mut, token::mint = config.usdc_mint)]
+    /// SOL-011 fix: keeper_usdc must belong to the actual keeper signer
+    #[account(
+        mut,
+        token::mint = config.usdc_mint,
+        constraint = keeper_usdc.owner == keeper.key() @ WalletError::UnauthorizedOwner,
+    )]
     pub keeper_usdc: Account<'info, TokenAccount>,
 
-    #[account(mut, token::mint = config.usdc_mint)]
+    /// SOL-010 fix: owner_usdc must belong to the wallet's actual owner
+    #[account(
+        mut,
+        token::mint = config.usdc_mint,
+        constraint = owner_usdc.owner == agent_wallet.owner @ WalletError::UnauthorizedOwner,
+    )]
     pub owner_usdc: Account<'info, TokenAccount>,
 
     pub keeper: Signer<'info>,
@@ -572,6 +617,131 @@ pub struct FreezeWallet<'info> {
     pub admin: Signer<'info>,
 }
 
+/// SOL-039 fix: Pause/unpause the program (admin-only)
+#[derive(Accounts)]
+pub struct PauseProgram<'info> {
+    #[account(
+        mut,
+        seeds = [WalletConfig::SEED],
+        bump = config.bump,
+        has_one = admin @ WalletError::NotAdmin,
+    )]
+    pub config: Account<'info, WalletConfig>,
+    pub admin: Signer<'info>,
+}
+
+/// SOL-040 fix: Update config (admin, keeper) — admin-only
+#[derive(Accounts)]
+pub struct UpdateConfig<'info> {
+    #[account(
+        mut,
+        seeds = [WalletConfig::SEED],
+        bump = config.bump,
+        has_one = admin @ WalletError::NotAdmin,
+    )]
+    pub config: Account<'info, WalletConfig>,
+    pub admin: Signer<'info>,
+}
+
+/// SOL-041 fix: Update daily spend limit — owner-only
+#[derive(Accounts)]
+pub struct UpdateDailyLimit<'info> {
+    #[account(
+        seeds = [WalletConfig::SEED],
+        bump = config.bump,
+    )]
+    pub config: Account<'info, WalletConfig>,
+
+    #[account(
+        mut,
+        seeds = [AgentWallet::SEED, agent_wallet.agent.as_ref()],
+        bump = agent_wallet.bump,
+        has_one = owner @ WalletError::UnauthorizedOwner,
+    )]
+    pub agent_wallet: Account<'info, AgentWallet>,
+
+    pub owner: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct ProposeOwnershipTransfer<'info> {
+    #[account(seeds = [WalletConfig::SEED], bump = config.bump)]
+    pub config: Account<'info, WalletConfig>,
+
+    #[account(
+        mut,
+        seeds = [AgentWallet::SEED, agent_wallet.agent.as_ref()],
+        bump = agent_wallet.bump,
+        has_one = owner @ WalletError::UnauthorizedOwner,
+    )]
+    pub agent_wallet: Account<'info, AgentWallet>,
+
+    #[account(
+        init,
+        payer = owner,
+        space = OwnershipTransfer::LEN,
+        seeds = [OwnershipTransfer::SEED, agent_wallet.agent.as_ref()],
+        bump,
+    )]
+    pub transfer_request: Account<'info, OwnershipTransfer>,
+
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct AcceptOwnershipTransfer<'info> {
+    #[account(seeds = [WalletConfig::SEED], bump = config.bump)]
+    pub config: Account<'info, WalletConfig>,
+
+    #[account(
+        mut,
+        seeds = [AgentWallet::SEED, agent_wallet.agent.as_ref()],
+        bump = agent_wallet.bump,
+    )]
+    pub agent_wallet: Account<'info, AgentWallet>,
+
+    #[account(
+        mut,
+        seeds = [OwnershipTransfer::SEED, agent_wallet.agent.as_ref()],
+        bump = transfer_request.bump,
+        constraint = transfer_request.proposed_owner == new_owner.key() @ WalletError::NotPendingOwner,
+        close = rent_receiver,
+    )]
+    pub transfer_request: Account<'info, OwnershipTransfer>,
+
+    pub new_owner: Signer<'info>,
+
+    /// CHECK: receives rent refund from closed OwnershipTransfer PDA
+    #[account(mut)]
+    pub rent_receiver: AccountInfo<'info>,
+}
+
+#[derive(Accounts)]
+pub struct CancelOwnershipTransfer<'info> {
+    #[account(seeds = [WalletConfig::SEED], bump = config.bump)]
+    pub config: Account<'info, WalletConfig>,
+
+    #[account(
+        seeds = [AgentWallet::SEED, agent_wallet.agent.as_ref()],
+        bump = agent_wallet.bump,
+        has_one = owner @ WalletError::UnauthorizedOwner,
+    )]
+    pub agent_wallet: Account<'info, AgentWallet>,
+
+    #[account(
+        mut,
+        seeds = [OwnershipTransfer::SEED, agent_wallet.agent.as_ref()],
+        bump = transfer_request.bump,
+        close = owner,
+    )]
+    pub transfer_request: Account<'info, OwnershipTransfer>,
+
+    #[account(mut)]
+    pub owner: Signer<'info>,
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // PROGRAM MODULE
 // ═════════════════════════════════════════════════════════════════════════════
@@ -587,15 +757,22 @@ pub mod krexa_agent_wallet {
         agent_registry_program: Pubkey,
         venue_whitelist_program: Pubkey,
         payment_router_program: Pubkey,
+        platform_treasury: Pubkey,
     ) -> Result<()> {
         instructions::initialize::handle(
             ctx, keeper, credit_vault_program,
             agent_registry_program, venue_whitelist_program, payment_router_program,
+            platform_treasury,
         )
     }
 
     pub fn create_wallet(ctx: Context<CreateWallet>, daily_spend_limit: u64) -> Result<()> {
-        instructions::create_wallet::handle(ctx, daily_spend_limit)
+        instructions::create_wallet::handle(ctx, daily_spend_limit, 0)
+    }
+
+    /// Create a multisig-owned agent wallet (owner_type = 1).
+    pub fn create_wallet_multisig(ctx: Context<CreateWallet>, daily_spend_limit: u64) -> Result<()> {
+        instructions::create_wallet::handle(ctx, daily_spend_limit, 1)
     }
 
     pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
@@ -657,5 +834,59 @@ pub mod krexa_agent_wallet {
 
     pub fn unfreeze_wallet(ctx: Context<FreezeWallet>) -> Result<()> {
         instructions::freeze::handle_unfreeze(ctx)
+    }
+
+    /// SOL-039: Pause the program — freezes all non-admin operations
+    pub fn pause(ctx: Context<PauseProgram>) -> Result<()> {
+        ctx.accounts.config.is_paused = true;
+        Ok(())
+    }
+
+    /// SOL-039: Unpause the program
+    pub fn unpause(ctx: Context<PauseProgram>) -> Result<()> {
+        ctx.accounts.config.is_paused = false;
+        Ok(())
+    }
+
+    /// SOL-040: Update config (admin rotation, keeper rotation)
+    pub fn update_config(
+        ctx: Context<UpdateConfig>,
+        new_admin: Option<Pubkey>,
+        new_keeper: Option<Pubkey>,
+    ) -> Result<()> {
+        let cfg = &mut ctx.accounts.config;
+        if let Some(admin) = new_admin {
+            cfg.admin = admin;
+        }
+        if let Some(keeper) = new_keeper {
+            cfg.keeper = keeper;
+        }
+        Ok(())
+    }
+
+    /// SOL-041: Update daily spend limit — owner-only
+    pub fn update_daily_limit(ctx: Context<UpdateDailyLimit>, new_limit: u64) -> Result<()> {
+        ctx.accounts.agent_wallet.daily_spend_limit = new_limit;
+        Ok(())
+    }
+
+    /// Propose an ownership transfer to a new address.
+    /// Creates a temporary OwnershipTransfer PDA for the proposed owner to accept.
+    pub fn propose_ownership_transfer(
+        ctx: Context<ProposeOwnershipTransfer>,
+        new_owner: Pubkey,
+        new_owner_type: u8,
+    ) -> Result<()> {
+        instructions::transfer_ownership::handle_propose(ctx, new_owner, new_owner_type)
+    }
+
+    /// Accept a pending ownership transfer. Must be signed by the proposed owner.
+    pub fn accept_ownership_transfer(ctx: Context<AcceptOwnershipTransfer>) -> Result<()> {
+        instructions::transfer_ownership::handle_accept(ctx)
+    }
+
+    /// Cancel a pending ownership transfer. Must be signed by the current owner.
+    pub fn cancel_ownership_transfer(ctx: Context<CancelOwnershipTransfer>) -> Result<()> {
+        instructions::transfer_ownership::handle_cancel(ctx)
     }
 }

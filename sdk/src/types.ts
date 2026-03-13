@@ -18,6 +18,8 @@ export interface AgentWalletState {
   address?: string;       // Base EVM
   chain: Chain;
   ownerPubkey: string;
+  ownerType: 'eoa' | 'multisig';
+  pendingOwner: string | null;
   creditLevel: number;
   creditLimit: string;    // USDC base units
   creditDrawn: string;

@@ -134,6 +134,7 @@ async function processWallet(agentPubkey: PublicKey, wallet: AgentWallet): Promi
     create: {
       agentPubkey: agentKey,
       ownerPubkey: wallet.owner.toBase58(),
+      ownerType: wallet.ownerType === 1 ? 'multisig' : 'eoa',
       creditLevel: wallet.creditLevel,
       creditDrawn: wallet.creditDrawn,
       creditLimit: wallet.creditLimit,
@@ -149,6 +150,8 @@ async function processWallet(agentPubkey: PublicKey, wallet: AgentWallet): Promi
       lastHealthCheck: new Date(Number(wallet.lastHealthCheck) * 1000),
     },
     update: {
+      ownerPubkey: wallet.owner.toBase58(),
+      ownerType: wallet.ownerType === 1 ? 'multisig' : 'eoa',
       healthFactorBps: hf,
       creditDrawn: wallet.creditDrawn,
       totalDebt: wallet.totalDebt,

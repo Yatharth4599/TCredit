@@ -90,3 +90,25 @@ pub struct WalletFrozen {
 pub struct WalletUnfrozen {
     pub agent: Pubkey,
 }
+
+#[event]
+pub struct OwnershipTransferProposed {
+    pub agent: Pubkey,
+    pub current_owner: Pubkey,
+    pub proposed_owner: Pubkey,
+    pub proposed_owner_type: u8,
+}
+
+#[event]
+pub struct OwnershipTransferAccepted {
+    pub agent: Pubkey,
+    pub old_owner: Pubkey,
+    pub new_owner: Pubkey,
+    pub new_owner_type: u8,
+}
+
+#[event]
+pub struct OwnershipTransferCancelled {
+    pub agent: Pubkey,
+    pub cancelled_by: Pubkey,
+}

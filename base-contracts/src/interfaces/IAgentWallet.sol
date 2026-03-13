@@ -11,6 +11,9 @@ interface IAgentWallet {
     event Unfrozen(address indexed by);
     event PaymentExecuted(address indexed to, uint256 amount);
     event EmergencyWithdrawal(address indexed to, uint256 amount);
+    event OwnershipTransferProposed(address indexed currentOwner, address indexed proposedOwner, uint8 ownerType);
+    event OwnershipTransferAccepted(address indexed oldOwner, address indexed newOwner, uint8 ownerType);
+    event OwnershipTransferCancelled(address indexed cancelledOwner);
 
     function owner() external view returns (address);
     function operator() external view returns (address);
@@ -20,6 +23,8 @@ interface IAgentWallet {
     function frozen() external view returns (bool);
     function whitelistEnabled() external view returns (bool);
     function creditVault() external view returns (address);
+    function pendingOwner() external view returns (address);
+    function ownerType() external view returns (uint8);
 
     // Operator functions
     function transfer(address to, uint256 amount) external;
@@ -33,4 +38,7 @@ interface IAgentWallet {
     function freeze() external;
     function unfreeze() external;
     function emergencyWithdraw(address to) external;
+    function proposeOwnershipTransfer(address newOwner, uint8 newOwnerType) external;
+    function acceptOwnershipTransfer() external;
+    function cancelOwnershipTransfer() external;
 }

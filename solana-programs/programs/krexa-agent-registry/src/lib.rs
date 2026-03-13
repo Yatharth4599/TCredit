@@ -48,16 +48,44 @@ pub struct AgentProfile {
     pub wallet_pda: Pubkey,
     pub has_wallet: bool,
 
+    // Legal agreement (Phase 1 — required for L3-L4 credit)
+    pub legal_agreement_hash: [u8; 32],
+    pub legal_agreement_signed_at: i64,
+
+    // Score attestation (Phase 1 — on-chain proof of score issuance)
+    pub score_attestation_hash: [u8; 32],
+
     // Status
     pub is_active: bool,
     pub registered_at: i64,
     pub bump: u8,
+    pub owner_type: u8,  // 0 = EOA, 1 = Multisig
 }
 
 impl AgentProfile {
+    // +72 bytes for Phase 1: legal_agreement_hash(32) + legal_agreement_signed_at(8) + score_attestation_hash(32)
+    // +1 byte for owner_type
     pub const LEN: usize = 8 + 32 + 32 + 32 + 2 + 1 + 1 + 8 + 8
-        + 8 + 8 + 8 + 8 + 1 + 32 + 1 + 1 + 8 + 1;
+        + 8 + 8 + 8 + 8 + 1 + 32 + 1 + 32 + 8 + 32 + 1 + 8 + 1 + 1;
     pub const SEED: &'static [u8] = b"agent_profile";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ProfileOwnershipTransfer — temporary PDA for 2-step profile ownership transfer
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[account]
+pub struct ProfileOwnershipTransfer {
+    pub agent: Pubkey,
+    pub proposed_owner: Pubkey,
+    pub proposed_owner_type: u8,
+    pub proposed_at: i64,
+    pub bump: u8,
+}
+
+impl ProfileOwnershipTransfer {
+    pub const LEN: usize = 8 + 32 + 32 + 1 + 8 + 1; // 82
+    pub const SEED: &'static [u8] = b"profile_transfer";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -85,8 +113,10 @@ pub fn is_agent_eligible(profile: &AgentProfile, required_level: u8, now: i64) -
     if profile.credit_level < required_level {
         return false;
     }
-    // Score must have been updated within the last 90 days
-    if profile.kya_tier > 0 && (now - profile.score_updated_at) > SCORE_EXPIRY_SECONDS {
+    // SOL-019 fix: Check score expiry unconditionally when a score exists.
+    // Previously skipped for kya_tier == 0, allowing agents with stale scores
+    // to pass eligibility checks.
+    if profile.score_updated_at > 0 && (now - profile.score_updated_at) > SCORE_EXPIRY_SECONDS {
         return false;
     }
     true
@@ -133,6 +163,42 @@ pub struct AgentDeactivated {
     pub agent: Pubkey,
 }
 
+#[event]
+pub struct LegalAgreementSigned {
+    pub agent: Pubkey,
+    pub agreement_hash: [u8; 32],
+    pub signed_at: i64,
+}
+
+#[event]
+pub struct ScoreAttested {
+    pub agent: Pubkey,
+    pub attestation_hash: [u8; 32],
+    pub attested_at: i64,
+}
+
+#[event]
+pub struct ProfileOwnershipTransferProposed {
+    pub agent: Pubkey,
+    pub current_owner: Pubkey,
+    pub proposed_owner: Pubkey,
+    pub proposed_owner_type: u8,
+}
+
+#[event]
+pub struct ProfileOwnershipTransferAccepted {
+    pub agent: Pubkey,
+    pub old_owner: Pubkey,
+    pub new_owner: Pubkey,
+    pub new_owner_type: u8,
+}
+
+#[event]
+pub struct ProfileOwnershipTransferCancelled {
+    pub agent: Pubkey,
+    pub cancelled_by: Pubkey,
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Errors
 // ─────────────────────────────────────────────────────────────────────────────
@@ -155,6 +221,10 @@ pub enum RegistryError {
     InvalidCreditScore,
     #[msg("Agent is not active")]
     AgentNotActive,
+    #[msg("Invalid owner type — must be 0 (EOA) or 1 (Multisig)")]
+    InvalidOwnerType,
+    #[msg("Signer is not the proposed new owner")]
+    NotPendingOwner,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -203,9 +273,13 @@ pub mod krexa_agent_registry {
         profile.liquidation_count = 0;
         profile.wallet_pda = Pubkey::default();
         profile.has_wallet = false;
+        profile.legal_agreement_hash = [0u8; 32];
+        profile.legal_agreement_signed_at = 0;
+        profile.score_attestation_hash = [0u8; 32];
         profile.is_active = true;
         profile.registered_at = now;
         profile.bump = ctx.bumps.profile;
+        profile.owner_type = 0; // EOA by default
 
         ctx.accounts.config.total_agents =
             ctx.accounts.config.total_agents.saturating_add(1);
@@ -238,11 +312,14 @@ pub mod krexa_agent_registry {
         let old_tier = profile.kya_tier;
         profile.kya_tier = new_tier;
         profile.kya_verified_at = now;
+        // SOL-048 fix: Update score_updated_at so expiry checks work correctly
+        profile.score_updated_at = now;
 
-        // Auto-upgrade to Starter when KYA Basic is first granted
-        if new_tier >= 1 && profile.credit_level == 0 {
-            profile.credit_level = 1;
-        }
+        // SOL-006 fix: Always recalculate level from score + new KYA tier.
+        // Previously auto-upgraded to Level 1 unconditionally when KYA >= 1,
+        // bypassing score check. An agent with score < 400 (e.g. post-liquidation)
+        // would incorrectly get Level 1 just from KYA upgrade.
+        profile.credit_level = calculate_level(profile.credit_score, new_tier);
 
         emit!(KyaUpdated {
             agent: profile.agent,
@@ -322,6 +399,8 @@ pub mod krexa_agent_registry {
     /// Link a newly-created agent wallet PDA to this profile. Called via CPI from agent-wallet.
     pub fn link_wallet(ctx: Context<LinkWallet>, wallet_pda: Pubkey) -> Result<()> {
         let profile = &mut ctx.accounts.profile;
+        // SOL-035 fix: Prevent re-linking — wallet assignment is one-time
+        require!(!profile.has_wallet, RegistryError::AgentNotActive);
         profile.wallet_pda = wallet_pda;
         profile.has_wallet = true;
         Ok(())
@@ -333,6 +412,168 @@ pub mod krexa_agent_registry {
         profile.is_active = false;
         profile.credit_level = 0;
         emit!(AgentDeactivated { agent: profile.agent });
+        Ok(())
+    }
+
+    /// SOL-034 fix: Admin can reactivate a previously deactivated agent.
+    pub fn reactivate_agent(ctx: Context<DeactivateAgent>) -> Result<()> {
+        let profile = &mut ctx.accounts.profile;
+        require!(!profile.is_active, RegistryError::AgentNotActive);
+        profile.is_active = true;
+        // Recalculate level from current score and KYA
+        profile.credit_level = calculate_level(profile.credit_score, profile.kya_tier);
+        Ok(())
+    }
+
+    /// Agent or owner signs a legal credit agreement. Required for L3-L4 credit.
+    /// Stores the hash of the signed agreement on-chain for verifiability.
+    pub fn sign_legal_agreement(
+        ctx: Context<SignLegalAgreement>,
+        agreement_hash: [u8; 32],
+    ) -> Result<()> {
+        let profile = &mut ctx.accounts.profile;
+        require!(profile.is_active, RegistryError::AgentNotActive);
+
+        let now = Clock::get()?.unix_timestamp;
+        profile.legal_agreement_hash = agreement_hash;
+        profile.legal_agreement_signed_at = now;
+
+        emit!(LegalAgreementSigned {
+            agent: profile.agent,
+            agreement_hash,
+            signed_at: now,
+        });
+        Ok(())
+    }
+
+    /// Oracle stores keccak256(agent, score, level, timestamp) on-chain.
+    /// Third parties can verify a score was issued by the Krexa oracle.
+    pub fn attest_score(
+        ctx: Context<AttestScore>,
+        score_hash: [u8; 32],
+    ) -> Result<()> {
+        require!(
+            ctx.accounts.authority.key() == ctx.accounts.config.oracle,
+            RegistryError::NotOracle
+        );
+
+        let profile = &mut ctx.accounts.profile;
+        require!(profile.is_active, RegistryError::AgentNotActive);
+
+        let now = Clock::get()?.unix_timestamp;
+        profile.score_attestation_hash = score_hash;
+
+        emit!(ScoreAttested {
+            agent: profile.agent,
+            attestation_hash: score_hash,
+            attested_at: now,
+        });
+        Ok(())
+    }
+
+    /// Admin can rotate oracle and wallet_program addresses.
+    pub fn update_config(
+        ctx: Context<UpdateRegistryConfig>,
+        new_admin: Option<Pubkey>,
+        new_oracle: Option<Pubkey>,
+        new_wallet_program: Option<Pubkey>,
+    ) -> Result<()> {
+        let cfg = &mut ctx.accounts.config;
+        if let Some(admin) = new_admin {
+            cfg.admin = admin;
+        }
+        if let Some(oracle) = new_oracle {
+            cfg.oracle = oracle;
+        }
+        if let Some(wp) = new_wallet_program {
+            cfg.wallet_program = wp;
+        }
+        Ok(())
+    }
+
+    /// Migrate a v1 AgentProfile (no owner_type field) to v2.
+    /// Uses raw AccountInfo to avoid deserialization failure on the old 272-byte layout.
+    /// The new byte at offset 272 is zeroed by realloc = EOA (owner_type = 0).
+    pub fn migrate_profile_v2(ctx: Context<MigrateProfileV2>) -> Result<()> {
+        let profile_info = ctx.accounts.profile.to_account_info();
+        let current_len = profile_info.data_len();
+        let new_len = AgentProfile::LEN;
+
+        if current_len < new_len {
+            profile_info.realloc(new_len, false)?;
+            let rent = Rent::get()?;
+            let new_min = rent.minimum_balance(new_len);
+            let old_min = rent.minimum_balance(current_len);
+            let diff = new_min.saturating_sub(old_min);
+            if diff > 0 {
+                anchor_lang::system_program::transfer(
+                    CpiContext::new(
+                        ctx.accounts.system_program.to_account_info(),
+                        anchor_lang::system_program::Transfer {
+                            from: ctx.accounts.payer.to_account_info(),
+                            to: profile_info,
+                        },
+                    ),
+                    diff,
+                )?;
+            }
+            // New byte at offset (new_len - 1) is zeroed by realloc → owner_type = 0 (EOA)
+        }
+        Ok(())
+    }
+
+    /// Propose a profile ownership transfer.
+    pub fn propose_profile_transfer(
+        ctx: Context<ProposeProfileTransfer>,
+        new_owner: Pubkey,
+        new_owner_type: u8,
+    ) -> Result<()> {
+        require!(new_owner_type <= 1, RegistryError::InvalidOwnerType);
+        require!(new_owner != Pubkey::default(), RegistryError::InvalidOwnerType);
+
+        let transfer = &mut ctx.accounts.transfer_request;
+        transfer.agent = ctx.accounts.profile.agent;
+        transfer.proposed_owner = new_owner;
+        transfer.proposed_owner_type = new_owner_type;
+        transfer.proposed_at = Clock::get()?.unix_timestamp;
+        transfer.bump = ctx.bumps.transfer_request;
+
+        emit!(ProfileOwnershipTransferProposed {
+            agent: ctx.accounts.profile.agent,
+            current_owner: ctx.accounts.owner.key(),
+            proposed_owner: new_owner,
+            proposed_owner_type: new_owner_type,
+        });
+        Ok(())
+    }
+
+    /// Accept a pending profile ownership transfer.
+    pub fn accept_profile_transfer(ctx: Context<AcceptProfileTransfer>) -> Result<()> {
+        let transfer = &ctx.accounts.transfer_request;
+        let old_owner = ctx.accounts.profile.owner;
+        let new_owner = transfer.proposed_owner;
+        let new_owner_type = transfer.proposed_owner_type;
+        let agent = ctx.accounts.profile.agent;
+
+        let profile = &mut ctx.accounts.profile;
+        profile.owner = new_owner;
+        profile.owner_type = new_owner_type;
+
+        emit!(ProfileOwnershipTransferAccepted {
+            agent,
+            old_owner,
+            new_owner,
+            new_owner_type,
+        });
+        Ok(())
+    }
+
+    /// Cancel a pending profile ownership transfer.
+    pub fn cancel_profile_transfer(ctx: Context<CancelProfileTransfer>) -> Result<()> {
+        emit!(ProfileOwnershipTransferCancelled {
+            agent: ctx.accounts.profile.agent,
+            cancelled_by: ctx.accounts.owner.key(),
+        });
         Ok(())
     }
 }
@@ -498,4 +739,157 @@ pub struct DeactivateAgent<'info> {
     pub profile: Account<'info, AgentProfile>,
 
     pub admin: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct SignLegalAgreement<'info> {
+    #[account(
+        seeds = [RegistryConfig::SEED],
+        bump = config.bump,
+    )]
+    pub config: Account<'info, RegistryConfig>,
+
+    #[account(
+        mut,
+        seeds = [AgentProfile::SEED, profile.agent.as_ref()],
+        bump = profile.bump,
+    )]
+    pub profile: Account<'info, AgentProfile>,
+
+    /// Must be the agent keypair or the owner — dual-auth pattern
+    #[account(
+        constraint = authority.key() == profile.agent || authority.key() == profile.owner
+            @ RegistryError::NotAdminOrOracle
+    )]
+    pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct AttestScore<'info> {
+    #[account(
+        seeds = [RegistryConfig::SEED],
+        bump = config.bump,
+    )]
+    pub config: Account<'info, RegistryConfig>,
+
+    #[account(
+        mut,
+        seeds = [AgentProfile::SEED, profile.agent.as_ref()],
+        bump = profile.bump,
+    )]
+    pub profile: Account<'info, AgentProfile>,
+
+    /// Must be the oracle — checked in handler
+    pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct UpdateRegistryConfig<'info> {
+    #[account(
+        mut,
+        seeds = [RegistryConfig::SEED],
+        bump = config.bump,
+        has_one = admin @ RegistryError::NotAdmin,
+    )]
+    pub config: Account<'info, RegistryConfig>,
+
+    pub admin: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct MigrateProfileV2<'info> {
+    /// CHECK: Raw account — realloc'd manually to avoid deserialization failure on v1 layout
+    #[account(
+        mut,
+        seeds = [AgentProfile::SEED, agent.key().as_ref()],
+        bump,
+    )]
+    pub profile: AccountInfo<'info>,
+
+    pub agent: Signer<'info>,
+
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct ProposeProfileTransfer<'info> {
+    #[account(seeds = [RegistryConfig::SEED], bump = config.bump)]
+    pub config: Account<'info, RegistryConfig>,
+
+    #[account(
+        mut,
+        seeds = [AgentProfile::SEED, profile.agent.as_ref()],
+        bump = profile.bump,
+        has_one = owner @ RegistryError::NotAdminOrOracle,
+    )]
+    pub profile: Account<'info, AgentProfile>,
+
+    #[account(
+        init,
+        payer = owner,
+        space = ProfileOwnershipTransfer::LEN,
+        seeds = [ProfileOwnershipTransfer::SEED, profile.agent.as_ref()],
+        bump,
+    )]
+    pub transfer_request: Account<'info, ProfileOwnershipTransfer>,
+
+    #[account(mut)]
+    pub owner: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct AcceptProfileTransfer<'info> {
+    #[account(seeds = [RegistryConfig::SEED], bump = config.bump)]
+    pub config: Account<'info, RegistryConfig>,
+
+    #[account(
+        mut,
+        seeds = [AgentProfile::SEED, profile.agent.as_ref()],
+        bump = profile.bump,
+    )]
+    pub profile: Account<'info, AgentProfile>,
+
+    #[account(
+        mut,
+        seeds = [ProfileOwnershipTransfer::SEED, profile.agent.as_ref()],
+        bump = transfer_request.bump,
+        constraint = transfer_request.proposed_owner == new_owner.key() @ RegistryError::NotPendingOwner,
+        close = rent_receiver,
+    )]
+    pub transfer_request: Account<'info, ProfileOwnershipTransfer>,
+
+    pub new_owner: Signer<'info>,
+
+    /// CHECK: receives rent refund from closed ProfileOwnershipTransfer PDA
+    #[account(mut)]
+    pub rent_receiver: AccountInfo<'info>,
+}
+
+#[derive(Accounts)]
+pub struct CancelProfileTransfer<'info> {
+    #[account(seeds = [RegistryConfig::SEED], bump = config.bump)]
+    pub config: Account<'info, RegistryConfig>,
+
+    #[account(
+        seeds = [AgentProfile::SEED, profile.agent.as_ref()],
+        bump = profile.bump,
+        has_one = owner @ RegistryError::NotAdminOrOracle,
+    )]
+    pub profile: Account<'info, AgentProfile>,
+
+    #[account(
+        mut,
+        seeds = [ProfileOwnershipTransfer::SEED, profile.agent.as_ref()],
+        bump = transfer_request.bump,
+        close = owner,
+    )]
+    pub transfer_request: Account<'info, ProfileOwnershipTransfer>,
+
+    #[account(mut)]
+    pub owner: Signer<'info>,
 }

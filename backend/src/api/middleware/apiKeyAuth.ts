@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../../config/prisma.js';
 
 export interface AuthenticatedRequest extends Request {
-  apiKey?: { id: string; name: string; rateLimit: number };
+  apiKey?: { id: string; name: string; rateLimit: number; tier: string };
 }
 
 /**
@@ -25,7 +25,7 @@ export async function apiKeyAuth(req: AuthenticatedRequest, res: Response, next:
       return;
     }
 
-    req.apiKey = { id: apiKey.id, name: apiKey.name, rateLimit: apiKey.rateLimit };
+    req.apiKey = { id: apiKey.id, name: apiKey.name, rateLimit: apiKey.rateLimit, tier: apiKey.tier };
     next();
   } catch {
     next();
@@ -50,7 +50,37 @@ export async function requireApiKey(req: AuthenticatedRequest, res: Response, ne
       return;
     }
 
-    req.apiKey = { id: apiKey.id, name: apiKey.name, rateLimit: apiKey.rateLimit };
+    req.apiKey = { id: apiKey.id, name: apiKey.name, rateLimit: apiKey.rateLimit, tier: apiKey.tier };
+    next();
+  } catch {
+    res.status(500).json({ error: 'Auth service error' });
+  }
+}
+
+/**
+ * Require an API key with tier === 'admin'. Use for admin-only endpoints.
+ */
+export async function requireAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  const headerKey = req.headers['x-api-key'];
+  if (!headerKey || typeof headerKey !== 'string') {
+    res.status(401).json({ error: 'API key required (X-API-Key header)' });
+    return;
+  }
+
+  try {
+    const apiKey = await prisma.apiKey.findUnique({ where: { key: headerKey } });
+
+    if (!apiKey || !apiKey.active) {
+      res.status(401).json({ error: 'Invalid or deactivated API key' });
+      return;
+    }
+
+    if (apiKey.tier !== 'admin') {
+      res.status(403).json({ error: 'Admin API key required' });
+      return;
+    }
+
+    req.apiKey = { id: apiKey.id, name: apiKey.name, rateLimit: apiKey.rateLimit, tier: apiKey.tier };
     next();
   } catch {
     res.status(500).json({ error: 'Auth service error' });

@@ -2,7 +2,7 @@
 
 **Chain:** Base (EVM) — Solana features ported to Solidity
 **Target:** Lending protocol MVP with x402 automated repayment
-**Last updated:** 2026-03-07
+**Last updated:** 2026-03-13
 
 ---
 
@@ -278,6 +278,52 @@
 - [ ] **BUG-011 LOW** — Admin can arbitrarily overwrite reputation (no delta protection)
 
 **Total tests: 197/197 passing** (37 new: AgentIdentity×13, AgentWallet×19, Krexa402Facilitator×6 — missing executeX402Payment coverage)
+
+---
+
+## Phase 0-SOL: Solana Contract Audit ✅
+
+- [x] Full security audit of 5 Anchor programs: krexa-agent-registry, krexa-agent-wallet, krexa-credit-vault, krexa-payment-router, krexa-venue-whitelist
+- [x] 43 bugs found (8 Critical, 10 High, 14 Medium, 11 Low)
+- [x] 35 fixed, 2 mitigated, 6 by-design/deferred — **0 Critical or High remaining**
+- [x] Key fixes: SOL-001/002 (collateral oracle manipulation), SOL-003/004 (missing signer auth), SOL-007/008 (token account validation), SOL-013 (platform fee deducted in pay_x402), SOL-014 (active credit line overwrite), SOL-019 (score expiry), SOL-020 (credit level validation), SOL-021 (auto-unfreeze), SOL-022 (paused guard in create_wallet), SOL-024 (post-transfer balance reload), SOL-027/028/029 (arithmetic guards), SOL-031 (mint validation), SOL-034/035 (reactivate agent, link_wallet guard), SOL-036 (venue category validation), SOL-046/048 (has_one constraints, score_updated_at)
+- [x] Full audit report in `solana-bugs.md`
+
+---
+
+## Phase 1-SOL: Credit Ladder Contract Updates ✅
+
+- [x] **1A.** Add `legal_agreement_hash: [u8; 32]`, `legal_agreement_signed_at: i64`, `score_attestation_hash: [u8; 32]` to `AgentProfile` — `AgentProfile::LEN` updated (+72 bytes)
+- [x] **1B.** `sign_legal_agreement(agreement_hash)` instruction — agent or owner dual-auth, stores hash + timestamp, emits `LegalAgreementSigned` event; new `SignLegalAgreement` context struct
+- [x] **1C.** `LegalAgreementNotSigned` error added to wallet; L3-L4 credit gate in `request_credit.rs` — `if credit_level >= 3 { require!(legal_agreement_signed_at > 0) }`
+- [x] **1D.** `attest_score(score_hash)` instruction — oracle-only, stores keccak256(agent, score, level, timestamp) on-chain for third-party verification; emits `ScoreAttested` event; new `AttestScore` context struct
+- [x] `decodeAgentProfile` in `backend/src/chain/solana/reader.ts` updated to decode 3 new fields
+
+---
+
+## Phase 2-SOL: Credit Bureau API (CIBIL Moat) ✅
+
+- [x] **2A.** `GET /solana/credit/:agent/score-breakdown` — 5-component breakdown (repayment, profit, behavior, usage, age), level, next level threshold, attestation hash
+- [x] **2B.** Credit Bureau routes (`backend/src/api/routes/credit-bureau.routes.ts`) + service (`backend/src/services/credit-bureau.ts`):
+  - `GET /credit-bureau/:agent/score` — free tier, public score lookup (100 req/day)
+  - `GET /credit-bureau/:agent/report` — paid tier, full report with risk flags, payment history, health history, 30d score trend
+  - `GET /credit-bureau/:agent/history` — paid tier, paginated credit event timeline
+  - Inquiry logging (every lookup stored in `CreditInquiry` table)
+- [x] **2C.** Score attestation in `credit-score.ts` — SHA256(agent, score, level, timestamp) computed on each daily run, stored in `ScoreSnapshot.attestationHash`; `score_changed` webhook dispatched when score changes (payload: oldScore, newScore, oldLevel, newLevel, attestationHash)
+- [x] **2D.** Legal e-sign flow:
+  - `POST /solana/credit/:agent/sign-agreement` — generates agreement text, returns hash for on-chain signing
+  - `POST /solana/credit/:agent/confirm-agreement` — confirms tx + stores on-chain hash in DB
+  - `GET /solana/credit/:agent/agreement-status` — check signing status; `LegalAgreement` model in Prisma
+- [x] **2E.** Prisma schema additions: `CreditInquiry`, `LegalAgreement` models; `attestationHash` field on `ScoreSnapshot`; `tier: 'free' | 'paid'` field on `ApiKey`
+- [x] **2F.** API key tier support in `apiKeyAuth.ts` — `tier` field wired through `AuthenticatedRequest`; bureau endpoints enforce `tier === 'paid'` for report/history
+
+---
+
+## Phase 3-SOL: SDK + External Integration ✅
+
+- [x] **3A.** SDK Credit Bureau module (`sdk/src/credit-bureau.ts`): `getScore()`, `getReport()`, `getHistory()`, `verifyAttestation()` (local SHA256 verification); `createCreditBureauNamespace()` factory; wired into `KrexaSDK.creditBureau` property; bureau types exported from `sdk/src/index.ts`
+- [x] **3B.** Webhook: `score_changed` event dispatched from daily credit score job when score changes; payload includes old/new score + level + attestation hash
+- [x] **3C.** OpenAPI spec updated: `Credit Bureau` tag + `Agent Credit` tag added; bureau paths + agent credit paths documented; `CreditScore`, `CreditReport`, `CreditHistory`, `ScoreBreakdown` schemas added; `ApiKey.tier` documented
 
 ---
 

@@ -4,6 +4,7 @@ import { listAllVaults, getVaultDetail } from '../../services/vault.service.js';
 import { getInvestors, getClaimable, getWaterfallState } from '../../chain/merchantVault.js';
 import { getMilestone } from '../../chain/milestoneRegistry.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { requireAdmin, type AuthenticatedRequest } from '../middleware/apiKeyAuth.js';
 import { addresses } from '../../config/contracts.js';
 import { VaultFactoryABI, MerchantVaultABI } from '../../config/abis.js';
 import { encodeFunctionData } from 'viem';
@@ -199,8 +200,8 @@ router.get('/:address/tranches', async (req, res, next) => {
   }
 });
 
-// POST /api/v1/vaults/create — build unsigned createVault tx
-router.post('/create', async (req, res, next) => {
+// POST /api/v1/vaults/create — server-signed createVault (BUG-025: admin auth required)
+router.post('/create', requireAdmin as never, async (req: AuthenticatedRequest, res, next) => {
   try {
     const {
       agent, targetAmount, interestRateBps, durationSeconds, numTranches,

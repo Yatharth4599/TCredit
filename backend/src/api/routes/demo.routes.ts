@@ -16,6 +16,7 @@ import type { Address }  from 'viem';
 import { getVaultSnapshot }  from '../../chain/merchantVault.js';
 import { processPayment }    from '../../services/oracle.service.js';
 import { AppError }          from '../middleware/errorHandler.js';
+import { requireAdmin }      from '../middleware/apiKeyAuth.js';
 import {
   getOracleKeypair,
   updateCreditScore,
@@ -24,6 +25,9 @@ import {
 } from '../../services/solana-oracle.service.js';
 
 const router = Router();
+
+// BUG-027 + BUG-028: All demo routes require admin-tier API key
+router.use(requireAdmin as never);
 
 // ── Waterfall split constants (mirrors WaterfallLib.sol) ─────────────────────
 const PLATFORM_FEE_BPS = 250;  // 2.5%

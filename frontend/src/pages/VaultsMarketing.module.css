@@ -4,24 +4,26 @@
 
 .page {
     min-height: 100vh;
-    background: #2CFF05;
+    background: #0a0a0a;
     position: relative;
-    overflow-x: hidden;
+    overflow-x: clip;
 }
 
 .page::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: radial-gradient(ellipse at 70% 30%, rgba(255, 255, 255, 0.15) 0%, transparent 55%);
-    pointer-events: none;
-    z-index: 0;
-    animation: glowPulse 8s ease-in-out infinite;
+    display: none;
 }
 
 @keyframes glowPulse {
     0%, 100% { opacity: 0.7; transform: scale(1); }
     50% { opacity: 1; transform: scale(1.05); }
+}
+
+.floatingOrb {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    will-change: transform;
 }
 
 /* ============================================
@@ -31,13 +33,33 @@
 .hero {
     min-height: 100vh;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 140px 24px 80px;
     position: relative;
     z-index: 1;
-    text-align: center;
+    background: #2CFF05;
+}
+
+.heroInner {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 60px;
+}
+
+.heroLeft {
+    flex: 1;
+    text-align: left;
+}
+
+.heroRight {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .heroLabel {
@@ -65,15 +87,8 @@
     line-height: 1.65;
     color: rgba(0, 0, 0, 0.55);
     max-width: 600px;
-    margin: 0 auto 36px;
+    margin: 0 0 36px;
     font-weight: 400;
-}
-
-.heroActions {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 60px;
 }
 
 .launchBtn {
@@ -81,8 +96,8 @@
     align-items: center;
     gap: 10px;
     padding: 16px 36px;
-    background: #000;
-    color: #2CFF05;
+    background: #2CFF05;
+    color: #000;
     font-family: var(--font-body);
     font-size: 1rem;
     font-weight: 700;
@@ -90,6 +105,12 @@
     border-radius: 999px;
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    animation: btnGlow 3s ease-in-out infinite;
+}
+
+@keyframes btnGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(44, 255, 5, 0); }
+    50% { box-shadow: 0 0 20px 4px rgba(44, 255, 5, 0.3); }
 }
 
 .launchBtn:hover {
@@ -97,32 +118,10 @@
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
 }
 
-.ghostBtn {
-    display: inline-flex;
-    align-items: center;
-    padding: 16px 28px;
-    background: transparent;
-    color: #000;
-    font-family: var(--font-body);
-    font-size: 1rem;
-    font-weight: 600;
-    border: 1.5px solid rgba(0, 0, 0, 0.2);
-    border-radius: 999px;
-    cursor: pointer;
-    text-decoration: none;
-    transition: border-color 0.2s, background 0.2s;
-}
-
-.ghostBtn:hover {
-    border-color: rgba(0, 0, 0, 0.5);
-    background: rgba(0, 0, 0, 0.04);
-}
-
 .heroStats {
     display: flex;
     gap: 40px;
     flex-wrap: wrap;
-    justify-content: center;
 }
 
 .heroStat { text-align: center; }
@@ -145,6 +144,158 @@
 }
 
 /* ============================================
+   HERO SHOWCASE CARD
+   ============================================ */
+
+.showcaseCard {
+    background: #0C0F14;
+    border-radius: 0;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    width: 560px;
+    height: 440px;
+    max-width: 90vw;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.showcaseDesc {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.45);
+    margin-top: 16px;
+    text-align: center;
+    letter-spacing: 0.02em;
+    transition: opacity 0.3s ease;
+}
+
+.showcaseScreenWrap {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cardCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.showcaseScreen {
+    display: flex;
+    flex-direction: column;
+}
+
+.showcasePagination {
+    display: flex;
+    gap: 16px;
+    margin-top: 20px;
+    align-items: baseline;
+}
+
+.paginationNum {
+    background: none;
+    border: none;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: rgba(0,0,0,0.4);
+    cursor: pointer;
+    padding: 4px 4px;
+    transition: color 0.2s, font-weight 0.2s;
+    line-height: 1;
+}
+
+.paginationActive {
+    color: #000;
+    font-weight: 800;
+}
+
+/* ============================================
+   DARK KEYWORDS SECTION
+   ============================================ */
+
+.darkKeywords {
+    background: #0a0a0a;
+    position: relative;
+    z-index: 1;
+    min-height: 300vh;
+}
+
+.darkKeywordsSticky {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    padding: 120px 24px 0;
+}
+
+.darkKeywordsInner {
+    max-width: 1140px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: start;
+    width: 100%;
+}
+
+.darkKeywordsLeft {}
+
+.darkKeywordsTitle {
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.1;
+    letter-spacing: -0.04em;
+    margin: 0 0 20px;
+}
+
+.darkKeywordsDesc {
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 2.5vw, 1.8rem);
+    line-height: 1.45;
+    font-weight: 800;
+    color: #fff;
+    margin: 80px 0 0;
+    min-height: 80px;
+    letter-spacing: -0.02em;
+    transition: opacity 0.4s ease;
+}
+
+.darkKeywordsRight {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.darkKeyword {
+    font-family: var(--font-display);
+    font-size: clamp(3rem, 5vw, 5rem);
+    font-weight: 900;
+    line-height: 1.15;
+    letter-spacing: -0.04em;
+    display: block;
+    transition: color 0.4s ease, opacity 0.4s ease;
+}
+
+.darkKeywordActive {
+    color: #fff;
+    opacity: 1;
+}
+
+.darkKeywordInactive {
+    color: rgba(255, 255, 255, 0.15);
+    opacity: 1;
+}
+
+/* ============================================
    BIG STATEMENT SECTIONS
    ============================================ */
 
@@ -152,13 +303,14 @@
     padding: 80px 24px;
     position: relative;
     z-index: 1;
+    background: #0a0a0a;
 }
 
 .statementText {
     font-family: var(--font-display);
     font-size: clamp(1.6rem, 3.5vw, 2.8rem);
     font-weight: 800;
-    color: #000;
+    color: #fff;
     line-height: 1.2;
     letter-spacing: -0.03em;
     max-width: 900px;
@@ -174,6 +326,7 @@
     padding: 80px 24px;
     position: relative;
     z-index: 1;
+    background: #0a0a0a;
 }
 
 .featureInner {
@@ -194,7 +347,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    color: rgba(0, 0, 0, 0.45);
+    color: #2CFF05;
     margin-bottom: 12px;
 }
 
@@ -202,7 +355,7 @@
     font-family: var(--font-display);
     font-size: clamp(2rem, 4vw, 3rem);
     font-weight: 900;
-    color: #000;
+    color: #fff;
     line-height: 1.05;
     letter-spacing: -0.04em;
     margin: 0 0 20px;
@@ -211,7 +364,7 @@
 .featureDesc {
     font-size: 1.05rem;
     line-height: 1.75;
-    color: rgba(0, 0, 0, 0.55);
+    color: rgba(255, 255, 255, 0.55);
     margin: 0 0 28px;
 }
 
@@ -226,12 +379,12 @@
     align-items: flex-start;
     gap: 12px;
     font-size: 0.95rem;
-    color: rgba(0, 0, 0, 0.7);
+    color: rgba(255, 255, 255, 0.7);
     padding: 10px 0;
     line-height: 1.5;
 }
 
-.checkIcon { color: #000; flex-shrink: 0; margin-top: 2px; }
+.checkIcon { color: #2CFF05; flex-shrink: 0; margin-top: 2px; }
 
 /* ============================================
    DARK VISUAL CARDS
@@ -243,6 +396,12 @@
     padding: 28px;
     position: relative;
     overflow: hidden;
+    transition: box-shadow 0.4s ease;
+    will-change: transform;
+}
+
+.card:hover {
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 30px rgba(44, 255, 5, 0.15);
 }
 
 .shimmer {
@@ -523,9 +682,23 @@
    ============================================ */
 
 .stepsSection {
-    padding: 80px 24px;
+    min-height: 100vh;
+    overflow: hidden;
     position: relative;
     z-index: 1;
+    background: #0a0a0a;
+    padding: 80px 0 0 0;
+}
+
+.stepsStickyWrap {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-top: 80px;
 }
 
 .stepsHeader {
@@ -538,10 +711,17 @@
     font-family: var(--font-display);
     font-size: clamp(2rem, 4vw, 3rem);
     font-weight: 900;
-    color: #000;
+    color: #fff;
     line-height: 1.1;
     letter-spacing: -0.04em;
     margin: 0;
+}
+
+.stepsSubtitle {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.45);
+    margin: 16px 0 0;
+    line-height: 1.6;
 }
 
 .stepsGrid {
@@ -552,50 +732,100 @@
     gap: 16px;
 }
 
-.stepCard {
-    background: #0C0F14;
-    border-radius: 16px;
-    padding: 28px 24px;
-    position: relative;
-}
-
-.stepIcon {
-    width: 44px;
-    height: 44px;
+.lifecycleTrack {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(44, 255, 5, 0.1);
-    border-radius: 10px;
-    color: #2CFF05;
-    margin-bottom: 16px;
+    gap: 24px;
+    padding: 0 48px;
 }
 
-.stepNum {
+.lifecycleCard {
+    flex-shrink: 0;
+    width: calc(40vw - 48px);
+    height: 50vh;
+    border-radius: 0;
+    padding: 40px 36px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    background: #fff;
+    transition: background 0.4s ease;
+}
+.lifecycleCard:hover {
+    background: var(--card-color);
+}
+
+.lifecycleCardTop {}
+
+.lifecycleNum {
     font-family: var(--font-mono);
-    font-size: 0.7rem;
+    font-size: 0.85rem;
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.2);
     letter-spacing: 0.08em;
-    margin-bottom: 12px;
+    margin-bottom: 32px;
+    transition: color 0.4s ease;
     display: block;
+    color: rgba(0, 0, 0, 0.4);
 }
 
-.stepTitle {
+.lifecycleBadge {
+    display: inline-block;
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    transition: background 0.4s ease;
+    font-weight: 600;
+    color: #000;
+    margin-bottom: 32px;
+    width: fit-content;
+}
+
+.lifecycleTitle {
     font-family: var(--font-display);
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #fff;
-    margin: 0 0 10px;
-    line-height: 1.2;
+    font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+    font-weight: 800;
+    color: #000;
+    margin: 0 0 16px;
+    transition: color 0.4s ease;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
 }
 
-.stepDesc {
-    font-size: 0.88rem;
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.45);
+.lifecycleDesc {
+    font-size: 1.1rem;
+    line-height: 1.7;
+    color: rgba(0, 0, 0, 0.55);
     margin: 0;
+    max-width: 500px;
+    transition: color 0.4s ease;
 }
+
+.lifecycleBottom {
+    margin-top: auto;
+    padding-top: 24px;
+}
+
+.lifecycleMetric {
+    font-family: var(--font-mono);
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: rgba(0, 0, 0, 0.7);
+    transition: color 0.4s ease;
+}
+
+.lifecycleAsset {
+    font-size: 0.78rem;
+    color: rgba(0, 0, 0, 0.4);
+    margin-top: 4px;
+    transition: color 0.4s ease;
+}
+
+.lifecycleCard:hover .lifecycleTitle { color: #000; }
+.lifecycleCard:hover .lifecycleDesc { color: rgba(0, 0, 0, 0.6); }
+.lifecycleCard:hover .lifecycleMetric { color: rgba(0, 0, 0, 0.8); }
+.lifecycleCard:hover .lifecycleAsset { color: rgba(0, 0, 0, 0.5); }
+.lifecycleCard:hover .lifecycleBadge { background: rgba(0, 0, 0, 0.12); }
 
 /* ============================================
    FEATURES GRID (key features)
@@ -611,6 +841,12 @@
     background: rgba(0, 0, 0, 0.08);
     border-radius: 14px;
     padding: 28px 24px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+}
+
+.featureCard:hover {
+    transform: translateY(-4px);
+    background: rgba(0,0,0,0.12);
 }
 
 .featureCardTitle {
@@ -674,13 +910,14 @@
     text-align: center;
     position: relative;
     z-index: 1;
+    background: #0a0a0a;
 }
 
 .ctaTitle {
     font-family: var(--font-display);
     font-size: clamp(2rem, 5vw, 3.5rem);
     font-weight: 900;
-    color: #000;
+    color: #fff;
     line-height: 1.05;
     letter-spacing: -0.04em;
     margin: 0 0 16px;
@@ -688,7 +925,7 @@
 
 .ctaSubtitle {
     font-size: 1.1rem;
-    color: rgba(0, 0, 0, 0.5);
+    color: rgba(255, 255, 255, 0.5);
     margin: 0 0 40px;
 }
 
@@ -706,11 +943,11 @@
     gap: 8px;
     padding: 14px 28px;
     background: transparent;
-    color: #000;
+    color: #fff;
     font-family: var(--font-body);
     font-size: 0.9rem;
     font-weight: 600;
-    border: 1.5px solid rgba(0, 0, 0, 0.2);
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
     border-radius: 999px;
     cursor: pointer;
     transition: border-color 0.2s ease, background 0.2s ease;
@@ -718,8 +955,8 @@
 }
 
 .secondaryBtn:hover {
-    border-color: rgba(0, 0, 0, 0.5);
-    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.06);
 }
 
 /* ============================================
@@ -728,14 +965,19 @@
 
 @media (max-width: 1024px) {
     .featureInner { gap: 48px; }
+    .lifecycleCard { width: calc(70vw - 48px); }
     .stepsGrid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 768px) {
-    .hero { padding: 120px 20px 60px; min-height: 85vh; }
+    .hero { padding: 120px 20px 60px; min-height: auto; }
+    .heroInner { flex-direction: column; gap: 40px; }
+    .heroLeft { text-align: center; }
+    .heroRight { width: 100%; }
     .heroTitle { font-size: clamp(2.8rem, 12vw, 4.5rem); }
-    .heroActions { flex-direction: column; }
-    .heroStats { gap: 24px; }
+    .showcaseCard { width: 100%; height: auto; min-height: 300px; }
+    .heroStats { gap: 24px; justify-content: center; }
+    .paginationNum { font-size: 1.4rem !important; }
     .featureSection { padding: 60px 20px; }
     .featureInner { grid-template-columns: 1fr; gap: 40px; }
     .featureReverse { direction: ltr; }
@@ -744,10 +986,31 @@
     .stepsSection { padding: 60px 20px; }
     .featuresGrid { padding: 60px 20px; }
     .ctaSection { padding: 80px 20px 100px; }
+    .darkKeywords { min-height: 200vh; }
+    .darkKeywordsSticky { padding: 0 20px; }
+    .darkKeywordsInner { grid-template-columns: 1fr; gap: 40px; }
+    .darkKeyword { font-size: clamp(2.2rem, 10vw, 3.5rem); }
+    .lifecycleTrack { flex-direction: column; padding: 0 20px; gap: 16px; }
+    .lifecycleCard { width: 100%; height: auto; min-height: 50vh; padding: 32px 28px; }
 }
 
 @media (max-width: 480px) {
-    .heroTitle { font-size: 2.8rem; }
-    .stepsGrid { grid-template-columns: 1fr; }
+    .heroTitle { font-size: 2rem; }
+    .heroInner { gap: 24px; }
+    .showcaseCard { max-width: 100%; height: auto; min-height: 280px; }
+    .lifecycleCard { width: 100%; min-height: 360px; height: auto; padding: 28px 20px; }
     .statRow { grid-template-columns: 1fr; }
+    .statsBandInner { grid-template-columns: 1fr; }
+    .darkKeyword { font-size: clamp(1.8rem, 12vw, 2.8rem); }
+    .darkKeywordsSticky { padding: 60px 16px 0; }
+    .ctaSection { padding: 60px 16px 80px; }
+    .stepsGrid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .floatingOrb, .shimmer { display: none; }
+    .page::before { animation: none; }
+    .liveDot { animation: none; }
+    .launchBtn { animation: none; }
+    .stepCard, .card, .featureCard { transition: none; }
 }

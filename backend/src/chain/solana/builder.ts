@@ -15,7 +15,7 @@ import {
   registryConfigPda, agentProfilePda, walletConfigPda, agentWalletPda,
   walletUsdcPda, vaultConfigPda, vaultUsdcPda, insuranceUsdcPda,
   creditLinePda, depositPositionPda, collateralPositionPda,
-  routerConfigPda, settlementPda,
+  routerConfigPda, settlementPda, ownershipTransferPda,
 } from './programs.js';
 import { env } from '../../config/env.js';
 
@@ -417,6 +417,86 @@ export function buildExecutePayment(params: ExecutePaymentParams): TransactionIn
     { pubkey: PROGRAM_IDS.creditVault, isSigner: false, isWritable: false },
     { pubkey: TOKEN_PROGRAM_ID,     isSigner: false, isWritable: false },
   ], data);
+}
+
+// ---------------------------------------------------------------------------
+// Agent Wallet: propose_ownership_transfer
+// ---------------------------------------------------------------------------
+
+export interface ProposeOwnershipTransferParams {
+  agent: PublicKey;
+  owner: PublicKey;
+  newOwner: PublicKey;
+  newOwnerType: number; // 0 = EOA, 1 = Multisig
+}
+
+export function buildProposeOwnershipTransfer(params: ProposeOwnershipTransferParams): TransactionInstruction {
+  const { agent, owner, newOwner, newOwnerType } = params;
+  const config = walletConfigPda();
+  const wallet = agentWalletPda(agent);
+  const transferRequest = ownershipTransferPda(agent);
+
+  const data = Buffer.concat([
+    DISCRIMINATORS.proposeOwnershipTransfer,
+    encodePubkey(newOwner),
+    encodeU8(newOwnerType),
+  ]);
+
+  return ix(PROGRAM_IDS.agentWallet, [
+    { pubkey: config,          isSigner: false, isWritable: false },
+    { pubkey: wallet,          isSigner: false, isWritable: true  },
+    { pubkey: transferRequest, isSigner: false, isWritable: true  },
+    { pubkey: owner,           isSigner: true,  isWritable: true  },
+    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+  ], data);
+}
+
+// ---------------------------------------------------------------------------
+// Agent Wallet: accept_ownership_transfer
+// ---------------------------------------------------------------------------
+
+export interface AcceptOwnershipTransferParams {
+  agent: PublicKey;
+  newOwner: PublicKey;
+  rentReceiver: PublicKey;
+}
+
+export function buildAcceptOwnershipTransfer(params: AcceptOwnershipTransferParams): TransactionInstruction {
+  const { agent, newOwner, rentReceiver } = params;
+  const config = walletConfigPda();
+  const wallet = agentWalletPda(agent);
+  const transferRequest = ownershipTransferPda(agent);
+
+  return ix(PROGRAM_IDS.agentWallet, [
+    { pubkey: config,          isSigner: false, isWritable: false },
+    { pubkey: wallet,          isSigner: false, isWritable: true  },
+    { pubkey: transferRequest, isSigner: false, isWritable: true  },
+    { pubkey: newOwner,        isSigner: true,  isWritable: false },
+    { pubkey: rentReceiver,    isSigner: false, isWritable: true  },
+  ], Buffer.from(DISCRIMINATORS.acceptOwnershipTransfer));
+}
+
+// ---------------------------------------------------------------------------
+// Agent Wallet: cancel_ownership_transfer
+// ---------------------------------------------------------------------------
+
+export interface CancelOwnershipTransferParams {
+  agent: PublicKey;
+  owner: PublicKey;
+}
+
+export function buildCancelOwnershipTransfer(params: CancelOwnershipTransferParams): TransactionInstruction {
+  const { agent, owner } = params;
+  const config = walletConfigPda();
+  const wallet = agentWalletPda(agent);
+  const transferRequest = ownershipTransferPda(agent);
+
+  return ix(PROGRAM_IDS.agentWallet, [
+    { pubkey: config,          isSigner: false, isWritable: false },
+    { pubkey: wallet,          isSigner: false, isWritable: false },
+    { pubkey: transferRequest, isSigner: false, isWritable: true  },
+    { pubkey: owner,           isSigner: true,  isWritable: true  },
+  ], Buffer.from(DISCRIMINATORS.cancelOwnershipTransfer));
 }
 
 // ---------------------------------------------------------------------------

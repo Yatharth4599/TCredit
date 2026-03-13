@@ -251,6 +251,54 @@ export function createAgentNamespace(
       if (chain !== 'solana') throw new KrexaError(400, 'Health factor only available on Solana');
       return get(b, `/solana/wallets/${agent}/health`, apiKey);
     },
+
+    /**
+     * Propose an ownership transfer to a new address.
+     * Returns an unsigned transaction for the current owner to sign.
+     */
+    async proposeOwnershipTransfer(params: {
+      ownerAddress: string;
+      newOwner: string;
+      newOwnerType?: 'eoa' | 'multisig';
+    }): Promise<OperationResult> {
+      const agent = requireAgent();
+      if (chain !== 'solana') throw new KrexaError(400, 'Ownership transfer only available on Solana');
+      return post<OperationResult>(b, `/solana/wallets/${agent}/propose-transfer`, apiKey, {
+        owner: params.ownerAddress,
+        newOwner: params.newOwner,
+        newOwnerType: params.newOwnerType === 'multisig' ? 1 : 0,
+      });
+    },
+
+    /**
+     * Accept a pending ownership transfer. Must be called by the proposed new owner.
+     * Returns an unsigned transaction for the new owner to sign.
+     */
+    async acceptOwnershipTransfer(params: {
+      newOwner: string;
+      rentReceiver?: string;
+    }): Promise<OperationResult> {
+      const agent = requireAgent();
+      if (chain !== 'solana') throw new KrexaError(400, 'Ownership transfer only available on Solana');
+      return post<OperationResult>(b, `/solana/wallets/${agent}/accept-transfer`, apiKey, {
+        newOwner: params.newOwner,
+        rentReceiver: params.rentReceiver,
+      });
+    },
+
+    /**
+     * Cancel a pending ownership transfer. Must be called by the current owner.
+     * Returns an unsigned transaction for the current owner to sign.
+     */
+    async cancelOwnershipTransfer(params: {
+      ownerAddress: string;
+    }): Promise<OperationResult> {
+      const agent = requireAgent();
+      if (chain !== 'solana') throw new KrexaError(400, 'Ownership transfer only available on Solana');
+      return post<OperationResult>(b, `/solana/wallets/${agent}/cancel-transfer`, apiKey, {
+        owner: params.ownerAddress,
+      });
+    },
   };
 }
 

@@ -3,7 +3,7 @@ use anchor_spl::token::{self, Transfer};
 use crate::{PayX402, AgentWallet, WalletError};
 use crate::events::X402Payment;
 use crate::utils::{check_per_trade_limit, maybe_reset_daily, projected_health};
-use krexa_common::constants::HF_WARNING;
+use krexa_common::constants::{HF_WARNING, PLATFORM_FEE_BPS, BPS_DENOMINATOR};
 
 pub fn handle(
     ctx: Context<PayX402>,
@@ -42,22 +42,46 @@ pub fn handle(
         }
     }
 
+    // SOL-013 fix: Deduct platform fee from payment (was missing — protocol earned zero).
+    let platform_fee = (amount as u128 * PLATFORM_FEE_BPS as u128
+        / BPS_DENOMINATOR as u128) as u64;
+    let net_amount = amount.saturating_sub(platform_fee);
+
     let agent_key = ctx.accounts.agent_wallet.agent;
     let wallet_bump = ctx.accounts.agent_wallet.bump;
     let wallet_seeds: &[&[&[u8]]] = &[&[AgentWallet::SEED, agent_key.as_ref(), &[wallet_bump]]];
 
-    token::transfer(
-        CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            Transfer {
-                from: ctx.accounts.wallet_usdc.to_account_info(),
-                to: ctx.accounts.facilitator_token.to_account_info(),
-                authority: ctx.accounts.agent_wallet.to_account_info(),
-            },
-            wallet_seeds,
-        ),
-        amount,
-    )?;
+    // Transfer net amount to facilitator
+    if net_amount > 0 {
+        token::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.wallet_usdc.to_account_info(),
+                    to: ctx.accounts.facilitator_token.to_account_info(),
+                    authority: ctx.accounts.agent_wallet.to_account_info(),
+                },
+                wallet_seeds,
+            ),
+            net_amount,
+        )?;
+    }
+
+    // Transfer platform fee to treasury
+    if platform_fee > 0 {
+        token::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.wallet_usdc.to_account_info(),
+                    to: ctx.accounts.platform_treasury_token.to_account_info(),
+                    authority: ctx.accounts.agent_wallet.to_account_info(),
+                },
+                wallet_seeds,
+            ),
+            platform_fee,
+        )?;
+    }
 
     let now = Clock::get()?.unix_timestamp;
     let wallet = &mut ctx.accounts.agent_wallet;
@@ -67,6 +91,19 @@ pub fn handle(
     wallet.total_trades = wallet.total_trades.saturating_add(1);
     wallet.total_volume = wallet.total_volume.saturating_add(amount);
     wallet.last_health_check = now;
+
+    // SOL-012 fix: Update health factor after spending (was missing — unlike execute_trade)
+    if wallet.total_debt > 0 {
+        let vault_cfg = &ctx.accounts.vault_config;
+        ctx.accounts.wallet_usdc.reload()?;
+        wallet.health_factor_bps = crate::utils::health::compute_health(
+            ctx.accounts.wallet_usdc.amount,
+            wallet.collateral_shares,
+            vault_cfg.total_deposits,
+            vault_cfg.total_shares,
+            wallet.total_debt,
+        );
+    }
 
     emit!(X402Payment { agent: wallet.agent, facilitator, recipient, amount, memo });
     Ok(())

@@ -6,6 +6,7 @@ import { AgentRegistryABI } from '../../config/abis.js';
 import { addresses } from '../../config/contracts.js';
 import { encodeFunctionData } from 'viem';
 import { AppError } from '../middleware/errorHandler.js';
+import { requireApiKey, type AuthenticatedRequest } from '../middleware/apiKeyAuth.js';
 import { getSettlement } from '../../chain/paymentRouter.js';
 import { processPayment } from '../../services/oracle.service.js';
 import { env } from '../../config/env.js';
@@ -169,8 +170,8 @@ router.get('/:address/repayments', async (req, res, next) => {
   }
 });
 
-// POST /api/v1/merchants/:address/repay — submit a repayment via oracle
-router.post('/:address/repay', async (req, res, next) => {
+// POST /api/v1/merchants/:address/repay — submit a repayment via oracle (BUG-026: auth required)
+router.post('/:address/repay', requireApiKey as never, async (req: AuthenticatedRequest, res, next) => {
   try {
     const addr = req.params.address as Address;
     const { repaymentAmount } = req.body;

@@ -32,9 +32,13 @@ export const SEEDS = {
   creditLine:     (agent: PublicKey)    => [Buffer.from('credit_line'), agent.toBuffer()],
 
   // krexa-agent-wallet
-  walletConfig:   Buffer.from('wallet_config'),
-  agentWallet:    (agent: PublicKey)    => [Buffer.from('agent_wallet'), agent.toBuffer()],
-  walletUsdc:     (agent: PublicKey)    => [Buffer.from('wallet_usdc'), agent.toBuffer()],
+  walletConfig:      Buffer.from('wallet_config'),
+  agentWallet:       (agent: PublicKey) => [Buffer.from('agent_wallet'), agent.toBuffer()],
+  walletUsdc:        (agent: PublicKey) => [Buffer.from('wallet_usdc'), agent.toBuffer()],
+  ownershipTransfer: (agent: PublicKey) => [Buffer.from('ownership_transfer'), agent.toBuffer()],
+
+  // krexa-agent-registry
+  profileTransfer:   (agent: PublicKey) => [Buffer.from('profile_transfer'), agent.toBuffer()],
 
   // krexa-payment-router
   routerConfig:   Buffer.from('router_config'),
@@ -86,6 +90,12 @@ export const agentWalletPda = (agent: PublicKey) =>
 export const walletUsdcPda = (agent: PublicKey) =>
   findPda(SEEDS.walletUsdc(agent), PROGRAM_IDS.agentWallet);
 
+export const ownershipTransferPda = (agent: PublicKey) =>
+  findPda(SEEDS.ownershipTransfer(agent), PROGRAM_IDS.agentWallet);
+
+export const profileTransferPda = (agent: PublicKey) =>
+  findPda(SEEDS.profileTransfer(agent), PROGRAM_IDS.agentRegistry);
+
 // Payment Router
 export const routerConfigPda = () =>
   findPda([SEEDS.routerConfig], PROGRAM_IDS.paymentRouter);
@@ -119,16 +129,26 @@ export const DISCRIMINATORS = {
   receiveRepayment:      disc('receive_repayment'),
 
   // krexa-agent-wallet
-  createWallet:          disc('create_wallet'),
-  deposit:               disc('deposit'),
-  requestCredit:         disc('request_credit'),
-  executeTrade:          disc('execute_trade'),
-  payX402:               disc('pay_x402'),
-  withdraw:              disc('withdraw'),
-  repay:                 disc('repay'),
-  checkHealth:           disc('check_health'),
-  deleverage:            disc('deleverage'),
-  liquidate:             disc('liquidate'),
+  createWallet:              disc('create_wallet'),
+  createWalletMultisig:      disc('create_wallet_multisig'),
+  deposit:                   disc('deposit'),
+  requestCredit:             disc('request_credit'),
+  executeTrade:              disc('execute_trade'),
+  payX402:                   disc('pay_x402'),
+  withdraw:                  disc('withdraw'),
+  repay:                     disc('repay'),
+  checkHealth:               disc('check_health'),
+  deleverage:                disc('deleverage'),
+  liquidate:                 disc('liquidate'),
+  proposeOwnershipTransfer:  disc('propose_ownership_transfer'),
+  acceptOwnershipTransfer:   disc('accept_ownership_transfer'),
+  cancelOwnershipTransfer:   disc('cancel_ownership_transfer'),
+
+  // krexa-agent-registry
+  proposeProfileTransfer: disc('propose_profile_transfer'),
+  acceptProfileTransfer:  disc('accept_profile_transfer'),
+  cancelProfileTransfer:  disc('cancel_profile_transfer'),
+  migrateProfileV2:       disc('migrate_profile_v2'),
 
   // krexa-payment-router
   activateSettlement:    disc('activate_settlement'),
@@ -149,13 +169,15 @@ function accountDisc(name: string): Buffer {
 }
 
 export const ACCOUNT_DISCRIMINATORS = {
-  AgentProfile:       accountDisc('AgentProfile'),
-  RegistryConfig:     accountDisc('RegistryConfig'),
-  AgentWallet:        accountDisc('AgentWallet'),
-  WalletConfig:       accountDisc('WalletConfig'),
-  VaultConfig:        accountDisc('VaultConfig'),
-  CreditLine:         accountDisc('CreditLine'),
-  DepositPosition:    accountDisc('DepositPosition'),
-  RouterConfig:       accountDisc('RouterConfig'),
-  MerchantSettlement: accountDisc('MerchantSettlement'),
+  AgentProfile:              accountDisc('AgentProfile'),
+  RegistryConfig:            accountDisc('RegistryConfig'),
+  AgentWallet:               accountDisc('AgentWallet'),
+  WalletConfig:              accountDisc('WalletConfig'),
+  VaultConfig:               accountDisc('VaultConfig'),
+  CreditLine:                accountDisc('CreditLine'),
+  DepositPosition:           accountDisc('DepositPosition'),
+  RouterConfig:              accountDisc('RouterConfig'),
+  MerchantSettlement:        accountDisc('MerchantSettlement'),
+  OwnershipTransfer:         accountDisc('OwnershipTransfer'),
+  ProfileOwnershipTransfer:  accountDisc('ProfileOwnershipTransfer'),
 } as const;

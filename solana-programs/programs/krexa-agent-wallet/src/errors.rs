@@ -50,4 +50,16 @@ pub enum WalletError {
     CreditAlreadyDrawn,
     #[msg("Existing credit line not fully repaid")]
     CreditLineActive,
+    #[msg("Legal agreement must be signed for L3-L4 credit")]
+    LegalAgreementNotSigned,
+    #[msg("No pending ownership transfer for this wallet")]
+    NoPendingTransfer,
+    #[msg("Signer is not the proposed new owner")]
+    NotPendingOwner,
+    #[msg("Invalid owner type — must be 0 (EOA) or 1 (Multisig)")]
+    InvalidOwnerType,
+    #[msg("An ownership transfer is already pending for this wallet")]
+    TransferAlreadyPending,
+    #[msg("Multisig ownership required for L3-L4 credit lines")]
+    MultisigRequired,
 }

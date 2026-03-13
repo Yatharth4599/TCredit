@@ -1,21 +1,27 @@
 import { Router } from 'express';
 import { randomBytes } from 'crypto';
-import { requireApiKey } from '../middleware/apiKeyAuth.js';
+import { requireAdmin } from '../middleware/apiKeyAuth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../../config/prisma.js';
 const router = Router();
 
-// All admin routes require a valid API key
-router.use(requireApiKey as never);
+// All admin routes require an admin-tier API key (BUG-029)
+router.use(requireAdmin as never);
 
-// GET /api/v1/admin/keys -- list all API keys
+// GET /api/v1/admin/keys -- list all API keys (BUG-030: keys redacted)
 router.get('/keys', async (_req, res, next) => {
   try {
     const keys = await prisma.apiKey.findMany({
       orderBy: { createdAt: 'desc' },
-      select: { id: true, name: true, key: true, rateLimit: true, active: true, createdAt: true },
+      select: { id: true, name: true, key: true, tier: true, rateLimit: true, active: true, createdAt: true },
     });
-    res.json({ keys, total: keys.length });
+    res.json({
+      keys: keys.map((k) => ({
+        ...k,
+        key: k.key.slice(0, 4) + '…' + k.key.slice(-4),
+      })),
+      total: keys.length,
+    });
   } catch (err) {
     next(err);
   }

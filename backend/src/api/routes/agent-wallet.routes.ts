@@ -11,7 +11,10 @@
 import { Router } from 'express';
 import { PublicKey } from '@solana/web3.js';
 import { readAgentWallet, readTokenBalance } from '../../chain/solana/reader.js';
-import { buildCreateWallet, instructionToUnsignedTx } from '../../chain/solana/builder.js';
+import {
+  buildCreateWallet, instructionToUnsignedTx,
+  buildProposeOwnershipTransfer, buildAcceptOwnershipTransfer, buildCancelOwnershipTransfer,
+} from '../../chain/solana/builder.js';
 import { walletUsdcPda } from '../../chain/solana/programs.js';
 import { prisma } from '../../config/prisma.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -45,6 +48,7 @@ function walletToJson(w: Awaited<ReturnType<typeof readAgentWallet>>) {
     totalVolume:      w.totalVolume.toString(),
     totalRepaid:      w.totalRepaid.toString(),
     createdAt:        new Date(Number(w.createdAt) * 1000).toISOString(),
+    ownerType:        w.ownerType === 1 ? 'multisig' : 'eoa',
   };
 }
 
@@ -160,6 +164,79 @@ router.post('/create', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// POST /solana/wallets/:agent/propose-transfer
+// Body: { owner, newOwner, newOwnerType }
+router.post('/:agent/propose-transfer', async (req, res, next) => {
+  try {
+    const agentPk = parsePubkey(req.params.agent);
+    const { owner, newOwner, newOwnerType } = req.body;
+    if (!owner || !newOwner) throw new AppError(400, 'owner and newOwner required');
+    const ownerPk = parsePubkey(owner);
+    const newOwnerPk = parsePubkey(newOwner);
+    const ownerTypeParsed = Number(newOwnerType ?? 0);
+    if (ownerTypeParsed < 0 || ownerTypeParsed > 1) throw new AppError(400, 'newOwnerType must be 0 or 1');
+
+    const ixn = buildProposeOwnershipTransfer({
+      agent: agentPk,
+      owner: ownerPk,
+      newOwner: newOwnerPk,
+      newOwnerType: ownerTypeParsed,
+    });
+    const tx = await instructionToUnsignedTx(ixn, ownerPk);
+
+    res.json({
+      transaction: tx,
+      encoding: 'base64',
+      description: `Propose ownership transfer for agent ${req.params.agent} to ${newOwner}`,
+    });
+  } catch (err) { next(err); }
+});
+
+// POST /solana/wallets/:agent/accept-transfer
+// Body: { newOwner, rentReceiver? }
+router.post('/:agent/accept-transfer', async (req, res, next) => {
+  try {
+    const agentPk = parsePubkey(req.params.agent);
+    const { newOwner, rentReceiver } = req.body;
+    if (!newOwner) throw new AppError(400, 'newOwner required');
+    const newOwnerPk = parsePubkey(newOwner);
+    const rentReceiverPk = rentReceiver ? parsePubkey(rentReceiver) : newOwnerPk;
+
+    const ixn = buildAcceptOwnershipTransfer({
+      agent: agentPk,
+      newOwner: newOwnerPk,
+      rentReceiver: rentReceiverPk,
+    });
+    const tx = await instructionToUnsignedTx(ixn, newOwnerPk);
+
+    res.json({
+      transaction: tx,
+      encoding: 'base64',
+      description: `Accept ownership transfer for agent ${req.params.agent}`,
+    });
+  } catch (err) { next(err); }
+});
+
+// POST /solana/wallets/:agent/cancel-transfer
+// Body: { owner }
+router.post('/:agent/cancel-transfer', async (req, res, next) => {
+  try {
+    const agentPk = parsePubkey(req.params.agent);
+    const { owner } = req.body;
+    if (!owner) throw new AppError(400, 'owner required');
+    const ownerPk = parsePubkey(owner);
+
+    const ixn = buildCancelOwnershipTransfer({ agent: agentPk, owner: ownerPk });
+    const tx = await instructionToUnsignedTx(ixn, ownerPk);
+
+    res.json({
+      transaction: tx,
+      encoding: 'base64',
+      description: `Cancel ownership transfer for agent ${req.params.agent}`,
+    });
+  } catch (err) { next(err); }
+});
+
 // GET /solana/wallets — list all wallets from DB (keeper-synced)
 router.get('/', async (req, res, next) => {
   try {
@@ -173,6 +250,8 @@ router.get('/', async (req, res, next) => {
       wallets: wallets.map((w) => ({
         agentPubkey: w.agentPubkey,
         ownerPubkey: w.ownerPubkey,
+        ownerType: w.ownerType,
+        pendingOwner: w.pendingOwner ?? null,
         creditLevel: w.creditLevel,
         healthFactorBps: w.healthFactorBps,
         isFrozen: w.isFrozen,

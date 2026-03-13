@@ -69,6 +69,8 @@ pub enum VenueError {
     AlreadyActive,
     #[msg("Venue is already inactive")]
     AlreadyInactive,
+    #[msg("Invalid venue category — must be 0–3")]
+    InvalidCategory,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -96,6 +98,8 @@ pub mod krexa_venue_whitelist {
     ) -> Result<()> {
         let config = &mut ctx.accounts.config;
         require!(!config.is_paused, VenueError::Paused);
+        // SOL-036 fix: Validate category range (0=dex, 1=launchpad, 2=x402, 3=defi)
+        require!(category <= 3, VenueError::InvalidCategory);
 
         let venue = &mut ctx.accounts.venue;
         venue.program_id = program_id;
@@ -126,6 +130,18 @@ pub mod krexa_venue_whitelist {
         require!(!venue.is_active, VenueError::AlreadyActive);
         venue.is_active = true;
         emit!(VenueReactivated { program_id: venue.program_id });
+        Ok(())
+    }
+
+    pub fn set_paused(ctx: Context<AdminWhitelistConfig>, paused: bool) -> Result<()> {
+        ctx.accounts.config.is_paused = paused;
+        Ok(())
+    }
+
+    pub fn update_config(ctx: Context<AdminWhitelistConfig>, new_admin: Option<Pubkey>) -> Result<()> {
+        if let Some(admin) = new_admin {
+            ctx.accounts.config.admin = admin;
+        }
         Ok(())
     }
 }
@@ -211,6 +227,19 @@ pub struct ReactivateVenue<'info> {
         bump = venue.bump,
     )]
     pub venue: Account<'info, WhitelistedVenue>,
+
+    pub admin: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct AdminWhitelistConfig<'info> {
+    #[account(
+        mut,
+        seeds = [WhitelistConfig::SEED],
+        bump = config.bump,
+        has_one = admin @ VenueError::NotAdmin,
+    )]
+    pub config: Account<'info, WhitelistConfig>,
 
     pub admin: Signer<'info>,
 }

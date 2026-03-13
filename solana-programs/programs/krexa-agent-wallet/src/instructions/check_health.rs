@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use crate::CheckHealth;
 use crate::events::HealthChecked;
 use crate::utils::{compute_health, collateral_value_usdc};
-use krexa_common::constants::HF_DANGER;
+use krexa_common::constants::{HF_DANGER, HF_HEALTHY};
 
 pub fn handle(ctx: Context<CheckHealth>) -> Result<()> {
     let wallet_usdc_balance = ctx.accounts.wallet_usdc.amount;
@@ -29,6 +29,12 @@ pub fn handle(ctx: Context<CheckHealth>) -> Result<()> {
 
     if hf < HF_DANGER && !wallet.is_frozen && wallet.total_debt > 0 {
         wallet.is_frozen = true;
+    }
+
+    // SOL-021 fix: Auto-unfreeze when health recovers above HEALTHY threshold
+    // and wallet is not in liquidation
+    if hf >= HF_HEALTHY && wallet.is_frozen && !wallet.is_liquidating {
+        wallet.is_frozen = false;
     }
 
     emit!(HealthChecked {
