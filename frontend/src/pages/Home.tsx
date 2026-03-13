@@ -177,7 +177,7 @@ export default function Home() {
                         { label: 'Agents',         val: heroStats.agents,    fmt: (v: number) => v.toFixed(0) },
                         { label: 'Active Vaults',  val: heroStats.vaults,    fmt: (v: number) => v.toFixed(0) },
                         { label: 'Protocol',       val: 0, fmt: () => 'x402'        },
-                        { label: 'Network',        val: 0, fmt: () => 'Base'         },
+                        { label: 'Network',        val: 0, fmt: () => 'Solana'      },
                         { label: 'Avg APY',        val: 12.5, fmt: (v: number) => `${v.toFixed(1)}%` },
                     ].map((item, i) => (
                         <span key={i} className={styles.statsBarItem}>
@@ -204,7 +204,7 @@ export default function Home() {
                             {
                                 step: '01',
                                 title: 'Agents earn via x402',
-                                desc:  'AI agents monetize APIs, tasks, and services. Every payment flows through Krexa\'s PaymentRouter — oracle-signed, nonce-protected, settled on Base in under 2 seconds.',
+                                desc:  'AI agents monetize APIs, tasks, and services. Every payment flows through Krexa\'s PaymentRouter — oracle-signed, nonce-protected, settled on Solana in under 1 second.',
                                 color: '#3B82F6',
                                 icon: (
                                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -382,8 +382,8 @@ export default function Home() {
                         </div>
                         <div className={styles.footerCol}>
                             <h4>Network</h4>
-                            <a href="#">Base Sepolia</a>
-                            <a href="#">BaseScan</a>
+                            <a href="https://solscan.io/?cluster=devnet" target="_blank" rel="noopener noreferrer">Solana Devnet</a>
+                            <a href="https://solscan.io" target="_blank" rel="noopener noreferrer">Solscan</a>
                             <a href="#">Governance</a>
                         </div>
                     </div>
@@ -407,7 +407,7 @@ export default function Home() {
                     <div className={styles.footerLegal}>
                         <a href="#">Terms of Use</a>
                         <a href="#">Privacy Policy</a>
-                        <span className={styles.footerBuilt}>Built on Base</span>
+                        <span className={styles.footerBuilt}>Built on Solana</span>
                     </div>
                 </div>
             </footer>
