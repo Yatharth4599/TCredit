@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+!frontend/.env.production
 
 # Rust / Anchor build artifacts
 target/
@@ -54,6 +55,7 @@ solana-programs/scripts/*-keypair.json
 solana-programs/scripts/usdc-mint.json
 solana-programs/scripts/seed-output.json
 solana-programs/target/
+demo/keys/
 
 # Claude / agent state
 .claude/
