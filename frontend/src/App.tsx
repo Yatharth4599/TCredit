@@ -7,6 +7,7 @@ import WrongNetworkBanner from './components/layout/WrongNetworkBanner'
 import styles from './App.module.css'
 
 const LandingPage = lazy(() => import('./pages/LandingPage'))
+const DemoPage = lazy(() => import('./pages/DemoPage'))
 const Home = lazy(() => import('./pages/Home'))
 const Demo = lazy(() => import('./pages/Demo'))
 const VaultsMarketing = lazy(() => import('./pages/VaultsMarketing'))
@@ -35,6 +36,7 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation()
   const isKickstart = pathname.startsWith('/app/kickstart') || pathname.startsWith('/kickstart')
   const isLanding = pathname === '/'
+  const isDemo = pathname === '/demo'
 
   useEffect(() => {
     if (isKickstart) {
@@ -45,12 +47,12 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [isKickstart])
 
   useEffect(() => {
-    if (isLanding) {
+    if (isLanding || isDemo) {
       document.documentElement.classList.remove('dark')
     } else {
       document.documentElement.classList.add('dark')
     }
-  }, [isLanding])
+  }, [isLanding, isDemo])
 
   return <>{children}</>
 }
@@ -66,11 +68,12 @@ function PageLoader() {
 function AppShell() {
   const { pathname } = useLocation()
   const isLanding = pathname === '/'
+  const isDemo = pathname === '/demo'
 
   return (
     <div className={styles.app}>
-      {!isLanding && <WrongNetworkBanner />}
-      {!isLanding && <Navbar />}
+      {!isLanding && !isDemo && <WrongNetworkBanner />}
+      {!isLanding && !isDemo && <Navbar />}
       <Toaster
         position="bottom-right"
         toastOptions={{
@@ -114,9 +117,10 @@ function AppShell() {
           <Route path="/app/demo" element={<Demo />} />
           <Route path="/app/lifecycle" element={<LifecycleDemo />} />
           <Route path="/admin/waitlist" element={<WaitlistAdmin />} />
+          {/* Live demo dashboard — light theme, public */}
+          <Route path="/demo" element={<DemoPage />} />
           {/* Legacy redirects — keep old paths working */}
           <Route path="/x402" element={<Navigate to="/app/x402" replace />} />
-          <Route path="/demo" element={<Navigate to="/app/demo" replace />} />
           <Route path="/lifecycle" element={<Navigate to="/app/lifecycle" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
