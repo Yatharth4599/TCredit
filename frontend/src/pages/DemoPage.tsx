@@ -1,528 +1,362 @@
 /**
  * DemoPage — /demo
  *
- * Live dashboard for the Krexa agent credit lifecycle demo.
- * Connects to run-demo.ts via WebSocket on ws://localhost:3002.
- * Light theme, white background, no wallet connect required.
+ * Story-driven live demo page. Plain English, clear narrative.
+ * Visitors watch an AI agent borrow, earn, and repay — all on-chain.
  */
 import { useEffect, useRef, useState, useCallback } from 'react'
-import Logo from '../assets/svg/logo'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
 interface StepInfo {
   num: number
   label: string
-  description: string
+  plain: string
 }
 
 type StepStatus = 'pending' | 'active' | 'done'
 
+interface LogEntry {
+  id: number
+  text: string
+  sub?: string
+  tx?: string
+  type: 'info' | 'success' | 'payment' | 'complete'
+}
+
 interface DemoState {
+  runState: 'idle' | 'running' | 'done' | 'error'
   steps: Record<number, StepStatus>
   txs: Record<number, string>
-  wallet: {
-    balance: number
-    debt: number
-    score: number
-    level: number
-    collateral: number
-    creditUsed: number
-  }
-  checks: {
-    pdaActive: boolean
-    venueWhitelisted: boolean
-    underTradeLimit: boolean
-    healthOk: boolean
-    dailyLimitOk: boolean
-  }
-  payments: {
-    total: number
-    lp: number
-    fee: number
-    agent: number
-    callCount: number
-    lastSplitFlash: boolean
-  }
+  wallet: { balance: number; debt: number; score: number; level: number; creditUsed: number }
+  payments: { total: number; lp: number; fee: number; agent: number; callCount: number }
   scoreboard: {
-    totalRevenue: number
-    totalRepaid: number
-    totalPlatform: number
-    remainingDebt: number
-    creditTaken: number
+    totalRevenue: number; totalRepaid: number; totalPlatform: number
+    remainingDebt: number; creditTaken: number
   } | null
+  log: LogEntry[]
   connected: boolean
 }
 
 type WsEvent =
-  | { event: 'step_active'; data: { step: number } }
-  | { event: 'step_complete'; data: { step: number; tx: string } }
-  | { event: 'wallet_state'; data: { balance: number; debt: number; score: number; level: number; collateral: number; creditUsed: number } }
-  | { event: 'safety_check'; data: { check: keyof DemoState['checks']; passed: boolean } }
-  | { event: 'payment_split'; data: { total: number; lp: number; fee: number; agent: number; callCount: number } }
-  | { event: 'demo_complete'; data: { scoreboard: DemoState['scoreboard'] } }
-  | { event: 'demo_status'; data: { status: 'idle' | 'running' | 'done' | 'error'; lastRunAt?: string; error?: string } }
+  | { event: 'step_active';    data: { step: number } }
+  | { event: 'step_complete';  data: { step: number; tx: string } }
+  | { event: 'wallet_state';   data: { balance: number; debt: number; score: number; level: number; collateral: number; creditUsed: number } }
+  | { event: 'safety_check';   data: { check: string; passed: boolean } }
+  | { event: 'payment_split';  data: { total: number; lp: number; fee: number; agent: number; callCount: number } }
+  | { event: 'demo_complete';  data: { scoreboard: DemoState['scoreboard'] } }
+  | { event: 'demo_status';    data: { status: 'idle' | 'running' | 'done' | 'error'; error?: string } }
 
-// ─── Env ────────────────────────────────────────────────────────────────────
+// ─── Config ─────────────────────────────────────────────────────────────────
 
 const WS_URL  = import.meta.env.VITE_DEMO_WS_URL  ?? 'ws://localhost:3002'
 const API_URL = import.meta.env.VITE_DEMO_API_URL ?? 'http://localhost:3002'
 
-// ─── Constants ─────────────────────────────────────────────────────────────
-
 const STEPS: StepInfo[] = [
-  { num: 1, label: 'Register Agent',    description: 'Create on-chain profile' },
-  { num: 2, label: 'KYA Verification',  description: 'Tier 1 — automated checks' },
-  { num: 3, label: 'Create Wallet',     description: 'Initialize PDA wallet' },
-  { num: 4, label: 'Request Credit',    description: '$50 zero-collateral, Level 1' },
-  { num: 5, label: 'Earn Revenue',      description: '10× x402 payments at $0.25' },
-  { num: 6, label: 'Full Repayment',    description: 'Loan clears → score increases' },
+  { num: 1, label: 'Register',  plain: 'Agent creates on-chain identity'     },
+  { num: 2, label: 'KYA',       plain: 'Automated trust verification passes' },
+  { num: 3, label: 'Wallet',    plain: 'Smart wallet with spend limits opens' },
+  { num: 4, label: 'Credit',    plain: '$50 credit line — no collateral'     },
+  { num: 5, label: 'Earn',      plain: '10 API calls earn $2.50 in revenue'  },
+  { num: 6, label: 'Repay',     plain: 'Loan repaid, credit score rises'     },
 ]
 
-const CREDIT_TOTAL = 50
+const STEP_LOG: Record<number, { active: string; done: string; sub: string }> = {
+  1: { active: 'Registering agent on-chain…',          done: 'Agent identity created on Solana',          sub: 'Program: krexa-agent-registry' },
+  2: { active: 'Running KYA verification checks…',     done: 'KYA Tier 1 passed — agent is trusted',      sub: 'Automated on-chain compliance' },
+  3: { active: 'Initialising smart wallet…',           done: 'PDA wallet live with spending controls',    sub: 'Per-trade and daily limits enforced' },
+  4: { active: 'Requesting $50 credit line…',          done: '$50 zero-collateral credit extended',       sub: 'Vault underwrites based on KYA score' },
+  5: { active: 'Agent making paid API calls…',         done: '10 × $0.25 API calls completed',            sub: 'PaymentRouter splits every call on-chain' },
+  6: { active: 'Repaying loan from earnings…',         done: 'Loan fully repaid — credit score increased',sub: 'On-chain credit history recorded forever' },
+}
 
 const INITIAL_STATE: DemoState = {
+  runState: 'idle',
   steps: { 1: 'pending', 2: 'pending', 3: 'pending', 4: 'pending', 5: 'pending', 6: 'pending' },
   txs: {},
-  wallet: { balance: 0, debt: 0, score: 0, level: 0, collateral: 0, creditUsed: 0 },
-  checks: { pdaActive: false, venueWhitelisted: false, underTradeLimit: false, healthOk: false, dailyLimitOk: false },
-  payments: { total: 0, lp: 0, fee: 0, agent: 0, callCount: 0, lastSplitFlash: false },
+  wallet: { balance: 0, debt: 0, score: 0, level: 0, creditUsed: 0 },
+  payments: { total: 0, lp: 0, fee: 0, agent: 0, callCount: 0 },
   scoreboard: null,
+  log: [],
   connected: false,
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-function fmtUsd(n: number, decimals = 2) {
-  return `$${n.toFixed(decimals)}`
+let _logId = 0
+function mkLog(text: string, type: LogEntry['type'], sub?: string, tx?: string): LogEntry {
+  return { id: ++_logId, text, sub, tx, type }
 }
 
-function solscanLink(sig: string) {
-  return `https://solscan.io/tx/${sig}?cluster=devnet`
-}
+function fmtUsd(n: number, d = 2) { return `$${n.toFixed(d)}` }
+function shortSig(s: string) { return `${s.slice(0, 6)}…${s.slice(-4)}` }
+function solscan(sig: string) { return `https://solscan.io/tx/${sig}?cluster=devnet` }
 
-function shortSig(sig: string) {
-  return `${sig.slice(0, 6)}…${sig.slice(-4)}`
-}
+// ─── Step timeline ────────────────────────────────────────────────────────
 
-// ─── Sub-components ─────────────────────────────────────────────────────────
-
-// Step status icon
-function StepIcon({ status }: { status: StepStatus }) {
-  if (status === 'done') {
-    return (
-      <span className="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 border border-emerald-200">
-        <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
-      </span>
-    )
-  }
-  if (status === 'active') {
-    return (
-      <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-50 border border-blue-300 relative">
-        <span className="absolute inset-0 rounded-full bg-blue-400 opacity-20 animate-ping" />
-        <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-      </span>
-    )
-  }
+function StepTimeline({ steps, txs }: { steps: DemoState['steps']; txs: DemoState['txs'] }) {
   return (
-    <span className="flex items-center justify-center w-7 h-7 rounded-full bg-slate-50 border border-slate-200">
-      <span className="w-2 h-2 rounded-full bg-slate-300" />
-    </span>
-  )
-}
+    <div className="flex items-start gap-0 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+      {STEPS.map((step, i) => {
+        const status = steps[step.num]
+        const tx = txs[step.num]
+        const isLast = i === STEPS.length - 1
 
-// Step tracker panel
-function StepTracker({ state, onStartDemo }: { state: DemoState; onStartDemo: () => void }) {
-  const anyActive = Object.values(state.steps).includes('active')
-  const anyDone = Object.values(state.steps).includes('done')
-  const allDone = STEPS.every(s => state.steps[s.num] === 'done')
-
-  return (
-    <div className="flex flex-col gap-0">
-      <div className="mb-5">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-4">
-          Demo Steps
-        </h2>
-        <div className="flex flex-col gap-1">
-          {STEPS.map((step, i) => {
-            const status = state.steps[step.num]
-            const tx = state.txs[step.num]
-            const isLast = i === STEPS.length - 1
-
-            return (
-              <div key={step.num} className="relative">
-                {/* Connector line */}
-                {!isLast && (
-                  <div
-                    className="absolute left-3.5 top-7 w-px h-full -bottom-1"
-                    style={{ background: status === 'done' ? '#10b981' : '#e2e8f0' }}
-                  />
+        return (
+          <div key={step.num} className="flex items-center flex-shrink-0" style={{ minWidth: 0 }}>
+            {/* Step node */}
+            <div className="flex flex-col items-center" style={{ width: 100 }}>
+              {/* Circle */}
+              <div className={`relative flex items-center justify-center rounded-full transition-all duration-500 ${
+                status === 'done'   ? 'w-9 h-9 bg-emerald-500 shadow-lg shadow-emerald-200' :
+                status === 'active' ? 'w-9 h-9 bg-blue-500 shadow-lg shadow-blue-200' :
+                                     'w-8 h-8 bg-white border-2 border-slate-200'
+              }`}>
+                {status === 'active' && (
+                  <span className="absolute inset-0 rounded-full bg-blue-400 opacity-40 animate-ping" />
                 )}
-                <div className={`flex items-start gap-3 px-3 py-2.5 rounded-xl transition-colors duration-200 ${status === 'active' ? 'bg-blue-50' : status === 'done' ? 'bg-slate-50' : ''}`}>
-                  <StepIcon status={status} />
-                  <div className="flex-1 min-w-0 pt-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-sm font-semibold ${status === 'done' ? 'text-slate-700' : status === 'active' ? 'text-blue-700' : 'text-slate-400'}`}>
-                        {step.label}
-                      </span>
-                      {status === 'active' && (
-                        <span className="text-[10px] font-medium text-blue-500 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5">
-                          LIVE
-                        </span>
-                      )}
-                    </div>
-                    <p className={`text-[11px] mt-0.5 ${status === 'active' ? 'text-blue-500' : 'text-slate-400'}`}>
-                      {step.description}
-                    </p>
-                    {tx && (
-                      <a
-                        href={solscanLink(tx)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 mt-1 text-[10px] text-blue-500 hover:text-blue-700 transition-colors"
-                      >
-                        <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>{shortSig(tx)}</span>
-                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Start button */}
-      {!anyActive && !anyDone && (
-        <button
-          onClick={onStartDemo}
-          className="w-full py-2.5 rounded-xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] transition-all shadow-sm"
-        >
-          Start Demo
-        </button>
-      )}
-      {allDone && (
-        <div className="flex items-center gap-2 px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
-          <svg className="w-4 h-4 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="text-xs font-semibold text-emerald-700">Demo Complete</span>
-        </div>
-      )}
-
-      {/* Connection status */}
-      <div className="mt-4 flex items-center gap-2">
-        <span className={`w-1.5 h-1.5 rounded-full ${state.connected ? 'bg-emerald-400' : 'bg-slate-300'}`} />
-        <span className="text-[11px] text-slate-400">
-          {state.connected ? 'Live — WebSocket connected' : 'Waiting for demo script…'}
-        </span>
-      </div>
-    </div>
-  )
-}
-
-// Wallet state panel
-function WalletState({ wallet, checks }: { wallet: DemoState['wallet']; checks: DemoState['checks'] }) {
-  const hasCredit = wallet.creditUsed > 0
-  const healthFactor = hasCredit && wallet.collateral > 0
-    ? (wallet.balance / wallet.debt)
-    : null
-
-  function healthColor(hf: number | null) {
-    if (hf === null) return 'text-slate-400'
-    if (hf > 1.5) return 'text-emerald-500'
-    if (hf > 1.2) return 'text-amber-500'
-    return 'text-red-500'
-  }
-
-  const checkItems = [
-    { key: 'pdaActive' as const,         label: 'PDA wallet active' },
-    { key: 'venueWhitelisted' as const,  label: 'Venue whitelisted' },
-    { key: 'underTradeLimit' as const,   label: 'Under trade limit' },
-    { key: 'healthOk' as const,          label: 'Health factor OK' },
-    { key: 'dailyLimitOk' as const,      label: 'Daily limit OK' },
-  ]
-
-  return (
-    <div className="flex flex-col gap-4">
-      {/* Wallet metrics */}
-      <div>
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
-          Wallet State
-        </h2>
-        <div className="grid grid-cols-2 gap-2">
-          {[
-            { label: 'Balance', value: fmtUsd(wallet.balance), color: 'text-slate-800' },
-            { label: 'Debt',    value: fmtUsd(wallet.debt),    color: wallet.debt > 0 ? 'text-red-500' : 'text-slate-800' },
-            {
-              label: 'Health',
-              value: healthFactor !== null ? healthFactor.toFixed(2) + '×' : '∞',
-              color: healthColor(healthFactor),
-            },
-            { label: 'Score',   value: String(wallet.score),   color: 'text-blue-600' },
-            { label: 'Level',   value: wallet.level > 0 ? `L${wallet.level}` : '—', color: 'text-slate-800' },
-            { label: 'Collateral', value: fmtUsd(wallet.collateral), color: 'text-slate-800' },
-          ].map(({ label, value, color }) => (
-            <div key={label} className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5">
-              <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide mb-1">{label}</p>
-              <p className={`text-sm font-bold ${color}`} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                {value}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Safety checks */}
-      <div>
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
-          Safety Checks
-        </h2>
-        <div className="flex flex-col gap-1.5">
-          {checkItems.map(({ key, label }) => (
-            <div key={key} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border transition-colors duration-300 ${checks[key] ? 'bg-emerald-50 border-emerald-100' : 'bg-slate-50 border-slate-100'}`}>
-              <span className={`flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center ${checks[key] ? 'bg-emerald-100' : 'bg-slate-100'}`}>
-                {checks[key] ? (
-                  <svg className="w-2.5 h-2.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                {status === 'done' ? (
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
+                ) : status === 'active' ? (
+                  <span className="w-2 h-2 rounded-full bg-white" />
                 ) : (
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                  <span className="text-xs font-bold text-slate-400">{step.num}</span>
                 )}
-              </span>
-              <span className={`text-xs font-medium ${checks[key] ? 'text-emerald-700' : 'text-slate-400'}`}>
-                {label}
-              </span>
+              </div>
+
+              {/* Label */}
+              <div className="mt-2 text-center px-1">
+                <p className={`text-xs font-bold ${
+                  status === 'done' ? 'text-emerald-600' :
+                  status === 'active' ? 'text-blue-600' : 'text-slate-400'
+                }`}>{step.label}</p>
+                <p className="text-[10px] text-slate-400 mt-0.5 leading-tight">{step.plain}</p>
+                {tx && (
+                  <a
+                    href={solscan(tx)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-0.5 mt-1 text-[10px] font-mono text-blue-400 hover:text-blue-600 transition-colors"
+                  >
+                    {shortSig(tx)}
+                    <svg className="w-2 h-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                )}
+              </div>
             </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
 
-// Revenue split panel — the star visual
-function RevenueSplit({ payments, scoreboard }: { payments: DemoState['payments']; scoreboard: DemoState['scoreboard'] }) {
-  const flashRef = useRef(false)
-  const [flash, setFlash] = useState(false)
-
-  // Flash the bar on new payment
-  useEffect(() => {
-    if (payments.lastSplitFlash && !flashRef.current) {
-      flashRef.current = true
-      setFlash(true)
-      const t = setTimeout(() => { setFlash(false); flashRef.current = false }, 800)
-      return () => clearTimeout(t)
-    }
-  }, [payments.lastSplitFlash])
-
-  const { total, lp, fee, agent } = payments
-  const hasPayment = total > 0
-
-  const lpPct   = hasPayment ? (lp / total) * 100 : 30
-  const feePct  = hasPayment ? (fee / total) * 100 : 10
-  const agentPct = hasPayment ? (agent / total) * 100 : 60
-
-  const repaidPct = scoreboard
-    ? Math.min(100, (scoreboard.totalRepaid / scoreboard.creditTaken) * 100)
-    : payments.callCount > 0
-      ? Math.min(100, (payments.lp * payments.callCount / CREDIT_TOTAL) * 100)
-      : 0
-
-  const repaidAmt = scoreboard ? scoreboard.totalRepaid : payments.lp * payments.callCount
-  const totalRev  = scoreboard ? scoreboard.totalRevenue : payments.agent * payments.callCount
-
-  return (
-    <div className="flex flex-col gap-5">
-      {/* Latest payment split */}
-      <div>
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
-          Latest Payment Split
-        </h2>
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-          {/* Amount badge */}
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs text-slate-500 font-medium">Amount received</span>
-            <span className="text-sm font-bold text-slate-800" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-              {fmtUsd(hasPayment ? total : 0.25)} USDC
-            </span>
-          </div>
-
-          {/* Animated split bar */}
-          <div className="relative h-5 rounded-full overflow-hidden bg-slate-200 mb-3">
-            <div className="absolute inset-0 flex rounded-full overflow-hidden">
+            {/* Connector */}
+            {!isLast && (
               <div
-                className="h-full transition-all duration-700 ease-out rounded-l-full"
-                style={{ width: `${lpPct}%`, background: '#10b981' }}
-              />
-              <div
-                className="h-full transition-all duration-700 ease-out"
-                style={{ width: `${feePct}%`, background: '#3b82f6' }}
-              />
-              <div
-                className="h-full transition-all duration-700 ease-out rounded-r-full"
-                style={{ width: `${agentPct}%`, background: '#f1f5f9', border: '0' }}
-              />
-            </div>
-            {/* Shimmer on flash */}
-            {flash && (
-              <div
-                className="absolute inset-0 rounded-full"
+                className="h-0.5 flex-1 mx-1 transition-colors duration-700 mt-[-28px]"
                 style={{
-                  background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%)',
-                  animation: 'shimmer 0.8s ease-out forwards',
+                  minWidth: 16,
+                  background: status === 'done' ? '#10b981' : '#e2e8f0',
                 }}
               />
             )}
           </div>
-
-          {/* Split rows */}
-          <div className="flex flex-col gap-1.5">
-            {[
-              { color: '#10b981', label: 'LP repayment', pct: lpPct,   value: hasPayment ? lp   : 0.075, bg: 'bg-emerald-50', border: 'border-emerald-100', text: 'text-emerald-700' },
-              { color: '#3b82f6', label: 'Protocol fee', pct: feePct,  value: hasPayment ? fee  : 0.025, bg: 'bg-blue-50',    border: 'border-blue-100',    text: 'text-blue-700'   },
-              { color: '#94a3b8', label: 'Agent revenue',pct: agentPct,value: hasPayment ? agent: 0.150, bg: 'bg-slate-50',   border: 'border-slate-200',   text: 'text-slate-700'  },
-            ].map(({ color, label, pct, value, bg, border, text }) => (
-              <div key={label} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg ${bg} border ${border}`}>
-                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
-                <span className="text-xs text-slate-500 flex-1">{label}</span>
-                <span className="text-xs font-semibold text-slate-400">{pct.toFixed(0)}%</span>
-                <span className={`text-xs font-bold ${text}`} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                  {fmtUsd(value, 3)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Repayment progress */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400">
-            Loan Repayment
-          </h2>
-          <span className="text-xs font-semibold text-blue-600">{repaidPct.toFixed(1)}%</span>
-        </div>
-        <div className="relative h-3 bg-slate-100 rounded-full overflow-hidden mb-1.5">
-          <div
-            className="absolute inset-y-0 left-0 rounded-full transition-all duration-700 ease-out"
-            style={{
-              width: `${repaidPct}%`,
-              background: repaidPct >= 100 ? '#10b981' : 'linear-gradient(90deg, #3b82f6, #60a5fa)',
-            }}
-          />
-          {/* Running shimmer when payments active */}
-          {payments.callCount > 0 && repaidPct < 100 && (
-            <div
-              className="absolute inset-0"
-              style={{
-                background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
-                backgroundSize: '200% 100%',
-                animation: 'shimmerLoop 2s linear infinite',
-              }}
-            />
-          )}
-        </div>
-        <div className="flex justify-between text-[11px] text-slate-400">
-          <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>{fmtUsd(repaidAmt)} repaid</span>
-          <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>{fmtUsd(CREDIT_TOTAL)} total</span>
-        </div>
-      </div>
-
-      {/* Revenue counter */}
-      <div className="bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-2xl p-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Total Revenue</p>
-            <p className="text-xl font-bold text-emerald-600" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-              {fmtUsd(totalRev)}
-            </p>
-          </div>
-          <div>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">API Calls</p>
-            <p className="text-xl font-bold text-slate-800" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-              {payments.callCount}
-            </p>
-          </div>
-        </div>
-
-        {/* Moat callout */}
-        {payments.callCount > 0 && (
-          <div className="mt-3 pt-3 border-t border-slate-100">
-            <p className="text-[11px] text-slate-500 leading-relaxed">
-              <span className="font-semibold text-blue-600">Credit bureau moat:</span>{' '}
-              every on-time repayment is recorded on-chain.
-              Competitors can fork the code — not this history.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Final scoreboard — appears after all done */}
-      {scoreboard && <Scoreboard s={scoreboard} />}
+        )
+      })}
     </div>
   )
 }
 
-// Final scoreboard
-function Scoreboard({ s }: { s: NonNullable<DemoState['scoreboard']> }) {
-  const fullyRepaid = s.remainingDebt <= 0
-  return (
-    <div className={`rounded-2xl border p-4 transition-all duration-500 ${fullyRepaid ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
-      <div className="flex items-center gap-2 mb-3">
-        {fullyRepaid ? (
-          <>
-            <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="text-sm font-bold text-emerald-700">Loan Fully Repaid — Score Increases</span>
-          </>
-        ) : (
-          <>
-            <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="text-sm font-bold text-amber-700">Repayment In Progress</span>
-          </>
-        )}
+// ─── Activity feed ────────────────────────────────────────────────────────
+
+function ActivityFeed({ log, runState }: { log: LogEntry[]; runState: DemoState['runState'] }) {
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [log.length])
+
+  if (log.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full py-12 text-center px-6">
+        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+          <svg className="w-6 h-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+          </svg>
+        </div>
+        <p className="text-sm font-semibold text-slate-500">Events will appear here</p>
+        <p className="text-xs text-slate-400 mt-1">
+          {runState === 'idle' ? 'Click Start Demo to begin' : 'Waiting for first event…'}
+        </p>
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        {[
-          { label: 'Revenue earned',  value: fmtUsd(s.totalRevenue),  color: 'text-emerald-700' },
-          { label: 'Credit taken',    value: fmtUsd(s.creditTaken),   color: 'text-slate-700'  },
-          { label: 'Total repaid',    value: fmtUsd(s.totalRepaid),   color: 'text-blue-700'   },
-          { label: 'Platform fees',   value: fmtUsd(s.totalPlatform), color: 'text-slate-600'  },
-        ].map(({ label, value, color }) => (
-          <div key={label}>
-            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wide mb-0.5">{label}</p>
-            <p className={`text-sm font-bold ${color}`} style={{ fontFamily: 'JetBrains Mono, monospace' }}>{value}</p>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-2 py-2">
+      {log.map((entry) => (
+        <div
+          key={entry.id}
+          className={`flex items-start gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
+            entry.type === 'complete' ? 'bg-emerald-50 border border-emerald-100' :
+            entry.type === 'payment'  ? 'bg-blue-50 border border-blue-100' :
+            entry.type === 'success'  ? 'bg-slate-50 border border-slate-100' :
+                                       'bg-white border border-slate-100'
+          }`}
+        >
+          {/* Icon */}
+          <span className="flex-shrink-0 mt-0.5 text-base">
+            {entry.type === 'complete' ? '🎉' :
+             entry.type === 'payment'  ? '💰' :
+             entry.type === 'success'  ? '✅' : '⏳'}
+          </span>
+
+          <div className="flex-1 min-w-0">
+            <p className={`text-sm font-semibold leading-snug ${
+              entry.type === 'complete' ? 'text-emerald-700' :
+              entry.type === 'payment'  ? 'text-blue-700' :
+              entry.type === 'success'  ? 'text-slate-700' : 'text-slate-600'
+            }`}>{entry.text}</p>
+
+            {entry.sub && (
+              <p className="text-xs text-slate-400 mt-0.5">{entry.sub}</p>
+            )}
+
+            {entry.tx && (
+              <a
+                href={solscan(entry.tx)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 mt-1 text-[11px] font-mono text-blue-500 hover:text-blue-700 transition-colors"
+              >
+                View on Solscan: {shortSig(entry.tx)}
+                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            )}
+          </div>
+        </div>
+      ))}
+      <div ref={bottomRef} />
+    </div>
+  )
+}
+
+// ─── Live metrics ─────────────────────────────────────────────────────────
+
+function LiveMetrics({ wallet, payments, scoreboard }: {
+  wallet: DemoState['wallet']
+  payments: DemoState['payments']
+  scoreboard: DemoState['scoreboard']
+}) {
+  const earned = payments.agent * payments.callCount
+  const repaid = payments.lp * payments.callCount
+  const creditTotal = 50
+  const repaidPct = Math.min(100, scoreboard
+    ? (scoreboard.totalRepaid / creditTotal) * 100
+    : (repaid / creditTotal) * 100
+  )
+
+  const metrics = [
+    {
+      label: 'Credit Line',
+      value: wallet.creditUsed > 0 ? fmtUsd(wallet.creditUsed) : '—',
+      sub: 'zero-collateral',
+      color: '#3b82f6',
+      bg: '#eff6ff',
+    },
+    {
+      label: 'API Revenue',
+      value: earned > 0 ? fmtUsd(earned) : '—',
+      sub: `${payments.callCount} API calls`,
+      color: '#10b981',
+      bg: '#f0fdf4',
+    },
+    {
+      label: 'Credit Score',
+      value: wallet.score > 0 ? String(wallet.score) : '—',
+      sub: wallet.level > 0 ? `Level ${wallet.level}` : 'unrated',
+      color: '#8b5cf6',
+      bg: '#faf5ff',
+    },
+    {
+      label: 'Debt',
+      value: wallet.debt > 0 ? fmtUsd(wallet.debt) : fmtUsd(0),
+      sub: wallet.debt <= 0 && repaid > 0 ? '✓ fully repaid' : 'outstanding',
+      color: wallet.debt <= 0 && repaid > 0 ? '#10b981' : wallet.debt > 0 ? '#ef4444' : '#94a3b8',
+      bg: wallet.debt <= 0 && repaid > 0 ? '#f0fdf4' : '#fff',
+    },
+  ]
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Metric cards */}
+      <div className="grid grid-cols-2 gap-3">
+        {metrics.map(({ label, value, sub, color, bg }) => (
+          <div
+            key={label}
+            className="rounded-2xl border p-4 transition-all duration-500"
+            style={{ background: bg, borderColor: `${color}20` }}
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: `${color}99` }}>
+              {label}
+            </p>
+            <p className="text-xl font-bold font-mono leading-none" style={{ color }}>
+              {value}
+            </p>
+            <p className="text-[11px] mt-1" style={{ color: `${color}80` }}>{sub}</p>
           </div>
         ))}
       </div>
+
+      {/* Repayment progress bar */}
+      {(payments.callCount > 0 || scoreboard) && (
+        <div className="rounded-2xl border border-slate-100 bg-white p-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold text-slate-600">Loan Repayment Progress</p>
+            <p className={`text-xs font-bold ${repaidPct >= 100 ? 'text-emerald-600' : 'text-blue-600'}`}>
+              {repaidPct.toFixed(0)}%
+            </p>
+          </div>
+          <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-700 ease-out"
+              style={{
+                width: `${repaidPct}%`,
+                background: repaidPct >= 100
+                  ? 'linear-gradient(90deg, #10b981, #34d399)'
+                  : 'linear-gradient(90deg, #3b82f6, #60a5fa)',
+              }}
+            />
+          </div>
+          <div className="flex justify-between mt-1.5 text-[11px] font-mono text-slate-400">
+            <span>{fmtUsd(repaid)} repaid</span>
+            <span>{fmtUsd(creditTotal)} total</span>
+          </div>
+        </div>
+      )}
+
+      {/* How the split works */}
+      {payments.callCount > 0 && (
+        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+          <p className="text-xs font-semibold text-slate-500 mb-2.5">Per-call split (${payments.total.toFixed(2)} USDC)</p>
+          {[
+            { label: 'LP repayment', value: payments.lp,    color: '#10b981', pct: (payments.lp / payments.total) * 100 },
+            { label: 'Protocol fee', value: payments.fee,   color: '#3b82f6', pct: (payments.fee / payments.total) * 100 },
+            { label: 'Agent keeps',  value: payments.agent, color: '#8b5cf6', pct: (payments.agent / payments.total) * 100 },
+          ].map(({ label, value, color, pct }) => (
+            <div key={label} className="flex items-center gap-2 mb-1.5 last:mb-0">
+              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
+              <p className="text-xs text-slate-500 flex-1">{label}</p>
+              <p className="text-xs font-mono font-semibold" style={{ color }}>{fmtUsd(value, 3)}</p>
+              <p className="text-[10px] text-slate-400 w-8 text-right">{pct.toFixed(0)}%</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
-// Connection overlay
-function ConnectionOverlay() {
-  return (
-    <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-2xl z-10">
-      <div className="text-center px-4">
-        <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-blue-500 animate-spin mx-auto mb-3" />
-        <p className="text-sm font-semibold text-slate-700 mb-1">Connecting to demo server…</p>
-        <p className="text-xs text-slate-400">Click <span className="font-semibold text-blue-600">Start Demo</span> once connected to trigger a live run</p>
-      </div>
-    </div>
-  )
-}
-
-// ─── Main page ───────────────────────────────────────────────────────────────
+// ─── Main page ─────────────────────────────────────────────────────────────
 
 export default function DemoPage() {
   const [state, setState] = useState<DemoState>(INITIAL_STATE)
@@ -531,102 +365,70 @@ export default function DemoPage() {
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
-
     try {
       const ws = new WebSocket(WS_URL)
       wsRef.current = ws
-
-      ws.onopen = () => {
-        setState(s => ({ ...s, connected: true }))
-      }
-
-      ws.onmessage = (ev: MessageEvent<string>) => {
-        try {
-          const msg = JSON.parse(ev.data) as WsEvent
-          handleEvent(msg)
-        } catch {
-          // ignore malformed
-        }
-      }
-
+      ws.onopen  = () => setState(s => ({ ...s, connected: true }))
       ws.onclose = () => {
         setState(s => ({ ...s, connected: false }))
-        reconnectRef.current = setTimeout(connect, 2000)
+        reconnectRef.current = setTimeout(connect, 3000)
       }
-
-      ws.onerror = () => {
-        ws.close()
+      ws.onerror = () => ws.close()
+      ws.onmessage = (ev: MessageEvent<string>) => {
+        try { handleEvent(JSON.parse(ev.data) as WsEvent) } catch { /* ignore */ }
       }
     } catch {
       reconnectRef.current = setTimeout(connect, 3000)
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, []) // eslint-disable-line
+
+  function addLog(entry: LogEntry) {
+    setState(s => ({ ...s, log: [...s.log, entry] }))
+  }
 
   function handleEvent(msg: WsEvent) {
     switch (msg.event) {
-      case 'step_active':
-        setState(s => ({
-          ...s,
-          steps: { ...s.steps, [msg.data.step]: 'active' },
-        }))
+      case 'step_active': {
+        const info = STEP_LOG[msg.data.step]
+        setState(s => ({ ...s, steps: { ...s.steps, [msg.data.step]: 'active' } }))
+        addLog(mkLog(info.active, 'info', info.sub))
         break
-
-      case 'step_complete':
+      }
+      case 'step_complete': {
+        const info = STEP_LOG[msg.data.step]
         setState(s => ({
           ...s,
           steps: { ...s.steps, [msg.data.step]: 'done' },
           txs: { ...s.txs, [msg.data.step]: msg.data.tx },
-          // Mark relevant safety checks as passed based on step
-          checks: {
-            ...s.checks,
-            ...(msg.data.step >= 3 ? { pdaActive: true } : {}),
-            ...(msg.data.step >= 3 ? { venueWhitelisted: true } : {}),
-            ...(msg.data.step >= 3 ? { underTradeLimit: true } : {}),
-            ...(msg.data.step >= 4 ? { healthOk: true } : {}),
-            ...(msg.data.step >= 4 ? { dailyLimitOk: true } : {}),
-          },
         }))
-        break
-
-      case 'wallet_state':
-        setState(s => ({ ...s, wallet: msg.data }))
-        break
-
-      case 'safety_check':
-        setState(s => ({
-          ...s,
-          checks: { ...s.checks, [msg.data.check]: msg.data.passed },
-        }))
-        break
-
-      case 'payment_split': {
-        const d = msg.data
-        setState(s => ({
-          ...s,
-          payments: {
-            total: d.total,
-            lp: d.lp,
-            fee: d.fee,
-            agent: d.agent,
-            callCount: d.callCount,
-            lastSplitFlash: true,
-          },
-        }))
-        // Clear flash after a tick
-        setTimeout(() => {
-          setState(s => ({ ...s, payments: { ...s.payments, lastSplitFlash: false } }))
-        }, 100)
+        addLog(mkLog(info.done, 'success', info.sub, msg.data.tx))
         break
       }
-
-      case 'demo_complete':
-        setState(s => ({ ...s, scoreboard: msg.data.scoreboard }))
+      case 'wallet_state':
+        setState(s => ({ ...s, wallet: { ...msg.data } }))
         break
-
+      case 'payment_split': {
+        const d = msg.data
+        setState(s => ({ ...s, payments: { total: d.total, lp: d.lp, fee: d.fee, agent: d.agent, callCount: d.callCount } }))
+        addLog(mkLog(
+          `Payment #${d.callCount}: ${fmtUsd(d.total)} received`,
+          'payment',
+          `LP: ${fmtUsd(d.lp, 3)} | Fee: ${fmtUsd(d.fee, 3)} | Agent keeps: ${fmtUsd(d.agent, 3)}`,
+        ))
+        break
+      }
+      case 'demo_complete':
+        setState(s => ({ ...s, scoreboard: msg.data.scoreboard, runState: 'done' }))
+        addLog(mkLog(
+          '🎉 Demo complete — loan fully repaid, credit score increased',
+          'complete',
+          'Every step above is a real on-chain transaction on Solana devnet',
+        ))
+        break
       case 'demo_status':
-        // When a new run starts, reset all step/payment state
         if (msg.data.status === 'running') {
-          setState(_s => ({ ...INITIAL_STATE, connected: true }))
+          _logId = 0
+          setState({ ...INITIAL_STATE, connected: true, runState: 'running' })
         }
         break
     }
@@ -643,50 +445,52 @@ export default function DemoPage() {
   async function handleStartDemo() {
     try {
       const res = await fetch(`${API_URL}/trigger`, { method: 'POST' })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        console.error('Trigger failed:', body)
-      }
+      if (!res.ok) console.error('Trigger failed:', await res.json().catch(() => ({})))
     } catch (err) {
       console.error('Could not reach demo server:', err)
     }
   }
 
-  const showOverlay = !state.connected && !Object.values(state.steps).includes('done')
+  const doneCount = STEPS.filter(s => state.steps[s.num] === 'done').length
+  const isRunning = state.runState === 'running'
+  const isDone    = state.runState === 'done'
 
   return (
     <>
-      {/* Inline keyframes for shimmer effects */}
       <style>{`
-        @keyframes shimmerLoop {
-          0%   { background-position: -200% center; }
-          100% { background-position:  200% center; }
-        }
-        @keyframes shimmer {
-          0%   { transform: translateX(-100%); opacity: 1; }
-          100% { transform: translateX(200%);  opacity: 0; }
-        }
         .demo-page * { box-sizing: border-box; }
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .log-enter { animation: fadeSlideUp 0.3s ease-out both; }
       `}</style>
 
       <div
         className="demo-page min-h-screen flex flex-col"
-        style={{ background: '#ffffff', color: '#0f172a', fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif' }}
+        style={{
+          background: '#f8fafc',
+          color: '#0f172a',
+          fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+        }}
       >
         {/* ── Header ── */}
         <header
-          className="flex items-center justify-between px-6 py-4 border-b"
-          style={{ borderColor: '#e2e8f0', background: '#ffffff' }}
+          className="flex items-center justify-between px-5 py-3.5 border-b bg-white"
+          style={{ borderColor: '#e2e8f0' }}
         >
-          <div className="flex items-center gap-3">
-            <Logo width={28} height={28} className="[&_rect]:fill-black [&_path]:stroke-white [&_line]:stroke-white" />
-            <span className="text-base font-bold text-slate-900 tracking-tight">KREXA</span>
-            <span className="hidden sm:block text-slate-300 text-sm">|</span>
-            <span className="hidden sm:block text-sm font-medium text-slate-500">
-              Live Demo — Agent Credit Lifecycle
-            </span>
+          <div className="flex items-center gap-2.5">
+            <span className="text-lg font-black tracking-tight text-slate-900">KREXA</span>
+            <span className="text-slate-200 hidden sm:block">|</span>
+            <span className="hidden sm:block text-sm text-slate-400 font-medium">Live Agent Credit Demo</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <span className={`w-1.5 h-1.5 rounded-full transition-colors ${state.connected ? 'bg-emerald-400' : 'bg-slate-300'}`} />
+              <span className="text-xs text-slate-400 hidden sm:block">
+                {state.connected ? 'Connected' : 'Connecting…'}
+              </span>
+            </div>
             <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 bg-slate-100 border border-slate-200 rounded-full px-3 py-1">
               <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
               Solana Devnet
@@ -694,53 +498,125 @@ export default function DemoPage() {
           </div>
         </header>
 
-        {/* ── Main 3-col grid ── */}
-        <main className="flex-1 p-4 md:p-6">
-          <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 items-start">
+        {/* ── Hero ── */}
+        <div className="bg-white border-b" style={{ borderColor: '#e2e8f0' }}>
+          <div className="max-w-5xl mx-auto px-5 py-8 md:py-10">
+            <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-10">
+              <div className="flex-1">
+                <div className="inline-flex items-center gap-2 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-100 rounded-full px-3 py-1 mb-4">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                  Every transaction is real — verifiable on Solscan
+                </div>
+                <h1 className="text-2xl md:text-3xl font-black text-slate-900 leading-tight mb-2">
+                  An AI agent borrows $50,<br className="hidden sm:block" /> earns revenue, and repays it.
+                </h1>
+                <p className="text-base text-slate-500 leading-relaxed max-w-lg">
+                  Watch Krexa's full credit lifecycle happen live on Solana devnet — from on-chain identity to zero-collateral credit to automatic loan repayment.
+                </p>
+              </div>
 
-            {/* Column 1 — Step tracker */}
-            <div
-              className="relative rounded-2xl border p-5"
-              style={{ background: '#ffffff', borderColor: '#e2e8f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
-            >
-              <StepTracker state={state} onStartDemo={handleStartDemo} />
-              {showOverlay && <ConnectionOverlay />}
+              {/* CTA */}
+              <div className="flex flex-col items-start md:items-center gap-3 flex-shrink-0">
+                {!isRunning && !isDone && (
+                  <button
+                    onClick={handleStartDemo}
+                    disabled={!state.connected}
+                    className="flex items-center gap-2.5 px-7 py-3.5 rounded-2xl text-base font-bold text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
+                    style={{
+                      background: state.connected
+                        ? 'linear-gradient(135deg, #2563eb, #7c3aed)'
+                        : '#94a3b8',
+                      boxShadow: state.connected ? '0 4px 24px rgba(37,99,235,0.35)' : 'none',
+                    }}
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                    </svg>
+                    {state.connected ? 'Start Demo' : 'Connecting…'}
+                  </button>
+                )}
+                {isRunning && (
+                  <div className="flex items-center gap-2.5 px-7 py-3.5 rounded-2xl bg-blue-50 border border-blue-200">
+                    <div className="w-4 h-4 rounded-full border-2 border-blue-300 border-t-blue-600 animate-spin" />
+                    <span className="text-sm font-bold text-blue-700">Demo running live…</span>
+                  </div>
+                )}
+                {isDone && (
+                  <button
+                    onClick={handleStartDemo}
+                    className="flex items-center gap-2 px-7 py-3.5 rounded-2xl text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Run Again
+                  </button>
+                )}
+                <p className="text-xs text-slate-400 text-center">
+                  {doneCount} / 6 steps complete
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Step Timeline ── */}
+        <div className="bg-white border-b" style={{ borderColor: '#e2e8f0' }}>
+          <div className="max-w-5xl mx-auto px-5 py-5">
+            <StepTimeline steps={state.steps} txs={state.txs} />
+          </div>
+        </div>
+
+        {/* ── Main content — Activity + Metrics ── */}
+        <main className="flex-1 max-w-5xl mx-auto w-full px-4 md:px-5 py-5">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+
+            {/* Activity feed — left, wider */}
+            <div className="md:col-span-3 flex flex-col">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">What's happening</h2>
+                {isRunning && (
+                  <span className="flex items-center gap-1.5 text-[11px] font-semibold text-blue-500">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                    LIVE
+                  </span>
+                )}
+              </div>
+              <div
+                className="rounded-2xl border bg-white overflow-y-auto flex-1"
+                style={{ borderColor: '#e2e8f0', minHeight: 320, maxHeight: 480 }}
+              >
+                <ActivityFeed log={state.log} runState={state.runState} />
+              </div>
             </div>
 
-            {/* Column 2 — Wallet state + safety checks */}
-            <div
-              className="relative rounded-2xl border p-5"
-              style={{ background: '#ffffff', borderColor: '#e2e8f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
-            >
-              <WalletState wallet={state.wallet} checks={state.checks} />
-              {showOverlay && <ConnectionOverlay />}
-            </div>
-
-            {/* Column 3 — Revenue split */}
-            <div
-              className="relative rounded-2xl border p-5"
-              style={{ background: '#ffffff', borderColor: '#e2e8f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
-            >
-              <RevenueSplit payments={state.payments} scoreboard={state.scoreboard} />
+            {/* Metrics — right */}
+            <div className="md:col-span-2 flex flex-col">
+              <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Live Metrics</h2>
+              <LiveMetrics wallet={state.wallet} payments={state.payments} scoreboard={state.scoreboard} />
             </div>
 
           </div>
 
-          {/* ── Sub-header / explainer strip ── */}
-          <div className="max-w-6xl mx-auto mt-4">
-            <div
-              className="rounded-xl border px-5 py-3 flex flex-wrap items-center gap-x-6 gap-y-2"
-              style={{ background: '#f8fafc', borderColor: '#e2e8f0' }}
-            >
+          {/* ── How it works strip ── */}
+          <div
+            className="mt-4 rounded-2xl border px-5 py-4 bg-white"
+            style={{ borderColor: '#e2e8f0' }}
+          >
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">How it works</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
-                { icon: '①', text: 'Agent registers on-chain, gets KYA Tier 1' },
-                { icon: '②', text: 'Zero-collateral $50 credit extended by vault' },
-                { icon: '③', text: 'Deploys research API, charges $0.25 via x402' },
-                { icon: '④', text: 'PaymentRouter auto-splits every call on-chain' },
-              ].map(({ icon, text }) => (
-                <div key={icon} className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-blue-500">{icon}</span>
-                  <span className="text-xs text-slate-500">{text}</span>
+                { n: '①', title: 'On-chain identity',      text: 'Agent registers with KYA verification — fully automated, no human review' },
+                { n: '②', title: 'Zero-collateral credit', text: 'Credit vault extends $50 based on KYA score alone — no locked assets' },
+                { n: '③', title: 'Revenue via x402',       text: 'Agent deploys a paid research API and earns $0.25 per call' },
+                { n: '④', title: 'Automatic repayment',    text: 'PaymentRouter splits every call — LP repayment happens on-chain in real time' },
+              ].map(({ n, title, text }) => (
+                <div key={n} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50">
+                  <span className="text-sm font-bold text-blue-500 flex-shrink-0 mt-0.5">{n}</span>
+                  <div>
+                    <p className="text-xs font-bold text-slate-700">{title}</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">{text}</p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -749,16 +625,12 @@ export default function DemoPage() {
 
         {/* ── Footer ── */}
         <footer
-          className="flex items-center justify-between px-6 py-3 border-t text-xs text-slate-400"
-          style={{ borderColor: '#e2e8f0', background: '#f8fafc' }}
+          className="flex items-center justify-between px-5 py-3 border-t text-xs text-slate-400 bg-white"
+          style={{ borderColor: '#e2e8f0' }}
         >
-          <span>Every transaction is real and verifiable on Solscan</span>
-          <a
-            href="https://krexa.xyz"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-semibold text-blue-500 hover:text-blue-700 transition-colors"
-          >
+          <span>All transactions verifiable on Solscan (devnet)</span>
+          <a href="https://krexa.xyz" target="_blank" rel="noopener noreferrer"
+            className="font-semibold text-blue-500 hover:text-blue-700 transition-colors">
             krexa.xyz
           </a>
         </footer>
