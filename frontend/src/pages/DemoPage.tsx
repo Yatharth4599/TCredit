@@ -65,8 +65,8 @@ type WsEvent =
 
 // ─── Env ────────────────────────────────────────────────────────────────────
 
-const WS_URL  = import.meta.env.VITE_WS_URL  ?? 'ws://localhost:3002'
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3002'
+const WS_URL  = import.meta.env.VITE_DEMO_WS_URL  ?? 'ws://localhost:3002'
+const API_URL = import.meta.env.VITE_DEMO_API_URL ?? 'http://localhost:3002'
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 
