@@ -247,6 +247,27 @@
     margin-top: 12px;
 }
 
+.demoBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    background: transparent;
+    color: #2563EB;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 9999px;
+    border: 1px solid #BFDBFE;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    font-family: 'Inter', sans-serif;
+}
+
+.demoBtn:hover {
+    background: #EFF6FF;
+    border-color: #93C5FD;
+}
+
 .techBadges {
     display: flex;
     align-items: center;

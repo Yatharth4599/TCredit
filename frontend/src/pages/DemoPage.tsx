@@ -332,6 +332,7 @@ export default function DemoPage() {
   const [st, setSt] = useState<DemoState>(INITIAL)
   const wsRef = useRef<WebSocket | null>(null)
   const rcRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const feedRef = useRef<HTMLDivElement>(null)
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
@@ -383,8 +384,14 @@ export default function DemoPage() {
   useEffect(() => { connect(); return () => { if (rcRef.current) clearTimeout(rcRef.current); wsRef.current?.close() } }, [connect])
 
   async function start() {
-    try { const r = await fetch(`${API_URL}/trigger`, { method: 'POST' }); if (!r.ok) console.error('Trigger failed') }
-    catch (e) { console.error('Could not reach demo server:', e) }
+    try {
+      const r = await fetch(`${API_URL}/trigger`, { method: 'POST' })
+      if (!r.ok) console.error('Trigger failed')
+      // Scroll to the activity feed, not the bottom of the page
+      setTimeout(() => {
+        feedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 300)
+    } catch (e) { console.error('Could not reach demo server:', e) }
   }
 
   const done = STEPS.filter(x => st.steps[x.num] === 'done').length
@@ -456,7 +463,7 @@ export default function DemoPage() {
       <Timeline steps={st.steps} txs={st.txs} />
 
       {/* Main — feed + metrics */}
-      <div className={s.main}>
+      <div className={s.main} ref={feedRef}>
         <div className={s.feedSection}>
           <h3>
             What's happening
