@@ -59,3 +59,6 @@ solana-programs/target/
 .claude/
 .agents/
 skills-lock.json
+
+# Playwright MCP screenshots (dev tool artifacts)
+.playwright-mcp/
