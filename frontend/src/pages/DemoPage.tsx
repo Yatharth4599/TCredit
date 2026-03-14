@@ -247,6 +247,85 @@ function Metrics({ wallet, payments, scoreboard }: {
   )
 }
 
+// ─── On-Chain Proof ────────────────────────────────────────────────────────
+
+const PROGRAMS = [
+  { name: 'krexa-agent-registry',  desc: 'Agent identity & KYA tiers',         addr: 'ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG', icon: '🆔', cls: 'registry' },
+  { name: 'krexa-credit-vault',    desc: 'Zero-collateral credit underwriting', addr: '26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N', icon: '🏦', cls: 'vault'    },
+  { name: 'krexa-agent-wallet',    desc: 'Smart wallets with spend controls',   addr: '35t8yWLsUZNTLT71ej7DF59P81HrtZTx2uZeMhwuhhf6', icon: '👛', cls: 'wallet'   },
+  { name: 'krexa-venue-whitelist', desc: 'Approved venue registry',             addr: 'HyWQrHG14Sw6KpKYSMiBDmVj5u7PXfLWvim6FHbBLmua', icon: '✅', cls: 'venue'    },
+  { name: 'krexa-payment-router',  desc: 'Automatic revenue split per call',    addr: '2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8', icon: '🔀', cls: 'router'   },
+]
+
+const TX_LABELS: Record<number, string> = {
+  1: 'Register Agent',
+  2: 'KYA Verification',
+  3: 'Create Wallet',
+  4: 'Extend Credit',
+  5: 'API Payments',
+  6: 'Full Repayment',
+}
+
+function progScan(addr: string) { return `https://solscan.io/account/${addr}?cluster=devnet` }
+
+function OnChainProof({ txs }: { txs: DemoState['txs'] }) {
+  const txEntries = Object.entries(txs).map(([k, v]) => ({ step: Number(k), tx: v }))
+
+  return (
+    <div className={s.proofSection}>
+      <div className={s.proofHeader}>
+        <p className={s.proofTitle}>On-chain proof</p>
+        <span className={s.proofBadge}>
+          <span className={s.proofBadgeDot} />
+          5 programs deployed
+        </span>
+      </div>
+
+      <div className={s.proofCard}>
+        <div className={s.proofCardHeader}>
+          <div>
+            <p className={s.proofCardTitle}>Deployed Solana Programs</p>
+            <p className={s.proofCardSub}>Click any address to verify on Solscan</p>
+          </div>
+        </div>
+
+        <div className={s.proofPrograms}>
+          {PROGRAMS.map((p) => (
+            <div key={p.addr} className={s.proofRow}>
+              <div className={`${s.proofIcon} ${s[p.cls]}`}>{p.icon}</div>
+              <div className={s.proofInfo}>
+                <p className={s.proofName}>{p.name}</p>
+                <p className={s.proofDesc}>{p.desc}</p>
+              </div>
+              <a href={progScan(p.addr)} target="_blank" rel="noopener noreferrer" className={s.proofAddr}>
+                {sig(p.addr)} <ExtIcon className={s.proofAddrIcon} />
+              </a>
+            </div>
+          ))}
+        </div>
+
+        {/* Demo transactions */}
+        <div className={s.proofTxSection}>
+          <p className={s.proofTxTitle}>Demo Transactions</p>
+          {txEntries.length > 0 ? (
+            <div className={s.proofTxGrid}>
+              {txEntries.map(({ step, tx }) => (
+                <a key={step} href={scan(tx)} target="_blank" rel="noopener noreferrer" className={s.proofTxItem}>
+                  <span className={s.proofTxStep}>{TX_LABELS[step]}</span>
+                  <span className={s.proofTxHash}>{sig(tx)}</span>
+                  <ExtIcon className={s.proofTxIcon} />
+                </a>
+              ))}
+            </div>
+          ) : (
+            <p className={s.proofTxEmpty}>Run the demo to generate transaction signatures</p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main ──────────────────────────────────────────────────────────────────
 
 export default function DemoPage() {
@@ -412,6 +491,9 @@ export default function DemoPage() {
           ))}
         </div>
       </div>
+
+      {/* On-chain proof */}
+      <OnChainProof txs={st.txs} />
 
       {/* Footer */}
       <footer className={s.footer}>
