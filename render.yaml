@@ -1,5 +1,41 @@
 services:
   - type: web
+    name: krexa-demo-server
+    runtime: node
+    rootDir: demo
+    buildCommand: npm install
+    startCommand: npm run server
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3002
+      - key: SOLANA_RPC_URL
+        value: https://api.devnet.solana.com
+      - key: SOLANA_USDC_MINT
+        value: H2SYsnzdRXrXpHpcDkedARksoxiQLGXjtAvkJg158ETP
+      - key: REGISTRY_PROGRAM_ID
+        value: ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG
+      - key: VAULT_PROGRAM_ID
+        value: 26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N
+      - key: WALLET_PROGRAM_ID
+        value: 35t8yWLsUZNTLT71ej7DF59P81HrtZTx2uZeMhwuhhf6
+      - key: ROUTER_PROGRAM_ID
+        value: 2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8
+      - key: PLATFORM_TREASURY
+        value: 5v86BdV1SS23TKdsp9tdVcm8sGj1UdhefxnJGTgJeWBi
+      # Keypairs stored as base64(JSON array) — set via Render dashboard
+      - key: AGENT_KEYPAIR
+        sync: false
+      - key: OWNER_KEYPAIR
+        sync: false
+      - key: ORACLE_KEYPAIR
+        sync: false
+      - key: CUSTOMER_KEYPAIR
+        sync: false
+
+  - type: web
     name: krexa-backend
     runtime: node
     rootDir: backend
