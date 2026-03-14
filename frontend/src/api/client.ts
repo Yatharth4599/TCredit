@@ -30,7 +30,7 @@ import type {
   PolymarketStats,
 } from './types'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://tcredit-backend.onrender.com/api'
 
 export const api = axios.create({
   baseURL: BASE_URL,
