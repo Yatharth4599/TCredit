@@ -36,7 +36,7 @@ services:
         sync: false
 
   - type: web
-    name: krexa-backend
+    name: tcredit-backend
     runtime: node
     rootDir: backend
     buildCommand: npm install && npm run build

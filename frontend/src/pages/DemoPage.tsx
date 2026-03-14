@@ -1,8 +1,8 @@
 /**
  * DemoPage — /demo
  *
- * Story-driven live demo. Matches LandingPage design system.
- * CSS Modules for proper alignment + responsive layout.
+ * Story-driven live demo with narrative UI.
+ * Tells the Krexa hackathon story step by step.
  */
 import { useEffect, useRef, useState, useCallback } from 'react'
 import s from './DemoPage.module.css'
@@ -55,12 +55,12 @@ const STEPS: StepInfo[] = [
 ]
 
 const STEP_LOG: Record<number, { active: string; done: string; sub: string }> = {
-  1: { active: 'Registering agent on-chain…',      done: 'Agent identity created on Solana',          sub: 'krexa-agent-registry' },
-  2: { active: 'Running KYA verification…',         done: 'KYA Tier 1 passed — agent is trusted',      sub: 'Automated compliance check' },
-  3: { active: 'Initializing smart wallet…',        done: 'PDA wallet live with spending controls',    sub: 'Per-trade and daily limits' },
-  4: { active: 'Requesting $50 credit line…',       done: '$50 zero-collateral credit extended',       sub: 'Underwritten by vault' },
-  5: { active: 'Agent making paid API calls…',      done: '10 × $0.25 API calls completed',            sub: 'PaymentRouter auto-splits' },
-  6: { active: 'Repaying loan from earnings…',      done: 'Loan fully repaid — score increased',       sub: 'On-chain credit history' },
+  1: { active: 'Registering agent on-chain\u2026',      done: 'Agent identity created on Solana',          sub: 'krexa-agent-registry' },
+  2: { active: 'Running KYA verification\u2026',         done: 'KYA Tier 1 passed \u2014 agent is trusted',      sub: 'Automated compliance check' },
+  3: { active: 'Initializing smart wallet\u2026',        done: 'PDA wallet live with spending controls',    sub: 'Per-trade and daily limits' },
+  4: { active: 'Requesting $50 credit line\u2026',       done: '$50 zero-collateral credit extended',       sub: 'Underwritten by vault' },
+  5: { active: 'Agent making paid API calls\u2026',      done: '10 \u00d7 $0.25 API calls completed',            sub: 'PaymentRouter auto-splits' },
+  6: { active: 'Repaying loan from earnings\u2026',      done: 'Loan fully repaid \u2014 score increased',       sub: 'On-chain credit history' },
 }
 
 const INITIAL: DemoState = {
@@ -77,10 +77,69 @@ const mkLog = (text: string, type: LogEntry['type'], sub?: string, tx?: string):
   ({ id: ++_id, text, sub, tx, type })
 
 const usd = (n: number, d = 2) => `$${n.toFixed(d)}`
-const sig = (s: string) => `${s.slice(0, 6)}…${s.slice(-4)}`
+const sig = (s: string) => `${s.slice(0, 6)}\u2026${s.slice(-4)}`
 const scan = (s: string) => `https://solscan.io/tx/${s}?cluster=devnet`
 
-// ─── External link icon (shared) ───────────────────────────────────────────
+// ─── Story Data ─────────────────────────────────────────────────────────────
+
+const STORY_CHAPTERS = [
+  {
+    num: 1,
+    icon: '\uD83E\uDD16',
+    title: 'Meet the Agent',
+    headline: 'An AI agent needs to work, but has no money.',
+    body: 'A newly created AI agent wants to offer a paid research API. But to operate on-chain, it first needs an identity \u2014 a verifiable on-chain registration that proves it exists and can be trusted.',
+    what: 'The agent registers on the Krexa Agent Registry \u2014 a Solana program that creates a unique on-chain identity with metadata, owner keys, and a trust tier.',
+    program: 'krexa-agent-registry',
+  },
+  {
+    num: 2,
+    icon: '\uD83D\uDD0D',
+    title: 'Trust Verification',
+    headline: 'Can this agent be trusted with money?',
+    body: 'Before anyone lends money to an AI, its capabilities and safety need to be verified. Krexa runs an automated Know-Your-Agent (KYA) check \u2014 the AI equivalent of a bank\'s KYC process.',
+    what: 'The oracle verifies the agent\'s code, behavior patterns, and safety guarantees. It passes KYA Tier 1, unlocking access to credit.',
+    program: 'krexa-agent-registry',
+  },
+  {
+    num: 3,
+    icon: '\uD83D\uDC5B',
+    title: 'Smart Wallet',
+    headline: 'The agent gets a bank account \u2014 with guardrails.',
+    body: 'A PDA-based smart wallet is created for the agent. Unlike a regular wallet, this one has built-in spending controls: per-transaction limits, daily caps, and only approved venues can receive payments.',
+    what: 'The Krexa Agent Wallet program creates a Program Derived Address (PDA) wallet with configurable spend limits and venue whitelisting.',
+    program: 'krexa-agent-wallet',
+  },
+  {
+    num: 4,
+    icon: '\uD83D\uDCB0',
+    title: 'Zero-Collateral Credit',
+    headline: 'The agent borrows $50 \u2014 with nothing locked up.',
+    body: 'This is the breakthrough. Traditional DeFi requires 150% collateral to borrow. Krexa extends credit based purely on the agent\'s KYA trust score \u2014 no collateral, no locked assets. The Credit Vault underwrites the loan from LP deposits.',
+    what: 'The Credit Vault program extends a $50 USDC credit line. The agent can now spend up to $50 without depositing anything first.',
+    program: 'krexa-credit-vault',
+  },
+  {
+    num: 5,
+    icon: '\u26A1',
+    title: 'Earning Revenue',
+    headline: 'The agent goes to work and earns money.',
+    body: 'With credit in hand, the agent deploys a paid research API. Every time someone calls the API, the Payment Router automatically splits the $0.25 fee: part goes to repay the loan, part is a protocol fee, and the rest is the agent\'s profit.',
+    what: 'The Payment Router processes 10 API calls at $0.25 each. Each payment is split on-chain in real time \u2014 LP repayment happens automatically.',
+    program: 'krexa-payment-router',
+  },
+  {
+    num: 6,
+    icon: '\u2728',
+    title: 'Full Repayment',
+    headline: 'Loan repaid. Credit score goes up. Cycle complete.',
+    body: 'After earning enough revenue, the agent\'s loan is fully repaid through automatic splits. Its on-chain credit score increases, unlocking higher credit limits for future operations. The full lifecycle \u2014 from zero to credit to revenue to repayment \u2014 happened entirely on-chain.',
+    what: 'The Credit Vault records full repayment, and the agent\'s credit score increases. Next time, it can borrow more.',
+    program: 'krexa-credit-vault',
+  },
+]
+
+// ─── External link icon ─────────────────────────────────────────────────────
 
 function ExtIcon({ className }: { className?: string }) {
   return (
@@ -90,40 +149,52 @@ function ExtIcon({ className }: { className?: string }) {
   )
 }
 
-// ─── Step Timeline ─────────────────────────────────────────────────────────
+// ─── Story Chapter Card ─────────────────────────────────────────────────────
 
-function Timeline({ steps, txs }: { steps: DemoState['steps']; txs: DemoState['txs'] }) {
+function StoryChapter({ chapter, status, tx }: {
+  chapter: typeof STORY_CHAPTERS[0]
+  status: StepStatus
+  tx?: string
+}) {
   return (
-    <div className={s.timeline}>
-      <div className={s.timelineInner}>
-        {STEPS.map((step) => {
-          const st = steps[step.num]
-          const tx = txs[step.num]
-          return (
-            <div key={step.num} className={`${s.timelineStep} ${st === 'done' ? s.done : ''}`}>
-              <div className={`${s.stepCircle} ${s[st]}`}>
-                {st === 'done' ? (
-                  <svg className={s.stepCheck} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                ) : st === 'active' ? (
-                  <span className={s.activeDot} />
-                ) : (
-                  <span className={s.stepNum}>{step.num}</span>
-                )}
-              </div>
-              <span className={`${s.stepLabel} ${st === 'active' ? s.activeLabel : st === 'done' ? s.doneLabel : ''}`}>
-                {step.label}
-              </span>
-              <span className={s.stepPlain}>{step.plain}</span>
-              {tx && (
-                <a href={scan(tx)} target="_blank" rel="noopener noreferrer" className={s.stepTx}>
-                  {sig(tx)} <ExtIcon className={s.stepTxIcon} />
-                </a>
-              )}
-            </div>
-          )
-        })}
+    <div className={`${s.chapter} ${s[`chapter${status}`]}`}>
+      <div className={s.chapterGutter}>
+        <div className={`${s.chapterNum} ${s[`num${status}`]}`}>
+          {status === 'done' ? (
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          ) : status === 'active' ? (
+            <span className={s.chapterPulse} />
+          ) : (
+            <span>{chapter.num}</span>
+          )}
+        </div>
+        {chapter.num < 6 && <div className={`${s.chapterLine} ${status === 'done' ? s.lineDone : ''}`} />}
+      </div>
+
+      <div className={s.chapterContent}>
+        <div className={s.chapterHead}>
+          <span className={s.chapterIcon}>{chapter.icon}</span>
+          <span className={s.chapterLabel}>Chapter {chapter.num}</span>
+          {status === 'active' && <span className={s.chapterLive}><span className={s.chapterLiveDot} /> LIVE</span>}
+          {status === 'done' && tx && (
+            <a href={scan(tx)} target="_blank" rel="noopener noreferrer" className={s.chapterTx}>
+              tx: {sig(tx)} <ExtIcon className={s.chapterTxIcon} />
+            </a>
+          )}
+        </div>
+        <h3 className={s.chapterTitle}>{chapter.title}</h3>
+        <p className={s.chapterHeadline}>{chapter.headline}</p>
+        <p className={s.chapterBody}>{chapter.body}</p>
+        <div className={s.chapterWhat}>
+          <span className={s.chapterWhatLabel}>What happens on-chain</span>
+          <p className={s.chapterWhatText}>{chapter.what}</p>
+          <span className={s.chapterProgram}>
+            <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M4 1h8a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V2a1 1 0 011-1zm1 3v2h6V4H5zm0 4v2h4V8H5z"/></svg>
+            {chapter.program}
+          </span>
+        </div>
       </div>
     </div>
   )
@@ -143,15 +214,15 @@ function Feed({ log, runState }: { log: LogEntry[]; runState: string }) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
           </svg>
         </div>
-        <p className={s.feedEmptyTitle}>Events will appear here</p>
+        <p className={s.feedEmptyTitle}>Transaction log</p>
         <p className={s.feedEmptySub}>
-          {runState === 'idle' ? 'Press Start Demo to begin' : 'Waiting for events…'}
+          {runState === 'idle' ? 'Press Start Demo to begin the story' : 'Waiting for events\u2026'}
         </p>
       </div>
     )
   }
 
-  const icons: Record<string, string> = { info: '⏳', success: '✓', payment: '$', complete: '✦' }
+  const icons: Record<string, string> = { info: '\u23F3', success: '\u2713', payment: '$', complete: '\u2726' }
 
   return (
     <div className={s.feedList}>
@@ -190,17 +261,17 @@ function Metrics({ wallet, payments, scoreboard }: {
       <div className={s.metricsGrid}>
         <div className={`${s.metricCard} ${s.credit}`}>
           <p className={s.metricLabel}>Credit</p>
-          <p className={s.metricValue}>{wallet.creditUsed > 0 ? usd(wallet.creditUsed) : '—'}</p>
+          <p className={s.metricValue}>{wallet.creditUsed > 0 ? usd(wallet.creditUsed) : '\u2014'}</p>
           <p className={s.metricSub}>zero-collateral</p>
         </div>
         <div className={`${s.metricCard} ${s.revenue}`}>
           <p className={s.metricLabel}>Revenue</p>
-          <p className={s.metricValue}>{earned > 0 ? usd(earned) : '—'}</p>
+          <p className={s.metricValue}>{earned > 0 ? usd(earned) : '\u2014'}</p>
           <p className={s.metricSub}>{payments.callCount} API calls</p>
         </div>
         <div className={`${s.metricCard} ${s.score}`}>
           <p className={s.metricLabel}>Score</p>
-          <p className={s.metricValue}>{wallet.score > 0 ? wallet.score : '—'}</p>
+          <p className={s.metricValue}>{wallet.score > 0 ? wallet.score : '\u2014'}</p>
           <p className={s.metricSub}>{wallet.level > 0 ? `Level ${wallet.level}` : 'unrated'}</p>
         </div>
         <div className={`${s.metricCard} ${wallet.debt > 0 ? s.debtActive : repaid > 0 ? s.debtPaid : s.debt}`}>
@@ -250,11 +321,11 @@ function Metrics({ wallet, payments, scoreboard }: {
 // ─── On-Chain Proof ────────────────────────────────────────────────────────
 
 const PROGRAMS = [
-  { name: 'krexa-agent-registry',  desc: 'Agent identity & KYA tiers',         addr: 'ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG', icon: '🆔', cls: 'registry' },
-  { name: 'krexa-credit-vault',    desc: 'Zero-collateral credit underwriting', addr: '26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N', icon: '🏦', cls: 'vault'    },
-  { name: 'krexa-agent-wallet',    desc: 'Smart wallets with spend controls',   addr: '35t8yWLsUZNTLT71ej7DF59P81HrtZTx2uZeMhwuhhf6', icon: '👛', cls: 'wallet'   },
-  { name: 'krexa-venue-whitelist', desc: 'Approved venue registry',             addr: 'HyWQrHG14Sw6KpKYSMiBDmVj5u7PXfLWvim6FHbBLmua', icon: '✅', cls: 'venue'    },
-  { name: 'krexa-payment-router',  desc: 'Automatic revenue split per call',    addr: '2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8', icon: '🔀', cls: 'router'   },
+  { name: 'krexa-agent-registry',  desc: 'Agent identity & KYA tiers',         addr: 'ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG', icon: '\uD83C\uDD94', cls: 'registry' },
+  { name: 'krexa-credit-vault',    desc: 'Zero-collateral credit underwriting', addr: '26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N', icon: '\uD83C\uDFE6', cls: 'vault'    },
+  { name: 'krexa-agent-wallet',    desc: 'Smart wallets with spend controls',   addr: '35t8yWLsUZNTLT71ej7DF59P81HrtZTx2uZeMhwuhhf6', icon: '\uD83D\uDC5B', cls: 'wallet'   },
+  { name: 'krexa-venue-whitelist', desc: 'Approved venue registry',             addr: 'HyWQrHG14Sw6KpKYSMiBDmVj5u7PXfLWvim6FHbBLmua', icon: '\u2705', cls: 'venue'    },
+  { name: 'krexa-payment-router',  desc: 'Automatic revenue split per call',    addr: '2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8', icon: '\uD83D\uDD00', cls: 'router'   },
 ]
 
 const TX_LABELS: Record<number, string> = {
@@ -304,7 +375,6 @@ function OnChainProof({ txs }: { txs: DemoState['txs'] }) {
           ))}
         </div>
 
-        {/* Demo transactions */}
         <div className={s.proofTxSection}>
           <p className={s.proofTxTitle}>Demo Transactions</p>
           {txEntries.length > 0 ? (
@@ -332,7 +402,6 @@ export default function DemoPage() {
   const [st, setSt] = useState<DemoState>(INITIAL)
   const wsRef = useRef<WebSocket | null>(null)
   const rcRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const feedRef = useRef<HTMLDivElement>(null)
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
@@ -368,12 +437,12 @@ export default function DemoPage() {
       case 'payment_split': {
         const d = msg.data
         setSt(p => ({ ...p, payments: { total: d.total, lp: d.lp, fee: d.fee, agent: d.agent, callCount: d.callCount } }))
-        addLog(mkLog(`Payment #${d.callCount}: ${usd(d.total)} received`, 'payment', `LP: ${usd(d.lp, 3)} · Fee: ${usd(d.fee, 3)} · Agent: ${usd(d.agent, 3)}`))
+        addLog(mkLog(`Payment #${d.callCount}: ${usd(d.total)} received`, 'payment', `LP: ${usd(d.lp, 3)} \u00b7 Fee: ${usd(d.fee, 3)} \u00b7 Agent: ${usd(d.agent, 3)}`))
         break
       }
       case 'demo_complete':
         setSt(p => ({ ...p, scoreboard: msg.data.scoreboard, runState: 'done' }))
-        addLog(mkLog('Demo complete — loan fully repaid, credit score increased', 'complete', 'Every step is a real on-chain Solana transaction'))
+        addLog(mkLog('Demo complete \u2014 loan fully repaid, credit score increased', 'complete', 'Every step is a real on-chain Solana transaction'))
         break
       case 'demo_status':
         if (msg.data.status === 'running') { _id = 0; setSt({ ...INITIAL, connected: true, runState: 'running' }) }
@@ -387,10 +456,6 @@ export default function DemoPage() {
     try {
       const r = await fetch(`${API_URL}/trigger`, { method: 'POST' })
       if (!r.ok) console.error('Trigger failed')
-      // Scroll to the activity feed, not the bottom of the page
-      setTimeout(() => {
-        feedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }, 300)
     } catch (e) { console.error('Could not reach demo server:', e) }
   }
 
@@ -405,12 +470,12 @@ export default function DemoPage() {
         <div className={s.navLeft}>
           <span className={s.navLogo}>KREXA</span>
           <span className={s.navSep} />
-          <span className={s.navTitle}>Live Agent Credit Demo</span>
+          <span className={s.navTitle}>Live Demo</span>
         </div>
         <div className={s.navRight}>
           <span className={s.statusDot}>
             <span className={`${s.dot} ${st.connected ? s.dotOn : s.dotOff}`} />
-            <span>{st.connected ? 'Connected' : 'Connecting…'}</span>
+            <span>{st.connected ? 'Connected' : 'Connecting\u2026'}</span>
           </span>
           <span className={s.networkBadge}>
             <span className={s.networkDot} />
@@ -424,15 +489,16 @@ export default function DemoPage() {
         <div className={s.heroInner}>
           <div className={s.heroBadge}>
             <span className={s.heroBadgeDot} />
-            Live on Solana — every transaction is real
+            Live on Solana \u2014 every transaction is real
           </div>
           <h1 className={s.heroTitle}>
-            An AI agent <span className={s.heroAccent}>borrows $50</span>,{' '}
-            earns revenue, and repays it.
+            The Story of an AI Agent<br />
+            That <span className={s.heroAccent}>Borrowed $50</span> and Paid It Back
           </h1>
           <p className={s.heroSub}>
-            Watch the full Krexa credit lifecycle happen live on Solana devnet — from on-chain
-            identity to zero-collateral credit to automatic loan repayment.
+            Follow along as a brand-new AI agent gets an on-chain identity, receives
+            zero-collateral credit, earns revenue, and fully repays its loan \u2014 all
+            live on Solana devnet.
           </p>
 
           {!running && !finished && (
@@ -440,62 +506,66 @@ export default function DemoPage() {
               <svg className={s.heroBtnIcon} fill="currentColor" viewBox="0 0 20 20">
                 <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
               </svg>
-              {st.connected ? 'Start Demo' : 'Connecting…'}
+              {st.connected ? 'Start the Story' : 'Connecting\u2026'}
             </button>
           )}
           {running && (
             <div className={s.heroRunning}>
               <span className={s.heroSpinner} />
-              Running live on Solana devnet…
+              Chapter {Math.max(1, ...Object.entries(st.steps).filter(([, v]) => v !== 'pending').map(([k]) => Number(k)))} of 6 \u2014 Running live\u2026
             </div>
           )}
           {finished && (
-            <button className={s.heroDoneBtn} onClick={start}>
-              ↻ Run Again
-            </button>
+            <div className={s.heroDoneWrap}>
+              <div className={s.heroCompleteMsg}>Story complete \u2014 the agent repaid everything</div>
+              <button className={s.heroDoneBtn} onClick={start}>
+                \u21BB Watch Again
+              </button>
+            </div>
           )}
 
-          <p className={s.heroProgress}>{done} / 6 steps complete</p>
+          <p className={s.heroProgress}>{done} / 6 chapters complete</p>
         </div>
       </section>
 
-      {/* Timeline */}
-      <Timeline steps={st.steps} txs={st.txs} />
-
-      {/* Main — feed + metrics */}
-      <div className={s.main} ref={feedRef}>
-        <div className={s.feedSection}>
-          <h3>
-            What's happening
-            {running && <span className={s.liveBadge}><span className={s.livePulse} /> LIVE</span>}
-          </h3>
-          <div className={s.feedBox}>
-            <Feed log={st.log} runState={st.runState} />
+      {/* Story + Live Panel Layout */}
+      <div className={s.storyLayout}>
+        {/* Left: Story chapters */}
+        <div className={s.storyColumn}>
+          <div className={s.storySectionLabel}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+            The Krexa Story
           </div>
-        </div>
-
-        <div className={s.metricsSection}>
-          <h3>Live Metrics</h3>
-          <Metrics wallet={st.wallet} payments={st.payments} scoreboard={st.scoreboard} />
-        </div>
-      </div>
-
-      {/* How it works */}
-      <div className={s.howItWorks}>
-        <p className={s.howTitle}>How it works</p>
-        <div className={s.howGrid}>
-          {[
-            { n: '01', t: 'On-chain identity',      d: 'Agent registers with KYA verification — fully automated, no human review' },
-            { n: '02', t: 'Zero-collateral credit',  d: 'Credit vault extends $50 based on KYA score alone — no locked assets' },
-            { n: '03', t: 'Revenue via x402',         d: 'Agent deploys a paid research API and earns $0.25 per call' },
-            { n: '04', t: 'Automatic repayment',      d: 'PaymentRouter splits every call — LP repayment happens in real time' },
-          ].map(({ n, t, d }) => (
-            <div key={n} className={s.howCard}>
-              <div className={s.howNum}>{n}</div>
-              <p className={s.howCardTitle}>{t}</p>
-              <p className={s.howCardText}>{d}</p>
-            </div>
+          {STORY_CHAPTERS.map((ch) => (
+            <StoryChapter
+              key={ch.num}
+              chapter={ch}
+              status={st.steps[ch.num]}
+              tx={st.txs[ch.num]}
+            />
           ))}
+        </div>
+
+        {/* Right: Live feed + metrics (sticky) */}
+        <div className={s.liveColumn}>
+          <div className={s.liveSticky}>
+            <div className={s.feedSection}>
+              <h3>
+                Transaction Log
+                {running && <span className={s.liveBadge}><span className={s.livePulse} /> LIVE</span>}
+              </h3>
+              <div className={s.feedBox}>
+                <Feed log={st.log} runState={st.runState} />
+              </div>
+            </div>
+
+            <div className={s.metricsSection}>
+              <h3>Live Metrics</h3>
+              <Metrics wallet={st.wallet} payments={st.payments} scoreboard={st.scoreboard} />
+            </div>
+          </div>
         </div>
       </div>
 
