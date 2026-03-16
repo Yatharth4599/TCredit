@@ -42,8 +42,8 @@ type WsEvent =
 
 // ─── Config ────────────────────────────────────────────────────────────────
 
-const WS_URL  = import.meta.env.VITE_DEMO_WS_URL  ?? 'ws://localhost:3002'
-const API_URL = import.meta.env.VITE_DEMO_API_URL ?? 'http://localhost:3002'
+const WS_URL  = import.meta.env.VITE_DEMO_WS_URL  || 'wss://krexa-demo-server.onrender.com'
+const API_URL = import.meta.env.VITE_DEMO_API_URL || 'https://krexa-demo-server.onrender.com'
 
 const STEPS: StepInfo[] = [
   { num: 1, label: 'Register',  plain: 'On-chain identity' },
