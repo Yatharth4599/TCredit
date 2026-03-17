@@ -19,7 +19,7 @@ function fmt(iso: string) {
 }
 
 export default function WaitlistAdmin() {
-  const [apiKey, setApiKey]     = useState(() => localStorage.getItem(STORAGE_KEY) ?? '')
+  const [apiKey, setApiKey]     = useState(() => sessionStorage.getItem(STORAGE_KEY) ?? '')
   const [keyInput, setKeyInput] = useState('')
   const [authed, setAuthed]     = useState(false)
 
@@ -37,7 +37,7 @@ export default function WaitlistAdmin() {
       setEntries(res.data.entries)
       setTotal(res.data.total)
       setAuthed(true)
-      localStorage.setItem(STORAGE_KEY, key)
+      sessionStorage.setItem(STORAGE_KEY, key)
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status
       if (status === 401) {
@@ -78,7 +78,7 @@ export default function WaitlistAdmin() {
   }
 
   function handleLogout() {
-    localStorage.removeItem(STORAGE_KEY)
+    sessionStorage.removeItem(STORAGE_KEY)
     setApiKey('')
     setAuthed(false)
     setEntries([])

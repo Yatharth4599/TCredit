@@ -133,8 +133,8 @@ router.get('/:address/settlement', async (req, res, next) => {
   }
 });
 
-// GET /api/v1/merchants/:address/repayments — query real OraclePayment records
-router.get('/:address/repayments', async (req, res, next) => {
+// GET /api/v1/merchants/:address/repayments — query real OraclePayment records (BUG-035 fix: auth required)
+router.get('/:address/repayments', requireApiKey as never, async (req, res, next) => {
   try {
     const addr = req.params.address.toLowerCase();
     const payments = await prisma.oraclePayment.findMany({

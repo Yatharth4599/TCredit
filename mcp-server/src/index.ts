@@ -30,11 +30,28 @@ import type { Chain } from '@krexa/sdk';
 // SDK initialisation
 // ---------------------------------------------------------------------------
 
+// BUG-041 fix: validate agent address format at startup
+const SOLANA_ADDR_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+const EVM_ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
+const chain = (process.env.KREXA_CHAIN ?? 'solana') as Chain;
+const agentAddress = process.env.KREXA_AGENT_ADDRESS;
+
+if (agentAddress) {
+  if (chain === 'solana' && !SOLANA_ADDR_RE.test(agentAddress)) {
+    process.stderr.write(`[krexa-mcp] FATAL: KREXA_AGENT_ADDRESS is not a valid Solana address: ${agentAddress}\n`);
+    process.exit(1);
+  }
+  if (chain === 'base' && !EVM_ADDR_RE.test(agentAddress)) {
+    process.stderr.write(`[krexa-mcp] FATAL: KREXA_AGENT_ADDRESS is not a valid EVM address: ${agentAddress}\n`);
+    process.exit(1);
+  }
+}
+
 const sdk = new KrexaSDK({
   apiKey:       process.env.KREXA_API_KEY,
   baseUrl:      process.env.KREXA_BASE_URL,
-  chain:        (process.env.KREXA_CHAIN ?? 'solana') as Chain,
-  agentAddress: process.env.KREXA_AGENT_ADDRESS,
+  chain,
+  agentAddress,
 });
 
 // ---------------------------------------------------------------------------
@@ -75,6 +92,8 @@ const TOOLS: Tool[] = [
         amount: {
           type: 'number',
           description: 'Amount in USDC (e.g. 5.00 for five dollars).',
+          minimum: 0.001,
+          maximum: 500000,
         },
         paymentId: {
           type: 'string',
@@ -108,6 +127,8 @@ const TOOLS: Tool[] = [
         amount: {
           type: 'number',
           description: 'Amount of the source token to swap (in human units).',
+          minimum: 0.001,
+          maximum: 500000,
         },
       },
       required: ['venue', 'from', 'to', 'amount'],
@@ -125,6 +146,8 @@ const TOOLS: Tool[] = [
         amount: {
           type: 'number',
           description: 'Amount of USDC to draw from the credit line.',
+          minimum: 0.01,
+          maximum: 500000,
         },
         rateBps: {
           type: 'number',
@@ -244,6 +267,21 @@ const server = new Server(
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
 
+// BUG-063 fix: audit logging for all tool calls
+function auditLog(tool: string, args: Args, status: 'ok' | 'error', detail?: string) {
+  const sanitized = { ...args };
+  // Redact sensitive fields
+  if ('paymentId' in sanitized) sanitized.paymentId = '***';
+  process.stderr.write(JSON.stringify({
+    ts: new Date().toISOString(),
+    tool,
+    args: sanitized,
+    agent: sdk.agentAddress ?? 'unknown',
+    status,
+    ...(detail ? { detail } : {}),
+  }) + '\n');
+}
+
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: rawArgs } = request.params;
   const args: Args = (rawArgs as Args) ?? {};
@@ -259,12 +297,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'krexa_repay':         result = await handleRepay(args);        break;
       case 'krexa_get_score':     result = await handleGetScore(args);     break;
       default:
+        auditLog(name, args, 'error', 'unknown tool');
         return {
           content: [{ type: 'text', text: `Unknown tool: ${name}` }],
           isError: true,
         };
     }
 
+    auditLog(name, args, 'ok');
     return {
       content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
     };
@@ -275,6 +315,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         : err instanceof Error
         ? err.message
         : String(err);
+    auditLog(name, args, 'error', message);
 
     return {
       content: [{ type: 'text', text: message }],

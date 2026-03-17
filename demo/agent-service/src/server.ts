@@ -36,8 +36,10 @@ app.get(
     const { tokenAddress } = req.params;
     const paymentTx = (req as Request & { paymentTx: string }).paymentTx;
 
-    if (!tokenAddress || tokenAddress.length < 32 || tokenAddress.length > 44) {
-      res.status(400).json({ error: 'Invalid Solana token address' });
+    // BUG-037 fix: validate base58 format, not just length (prevents prompt injection)
+    const SOLANA_ADDR_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+    if (!tokenAddress || !SOLANA_ADDR_RE.test(tokenAddress)) {
+      res.status(400).json({ error: 'Invalid Solana token address format' });
       return;
     }
 

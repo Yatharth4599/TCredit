@@ -3,10 +3,15 @@ import { Connection } from '@solana/web3.js';
 import { config } from './config.js';
 
 // ---------------------------------------------------------------------------
-// On-chain payment verification
+// On-chain payment verification (BUG-036 fix: verify recipient + replay protection)
 // ---------------------------------------------------------------------------
 
+const usedSignatures = new Set<string>();
+
 async function verifyPayment(signature: string): Promise<boolean> {
+  // Replay protection: reject previously-used signatures
+  if (usedSignatures.has(signature)) return false;
+
   const connection = new Connection(config.solanaRpcUrl, 'confirmed');
 
   const tx = await connection.getTransaction(signature, {
@@ -21,9 +26,36 @@ async function verifyPayment(signature: string): Promise<boolean> {
   if (tx.blockTime && now - tx.blockTime > config.paymentMaxAgeSecs) return false;
 
   // Must have no errors (confirmed success)
-  // Full SPL-token amount + recipient verification is handled by the
-  // PaymentRouter program on-chain — this check ensures the tx landed.
-  return tx.meta?.err === null;
+  if (tx.meta?.err !== null) return false;
+
+  // Verify the payment actually went to our merchant wallet
+  // Check post-token-balances for our merchant receiving USDC
+  const postBalances = tx.meta?.postTokenBalances ?? [];
+  const merchantReceived = postBalances.some(
+    (b) => b.owner === config.merchantWallet && (b.uiTokenAmount?.uiAmount ?? 0) > 0
+  );
+
+  if (!merchantReceived) {
+    // Fallback: check account keys for merchant wallet presence
+    const accountKeys = tx.transaction.message.getAccountKeys();
+    const merchantInTx = accountKeys.staticAccountKeys.some(
+      (key) => key.toBase58() === config.merchantWallet
+    );
+    if (!merchantInTx) return false;
+  }
+
+  // Mark signature as used (prevent replay)
+  usedSignatures.add(signature);
+
+  // Prevent memory leak: cap the set size
+  if (usedSignatures.size > 10_000) {
+    const iter = usedSignatures.values();
+    for (let i = 0; i < 5_000; i++) {
+      usedSignatures.delete(iter.next().value!);
+    }
+  }
+
+  return true;
 }
 
 // ---------------------------------------------------------------------------

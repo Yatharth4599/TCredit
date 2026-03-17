@@ -170,6 +170,14 @@ export async function submitPayment(params: SubmitPaymentParams): Promise<Submit
   const agentWallet = await readAgentWallet(agentWalletAddress);
   if (!agentWallet) throw new AppError(400, 'Agent wallet not found');
 
+  // BUG-047 fix: refuse to sign payments to frozen or liquidating wallets
+  if (agentWallet.isFrozen) {
+    throw new AppError(400, `Agent wallet ${settlement.agentWalletPda} is frozen — cannot process payment`);
+  }
+  if (agentWallet.isLiquidating) {
+    throw new AppError(400, `Agent wallet ${settlement.agentWalletPda} is being liquidated — cannot process payment`);
+  }
+
   const agentWalletUsdcAddress = new PublicKey(agentWallet.walletUsdc);
   const merchantUsdc = getAssociatedTokenAddressSync(USDC_MINT, merchant);
 
