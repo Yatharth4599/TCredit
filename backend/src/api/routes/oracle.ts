@@ -36,8 +36,8 @@ router.post('/payment', requireApiKey, async (req, res, next) => {
   }
 });
 
-// GET /api/v1/oracle/health — oracle service status
-router.get('/health', async (_req, res, next) => {
+// GET /api/v1/oracle/health — oracle service status (BUG-046 fix: auth required)
+router.get('/health', requireApiKey, async (_req, res, next) => {
   try {
     const health = await getOracleHealth();
     res.status(health.status === 'down' ? 503 : 200).json(health);
@@ -46,8 +46,8 @@ router.get('/health', async (_req, res, next) => {
   }
 });
 
-// GET /api/v1/oracle/payments — list oracle payments (with optional filters)
-router.get('/payments', async (req, res, next) => {
+// GET /api/v1/oracle/payments — list oracle payments (BUG-051 fix: requires API key)
+router.get('/payments', requireApiKey, async (req, res, next) => {
   try {
     const { status, vault, limit } = req.query;
     const where: Record<string, unknown> = {};

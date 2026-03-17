@@ -15,19 +15,20 @@ import { createServer } from 'http';
 import express from 'express';
 import cors from 'cors';
 import { WebSocketServer, type WebSocket as WsClient } from 'ws';
-import { writeFileSync, mkdirSync } from 'fs';
+import { writeFileSync, mkdirSync, chmodSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import type { BroadcastFn } from './run-demo.ts';
 
 // ── Keypair bootstrap ─────────────────────────────────────────────────────
 // On Render, keypairs are stored as base64-encoded JSON arrays.
-// We write them to temp files and set the *_PATH env vars so run-demo.ts
-// can find them with its existing loadKeypair(path) logic.
+// We write them to temp files with restricted permissions (owner-only)
+// and set the *_PATH env vars so run-demo.ts can find them.
+// BUG-033 fix: directory and files are chmod 0700/0600 (owner-only access).
 
 function bootstrapKeypairs(): void {
-  const dir = join(tmpdir(), 'krexa-keys');
-  mkdirSync(dir, { recursive: true });
+  const dir = join(tmpdir(), `krexa-keys-${process.pid}`);
+  mkdirSync(dir, { recursive: true, mode: 0o700 });
 
   const pairs: Array<[string, string]> = [
     ['AGENT_KEYPAIR',    'AGENT_KEYPAIR_PATH'],
@@ -40,10 +41,18 @@ function bootstrapKeypairs(): void {
     if (process.env[envBase64] && !process.env[envPath]) {
       const json = Buffer.from(process.env[envBase64]!, 'base64').toString('utf8');
       const filePath = join(dir, `${envBase64.toLowerCase()}.json`);
-      writeFileSync(filePath, json, 'utf8');
+      writeFileSync(filePath, json, { encoding: 'utf8', mode: 0o600 });
       process.env[envPath] = filePath;
     }
   }
+
+  // Cleanup on exit
+  process.on('exit', () => {
+    try {
+      const { rmSync } = require('fs');
+      rmSync(dir, { recursive: true, force: true });
+    } catch { /* best effort */ }
+  });
 }
 
 bootstrapKeypairs();

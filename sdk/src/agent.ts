@@ -43,6 +43,10 @@ async function req<T>(
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
+    // BUG-059 fix: sanitize auth errors to prevent API key leaks
+    if (res.status === 401 || res.status === 403) {
+      throw new KrexaError(res.status, 'Authentication failed');
+    }
     throw new KrexaError(res.status, `Krexa API ${res.status}: ${body}`, body);
   }
   return res.json() as Promise<T>;
@@ -53,6 +57,38 @@ function get<T>(baseUrl: string, path: string, apiKey?: string) {
 }
 function post<T>(baseUrl: string, path: string, apiKey: string | undefined, body: unknown) {
   return req<T>(baseUrl, path, apiKey, { method: 'POST', body: JSON.stringify(body) });
+}
+
+// ---------------------------------------------------------------------------
+// Input validation (BUG-055, BUG-056, BUG-057)
+// ---------------------------------------------------------------------------
+
+const SOLANA_ADDR_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+const EVM_ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
+
+const KNOWN_VENUES = ['jupiter', 'raydium', 'orca', 'pump.fun', 'pump_fun', 'x402'];
+
+function validateAmount(amount: number, method: string): void {
+  if (!Number.isFinite(amount)) throw new KrexaError(400, `${method}: amount must be finite, got ${amount}`);
+  if (amount <= 0) throw new KrexaError(400, `${method}: amount must be positive, got ${amount}`);
+  if (amount > 1e14) throw new KrexaError(400, `${method}: amount exceeds maximum (100T USDC)`);
+}
+
+function validateAddress(addr: string, chain: Chain, field: string): void {
+  if (!addr) throw new KrexaError(400, `${field} is required`);
+  if (chain === 'solana' && !SOLANA_ADDR_RE.test(addr)) {
+    throw new KrexaError(400, `${field}: invalid Solana address format`);
+  }
+  if (chain === 'base' && !EVM_ADDR_RE.test(addr)) {
+    throw new KrexaError(400, `${field}: invalid EVM address format`);
+  }
+}
+
+function validateVenue(venue: string): void {
+  const v = venue.toLowerCase();
+  if (!KNOWN_VENUES.includes(v)) {
+    throw new KrexaError(400, `Unknown trade venue: "${venue}". Allowed: ${KNOWN_VENUES.join(', ')}`);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -107,6 +143,7 @@ export function createAgentNamespace(
 
     /** Deposit USDC as collateral (builds unsigned tx). */
     async deposit(params: DepositParams): Promise<OperationResult> {
+      validateAmount(params.amount, 'deposit');
       const agent = requireAgent();
       if (chain === 'solana') {
         return post<OperationResult>(b, `/solana/wallets/${agent}/deposit`, apiKey, {
@@ -121,6 +158,7 @@ export function createAgentNamespace(
 
     /** Request a credit line draw. Returns unsigned tx or status. */
     async requestCredit(params: RequestCreditParams): Promise<OperationResult> {
+      validateAmount(params.amount, 'requestCredit');
       const agent = requireAgent();
       if (chain === 'solana') {
         return post<OperationResult>(b, `/solana/credit/${agent}/request`, apiKey, {
@@ -139,6 +177,8 @@ export function createAgentNamespace(
 
     /** Execute a token trade through a whitelisted venue. */
     async trade(params: TradeParams): Promise<OperationResult> {
+      validateAmount(params.amount, 'trade');
+      validateVenue(params.venue);
       const agent = requireAgent();
       return post<OperationResult>(b, `/solana/wallets/${agent}/trade`, apiKey, {
         venue: params.venue,
@@ -150,6 +190,8 @@ export function createAgentNamespace(
 
     /** Make an x402 payment to a merchant. */
     async payX402(params: PayX402Params): Promise<OperationResult> {
+      validateAmount(params.amount, 'payX402');
+      validateAddress(params.recipient, chain, 'recipient');
       const agent = requireAgent();
       if (chain === 'solana') {
         return post<OperationResult>(b, `/solana/wallets/${agent}/pay`, apiKey, {
@@ -168,6 +210,7 @@ export function createAgentNamespace(
 
     /** Withdraw USDC from the agent wallet (respects credit health buffer). */
     async withdraw(params: WithdrawParams): Promise<OperationResult> {
+      validateAmount(params.amount, 'withdraw');
       const agent = requireAgent();
       if (chain === 'solana') {
         return post<OperationResult>(b, `/solana/wallets/${agent}/withdraw`, apiKey, {
@@ -183,6 +226,7 @@ export function createAgentNamespace(
 
     /** Repay outstanding credit. */
     async repay(params: RepayParams): Promise<OperationResult> {
+      validateAmount(params.amount, 'repay');
       const agent = requireAgent();
       if (chain === 'solana') {
         return post<OperationResult>(b, `/solana/credit/${agent}/repay`, apiKey, {

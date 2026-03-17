@@ -23,9 +23,13 @@ import { env } from '../config/env.js';
 // ---------------------------------------------------------------------------
 
 const POLL_INTERVAL_MS = 2_000;          // 2 seconds — tight loop for keepers
-const HF_WARNING_BPS   = 13_000;         // 1.30x
-const HF_DANGER_BPS    = 12_000;         // 1.20x — deleverage
-const HF_LIQUIDATION_BPS = 10_500;       // 1.05x — liquidate
+
+// BUG-038: These match on-chain constants from krexa-common/src/constants.rs
+// TODO: Read from on-chain VaultConfig PDA at keeper startup for production
+// For now, kept in sync manually with on-chain values.
+const HF_WARNING_BPS   = 13_000;         // 1.30x  (on-chain: HF_WARNING)
+const HF_DANGER_BPS    = 12_000;         // 1.20x  (on-chain: HF_DANGER)
+const HF_LIQUIDATION_BPS = 10_500;       // 1.05x  (on-chain: HF_LIQUIDATION)
 const USDC_MINT = new PublicKey(env.SOLANA_USDC_MINT);
 
 // ---------------------------------------------------------------------------

@@ -28,13 +28,11 @@ export function errorHandler(
     return;
   }
 
-  const message = env.NODE_ENV === 'production'
-    ? 'Internal server error'
-    : err.message;
-
+  // BUG-044 fix: never leak internal error details to clients
+  // Full error already logged to console above
   res.status(500).json({
     error: 'InternalError',
-    message,
+    message: 'Internal server error',
     statusCode: 500,
   });
 }

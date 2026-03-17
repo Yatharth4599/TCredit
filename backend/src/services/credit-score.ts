@@ -153,12 +153,16 @@ function calculateLevelFromScore(score: number, kyaTier: number): number {
 // ---------------------------------------------------------------------------
 
 function computeAttestationHash(agent: string, score: number, level: number, timestamp: number): string {
-  const data = Buffer.concat([
-    Buffer.from(agent),
-    Buffer.from(score.toString()),
-    Buffer.from(level.toString()),
-    Buffer.from(timestamp.toString()),
-  ]);
+  // BUG-048 fix: use fixed-width binary encoding to prevent ambiguous concatenation
+  const agentBuf = new PublicKey(agent).toBuffer(); // 32 bytes
+  const scoreBuf = Buffer.alloc(2);
+  scoreBuf.writeUInt16LE(score);                    // 2 bytes
+  const levelBuf = Buffer.alloc(1);
+  levelBuf.writeUInt8(level);                       // 1 byte
+  const tsBuf = Buffer.alloc(8);
+  tsBuf.writeBigUInt64LE(BigInt(timestamp));         // 8 bytes
+
+  const data = Buffer.concat([agentBuf, scoreBuf, levelBuf, tsBuf]);
   return createHash('sha256').update(data).digest('hex');
 }
 
