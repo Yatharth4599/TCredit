@@ -10,5 +10,9 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
       '@krexa/solana-sdk': path.resolve(__dirname, 'src/sdk/index.ts')
     }
-  }
+  },
+  define: {
+    'process.env': {},
+    global: 'globalThis',
+  },
 })
