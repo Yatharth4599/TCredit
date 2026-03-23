@@ -2,7 +2,8 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Transfer};
 use crate::{Withdraw, AgentWallet, WalletError};
 use crate::events::Withdrawal;
-use crate::utils::{max_withdrawable, collateral_value_usdc, compute_health};
+use crate::utils::{max_withdrawable, collateral_value_usdc};
+use crate::utils::health::compute_nav;
 
 pub fn handle(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     require!(!ctx.accounts.config.is_paused, WalletError::Paused);
@@ -50,12 +51,12 @@ pub fn handle(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     let vault_cfg = &ctx.accounts.vault_config;
     let wallet = &mut ctx.accounts.agent_wallet;
 
-    wallet.health_factor_bps = compute_health(
+    wallet.health_factor_bps = compute_nav(
         new_balance,
         wallet.collateral_shares,
         vault_cfg.total_deposits,
         vault_cfg.total_shares,
-        wallet.total_debt,
+        wallet.credit_limit, // NAV = V(t) / C₀
     );
     wallet.last_health_check = now;
 

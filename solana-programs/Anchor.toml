@@ -13,6 +13,8 @@ members = [
     "programs/krexa-agent-wallet",
     "programs/krexa-venue-whitelist",
     "programs/krexa-payment-router",
+    "programs/krexa-service-plan",
+    "programs/krexa-score",
 ]
 
 [programs.localnet]
@@ -21,6 +23,8 @@ krexa_credit_vault    = "KrXAcvt111111111111111111111111111111111111"
 krexa_agent_wallet    = "KrXAWaT111111111111111111111111111111111111"
 krexa_venue_whitelist = "KrXAvwT111111111111111111111111111111111111"
 krexa_payment_router  = "KrXAprt111111111111111111111111111111111111"
+krexa_service_plan    = "KrXAsvc111111111111111111111111111111111111"
+krexa_score           = "KrXAscr111111111111111111111111111111111111"
 
 [programs.devnet]
 krexa_agent_registry  = "KrXAgReg11111111111111111111111111111111111"
@@ -28,6 +32,8 @@ krexa_credit_vault    = "KrXAcvt111111111111111111111111111111111111"
 krexa_agent_wallet    = "KrXAWaT111111111111111111111111111111111111"
 krexa_venue_whitelist = "KrXAvwT111111111111111111111111111111111111"
 krexa_payment_router  = "KrXAprt111111111111111111111111111111111111"
+krexa_service_plan    = "KrXAsvc111111111111111111111111111111111111"
+krexa_score           = "KrXAscr111111111111111111111111111111111111"
 
 [registry]
 url = "https://api.apr.dev"

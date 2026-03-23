@@ -3,7 +3,8 @@ use anchor_spl::token::{self, Transfer};
 use crate::{PayX402, AgentWallet, WalletError};
 use crate::events::X402Payment;
 use crate::utils::{check_per_trade_limit, maybe_reset_daily, projected_health};
-use krexa_common::constants::{HF_WARNING, PLATFORM_FEE_BPS, BPS_DENOMINATOR};
+use crate::utils::health::nav_warning_for_level;
+use krexa_common::constants::{PLATFORM_FEE_BPS, BPS_DENOMINATOR};
 
 pub fn handle(
     ctx: Context<PayX402>,
@@ -30,15 +31,16 @@ pub fn handle(
             WalletError::DailyLimitExceeded
         );
 
-        if wallet.total_debt > 0 {
+        if wallet.credit_limit > 0 {
             let vault_cfg = &ctx.accounts.vault_config;
-            let post_hf = projected_health(
+            let post_nav = projected_health(
                 wallet_balance, amount,
                 wallet.collateral_shares,
                 vault_cfg.total_deposits, vault_cfg.total_shares,
-                wallet.total_debt,
+                wallet.credit_limit, // NAV = V(t) / C₀
             );
-            require!(post_hf >= HF_WARNING, WalletError::HealthTooLow);
+            let warning_threshold = nav_warning_for_level(wallet.credit_level);
+            require!(post_nav >= warning_threshold, WalletError::HealthTooLow);
         }
     }
 
@@ -92,16 +94,16 @@ pub fn handle(
     wallet.total_volume = wallet.total_volume.saturating_add(amount);
     wallet.last_health_check = now;
 
-    // SOL-012 fix: Update health factor after spending (was missing — unlike execute_trade)
-    if wallet.total_debt > 0 {
+    // SOL-012 fix: Update NAV after spending (was missing — unlike execute_trade)
+    if wallet.credit_limit > 0 {
         let vault_cfg = &ctx.accounts.vault_config;
         ctx.accounts.wallet_usdc.reload()?;
-        wallet.health_factor_bps = crate::utils::health::compute_health(
+        wallet.health_factor_bps = crate::utils::health::compute_nav(
             ctx.accounts.wallet_usdc.amount,
             wallet.collateral_shares,
             vault_cfg.total_deposits,
             vault_cfg.total_shares,
-            wallet.total_debt,
+            wallet.credit_limit, // NAV = V(t) / C₀
         );
     }
 

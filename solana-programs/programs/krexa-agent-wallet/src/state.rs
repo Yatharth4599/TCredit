@@ -13,7 +13,6 @@ pub struct WalletConfig {
     pub payment_router_program: Pubkey,  // krexa-payment-router (future)
     pub usdc_mint: Pubkey,
     pub keeper: Pubkey,                  // authorised keeper bot
-    pub platform_treasury: Pubkey,       // SOL-013: treasury for platform fees
 
     pub total_wallets: u64,
     pub is_paused: bool,
@@ -21,8 +20,8 @@ pub struct WalletConfig {
 }
 
 impl WalletConfig {
-    // 8 + 8*32 + 8 + 1 + 1 + 16 pad
-    pub const LEN: usize = 8 + 8 * 32 + 8 + 2 + 16;
+    // 8 + 7*32 + 8 + 1 + 1 + 16 pad = 258
+    pub const LEN: usize = 8 + 7 * 32 + 8 + 2 + 16;
     pub const SEED: &'static [u8] = b"wallet_config";
 }
 
@@ -74,6 +73,23 @@ impl AgentWallet {
     pub const LEN: usize = 8 + 4 * 32 + 7 * 8 + 2 + 8 + 3 + 4 * 8 + 2 + 1 + 15;
     pub const SEED: &'static [u8] = b"agent_wallet";
     pub const USDC_SEED: &'static [u8] = b"wallet_usdc";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VenueExposure — per-agent per-venue exposure tracking (safety check 5)
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[account]
+pub struct VenueExposure {
+    pub agent: Pubkey,
+    pub venue: Pubkey,
+    pub total_sent: u64,     // cumulative USDC sent to this venue
+    pub bump: u8,
+}
+
+impl VenueExposure {
+    pub const LEN: usize = 8 + 32 + 32 + 8 + 1; // 81
+    pub const SEED: &'static [u8] = b"venue_exposure";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -29,6 +29,10 @@ const WaitlistAdmin = lazy(() => import('./pages/WaitlistAdmin'))
 const X402Demo = lazy(() => import('./pages/X402Demo'))
 const LifecycleDemo = lazy(() => import('./pages/LifecycleDemo'))
 const NotFound = lazy(() => import('./pages/NotFound'))
+const SolanaCreditDashboard = lazy(() => import('./pages/SolanaCreditDashboard'))
+const SolanaVaultDashboard = lazy(() => import('./pages/SolanaVaultDashboard'))
+const SolanaLPDashboard = lazy(() => import('./pages/SolanaLPDashboard'))
+const KrexitScoreDashboard = lazy(() => import('./pages/KrexitScoreDashboard'))
 
 // Kickstart gets special EasyA green theme; all other pages use default blue
 // Landing page (/) gets light mode — removes 'dark' class from <html>
@@ -116,6 +120,11 @@ function AppShell() {
           <Route path="/app/x402" element={<X402Demo />} />
           <Route path="/app/demo" element={<Demo />} />
           <Route path="/app/lifecycle" element={<LifecycleDemo />} />
+          {/* Solana credit protocol dashboards */}
+          <Route path="/app/solana/credit" element={<SolanaCreditDashboard />} />
+          <Route path="/app/solana/vault" element={<SolanaVaultDashboard />} />
+          <Route path="/app/solana/lp" element={<SolanaLPDashboard />} />
+          <Route path="/app/solana/score" element={<KrexitScoreDashboard />} />
           <Route path="/admin/waitlist" element={<WaitlistAdmin />} />
           {/* Live demo dashboard — light theme, public */}
           <Route path="/demo" element={<DemoPage />} />

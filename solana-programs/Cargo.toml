@@ -6,6 +6,8 @@ members = [
     "programs/krexa-agent-wallet",
     "programs/krexa-venue-whitelist",
     "programs/krexa-payment-router",
+    "programs/krexa-service-plan",
+    "programs/krexa-score",
 ]
 resolver = "2"
 

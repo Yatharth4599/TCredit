@@ -48,13 +48,15 @@ pub struct Initialize<'info> {
 
 #[derive(Accounts)]
 pub struct CreateWallet<'info> {
+    // Box<> prevents stack overflow — WalletConfig is 290 bytes
     #[account(
         mut,
         seeds = [WalletConfig::SEED],
         bump = config.bump,
     )]
-    pub config: Account<'info, WalletConfig>,
+    pub config: Box<Account<'info, WalletConfig>>,
 
+    // Box<> prevents stack overflow — AgentWallet is 255 bytes
     #[account(
         init,
         payer = owner,
@@ -62,7 +64,7 @@ pub struct CreateWallet<'info> {
         seeds = [AgentWallet::SEED, agent.key().as_ref()],
         bump,
     )]
-    pub agent_wallet: Account<'info, AgentWallet>,
+    pub agent_wallet: Box<Account<'info, AgentWallet>>,
 
     #[account(
         init,
@@ -72,26 +74,23 @@ pub struct CreateWallet<'info> {
         seeds = [AgentWallet::USDC_SEED, agent.key().as_ref()],
         bump,
     )]
-    pub wallet_usdc: Account<'info, TokenAccount>,
+    pub wallet_usdc: Box<Account<'info, TokenAccount>>,
 
+    /// CHECK: USDC mint address validated against config.usdc_mint
     #[account(address = config.usdc_mint)]
-    pub usdc_mint: Account<'info, Mint>,
+    pub usdc_mint: UncheckedAccount<'info>,
 
-    #[account(
-        seeds = [b"registry_config"],
-        seeds::program = config.agent_registry_program,
-        bump = registry_config.bump,
-    )]
-    pub registry_config: Account<'info, RegistryConfig>,
+    /// CHECK: RegistryConfig PDA — validated by the krexa-agent-registry CPI
+    pub registry_config: AccountInfo<'info>,
 
+    // Box<> prevents stack overflow — AgentProfile is ~273 bytes
     #[account(
         mut,
         seeds = [b"agent_profile", agent.key().as_ref()],
         seeds::program = config.agent_registry_program,
         bump = agent_profile.bump,
-        constraint = agent_profile.agent == agent.key() @ WalletError::AgentNotEligible,
     )]
-    pub agent_profile: Account<'info, AgentProfile>,
+    pub agent_profile: Box<Account<'info, AgentProfile>>,
 
     pub agent: Signer<'info>,
 
@@ -101,7 +100,6 @@ pub struct CreateWallet<'info> {
     pub registry_program: Program<'info, krexa_agent_registry::program::KrexaAgentRegistry>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
-    pub rent: Sysvar<'info, Rent>,
 }
 
 #[derive(Accounts)]
@@ -163,14 +161,14 @@ pub struct RequestCredit<'info> {
         seeds = [WalletConfig::SEED],
         bump = config.bump,
     )]
-    pub config: Account<'info, WalletConfig>,
+    pub config: Box<Account<'info, WalletConfig>>,
 
     #[account(
         mut,
         seeds = [AgentWallet::SEED, agent_wallet.agent.as_ref()],
         bump = agent_wallet.bump,
     )]
-    pub agent_wallet: Account<'info, AgentWallet>,
+    pub agent_wallet: Box<Account<'info, AgentWallet>>,
 
     #[account(
         mut,
@@ -178,7 +176,7 @@ pub struct RequestCredit<'info> {
         bump = agent_wallet.usdc_bump,
         address = agent_wallet.wallet_usdc,
     )]
-    pub wallet_usdc: Account<'info, TokenAccount>,
+    pub wallet_usdc: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
@@ -186,13 +184,13 @@ pub struct RequestCredit<'info> {
         seeds::program = config.credit_vault_program,
         bump = vault_config.bump,
     )]
-    pub vault_config: Account<'info, VaultConfig>,
+    pub vault_config: Box<Account<'info, VaultConfig>>,
 
     #[account(
         mut,
         address = vault_config.vault_token_account,
     )]
-    pub vault_token: Account<'info, TokenAccount>,
+    pub vault_token: Box<Account<'info, TokenAccount>>,
 
     /// SOL-002 fix: Require collateral_position on-chain to compute collateral_value
     #[account(
@@ -200,7 +198,7 @@ pub struct RequestCredit<'info> {
         seeds::program = config.credit_vault_program,
         bump,
     )]
-    pub collateral_position: Account<'info, DepositPosition>,
+    pub collateral_position: Box<Account<'info, DepositPosition>>,
 
     /// SOL-020 fix: Require agent_profile to validate credit_level on-chain
     #[account(
@@ -209,7 +207,7 @@ pub struct RequestCredit<'info> {
         bump = agent_profile.bump,
         constraint = agent_profile.is_active @ WalletError::AgentNotEligible,
     )]
-    pub agent_profile: Account<'info, AgentProfile>,
+    pub agent_profile: Box<Account<'info, AgentProfile>>,
 
     /// CHECK: credit_line may not exist yet — created by vault.extend_credit CPI inside this ix.
     /// Seeds and discriminator are validated by the vault program during the CPI.
@@ -269,6 +267,16 @@ pub struct ExecuteTrade<'info> {
     )]
     pub venue_entry: Account<'info, WhitelistedVenue>,
 
+    /// Per-venue exposure tracking — safety check 5 (50% per-venue limit)
+    #[account(
+        init_if_needed,
+        payer = agent,
+        space = VenueExposure::LEN,
+        seeds = [VenueExposure::SEED, agent_wallet.agent.as_ref(), venue_program_id.as_ref()],
+        bump,
+    )]
+    pub venue_exposure: Account<'info, VenueExposure>,
+
     #[account(
         seeds = [b"vault_config"],
         seeds::program = config.credit_vault_program,
@@ -276,8 +284,10 @@ pub struct ExecuteTrade<'info> {
     )]
     pub vault_config: Account<'info, VaultConfig>,
 
+    #[account(mut)]
     pub agent: Signer<'info>,
     pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -311,11 +321,10 @@ pub struct PayX402<'info> {
     )]
     pub facilitator_token: Account<'info, TokenAccount>,
 
-    /// SOL-013 fix: Platform treasury receives platform fee on x402 payments.
+    /// Platform treasury receives platform fee on x402 payments.
     #[account(
         mut,
         token::mint = config.usdc_mint,
-        token::authority = config.platform_treasury,
     )]
     pub platform_treasury_token: Account<'info, TokenAccount>,
 
@@ -514,12 +523,13 @@ pub struct Deleverage<'info> {
     pub keeper: Signer<'info>,
 }
 
+/// Liquidation is PERMISSIONLESS — any caller can trigger if NAV condition is met.
+/// If the keeper goes down, anyone can call this to protect LP funds.
 #[derive(Accounts)]
 pub struct Liquidate<'info> {
     #[account(
         seeds = [WalletConfig::SEED],
         bump = config.bump,
-        has_one = keeper @ WalletError::NotKeeper,
     )]
     pub config: Account<'info, WalletConfig>,
 
@@ -575,15 +585,15 @@ pub struct Liquidate<'info> {
     )]
     pub agent_profile: Account<'info, AgentProfile>,
 
-    /// SOL-011 fix: keeper_usdc must belong to the actual keeper signer
+    /// Liquidator's USDC account — receives keeper reward (0.5%)
     #[account(
         mut,
         token::mint = config.usdc_mint,
-        constraint = keeper_usdc.owner == keeper.key() @ WalletError::UnauthorizedOwner,
+        constraint = liquidator_usdc.owner == liquidator.key() @ WalletError::UnauthorizedOwner,
     )]
-    pub keeper_usdc: Account<'info, TokenAccount>,
+    pub liquidator_usdc: Account<'info, TokenAccount>,
 
-    /// SOL-010 fix: owner_usdc must belong to the wallet's actual owner
+    /// owner_usdc must belong to the wallet's actual owner (surplus returned here)
     #[account(
         mut,
         token::mint = config.usdc_mint,
@@ -591,7 +601,8 @@ pub struct Liquidate<'info> {
     )]
     pub owner_usdc: Account<'info, TokenAccount>,
 
-    pub keeper: Signer<'info>,
+    /// PERMISSIONLESS: any signer can trigger liquidation if health condition is met
+    pub liquidator: Signer<'info>,
 
     pub vault_program: Program<'info, krexa_credit_vault::program::KrexaCreditVault>,
     pub registry_program: Program<'info, krexa_agent_registry::program::KrexaAgentRegistry>,
@@ -757,12 +768,10 @@ pub mod krexa_agent_wallet {
         agent_registry_program: Pubkey,
         venue_whitelist_program: Pubkey,
         payment_router_program: Pubkey,
-        platform_treasury: Pubkey,
     ) -> Result<()> {
         instructions::initialize::handle(
             ctx, keeper, credit_vault_program,
             agent_registry_program, venue_whitelist_program, payment_router_program,
-            platform_treasury,
         )
     }
 
