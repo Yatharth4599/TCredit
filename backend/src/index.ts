@@ -20,10 +20,14 @@ const server = app.listen(env.PORT, () => {
   startKeeper();
   startWebhookProcessor();
 
-  // Solana services
-  startSolanaKeeper();
-  startSolanaIndexer();
-  startCreditScoreJob();
+  // Solana services (can be disabled via SOLANA_WORKERS_ENABLED=false to save RPC quota)
+  if (process.env.SOLANA_WORKERS_ENABLED !== 'false') {
+    startSolanaKeeper();
+    startSolanaIndexer();
+    startCreditScoreJob();
+  } else {
+    console.log('[Krexa] Solana background workers disabled (SOLANA_WORKERS_ENABLED=false)');
+  }
 });
 
 function shutdown() {
