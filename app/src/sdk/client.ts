@@ -1,5 +1,11 @@
 import { Connection, PublicKey } from "@solana/web3.js";
-import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
+import { AnchorProvider } from "@coral-xyz/anchor";
+
+interface Wallet {
+  signTransaction<T>(tx: T): Promise<T>;
+  signAllTransactions<T>(txs: T[]): Promise<T[]>;
+  publicKey: PublicKey;
+}
 import BN from "bn.js";
 import {
   PROGRAM_IDS,
