@@ -5,7 +5,7 @@ import { startScoringOracle } from "./scoring/updater.js";
 const RPC_URL = process.env.SOLANA_RPC_URL ?? "https://api.devnet.solana.com";
 const ORACLE_KEYPAIR_PATH = process.env.ORACLE_KEYPAIR_PATH ?? "~/.config/solana/id.json";
 const SCORE_PROGRAM_ID = new PublicKey(
-  process.env.SCORE_PROGRAM_ID ?? "KrXAscr111111111111111111111111111111111111"
+  process.env.SCORE_PROGRAM_ID ?? "2GwtAXnjY5LehfZfT77ZH3XSshwbni8LP9zXeA84WUqh"
 );
 
 async function main() {
