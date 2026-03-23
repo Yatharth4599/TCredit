@@ -6,7 +6,7 @@ pub mod state;
 use errors::*;
 use state::*;
 
-declare_id!("KrXAscr111111111111111111111111111111111111");
+declare_id!("2GwtAXnjY5LehfZfT77ZH3XSshwbni8LP9zXeA84WUqh");
 
 #[program]
 pub mod krexa_score {

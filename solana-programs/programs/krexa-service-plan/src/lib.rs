@@ -3,7 +3,7 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use krexa_common::constants::*;
 use krexa_common::state::ServiceHealth;
 
-declare_id!("KrXAsvc111111111111111111111111111111111111");
+declare_id!("Eqc48c6TtKAPRosTMoC6Nasi85iqdLuzwbu6WBrsPFdt");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Accounts (state)

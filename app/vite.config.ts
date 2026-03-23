@@ -8,7 +8,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
-      '@krexa/solana-sdk': path.resolve(__dirname, '../packages/krexa-sdk/src/index.ts')
+      '@krexa/solana-sdk': path.resolve(__dirname, 'src/sdk/index.ts')
     }
   }
 })

@@ -34,11 +34,11 @@ const envSchema = z.object({
   SOLANA_RPC_URL: z.string().url().optional().default('https://api.devnet.solana.com'),
 
   // Solana program IDs (Anchor placeholder IDs by default — replace after deployment)
-  SOLANA_REGISTRY_PROGRAM_ID: z.string().optional().default('KrXAgReg11111111111111111111111111111111111'),
-  SOLANA_VAULT_PROGRAM_ID:    z.string().optional().default('KrXAcvt111111111111111111111111111111111111'),
-  SOLANA_WALLET_PROGRAM_ID:   z.string().optional().default('KrXAWaT111111111111111111111111111111111111'),
-  SOLANA_VENUE_PROGRAM_ID:    z.string().optional().default('KrXAvwT111111111111111111111111111111111111'),
-  SOLANA_ROUTER_PROGRAM_ID:   z.string().optional().default('KrXAprt111111111111111111111111111111111111'),
+  SOLANA_REGISTRY_PROGRAM_ID: z.string().optional().default('ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG'),
+  SOLANA_VAULT_PROGRAM_ID:    z.string().optional().default('26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N'),
+  SOLANA_WALLET_PROGRAM_ID:   z.string().optional().default('35t8yWLsUZNTLT71ej7DF59P81HrtZTx2uZeMhwuhhf6'),
+  SOLANA_VENUE_PROGRAM_ID:    z.string().optional().default('HyWQrHG14Sw6KpKYSMiBDmVj5u7PXfLWvim6FHbBLmua'),
+  SOLANA_ROUTER_PROGRAM_ID:   z.string().optional().default('2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8'),
 
   // USDC mint on the target network (devnet / mainnet)
   SOLANA_USDC_MINT: z.string().optional().default('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'),
