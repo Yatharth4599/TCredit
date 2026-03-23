@@ -37,9 +37,17 @@ function loadFaucetKeypair(): Keypair {
   const raw = env.SOLANA_FAUCET_PRIVATE_KEY;
   if (!raw) throw new AppError(503, 'Faucet not configured (SOLANA_FAUCET_PRIVATE_KEY missing)');
   try {
-    if (raw.startsWith('[')) return Keypair.fromSecretKey(new Uint8Array(JSON.parse(raw)));
-    return Keypair.fromSecretKey(bs58.decode(raw));
-  } catch {
+    let kp: Keypair;
+    if (raw.startsWith('[')) {
+      kp = Keypair.fromSecretKey(new Uint8Array(JSON.parse(raw)));
+    } else {
+      const decoded = bs58.decode(raw);
+      kp = Keypair.fromSecretKey(decoded);
+    }
+    console.log('[Faucet] keypair loaded, pubkey:', kp.publicKey.toBase58());
+    return kp;
+  } catch (e) {
+    console.error('[Faucet] keypair load error:', e);
     throw new AppError(503, 'Faucet keypair is invalid');
   }
 }
