@@ -49,6 +49,12 @@ const envSchema = z.object({
   // Keeper signing keypair (base58-encoded secret key)
   SOLANA_KEEPER_PRIVATE_KEY: z.string().optional().default(''),
 
+  // Score program ID
+  SOLANA_SCORE_PROGRAM_ID: z.string().optional().default('2GwtAXnjY5LehfZfT77ZH3XSshwbni8LP9zXeA84WUqh'),
+
+  // Faucet keypair — has USDC mint authority on devnet (base58-encoded)
+  SOLANA_FAUCET_PRIVATE_KEY: z.string().optional().default(''),
+
   // KYA — Sumsub integration (optional for dev)
   SUMSUB_API_KEY: z.string().optional().default(''),
 

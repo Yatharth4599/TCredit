@@ -137,7 +137,7 @@ pub struct ScoreConfig {
 
 impl ScoreConfig {
     pub const SEED: &'static [u8] = b"score_config";
-    pub const LEN: usize = 8 + 32 * 4 + 1 + 1;
+    pub const LEN: usize = 8 + 32 * 5 + 1 + 1;
 }
 
 /// Input enum for credit events via CPI

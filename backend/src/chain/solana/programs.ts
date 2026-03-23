@@ -12,6 +12,7 @@ export const PROGRAM_IDS = {
   agentWallet:    new PublicKey(env.SOLANA_WALLET_PROGRAM_ID),
   venueWhitelist: new PublicKey(env.SOLANA_VENUE_PROGRAM_ID),
   paymentRouter:  new PublicKey(env.SOLANA_ROUTER_PROGRAM_ID),
+  score:          new PublicKey(env.SOLANA_SCORE_PROGRAM_ID),
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -102,6 +103,12 @@ export const routerConfigPda = () =>
 
 export const settlementPda = (merchant: PublicKey) =>
   findPda(SEEDS.settlement(merchant), PROGRAM_IDS.paymentRouter);
+
+// Score Program — KrexitScore PDA is seeded from agent_profile PDA key
+export const krexitScorePda = (agent: PublicKey): PublicKey => {
+  const agentProfilePdaKey = agentProfilePda(agent);
+  return findPda([Buffer.from('krexit_score'), agentProfilePdaKey.toBuffer()], PROGRAM_IDS.score);
+};
 
 // ---------------------------------------------------------------------------
 // Instruction Discriminators  (sha256("global:<name>")[0..8])

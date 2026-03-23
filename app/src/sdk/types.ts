@@ -12,6 +12,7 @@ export const PROGRAM_IDS = {
   VENUE_WHITELIST: new PublicKey("HyWQrHG14Sw6KpKYSMiBDmVj5u7PXfLWvim6FHbBLmua"),
   PAYMENT_ROUTER:  new PublicKey("2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8"),
   SERVICE_PLAN:    new PublicKey("Eqc48c6TtKAPRosTMoC6Nasi85iqdLuzwbu6WBrsPFdt"),
+  SCORE:           new PublicKey("2GwtAXnjY5LehfZfT77ZH3XSshwbni8LP9zXeA84WUqh"),
 } as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -83,26 +84,23 @@ export interface RegistryConfig {
 export interface AgentProfile {
   agent: PublicKey;
   owner: PublicKey;
-  ownerType: number;
   name: number[];           // [u8; 32]
   creditScore: number;      // u16
-  creditLevel: number;      // u8 (CreditLevel as_u8)
-  kyaTier: number;          // u8 (KyaTier as_u8)
+  creditLevel: number;      // u8
+  kyaTier: number;          // u8
+  kyaVerifiedAt: BN;        // i64
+  scoreUpdatedAt: BN;       // i64
+  totalVolume: BN;          // u64
+  totalTrades: BN;          // u64
+  totalRepaid: BN;          // u64
+  totalBorrowed: BN;        // u64
+  liquidationCount: number; // u8
+  walletPda: PublicKey;
+  hasWallet: boolean;
   isActive: boolean;
   registeredAt: BN;         // i64
-  lastScoreUpdate: BN;      // i64
-  legalAgreementHash: number[]; // [u8; 32]
-  legalAgreementSignedAt: BN;   // i64
-  attestationHash: number[];     // [u8; 32]
-  attestationAt: BN;             // i64
-  walletPda: PublicKey;
-  liquidationCount: number; // u16
-  totalVolume: BN;
-  totalTrades: BN;
-  totalRepaid: BN;
-  totalBorrowed: BN;
-  agentType: number;        // u8 (AgentType as_u8)
   bump: number;
+  agentType: number;        // u8 (0=Trader, 1=Service, 2=Hybrid)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -156,20 +154,25 @@ export interface VaultConfig {
   admin: PublicKey;
   oracle: PublicKey;
   walletProgram: PublicKey;
-  routerProgram: PublicKey;
   usdcMint: PublicKey;
   vaultTokenAccount: PublicKey;
   insuranceTokenAccount: PublicKey;
+  // Pool accounting
   totalDeposits: BN;
-  totalBorrowed: BN;
-  totalRepaid: BN;
+  totalShares: BN;
+  totalDeployed: BN;
+  totalInterestEarned: BN;
+  totalDefaults: BN;
   insuranceBalance: BN;
+  // Parameters
   utilizationCapBps: number;
   baseInterestRateBps: number;
   lockupSeconds: BN;
-  treasuryAccount: PublicKey;
   isPaused: boolean;
   bump: number;
+  vaultTokenBump: number;
+  insuranceTokenBump: number;
+  routerProgram: PublicKey;
   // Tranche tracking
   seniorDeposits: BN;
   seniorShares: BN;
@@ -177,28 +180,32 @@ export interface VaultConfig {
   mezzanineShares: BN;
   juniorDeposits: BN;
   juniorShares: BN;
+  treasuryAccount: PublicKey;
+  lastYieldTimestamp: BN;
   servicePlanProgram: PublicKey;
 }
 
 export interface DepositPosition {
-  owner: PublicKey;
-  depositAmount: BN;
+  depositor: PublicKey;
   shares: BN;
+  depositAmount: BN;
   depositedAt: BN;
-  tranche: number;
   isCollateral: boolean;
+  agentPubkey: PublicKey;
+  tranche: number;
   bump: number;
 }
 
 export interface CreditLine {
   agent: PublicKey;
+  agentWalletPda: PublicKey;
   creditLimit: BN;
   creditDrawn: BN;
-  accruedInterest: BN;
   interestRateBps: number;
-  originatedAt: BN;
+  accruedInterest: BN;
+  totalInterestPaid: BN;
   lastAccrualAt: BN;
-  creditLevel: number;
+  originatedAt: BN;
   isActive: boolean;
   bump: number;
 }
@@ -455,6 +462,9 @@ export const PDA_SEEDS = {
   SERVICE_PLAN_CONFIG: Buffer.from("service_plan_config"),
   SERVICE_PLAN: Buffer.from("service_plan"),
   EXPENSE_DESTINATION: Buffer.from("expense_dest"),
+
+  // Score
+  KREXIT_SCORE: Buffer.from("krexit_score"),
 } as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -495,6 +505,63 @@ export interface LPPosition {
   depositedAt: BN;
   estimatedValue: BN;
   estimatedYield: BN;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// On-chain account types (krexa-score)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ScoreHistoryEntry {
+  timestamp: BN;
+  oldScore: number;
+  newScore: number;
+  eventType: number;
+  deltaBps: number;
+}
+
+export interface KrexitScore {
+  agent: PublicKey;
+  owner: PublicKey;
+  score: number;
+  creditLevel: number;
+  kyaTier: number;
+  c1Repayment: number;
+  c2Profitability: number;
+  c3Behavioral: number;
+  c4Usage: number;
+  c5Maturity: number;
+  onTimeRepayments: number;
+  lateRepayments: number;
+  missedRepayments: number;
+  liquidations: number;
+  defaults: number;
+  creditCyclesCompleted: number;
+  cumulativeBorrowed: BN;
+  cumulativeRepaid: BN;
+  currentDebt: BN;
+  pnlRatioBps: number;
+  maxDrawdownBps: number;
+  sharpeRatioBps: number;
+  greenTimeBps: number;
+  yellowTimeBps: number;
+  orangeTimeBps: number;
+  redTimeBps: number;
+  venueEntropyBps: number;
+  uniqueVenues: number;
+  totalTransactions: number;
+  avgDailyVolume: BN;
+  registeredAt: BN;
+  lastScoreUpdate: BN;
+  lastCriticalEvent: BN;
+  lastRepayment: BN;
+  history: ScoreHistoryEntry[];
+  historyIndex: number;
+  agentType: number;
+  revenueHealthBps: number;
+  milestoneCompletionRateBps: number;
+  isActive: boolean;
+  isBlacklisted: boolean;
+  bump: number;
 }
 
 export interface CreditTerms {

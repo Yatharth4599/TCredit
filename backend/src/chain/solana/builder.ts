@@ -500,6 +500,56 @@ export function buildCancelOwnershipTransfer(params: CancelOwnershipTransferPara
 }
 
 // ---------------------------------------------------------------------------
+// Credit Vault: request_credit (via agent-wallet program, oracle must co-sign)
+// ---------------------------------------------------------------------------
+
+export interface RequestCreditParams {
+  agent: PublicKey;
+  oracle: PublicKey;
+  agentOrOwner: PublicKey;   // agent or owner pubkey (second required signer from browser)
+  amount: bigint;            // USDC base units
+  rateBps: number;           // annual interest rate in BPS
+  creditLevel: number;       // u8
+  collateralValueUsdc: bigint;
+}
+
+export function buildRequestCredit(params: RequestCreditParams): TransactionInstruction {
+  const { agent, oracle, agentOrOwner, amount, rateBps, creditLevel, collateralValueUsdc } = params;
+  const config       = walletConfigPda();
+  const wallet       = agentWalletPda(agent);
+  const walletUsdc   = walletUsdcPda(agent);
+  const vaultConfig  = vaultConfigPda();
+  const vaultToken   = vaultUsdcPda();
+  const collateral   = collateralPositionPda(agent);
+  const agentProfile = agentProfilePda(agent);
+  const creditLine   = creditLinePda(agent);
+
+  const data = Buffer.concat([
+    DISCRIMINATORS.requestCredit,
+    encodeU64(amount),
+    encodeU16(rateBps),
+    encodeU8(creditLevel),
+    encodeU64(collateralValueUsdc),
+  ]);
+
+  return ix(PROGRAM_IDS.agentWallet, [
+    { pubkey: config,              isSigner: false, isWritable: false },
+    { pubkey: wallet,              isSigner: false, isWritable: true  },
+    { pubkey: walletUsdc,          isSigner: false, isWritable: true  },
+    { pubkey: vaultConfig,         isSigner: false, isWritable: true  },
+    { pubkey: vaultToken,          isSigner: false, isWritable: true  },
+    { pubkey: collateral,          isSigner: false, isWritable: false },
+    { pubkey: agentProfile,        isSigner: false, isWritable: false },
+    { pubkey: creditLine,          isSigner: false, isWritable: true  },
+    { pubkey: oracle,              isSigner: true,  isWritable: true  },
+    { pubkey: agentOrOwner,        isSigner: true,  isWritable: false },
+    { pubkey: PROGRAM_IDS.creditVault, isSigner: false, isWritable: false },
+    { pubkey: TOKEN_PROGRAM_ID,    isSigner: false, isWritable: false },
+    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+  ], data);
+}
+
+// ---------------------------------------------------------------------------
 // Helpers: wrap an instruction into a base64 serialised unsigned Transaction
 // ---------------------------------------------------------------------------
 

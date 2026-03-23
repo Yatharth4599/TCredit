@@ -21,6 +21,8 @@ import {
   type LPPosition,
   type CreditTerms,
   type Milestone,
+  type KrexitScore,
+  type ScoreHistoryEntry,
   CreditLevel,
   KyaTier,
   Tranche,
@@ -73,6 +75,7 @@ export class KrexaClient {
   get agent() { return new AgentModule(this); }
   get vault() { return new VaultModule(this); }
   get lp() { return new LPModule(this); }
+  get score() { return new ScoreModule(this); }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -239,17 +242,6 @@ class AgentModule {
       });
     }
 
-    // Legal agreement for L3+
-    if (nextLevel >= 3) {
-      const hasAgreement = profile.legalAgreementSignedAt.gt(new BN(0));
-      requirements.push({
-        name: "Legal Agreement Signed",
-        met: hasAgreement,
-        current: hasAgreement ? "Yes" : "No",
-        required: "Yes",
-      });
-    }
-
     const eligible = requirements.every((r) => r.met);
     return { currentLevel, nextLevel, eligible, requirements };
   }
@@ -312,10 +304,10 @@ class VaultModule {
     if (!info) return null;
 
     const cfg = deserializeVaultConfig(info.data.slice(8));
-    const availableLiquidity = cfg.totalDeposits.sub(cfg.totalBorrowed);
+    const availableLiquidity = cfg.totalDeposits.sub(cfg.totalDeployed);
     const utilizationBps = cfg.totalDeposits.isZero()
       ? 0
-      : cfg.totalBorrowed.mul(new BN(10_000)).div(cfg.totalDeposits).toNumber();
+      : cfg.totalDeployed.mul(new BN(10_000)).div(cfg.totalDeposits).toNumber();
 
     return {
       totalDeposits: cfg.totalDeposits,
@@ -458,7 +450,7 @@ class LPModule {
     }
 
     return {
-      owner: pos.owner,
+      owner: pos.depositor,
       tranche,
       depositAmount: pos.depositAmount,
       shares: pos.shares,
@@ -533,6 +525,22 @@ class LPModule {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Score Module
+// ─────────────────────────────────────────────────────────────────────────────
+
+class ScoreModule {
+  constructor(private client: KrexaClient) {}
+
+  /** Fetch an agent's krexit score. */
+  async getScore(agent: PublicKey): Promise<KrexitScore | null> {
+    const [scorePda] = pda.findKrexitScore(agent);
+    const info = await this.client.connection.getAccountInfo(scorePda);
+    if (!info) return null;
+    return deserializeKrexitScore(info.data.slice(8));
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Borsh deserialization helpers (manual, matching Anchor account layout)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -546,6 +554,18 @@ function readU8(buf: Buffer, offset: number): [number, number] {
 
 function readU16(buf: Buffer, offset: number): [number, number] {
   return [buf.readUInt16LE(offset), offset + 2];
+}
+
+function readI16(buf: Buffer, offset: number): [number, number] {
+  return [buf.readInt16LE(offset), offset + 2];
+}
+
+function readU32(buf: Buffer, offset: number): [number, number] {
+  return [buf.readUInt32LE(offset), offset + 4];
+}
+
+function readI32(buf: Buffer, offset: number): [number, number] {
+  return [buf.readInt32LE(offset), offset + 4];
 }
 
 function readU64(buf: Buffer, offset: number): [BN, number] {
@@ -567,39 +587,38 @@ function readBytes(buf: Buffer, offset: number, len: number): [number[], number]
 function deserializeAgentProfile(buf: Buffer): AgentProfile {
   let off = 0;
   let agent: PublicKey, owner: PublicKey, walletPda: PublicKey;
-  let ownerType: number, creditScore: number, creditLevel: number, kyaTier: number, bump: number, agentType: number, liquidationCount: number;
-  let isActive: boolean;
-  let registeredAt: BN, lastScoreUpdate: BN, legalAgreementSignedAt: BN, attestationAt: BN, totalVolume: BN, totalTrades: BN, totalRepaid: BN, totalBorrowed: BN;
-  let name: number[], legalAgreementHash: number[], attestationHash: number[];
+  let creditScore: number, creditLevel: number, kyaTier: number, bump: number, agentType: number, liquidationCount: number;
+  let hasWallet: boolean, isActive: boolean;
+  let registeredAt: BN, kyaVerifiedAt: BN, scoreUpdatedAt: BN;
+  let totalVolume: BN, totalTrades: BN, totalRepaid: BN, totalBorrowed: BN;
+  let name: number[];
 
-  [agent, off] = readPubkey(buf, off);
-  [owner, off] = readPubkey(buf, off);
-  [ownerType, off] = readU8(buf, off);
-  [name, off] = readBytes(buf, off, 32);
-  [creditScore, off] = readU16(buf, off);
-  [creditLevel, off] = readU8(buf, off);
-  [kyaTier, off] = readU8(buf, off);
-  [isActive, off] = readBool(buf, off);
-  [registeredAt, off] = readI64(buf, off);
-  [lastScoreUpdate, off] = readI64(buf, off);
-  [legalAgreementHash, off] = readBytes(buf, off, 32);
-  [legalAgreementSignedAt, off] = readI64(buf, off);
-  [attestationHash, off] = readBytes(buf, off, 32);
-  [attestationAt, off] = readI64(buf, off);
-  [walletPda, off] = readPubkey(buf, off);
-  [liquidationCount, off] = readU16(buf, off);
-  [totalVolume, off] = readU64(buf, off);
-  [totalTrades, off] = readU64(buf, off);
-  [totalRepaid, off] = readU64(buf, off);
-  [totalBorrowed, off] = readU64(buf, off);
-  [agentType, off] = readU8(buf, off);
-  [bump, off] = readU8(buf, off);
+  // Matches krexa-agent-registry AgentProfile struct layout exactly
+  [agent, off]          = readPubkey(buf, off);        // 32
+  [owner, off]          = readPubkey(buf, off);        // 32
+  [name, off]           = readBytes(buf, off, 32);     // 32
+  [creditScore, off]    = readU16(buf, off);           // 2
+  [creditLevel, off]    = readU8(buf, off);            // 1
+  [kyaTier, off]        = readU8(buf, off);            // 1
+  [kyaVerifiedAt, off]  = readI64(buf, off);           // 8
+  [scoreUpdatedAt, off] = readI64(buf, off);           // 8
+  [totalVolume, off]    = readU64(buf, off);           // 8
+  [totalTrades, off]    = readU64(buf, off);           // 8
+  [totalRepaid, off]    = readU64(buf, off);           // 8
+  [totalBorrowed, off]  = readU64(buf, off);           // 8
+  [liquidationCount, off] = readU8(buf, off);          // 1
+  [walletPda, off]      = readPubkey(buf, off);        // 32
+  [hasWallet, off]      = readBool(buf, off);          // 1
+  [isActive, off]       = readBool(buf, off);          // 1
+  [registeredAt, off]   = readI64(buf, off);           // 8
+  [bump, off]           = readU8(buf, off);            // 1
+  // agent_type added in later version — read if buffer allows
+  agentType = off < buf.length ? (([agentType, off] = readU8(buf, off)), agentType) : 0;
 
   return {
-    agent, owner, ownerType, name, creditScore, creditLevel, kyaTier, isActive,
-    registeredAt, lastScoreUpdate, legalAgreementHash, legalAgreementSignedAt,
-    attestationHash, attestationAt, walletPda, liquidationCount,
-    totalVolume, totalTrades, totalRepaid, totalBorrowed, agentType, bump,
+    agent, owner, name, creditScore, creditLevel, kyaTier,
+    kyaVerifiedAt, scoreUpdatedAt, totalVolume, totalTrades, totalRepaid, totalBorrowed,
+    liquidationCount, walletPda, hasWallet, isActive, registeredAt, bump, agentType,
   };
 }
 
@@ -646,89 +665,104 @@ function deserializeAgentWallet(buf: Buffer): AgentWallet {
 
 function deserializeVaultConfig(buf: Buffer): VaultConfig {
   let off = 0;
-  let admin: PublicKey, oracle: PublicKey, walletProgram: PublicKey, routerProgram: PublicKey;
-  let usdcMint: PublicKey, vaultTokenAccount: PublicKey, insuranceTokenAccount: PublicKey, treasuryAccount: PublicKey;
-  let totalDeposits: BN, totalBorrowed: BN, totalRepaid: BN, insuranceBalance: BN, lockupSeconds: BN;
-  let utilizationCapBps: number, baseInterestRateBps: number, bump: number;
+  let admin: PublicKey, oracle: PublicKey, walletProgram: PublicKey;
+  let usdcMint: PublicKey, vaultTokenAccount: PublicKey, insuranceTokenAccount: PublicKey;
+  let totalDeposits: BN, totalShares: BN, totalDeployed: BN, totalInterestEarned: BN, totalDefaults: BN, insuranceBalance: BN;
+  let utilizationCapBps: number, baseInterestRateBps: number, bump: number, vaultTokenBump: number, insuranceTokenBump: number;
+  let lockupSeconds: BN;
   let isPaused: boolean;
+  let routerProgram: PublicKey;
   let seniorDeposits: BN, seniorShares: BN, mezzanineDeposits: BN, mezzanineShares: BN;
   let juniorDeposits: BN, juniorShares: BN;
-  let servicePlanProgram: PublicKey;
+  let treasuryAccount: PublicKey, servicePlanProgram: PublicKey;
+  let lastYieldTimestamp: BN;
 
-  [admin, off] = readPubkey(buf, off);
-  [oracle, off] = readPubkey(buf, off);
-  [walletProgram, off] = readPubkey(buf, off);
-  [routerProgram, off] = readPubkey(buf, off);
-  [usdcMint, off] = readPubkey(buf, off);
-  [vaultTokenAccount, off] = readPubkey(buf, off);
-  [insuranceTokenAccount, off] = readPubkey(buf, off);
-  [totalDeposits, off] = readU64(buf, off);
-  [totalBorrowed, off] = readU64(buf, off);
-  [totalRepaid, off] = readU64(buf, off);
-  [insuranceBalance, off] = readU64(buf, off);
-  [utilizationCapBps, off] = readU16(buf, off);
-  [baseInterestRateBps, off] = readU16(buf, off);
-  [lockupSeconds, off] = readI64(buf, off);
-  [treasuryAccount, off] = readPubkey(buf, off);
-  [isPaused, off] = readBool(buf, off);
-  [bump, off] = readU8(buf, off);
-  [seniorDeposits, off] = readU64(buf, off);
-  [seniorShares, off] = readU64(buf, off);
-  [mezzanineDeposits, off] = readU64(buf, off);
-  [mezzanineShares, off] = readU64(buf, off);
-  [juniorDeposits, off] = readU64(buf, off);
-  [juniorShares, off] = readU64(buf, off);
-  [servicePlanProgram, off] = readPubkey(buf, off);
+  // Matches krexa-credit-vault VaultConfig struct layout exactly (lib.rs lines 19-59)
+  [admin, off]               = readPubkey(buf, off);  // 32
+  [oracle, off]              = readPubkey(buf, off);  // 32
+  [walletProgram, off]       = readPubkey(buf, off);  // 32
+  [usdcMint, off]            = readPubkey(buf, off);  // 32
+  [vaultTokenAccount, off]   = readPubkey(buf, off);  // 32
+  [insuranceTokenAccount, off] = readPubkey(buf, off); // 32
+  [totalDeposits, off]       = readU64(buf, off);     // 8
+  [totalShares, off]         = readU64(buf, off);     // 8
+  [totalDeployed, off]       = readU64(buf, off);     // 8
+  [totalInterestEarned, off] = readU64(buf, off);     // 8
+  [totalDefaults, off]       = readU64(buf, off);     // 8
+  [insuranceBalance, off]    = readU64(buf, off);     // 8
+  [utilizationCapBps, off]   = readU16(buf, off);     // 2
+  [baseInterestRateBps, off] = readU16(buf, off);     // 2
+  [lockupSeconds, off]       = readI64(buf, off);     // 8
+  [isPaused, off]            = readBool(buf, off);    // 1
+  [bump, off]                = readU8(buf, off);      // 1
+  [vaultTokenBump, off]      = readU8(buf, off);      // 1
+  [insuranceTokenBump, off]  = readU8(buf, off);      // 1
+  [routerProgram, off]       = readPubkey(buf, off);  // 32
+  [seniorDeposits, off]      = readU64(buf, off);     // 8
+  [seniorShares, off]        = readU64(buf, off);     // 8
+  [mezzanineDeposits, off]   = readU64(buf, off);     // 8
+  [mezzanineShares, off]     = readU64(buf, off);     // 8
+  [juniorDeposits, off]      = readU64(buf, off);     // 8
+  [juniorShares, off]        = readU64(buf, off);     // 8
+  [treasuryAccount, off]     = readPubkey(buf, off);  // 32
+  [lastYieldTimestamp, off]  = readI64(buf, off);     // 8
+  [servicePlanProgram, off]  = readPubkey(buf, off);  // 32
 
   return {
-    admin, oracle, walletProgram, routerProgram, usdcMint, vaultTokenAccount,
-    insuranceTokenAccount, totalDeposits, totalBorrowed, totalRepaid, insuranceBalance,
-    utilizationCapBps, baseInterestRateBps, lockupSeconds, treasuryAccount,
-    isPaused, bump, seniorDeposits, seniorShares, mezzanineDeposits, mezzanineShares,
-    juniorDeposits, juniorShares, servicePlanProgram,
+    admin, oracle, walletProgram, usdcMint, vaultTokenAccount, insuranceTokenAccount,
+    totalDeposits, totalShares, totalDeployed, totalInterestEarned, totalDefaults, insuranceBalance,
+    utilizationCapBps, baseInterestRateBps, lockupSeconds,
+    isPaused, bump, vaultTokenBump, insuranceTokenBump, routerProgram,
+    seniorDeposits, seniorShares, mezzanineDeposits, mezzanineShares,
+    juniorDeposits, juniorShares, treasuryAccount, lastYieldTimestamp, servicePlanProgram,
   };
 }
 
 function deserializeCreditLine(buf: Buffer): CreditLine {
   let off = 0;
-  let agent: PublicKey;
-  let creditLimit: BN, creditDrawn: BN, accruedInterest: BN, originatedAt: BN, lastAccrualAt: BN;
-  let interestRateBps: number, creditLevel: number, bump: number;
+  let agent: PublicKey, agentWalletPda: PublicKey;
+  let creditLimit: BN, creditDrawn: BN, accruedInterest: BN, totalInterestPaid: BN;
+  let originatedAt: BN, lastAccrualAt: BN;
+  let interestRateBps: number, bump: number;
   let isActive: boolean;
 
-  [agent, off] = readPubkey(buf, off);
-  [creditLimit, off] = readU64(buf, off);
-  [creditDrawn, off] = readU64(buf, off);
-  [accruedInterest, off] = readU64(buf, off);
-  [interestRateBps, off] = readU16(buf, off);
-  [originatedAt, off] = readI64(buf, off);
-  [lastAccrualAt, off] = readI64(buf, off);
-  [creditLevel, off] = readU8(buf, off);
-  [isActive, off] = readBool(buf, off);
-  [bump, off] = readU8(buf, off);
+  // Matches krexa-credit-vault CreditLine struct layout exactly (lib.rs lines 126-138)
+  [agent, off]           = readPubkey(buf, off);  // 32
+  [agentWalletPda, off]  = readPubkey(buf, off);  // 32
+  [creditLimit, off]     = readU64(buf, off);     // 8
+  [creditDrawn, off]     = readU64(buf, off);     // 8
+  [interestRateBps, off] = readU16(buf, off);     // 2
+  [accruedInterest, off] = readU64(buf, off);     // 8
+  [totalInterestPaid, off] = readU64(buf, off);   // 8
+  [lastAccrualAt, off]   = readI64(buf, off);     // 8
+  [originatedAt, off]    = readI64(buf, off);     // 8
+  [isActive, off]        = readBool(buf, off);    // 1
+  [bump, off]            = readU8(buf, off);      // 1
 
   return {
-    agent, creditLimit, creditDrawn, accruedInterest, interestRateBps,
-    originatedAt, lastAccrualAt, creditLevel, isActive, bump,
+    agent, agentWalletPda, creditLimit, creditDrawn, interestRateBps,
+    accruedInterest, totalInterestPaid, lastAccrualAt, originatedAt, isActive, bump,
   };
 }
 
 function deserializeDepositPosition(buf: Buffer): DepositPosition {
   let off = 0;
-  let owner: PublicKey;
-  let depositAmount: BN, shares: BN, depositedAt: BN;
+  let depositor: PublicKey, agentPubkey: PublicKey;
+  let shares: BN, depositAmount: BN, depositedAt: BN;
   let tranche: number, bump: number;
   let isCollateral: boolean;
 
-  [owner, off] = readPubkey(buf, off);
-  [depositAmount, off] = readU64(buf, off);
-  [shares, off] = readU64(buf, off);
-  [depositedAt, off] = readI64(buf, off);
-  [tranche, off] = readU8(buf, off);
-  [isCollateral, off] = readBool(buf, off);
-  [bump, off] = readU8(buf, off);
+  // Matches krexa-credit-vault DepositPosition struct layout exactly (lib.rs lines 107-116)
+  [depositor, off]    = readPubkey(buf, off);  // 32
+  [shares, off]       = readU64(buf, off);     // 8
+  [depositAmount, off] = readU64(buf, off);    // 8
+  [depositedAt, off]  = readI64(buf, off);     // 8
+  [isCollateral, off] = readBool(buf, off);    // 1
+  [agentPubkey, off]  = readPubkey(buf, off);  // 32
+  [tranche, off]      = readU8(buf, off);      // 1
+  [bump, off]         = readU8(buf, off);      // 1
 
-  return { owner, depositAmount, shares, depositedAt, tranche, isCollateral, bump };
+  return { depositor, shares, depositAmount, depositedAt, isCollateral, agentPubkey, tranche, bump };
 }
 
 function deserializeServicePlan(buf: Buffer): ServicePlan {
@@ -812,4 +846,93 @@ function deserializeRevenueValidator(buf: Buffer): RevenueValidator {
   };
 }
 
-export { AgentModule, VaultModule, LPModule };
+function deserializeKrexitScore(buf: Buffer): KrexitScore {
+  let off = 0;
+  let agent: PublicKey, owner: PublicKey;
+  let score: number, creditLevel: number, kyaTier: number;
+  let c1Repayment: number, c2Profitability: number, c3Behavioral: number, c4Usage: number, c5Maturity: number;
+  let onTimeRepayments: number, lateRepayments: number, missedRepayments: number, liquidations: number, defaults: number;
+  let creditCyclesCompleted: number;
+  let cumulativeBorrowed: BN, cumulativeRepaid: BN, currentDebt: BN;
+  let pnlRatioBps: number, maxDrawdownBps: number, sharpeRatioBps: number;
+  let greenTimeBps: number, yellowTimeBps: number, orangeTimeBps: number, redTimeBps: number;
+  let venueEntropyBps: number, uniqueVenues: number, totalTransactions: number;
+  let avgDailyVolume: BN;
+  let registeredAt: BN, lastScoreUpdate: BN, lastCriticalEvent: BN, lastRepayment: BN;
+  let historyIndex: number, agentType: number;
+  let revenueHealthBps: number, milestoneCompletionRateBps: number;
+  let isActive: boolean, isBlacklisted: boolean;
+  let bump: number;
+
+  [agent, off] = readPubkey(buf, off);
+  [owner, off] = readPubkey(buf, off);
+  [score, off] = readU16(buf, off);
+  [creditLevel, off] = readU8(buf, off);
+  [kyaTier, off] = readU8(buf, off);
+  [c1Repayment, off] = readU16(buf, off);
+  [c2Profitability, off] = readU16(buf, off);
+  [c3Behavioral, off] = readU16(buf, off);
+  [c4Usage, off] = readU16(buf, off);
+  [c5Maturity, off] = readU16(buf, off);
+  [onTimeRepayments, off] = readU32(buf, off);
+  [lateRepayments, off] = readU16(buf, off);
+  [missedRepayments, off] = readU16(buf, off);
+  [liquidations, off] = readU16(buf, off);
+  [defaults, off] = readU16(buf, off);
+  [creditCyclesCompleted, off] = readU32(buf, off);
+  [cumulativeBorrowed, off] = readU64(buf, off);
+  [cumulativeRepaid, off] = readU64(buf, off);
+  [currentDebt, off] = readU64(buf, off);
+  [pnlRatioBps, off] = readI32(buf, off);
+  [maxDrawdownBps, off] = readU16(buf, off);
+  [sharpeRatioBps, off] = readI16(buf, off);
+  [greenTimeBps, off] = readU16(buf, off);
+  [yellowTimeBps, off] = readU16(buf, off);
+  [orangeTimeBps, off] = readU16(buf, off);
+  [redTimeBps, off] = readU16(buf, off);
+  [venueEntropyBps, off] = readU16(buf, off);
+  [uniqueVenues, off] = readU8(buf, off);
+  [totalTransactions, off] = readU32(buf, off);
+  [avgDailyVolume, off] = readU64(buf, off);
+  [registeredAt, off] = readI64(buf, off);
+  [lastScoreUpdate, off] = readI64(buf, off);
+  [lastCriticalEvent, off] = readI64(buf, off);
+  [lastRepayment, off] = readI64(buf, off);
+
+  // History: 30 fixed entries, each 15 bytes
+  const history: ScoreHistoryEntry[] = [];
+  for (let i = 0; i < 30; i++) {
+    let timestamp: BN;
+    let oldScore: number, newScore: number, eventType: number, deltaBps: number;
+    [timestamp, off] = readI64(buf, off);
+    [oldScore, off] = readU16(buf, off);
+    [newScore, off] = readU16(buf, off);
+    [eventType, off] = readU8(buf, off);
+    [deltaBps, off] = readI16(buf, off);
+    history.push({ timestamp, oldScore, newScore, eventType, deltaBps });
+  }
+
+  [historyIndex, off] = readU8(buf, off);
+  [agentType, off] = readU8(buf, off);
+  [revenueHealthBps, off] = readU16(buf, off);
+  [milestoneCompletionRateBps, off] = readU16(buf, off);
+  [isActive, off] = readBool(buf, off);
+  [isBlacklisted, off] = readBool(buf, off);
+  [bump, off] = readU8(buf, off);
+
+  return {
+    agent, owner, score, creditLevel, kyaTier,
+    c1Repayment, c2Profitability, c3Behavioral, c4Usage, c5Maturity,
+    onTimeRepayments, lateRepayments, missedRepayments, liquidations, defaults,
+    creditCyclesCompleted, cumulativeBorrowed, cumulativeRepaid, currentDebt,
+    pnlRatioBps, maxDrawdownBps, sharpeRatioBps,
+    greenTimeBps, yellowTimeBps, orangeTimeBps, redTimeBps,
+    venueEntropyBps, uniqueVenues, totalTransactions, avgDailyVolume,
+    registeredAt, lastScoreUpdate, lastCriticalEvent, lastRepayment,
+    history, historyIndex, agentType,
+    revenueHealthBps, milestoneCompletionRateBps,
+    isActive, isBlacklisted, bump,
+  };
+}
+
+export { AgentModule, VaultModule, LPModule, ScoreModule };

@@ -9,5 +9,6 @@ export function useVaultStats() {
     queryKey: ['vault-stats'],
     queryFn: () => client.vault.getStats(),
     refetchInterval: config.refreshIntervals.vault,
+    retry: 1,
   })
 }

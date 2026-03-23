@@ -1,4 +1,26 @@
 services:
+  - type: worker
+    name: krexa-oracle
+    runtime: node
+    rootDir: oracle
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SOLANA_RPC_URL
+        value: https://api.devnet.solana.com
+      - key: SOLANA_SCORE_PROGRAM_ID
+        value: 2GwtAXnjY5LehfZfT77ZH3XSshwbni8LP9zXeA84WUqh
+      - key: SOLANA_REGISTRY_PROGRAM_ID
+        value: ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG
+      - key: SOLANA_VAULT_PROGRAM_ID
+        value: 26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N
+      - key: SOLANA_WALLET_PROGRAM_ID
+        value: 35t8yWLsUZNTLT71ej7DF59P81HrtZTx2uZeMhwuhhf6
+      - key: SOLANA_ORACLE_PRIVATE_KEY
+        sync: false
+
   - type: web
     name: krexa-demo-server
     runtime: node
@@ -69,9 +91,15 @@ services:
         value: tTNCsxo79Swnc6SCWgHP2ow4d1zh8H1B8JXKw2g3Vhe
       - key: KREXA_TREASURY_ATA
         value: 5v86BdV1SS23TKdsp9tdVcm8sGj1UdhefxnJGTgJeWBi
+      - key: SOLANA_SCORE_PROGRAM_ID
+        value: 2GwtAXnjY5LehfZfT77ZH3XSshwbni8LP9zXeA84WUqh
+      - key: SOLANA_SERVICE_PLAN_PROGRAM_ID
+        value: Eqc48c6TtKAPRosTMoC6Nasi85iqdLuzwbu6WBrsPFdt
       - key: SOLANA_ORACLE_PRIVATE_KEY
         sync: false
       - key: SOLANA_KEEPER_PRIVATE_KEY
+        sync: false
+      - key: SOLANA_FAUCET_PRIVATE_KEY
         sync: false
       - key: CORS_ORIGIN
         sync: false

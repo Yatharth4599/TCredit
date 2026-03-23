@@ -154,3 +154,18 @@ export function findExpenseDestination(plan: PublicKey, destination: PublicKey):
     PROGRAM_IDS.SERVICE_PLAN
   );
 }
+
+/**
+ * KrexitScore PDA is seeded from the agent_profile PDA key (not the agent pubkey).
+ * Seeds: ["krexit_score", agent_profile_pda]
+ */
+export function findKrexitScore(agent: PublicKey): [PublicKey, number] {
+  const [agentProfilePda] = PublicKey.findProgramAddressSync(
+    [PDA_SEEDS.AGENT_PROFILE, agent.toBuffer()],
+    PROGRAM_IDS.AGENT_REGISTRY
+  );
+  return PublicKey.findProgramAddressSync(
+    [PDA_SEEDS.KREXIT_SCORE, agentProfilePda.toBuffer()],
+    PROGRAM_IDS.SCORE
+  );
+}
