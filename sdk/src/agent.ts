@@ -90,7 +90,10 @@ function validateVenue(venue: string): void {
 // ---------------------------------------------------------------------------
 
 function toBase(usdc: number): string {
-  return Math.round(usdc * 1_000_000).toString();
+  const base = Math.round(usdc * 1_000_000);
+  // BUG-098 fix: reject sub-microtoken amounts that round to zero
+  if (base <= 0) throw new Error('Amount too small — rounds to 0 base units');
+  return base.toString();
 }
 
 // ---------------------------------------------------------------------------

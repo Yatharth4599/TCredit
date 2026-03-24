@@ -80,7 +80,8 @@ async function req<T>(baseUrl: string, path: string, apiKey?: string): Promise<T
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (apiKey) headers['X-API-Key'] = apiKey;
 
-  const res = await fetch(`${baseUrl}${path}`, { headers });
+  // BUG-093 fix: 10s timeout to prevent hanging requests
+  const res = await fetch(`${baseUrl}${path}`, { headers, signal: AbortSignal.timeout(10_000) });
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`Krexa Credit Bureau error ${res.status}: ${body}`);

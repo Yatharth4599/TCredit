@@ -1,5 +1,12 @@
 import type { Request, Response, NextFunction } from 'express';
+import { timingSafeEqual } from 'crypto';
 import { prisma } from '../../config/prisma.js';
+
+// BUG-097 fix: constant-time key comparison to prevent timing attacks
+function safeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
 
 export interface AuthenticatedRequest extends Request {
   apiKey?: { id: string; name: string; rateLimit: number; tier: string };
@@ -20,7 +27,9 @@ export async function apiKeyAuth(req: AuthenticatedRequest, res: Response, next:
   try {
     const apiKey = await prisma.apiKey.findUnique({ where: { key: headerKey } });
 
-    if (!apiKey || !apiKey.active) {
+    // BUG-097 fix: constant-time comparison; dummy compare on miss to normalize timing
+    if (!apiKey) { safeCompare(headerKey, headerKey); res.status(401).json({ error: 'Invalid or deactivated API key' }); return; }
+    if (!safeCompare(headerKey, apiKey.key) || !apiKey.active) {
       res.status(401).json({ error: 'Invalid or deactivated API key' });
       return;
     }
@@ -45,7 +54,8 @@ export async function requireApiKey(req: AuthenticatedRequest, res: Response, ne
   try {
     const apiKey = await prisma.apiKey.findUnique({ where: { key: headerKey } });
 
-    if (!apiKey || !apiKey.active) {
+    if (!apiKey) { safeCompare(headerKey, headerKey); res.status(401).json({ error: 'Invalid or deactivated API key' }); return; }
+    if (!safeCompare(headerKey, apiKey.key) || !apiKey.active) {
       res.status(401).json({ error: 'Invalid or deactivated API key' });
       return;
     }
@@ -70,7 +80,8 @@ export async function requireAdmin(req: AuthenticatedRequest, res: Response, nex
   try {
     const apiKey = await prisma.apiKey.findUnique({ where: { key: headerKey } });
 
-    if (!apiKey || !apiKey.active) {
+    if (!apiKey) { safeCompare(headerKey, headerKey); res.status(401).json({ error: 'Invalid or deactivated API key' }); return; }
+    if (!safeCompare(headerKey, apiKey.key) || !apiKey.active) {
       res.status(401).json({ error: 'Invalid or deactivated API key' });
       return;
     }

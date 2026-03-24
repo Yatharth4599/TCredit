@@ -312,10 +312,10 @@ pub struct PayX402<'info> {
     pub facilitator_token: Account<'info, TokenAccount>,
 
     /// SOL-013 fix: Platform treasury receives platform fee on x402 payments.
+    /// SOL-058 fix: Validate this is the exact treasury token account stored in config.
     #[account(
         mut,
-        token::mint = config.usdc_mint,
-        token::authority = config.platform_treasury,
+        address = config.platform_treasury_token @ WalletError::InvalidTreasury,
     )]
     pub platform_treasury_token: Account<'info, TokenAccount>,
 

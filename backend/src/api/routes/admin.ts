@@ -129,8 +129,14 @@ function validateWebhookUrl(url: string): void {
     throw new AppError(400, 'Webhook URL must use HTTPS in production');
   }
   const hostname = parsed.hostname.toLowerCase();
-  if (['localhost', '127.0.0.1', '0.0.0.0', '[::1]'].includes(hostname)) {
+  // BUG-085 fix: normalize IPv6 — Node's URL returns '::1' without brackets
+  if (['localhost', '127.0.0.1', '0.0.0.0', '[::1]', '::1'].includes(hostname)) {
     throw new AppError(400, 'Webhook URL cannot target localhost');
+  }
+  // BUG-085 fix: block IPv6 private/link-local ranges (fc00::/7, fe80::/10)
+  if (hostname.startsWith('fd') || hostname.startsWith('fc') ||
+      hostname.startsWith('fe80') || hostname.startsWith('::ffff:')) {
+    throw new AppError(400, 'Webhook URL cannot target private IPv6 ranges');
   }
   const ipMatch = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
   if (ipMatch) {
@@ -176,7 +182,8 @@ router.patch('/webhooks/:id', async (req, res, next) => {
   try {
     const { url, events, active } = req.body;
     const data: Record<string, unknown> = {};
-    if (url !== undefined) data.url = url;
+    // BUG-082 fix: validate webhook URL on PATCH too (SSRF prevention)
+    if (url !== undefined) { validateWebhookUrl(url); data.url = url; }
     if (events !== undefined) data.events = events;
     if (active !== undefined) data.active = Boolean(active);
 

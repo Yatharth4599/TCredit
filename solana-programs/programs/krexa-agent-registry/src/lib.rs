@@ -225,6 +225,8 @@ pub enum RegistryError {
     InvalidOwnerType,
     #[msg("Signer is not the proposed new owner")]
     NotPendingOwner,
+    #[msg("Wallet is already linked to this agent profile")]
+    WalletAlreadyLinked,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -400,7 +402,8 @@ pub mod krexa_agent_registry {
     pub fn link_wallet(ctx: Context<LinkWallet>, wallet_pda: Pubkey) -> Result<()> {
         let profile = &mut ctx.accounts.profile;
         // SOL-035 fix: Prevent re-linking — wallet assignment is one-time
-        require!(!profile.has_wallet, RegistryError::AgentNotActive);
+        // SOL-069 fix: use semantically correct error code
+        require!(!profile.has_wallet, RegistryError::WalletAlreadyLinked);
         profile.wallet_pda = wallet_pda;
         profile.has_wallet = true;
         Ok(())

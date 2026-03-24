@@ -22,7 +22,10 @@ async function request<T>(baseUrl: string, path: string, apiKey?: string, init?:
     throw new Error(`Krexa API error ${res.status}: ${body}`);
   }
 
-  return res.json() as Promise<T>;
+  // BUG-099 fix: basic runtime type check on response body
+  const data = await res.json();
+  if (data === null || data === undefined) throw new Error('Krexa API returned empty response');
+  return data as T;
 }
 
 function createNamespace(baseUrl: string, apiKey?: string) {

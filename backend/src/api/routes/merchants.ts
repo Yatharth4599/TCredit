@@ -6,7 +6,7 @@ import { AgentRegistryABI } from '../../config/abis.js';
 import { addresses } from '../../config/contracts.js';
 import { encodeFunctionData } from 'viem';
 import { AppError } from '../middleware/errorHandler.js';
-import { requireApiKey, type AuthenticatedRequest } from '../middleware/apiKeyAuth.js';
+import { requireApiKey, requireAdmin, type AuthenticatedRequest } from '../middleware/apiKeyAuth.js';
 import { getSettlement } from '../../chain/paymentRouter.js';
 import { processPayment } from '../../services/oracle.service.js';
 import { env } from '../../config/env.js';
@@ -16,10 +16,18 @@ const router = Router();
 
 const TIER_NAMES = ['D', 'C', 'B', 'A'] as const;
 
+// BUG-088 fix: validate EVM address format
+const EVM_ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
+function validateEvmAddress(addr: string | string[]): Address {
+  const s = Array.isArray(addr) ? addr[0] : addr;
+  if (!s || !EVM_ADDR_RE.test(s)) throw new AppError(400, 'Invalid EVM address format');
+  return s as Address;
+}
+
 // GET /api/v1/merchants/:address — merchant profile from chain
 router.get('/:address', async (req, res, next) => {
   try {
-    const addr = req.params.address as Address;
+    const addr = validateEvmAddress(req.params.address);
     const [agentData, tier, creditValid] = await Promise.all([
       getAgent(addr),
       getCreditTier(addr),
@@ -57,7 +65,7 @@ router.get('/:address', async (req, res, next) => {
 // GET /api/v1/merchants/:address/vaults — vaults belonging to this agent
 router.get('/:address/vaults', async (req, res, next) => {
   try {
-    const addr = req.params.address.toLowerCase();
+    const addr = validateEvmAddress(req.params.address).toLowerCase();
     const vaults = await listAllVaults();
     const agentVaults = vaults.filter((v) => v.agent.toLowerCase() === addr);
     res.json({ vaults: agentVaults, total: agentVaults.length });
@@ -69,7 +77,7 @@ router.get('/:address/vaults', async (req, res, next) => {
 // GET /api/v1/merchants/:address/stats — summary stats for merchant dashboard
 router.get('/:address/stats', async (req, res, next) => {
   try {
-    const addr = req.params.address as Address;
+    const addr = validateEvmAddress(req.params.address);
     const [agentData, tier, creditValid] = await Promise.all([
       getAgent(addr),
       getCreditTier(addr),
@@ -115,7 +123,7 @@ router.get('/:address/stats', async (req, res, next) => {
 // GET /api/v1/merchants/:address/settlement — on-chain settlement data
 router.get('/:address/settlement', async (req, res, next) => {
   try {
-    const addr = req.params.address as Address;
+    const addr = validateEvmAddress(req.params.address);
     const settlement = await getSettlement(addr);
 
     res.json({
@@ -170,10 +178,11 @@ router.get('/:address/repayments', requireApiKey as never, async (req, res, next
   }
 });
 
-// POST /api/v1/merchants/:address/repay — submit a repayment via oracle (BUG-026: auth required)
-router.post('/:address/repay', requireApiKey as never, async (req: AuthenticatedRequest, res, next) => {
+// POST /api/v1/merchants/:address/repay — submit a repayment via oracle
+// BUG-084 fix: requireAdmin prevents IDOR (any key repaying for any merchant)
+router.post('/:address/repay', requireAdmin as never, async (req: AuthenticatedRequest, res, next) => {
   try {
-    const addr = req.params.address as Address;
+    const addr = validateEvmAddress(req.params.address);
     const { repaymentAmount } = req.body;
     if (!repaymentAmount) throw new AppError(400, 'repaymentAmount (wei string) required');
 
@@ -235,7 +244,8 @@ router.post('/register', async (req, res, next) => {
 });
 
 // POST /api/v1/merchants/:address/credit-score — build unsigned updateCreditScore tx (admin only)
-router.post('/:address/credit-score', async (req, res, next) => {
+// BUG-083 fix: add requireAdmin guard
+router.post('/:address/credit-score', requireAdmin as never, async (req: AuthenticatedRequest, res, next) => {
   try {
     const { score } = req.body;
     if (score === undefined) throw new AppError(400, 'score (0-1000) required');
@@ -244,7 +254,7 @@ router.post('/:address/credit-score', async (req, res, next) => {
     const data = encodeFunctionData({
       abi: AgentRegistryABI,
       functionName: 'updateCreditScore',
-      args: [req.params.address as Address, Number(score)],
+      args: [validateEvmAddress(req.params.address), Number(score)],
     });
 
     res.json({

@@ -7,11 +7,13 @@ import { analyzeToken, analyzeTrending } from './analyzer.js';
 
 const app = express();
 // BUG-078: restrict CORS origins
+// BUG-101 fix: explicit subdomain whitelist instead of permissive regex
 app.use(cors({
   origin: [
     'https://krexa.xyz',
     'https://www.krexa.xyz',
-    /\.krexa\.xyz$/,
+    'https://demo.krexa.xyz',
+    'https://app.krexa.xyz',
     'http://localhost:5173',
     'http://localhost:3000',
   ],
