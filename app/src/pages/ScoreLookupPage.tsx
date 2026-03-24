@@ -295,9 +295,15 @@ export default function ScoreLookupPage() {
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                             (data.preview as any).network === 'mainnet'
                               ? 'bg-purple-500/20 text-purple-400'
-                              : 'bg-blue-500/20 text-blue-400'
+                              : (data.preview as any).network === 'unknown'
+                                ? 'bg-gray-500/20 text-gray-400'
+                                : 'bg-blue-500/20 text-blue-400'
                           }`}>
-                            {(data.preview as any).network === 'mainnet' ? 'Mainnet activity' : 'Devnet activity'}
+                            {(data.preview as any).network === 'mainnet'
+                              ? `Mainnet · ${(data.preview as any).txCount ?? 0} txs · ${(data.preview as any).walletAgeDays ?? 0}d old`
+                              : (data.preview as any).network === 'devnet'
+                                ? `Devnet · ${(data.preview as any).txCount ?? 0} txs · ${(data.preview as any).walletAgeDays ?? 0}d old`
+                                : 'RPC unavailable — base score only'}
                           </span>
                         )}
                       </div>

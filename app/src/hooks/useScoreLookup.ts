@@ -53,8 +53,16 @@ export interface ScoreLookupResult {
   source?: 'on-chain' | 'preview'
 }
 
-// ── Mainnet RPC (browser-side raw fetch — not blocked like server IPs) ───────
-const MAINNET_RPC = 'https://api.mainnet-beta.solana.com'
+// ── RPC endpoints ─────────────────────────────────────────────────────────────
+const MAINNET_RPCS = [
+  'https://api.mainnet-beta.solana.com',
+  'https://rpc.ankr.com/solana',
+  'https://solana-rpc.publicnode.com',
+]
+const DEVNET_RPCS = [
+  'https://api.devnet.solana.com',
+  'https://rpc.ankr.com/solana_devnet',
+]
 
 function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
   return Promise.race([
@@ -63,16 +71,17 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
   ])
 }
 
-async function solanaRpc(method: string, params: unknown[]): Promise<unknown> {
+async function solanaRpcOne(url: string, method: string, params: unknown[]): Promise<unknown> {
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 9000)
+  const timer = setTimeout(() => controller.abort(), 6000)
   try {
-    const res = await fetch(MAINNET_RPC, {
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
       signal: controller.signal,
     })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const json = await res.json() as { result?: unknown; error?: unknown }
     if (json.error) throw new Error(JSON.stringify(json.error))
     return json.result
@@ -81,7 +90,27 @@ async function solanaRpc(method: string, params: unknown[]): Promise<unknown> {
   }
 }
 
-async function fetchMainnetActivity(address: string): Promise<{
+// Fire all endpoints in parallel, wait up to 6s, pick the richest result
+async function solanaRpc(method: string, params: unknown[], rpcs = MAINNET_RPCS): Promise<unknown> {
+  const settled = await withTimeout(
+    Promise.allSettled(rpcs.map(url => solanaRpcOne(url, method, params))),
+    6000,
+    [] as PromiseSettledResult<unknown>[],
+  )
+  // Pick the best fulfilled result (largest array, or first non-null)
+  let best: unknown = undefined
+  for (const r of settled) {
+    if (r.status !== 'fulfilled' || r.value == null) continue
+    if (best === undefined) { best = r.value; continue }
+    if (Array.isArray(r.value) && Array.isArray(best) && r.value.length > best.length) {
+      best = r.value
+    }
+  }
+  if (best !== undefined) return best
+  throw new Error(`All ${rpcs.length} RPC endpoints failed for ${method}`)
+}
+
+async function fetchNetworkActivity(address: string, rpcs: string[]): Promise<{
   lamports: number
   txCount: number
   walletAgeDays: number
@@ -90,8 +119,8 @@ async function fetchMainnetActivity(address: string): Promise<{
   try {
     // Fetch account info and first page of sigs in parallel
     const [acctResult, firstSigsResult] = await Promise.allSettled([
-      solanaRpc('getAccountInfo', [address, { encoding: 'base64' }]),
-      solanaRpc('getSignaturesForAddress', [address, { limit: 1000, commitment: 'confirmed' }]),
+      solanaRpc('getAccountInfo', [address, { encoding: 'base64' }], rpcs),
+      solanaRpc('getSignaturesForAddress', [address, { limit: 50 }], rpcs),
     ])
 
     // Account info → lamports
@@ -108,14 +137,14 @@ async function fetchMainnetActivity(address: string): Promise<{
     if (firstSigsResult.status === 'fulfilled' && Array.isArray(firstSigsResult.value)) {
       allSigs = firstSigsResult.value as Sig[]
 
-      // Keep paginating while we keep getting full pages (up to 10 pages = 10,000 txs)
+      // Paginate to find true wallet age (up to 20 pages × 50 = 1,000 txs)
       let page = 0
-      while (allSigs.length === (page + 1) * 1000 && page < 9) {
+      while (allSigs.length === (page + 1) * 50 && page < 19) {
         const cursor = allSigs[allSigs.length - 1].signature
         const older = await solanaRpc('getSignaturesForAddress', [
           address,
-          { limit: 1000, before: cursor, commitment: 'confirmed' },
-        ]).catch(() => null)
+          { limit: 50, before: cursor },
+        ], rpcs).catch(() => null)
         if (!Array.isArray(older) || older.length === 0) break
         allSigs = [...allSigs, ...(older as Sig[])]
         page++
@@ -123,6 +152,7 @@ async function fetchMainnetActivity(address: string): Promise<{
     }
 
     const txCount = allSigs.length
+    const sigsOk = firstSigsResult.status === 'fulfilled'
 
     // Find the oldest non-null blockTime (last in the array = chronologically first)
     let walletAgeDays = 0
@@ -133,6 +163,9 @@ async function fetchMainnetActivity(address: string): Promise<{
       }
     }
 
+    // If sigs fetch failed but we know the wallet exists (has lamports), still return partial data
+    // so we can at least score balance + existence
+    if (!sigsOk && lamports === 0) return null  // nothing useful
     const tokenAccounts = Math.min(10, Math.floor(txCount / 5))
     return { lamports, txCount, walletAgeDays, tokenAccounts }
   } catch {
@@ -189,28 +222,45 @@ export function useScoreLookup(address: string | null) {
         return { profile, score, health, wallet, source: 'on-chain' }
       }
 
-      // No on-chain score — fetch backend preview (devnet) + mainnet in parallel
-      // Both have timeouts so the page never hangs indefinitely
-      const [backendResp, mainnetStats] = await Promise.allSettled([
+      // No on-chain score — fetch mainnet activity (backend proxy preferred) + backend score preview
+      // Backend proxy is more reliable (server-side RPC, no CORS/rate-limit issues)
+      type ActivityStats = { lamports: number; txCount: number; walletAgeDays: number; tokenAccounts: number }
+
+      const [backendResp, proxyResult, browserResult] = await Promise.allSettled([
         withTimeout(
           fetch(`${config.apiUrl}/api/v1/solana/score/${address}`).then(r => r.ok ? r.json() : null),
           10000, null
         ),
-        withTimeout(fetchMainnetActivity(address), 30000, null),
+        withTimeout(
+          fetch(`${config.apiUrl}/api/v1/mainnet/activity/${address}`)
+            .then(r => r.ok ? r.json() as Promise<ActivityStats> : null),
+          12000, null
+        ),
+        // Browser-side fallback in case backend proxy is down
+        withTimeout(fetchNetworkActivity(address, MAINNET_RPCS), 10000, null),
       ])
 
       const backendData = backendResp.status === 'fulfilled' ? backendResp.value : null
-      const mainnet = mainnetStats.status === 'fulfilled' ? mainnetStats.value : null
+      const proxyStats: ActivityStats | null = proxyResult.status === 'fulfilled' ? proxyResult.value : null
+      const browserStats = browserResult.status === 'fulfilled' ? browserResult.value : null
 
-      // Compute mainnet preview client-side (always, even if all zeros)
-      const mainnetPreview = mainnet ? computePreviewFromStats(mainnet, 'mainnet') : null
+      // Use backend proxy (full data) if available, otherwise browser-side (partial)
+      const mainnetStats = (proxyStats && proxyStats.txCount > 0) ? proxyStats
+        : (browserStats && browserStats.txCount > 0) ? browserStats
+        : proxyStats ?? browserStats
+
+      // Compute preview from mainnet activity
+      const mainnetPreview = mainnetStats
+        ? computePreviewFromStats(mainnetStats, 'mainnet')
+        : null
 
       // Use whichever preview has a higher score; fall back to a base-200 default
       const backendPreview: ScorePreview | null = backendData?.preview ?? null
       const bestPreview: ScorePreview = (() => {
         if (mainnetPreview && (!backendPreview || mainnetPreview.score >= backendPreview.score)) return mainnetPreview
         if (backendPreview) return backendPreview
-        // Both failed — return a safe default so the page never shows "No Score Found"
+        if (mainnetStats) return computePreviewFromStats(mainnetStats, 'mainnet')
+        // All failed — safe base-score default
         return {
           score: 200,
           network: 'unknown',

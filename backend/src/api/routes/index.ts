@@ -27,6 +27,7 @@ import solanaOracleRoutes from './solana-oracle.routes.js';
 import solanaScoreRoutes from './solana-score.routes.js';
 import solanaFaucetRoutes from './solana-faucet.routes.js';
 import creditBureauRoutes from './credit-bureau.routes.js';
+import mainnetActivityRoutes from './mainnet-activity.routes.js';
 const router = Router();
 
 // Health
@@ -79,6 +80,9 @@ router.use('/solana/vault',   solanaVaultRoutes);
 router.use('/solana/oracle',  solanaOracleRoutes);
 router.use('/solana/score',   solanaScoreRoutes);
 router.use('/solana/faucet',  solanaFaucetRoutes);
+
+// ── Mainnet RPC proxy (score preview) ─────────────────────────────────────
+router.use('/mainnet/activity', mainnetActivityRoutes);
 
 // ── Credit Bureau (Phase 2 — CIBIL moat) ─────────────────────────────────
 router.use('/credit-bureau', creditBureauRoutes);
