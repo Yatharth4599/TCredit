@@ -61,7 +61,7 @@ services:
     name: tcredit-backend
     runtime: node
     rootDir: backend
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npm run build && npx prisma migrate deploy
     startCommand: npm start
     healthCheckPath: /api/v1/health
     envVars:
