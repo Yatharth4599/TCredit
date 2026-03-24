@@ -82,9 +82,10 @@ async function fetchMainnetActivity(address: string): Promise<{
   tokenAccounts: number
 } | null> {
   try {
-    const [acctResult, sigsResult] = await Promise.allSettled([
+    // Fetch account info and first page of sigs in parallel
+    const [acctResult, firstSigsResult] = await Promise.allSettled([
       solanaRpc('getAccountInfo', [address, { encoding: 'base64' }]),
-      solanaRpc('getSignaturesForAddress', [address, { limit: 100, commitment: 'confirmed' }]),
+      solanaRpc('getSignaturesForAddress', [address, { limit: 1000, commitment: 'confirmed' }]),
     ])
 
     // Account info → lamports
@@ -94,24 +95,39 @@ async function fetchMainnetActivity(address: string): Promise<{
       lamports = v?.value?.lamports ?? 0
     }
 
-    // Signatures → tx count + wallet age
-    let txCount = 0
-    let walletAgeDays = 0
-    if (sigsResult.status === 'fulfilled' && Array.isArray(sigsResult.value)) {
-      const sigs = sigsResult.value as Array<{ blockTime?: number | null }>
-      txCount = sigs.length
-      // Find the oldest non-null blockTime
-      for (let i = sigs.length - 1; i >= 0; i--) {
-        if (sigs[i].blockTime) {
-          walletAgeDays = (Date.now() / 1000 - sigs[i].blockTime!) / 86400
-          break
-        }
+    // Paginate backwards until we reach the oldest transaction (< 1000 in a page)
+    type Sig = { blockTime?: number | null; signature: string }
+    let allSigs: Sig[] = []
+
+    if (firstSigsResult.status === 'fulfilled' && Array.isArray(firstSigsResult.value)) {
+      allSigs = firstSigsResult.value as Sig[]
+
+      // Keep paginating while we keep getting full pages (up to 10 pages = 10,000 txs)
+      let page = 0
+      while (allSigs.length === (page + 1) * 1000 && page < 9) {
+        const cursor = allSigs[allSigs.length - 1].signature
+        const older = await solanaRpc('getSignaturesForAddress', [
+          address,
+          { limit: 1000, before: cursor, commitment: 'confirmed' },
+        ]).catch(() => null)
+        if (!Array.isArray(older) || older.length === 0) break
+        allSigs = [...allSigs, ...(older as Sig[])]
+        page++
       }
     }
 
-    // Estimate token account diversity from tx density
-    const tokenAccounts = Math.min(10, Math.floor(txCount / 5))
+    const txCount = allSigs.length
 
+    // Find the oldest non-null blockTime (last in the array = chronologically first)
+    let walletAgeDays = 0
+    for (let i = allSigs.length - 1; i >= 0; i--) {
+      if (allSigs[i].blockTime) {
+        walletAgeDays = (Date.now() / 1000 - allSigs[i].blockTime!) / 86400
+        break
+      }
+    }
+
+    const tokenAccounts = Math.min(10, Math.floor(txCount / 5))
     return { lamports, txCount, walletAgeDays, tokenAccounts }
   } catch {
     return null
@@ -174,7 +190,7 @@ export function useScoreLookup(address: string | null) {
           fetch(`${config.apiUrl}/api/v1/solana/score/${address}`).then(r => r.ok ? r.json() : null),
           10000, null
         ),
-        withTimeout(fetchMainnetActivity(address), 8000, null),
+        withTimeout(fetchMainnetActivity(address), 30000, null),
       ])
 
       const backendData = backendResp.status === 'fulfilled' ? backendResp.value : null
