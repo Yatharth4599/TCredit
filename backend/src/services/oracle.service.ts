@@ -259,7 +259,9 @@ export async function processPayment(params: WebhookPaymentRequest): Promise<Ora
     const errMsg = err instanceof Error ? err.message : String(err);
     await markFailed(record.id, errMsg);
     scheduleRetry(record.id);
-    throw new AppError(502, `Payment submission failed: ${errMsg}`);
+    // BUG-090 fix: log detailed error internally, return generic message to client
+    console.error(`[oracle] Payment ${record.id} submission failed:`, errMsg);
+    throw new AppError(502, 'Payment submission failed. Please try again.');
   }
 }
 

@@ -6,7 +6,9 @@ import { config } from './config.js';
 // On-chain payment verification (BUG-036: replay protection + merchant check)
 // ---------------------------------------------------------------------------
 
-const usedSignatures = new Set<string>();
+// BUG-094 fix: Map with timestamps for age-based cleanup (1 hour TTL)
+const usedSignatures = new Map<string, number>();
+const SIG_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 async function verifyPayment(signature: string): Promise<boolean> {
   if (usedSignatures.has(signature)) return false; // replay protection
@@ -35,10 +37,13 @@ async function verifyPayment(signature: string): Promise<boolean> {
     if (!merchantInTx) return false;
   }
 
-  usedSignatures.add(signature);
+  usedSignatures.set(signature, Date.now());
+  // BUG-094 fix: age-based cleanup — remove entries older than 1 hour
   if (usedSignatures.size > 10_000) {
-    const iter = usedSignatures.values();
-    for (let i = 0; i < 5_000; i++) usedSignatures.delete(iter.next().value!);
+    const now = Date.now();
+    for (const [sig, ts] of usedSignatures) {
+      if (now - ts > SIG_TTL_MS) usedSignatures.delete(sig);
+    }
   }
   return true;
 }

@@ -104,12 +104,16 @@ app.get('/status', (_req, res) => {
   res.json({ status: demoStatus, lastRunAt, error: demoError });
 });
 
+// BUG-100 fix: boolean lock to prevent race condition on concurrent triggers
+let demoRunning = false;
+
 app.post('/trigger', (_req, res) => {
-  if (demoStatus === 'running') {
+  if (demoRunning || demoStatus === 'running') {
     res.status(409).json({ error: 'Demo already running' });
     return;
   }
 
+  demoRunning = true;
   demoStatus = 'running';
   demoError = null;
   lastRunAt = new Date().toISOString();
@@ -125,10 +129,13 @@ app.post('/trigger', (_req, res) => {
     })
     .catch((err: unknown) => {
       demoStatus = 'error';
-      demoError = err instanceof Error ? err.message : String(err);
+      // BUG-096 fix: sanitize error before broadcasting to WS clients
+      const rawErr = err instanceof Error ? err.message : String(err);
+      demoError = rawErr.slice(0, 100).replace(/[A-Za-z0-9+/=]{20,}/g, '[REDACTED]');
       broadcast('demo_status', { status: 'error', error: demoError });
-      console.error('[demo-server] runDemo failed:', demoError);
-    });
+      console.error('[demo-server] runDemo failed:', rawErr);
+    })
+    .finally(() => { demoRunning = false; });
 });
 
 // ── Start ──────────────────────────────────────────────────────────────────

@@ -19,7 +19,8 @@ function fmt(iso: string) {
 }
 
 export default function WaitlistAdmin() {
-  const [apiKey, setApiKey]     = useState(() => sessionStorage.getItem(STORAGE_KEY) ?? '')
+  // BUG-081 fix: keep API key in memory only — no sessionStorage (XSS risk)
+  const [apiKey, setApiKey]     = useState('')
   const [keyInput, setKeyInput] = useState('')
   const [authed, setAuthed]     = useState(false)
 
@@ -37,7 +38,7 @@ export default function WaitlistAdmin() {
       setEntries(res.data.entries)
       setTotal(res.data.total)
       setAuthed(true)
-      sessionStorage.setItem(STORAGE_KEY, key)
+      // BUG-081: API key kept in React state only, not persisted
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status
       if (status === 401) {
@@ -78,7 +79,7 @@ export default function WaitlistAdmin() {
   }
 
   function handleLogout() {
-    sessionStorage.removeItem(STORAGE_KEY)
+    // BUG-081: no storage to clear — key only in React state
     setApiKey('')
     setAuthed(false)
     setEntries([])

@@ -151,6 +151,8 @@ const TOOLS: Tool[] = [
         rateBps: {
           type: 'number',
           description: 'Interest rate in basis points, e.g. 150 for 1.5%.',
+          minimum: 0,
+          maximum: 10000,
         },
       },
       required: ['amount'],
@@ -216,33 +218,44 @@ async function handleCheckBalance(args: Args) {
   return sdk.agent.getBalance();
 }
 
+// BUG-095 fix: runtime type validation before casting
+function requireNumber(val: unknown, name: string): number {
+  if (typeof val !== 'number' || !Number.isFinite(val)) throw new Error(`${name} must be a finite number`);
+  return val;
+}
+function requireString(val: unknown, name: string): string {
+  if (typeof val !== 'string' || val.length === 0) throw new Error(`${name} must be a non-empty string`);
+  return val;
+}
+
 async function handlePay(args: Args) {
-  const recipient = args.recipient as string;
-  const amount    = args.amount as number;
-  const paymentId = args.paymentId as string | undefined;
+  const recipient = requireString(args.recipient, 'recipient');
+  const amount    = requireNumber(args.amount, 'amount');
+  const paymentId = typeof args.paymentId === 'string' ? args.paymentId : undefined;
   return sdk.agent.payX402({ recipient, amount, paymentId });
 }
 
 async function handleTrade(args: Args) {
   return sdk.agent.trade({
-    venue:  args.venue  as string,
-    from:   args.from   as string,
-    to:     args.to     as string,
-    amount: args.amount as number,
+    venue:  requireString(args.venue, 'venue'),
+    from:   requireString(args.from, 'from'),
+    to:     requireString(args.to, 'to'),
+    amount: requireNumber(args.amount, 'amount'),
   });
 }
 
 async function handleDrawCredit(args: Args) {
+  const rateBps = args.rateBps != null ? requireNumber(args.rateBps, 'rateBps') : undefined;
   return sdk.agent.requestCredit({
-    amount:   args.amount   as number,
-    rateBps:  args.rateBps  as number | undefined,
+    amount:  requireNumber(args.amount, 'amount'),
+    rateBps,
   });
 }
 
 async function handleRepay(args: Args) {
   return sdk.agent.repay({
-    amount:        args.amount        as number,
-    callerAddress: args.callerAddress as string | undefined,
+    amount:        requireNumber(args.amount, 'amount'),
+    callerAddress: typeof args.callerAddress === 'string' ? args.callerAddress : undefined,
   });
 }
 

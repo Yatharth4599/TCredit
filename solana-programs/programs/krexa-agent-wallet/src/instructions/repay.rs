@@ -5,6 +5,8 @@ use crate::events::Repaid;
 use crate::utils::compute_health;
 
 pub fn handle(ctx: Context<Repay>, amount: u64) -> Result<()> {
+    // SOL-066 fix: gate repay behind pause check
+    require!(!ctx.accounts.config.is_paused, WalletError::Paused);
     require!(amount > 0, WalletError::ZeroAmount);
 
     {

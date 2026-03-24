@@ -145,6 +145,8 @@ pub enum RouterError {
     InvalidMerchantAccount,
     #[msg("Vault config account is not owned by the vault program")]
     InvalidVaultConfig,
+    #[msg("Payer USDC account does not belong to the oracle")]
+    InvalidPayerAccount,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -510,9 +512,11 @@ pub struct ExecutePayment<'info> {
 
     // ── Payment accounts ──────────────────────────────────────────────────
     /// Buyer's USDC — oracle must have delegate authority (or hold in escrow).
+    /// SOL-064 fix: explicit owner constraint to prevent future refactoring mistakes.
     #[account(
         mut,
         token::mint = config.usdc_mint,
+        constraint = payer_usdc.owner == oracle.key() @ RouterError::InvalidPayerAccount,
     )]
     pub payer_usdc: Account<'info, TokenAccount>,
 

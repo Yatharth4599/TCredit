@@ -109,10 +109,17 @@ router.post('/usdc', async (req, res, next) => {
     const { recipient, amountUsdc = 10 } = req.body;
     if (!recipient) throw new AppError(400, 'recipient pubkey required');
 
+    // BUG-089 fix: validate amount type and bounds
+    if (typeof amountUsdc !== 'number' || !Number.isFinite(amountUsdc) || amountUsdc <= 0 || amountUsdc > 100) {
+      throw new AppError(400, 'amountUsdc must be a positive number (max 100)');
+    }
+
     const recipientPk = parsePubkey(recipient);
+    // BUG-091 fix: normalize pubkey to canonical base58 before rate limit check
+    const normalizedKey = recipientPk.toBase58();
 
     // Rate limit check
-    const lastMint = recentMints.get(recipient);
+    const lastMint = recentMints.get(normalizedKey);
     if (lastMint && Date.now() - lastMint < RATE_LIMIT_MS) {
       const nextMintAt = new Date(lastMint + RATE_LIMIT_MS).toISOString();
       throw new AppError(429, `Rate limit: this address can request again after ${nextMintAt}`);
@@ -147,8 +154,8 @@ router.post('/usdc', async (req, res, next) => {
 
     await solanaConnection.confirmTransaction(signature, 'confirmed');
 
-    // Record rate limit
-    recentMints.set(recipient, Date.now());
+    // Record rate limit (BUG-091: use normalized key)
+    recentMints.set(normalizedKey, Date.now());
 
     res.json({
       signature,

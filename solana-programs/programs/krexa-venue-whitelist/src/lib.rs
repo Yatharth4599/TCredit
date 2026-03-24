@@ -71,6 +71,8 @@ pub enum VenueError {
     AlreadyInactive,
     #[msg("Invalid venue category — must be 0–3")]
     InvalidCategory,
+    #[msg("Admin cannot be set to the zero address")]
+    InvalidAdmin,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -140,6 +142,8 @@ pub mod krexa_venue_whitelist {
 
     pub fn update_config(ctx: Context<AdminWhitelistConfig>, new_admin: Option<Pubkey>) -> Result<()> {
         if let Some(admin) = new_admin {
+            // SOL-068 fix: prevent setting admin to zero address (permanently locks program)
+            require!(admin != Pubkey::default(), VenueError::InvalidAdmin);
             ctx.accounts.config.admin = admin;
         }
         Ok(())

@@ -6,9 +6,11 @@ function require(key: string): string {
   return val;
 }
 
+// BUG-086 fix: don't store API key in config object (leak risk if serialized)
+export function getAnthropicApiKey(): string { return require('ANTHROPIC_API_KEY'); }
+
 export const config = {
   port: parseInt(process.env.PORT ?? '3001', 10),
-  anthropicApiKey: require('ANTHROPIC_API_KEY'),
   solanaRpcUrl: process.env.SOLANA_RPC_URL ?? 'https://api.mainnet-beta.solana.com',
   merchantWallet: require('MERCHANT_WALLET'),
   krexaApiUrl: process.env.KREXA_API_URL ?? 'https://api.krexa.xyz',
