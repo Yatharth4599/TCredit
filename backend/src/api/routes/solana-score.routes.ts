@@ -9,12 +9,23 @@ import { Router, Request } from 'express';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { solanaConnection } from '../../chain/solana/connection.js';
 
+const MAINNET_RPC_URL = process.env.SOLANA_MAINNET_RPC_URL || 'https://rpc.ankr.com/solana';
+
 // Read-only mainnet connection for preview score fallback
-// ankr is more permissive than api.mainnet-beta.solana.com for server-side calls
-const mainnetConnection = new Connection(
-  process.env.SOLANA_MAINNET_RPC_URL || 'https://rpc.ankr.com/solana',
-  { commitment: 'confirmed', disableRetryOnRateLimit: true },
-);
+const mainnetConnection = new Connection(MAINNET_RPC_URL, { commitment: 'confirmed', disableRetryOnRateLimit: true });
+
+/** Raw JSON-RPC call — bypasses Connection class fetch quirks for server-side use */
+async function rpcCall(url: string, method: string, params: unknown[]): Promise<unknown> {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'User-Agent': 'krexa-backend/1.0' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+    signal: AbortSignal.timeout(8000),
+  });
+  const json = await res.json() as { result?: unknown; error?: { message: string } };
+  if (json.error) throw new Error(json.error.message);
+  return json.result;
+}
 import { krexitScorePda } from '../../chain/solana/programs.js';
 import { readAgentProfile } from '../../chain/solana/reader.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -151,12 +162,37 @@ async function computePreviewScore(agent: PublicKey, conn: Connection): Promise<
   note: string;
   network: string;
 }> {
-  const [accountInfo, signatures] = await Promise.all([
-    conn.getAccountInfo(agent),
-    conn.getSignaturesForAddress(agent, { limit: 100 }).catch(() => []),
-  ]);
+  const isMainnet = conn === mainnetConnection;
+  const rpcUrl = isMainnet ? MAINNET_RPC_URL : undefined;
 
-  const solBalance = (accountInfo?.lamports ?? 0) / 1e9;
+  // For mainnet use raw fetch to avoid Connection class quirks with server IPs
+  let accountLamports = 0;
+  let signatures: Array<{ blockTime?: number | null }> = [];
+
+  if (isMainnet && rpcUrl) {
+    const [acctResult, sigsResult] = await Promise.allSettled([
+      rpcCall(rpcUrl, 'getAccountInfo', [agent.toBase58(), { encoding: 'base64' }]),
+      rpcCall(rpcUrl, 'getSignaturesForAddress', [agent.toBase58(), { limit: 100 }]),
+    ]);
+    if (acctResult.status === 'fulfilled' && acctResult.value) {
+      const val = acctResult.value as { value?: { lamports?: number } };
+      accountLamports = val?.value?.lamports ?? 0;
+    }
+    if (sigsResult.status === 'fulfilled' && Array.isArray(sigsResult.value)) {
+      signatures = sigsResult.value as Array<{ blockTime?: number | null }>;
+    } else if (sigsResult.status === 'rejected') {
+      console.warn('[Score] Mainnet getSignaturesForAddress failed:', sigsResult.reason?.message);
+    }
+  } else {
+    const [accountInfo, sigs] = await Promise.all([
+      conn.getAccountInfo(agent),
+      conn.getSignaturesForAddress(agent, { limit: 100 }).catch(() => []),
+    ]);
+    accountLamports = accountInfo?.lamports ?? 0;
+    signatures = sigs;
+  }
+
+  const solBalance = accountLamports / 1e9;
   const txCount = signatures.length;
 
   // Estimate wallet age from oldest signature
@@ -181,7 +217,7 @@ async function computePreviewScore(agent: PublicKey, conn: Connection): Promise<
   const balanceScore = Math.min(50, Math.floor(solBalance * 5));
 
   // Token account diversity: check if wallet exists at all
-  const existenceScore = accountInfo ? 50 : 0;
+  const existenceScore = accountLamports > 0 ? 50 : 0;
 
   const totalScore = Math.min(600, baseScore + ageScore + activityScore + balanceScore + existenceScore);
   const network = conn === mainnetConnection ? 'mainnet' : 'devnet';
