@@ -62,4 +62,8 @@ pub enum WalletError {
     TransferAlreadyPending,
     #[msg("Multisig ownership required for L3-L4 credit lines")]
     MultisigRequired,
+    #[msg("Trade would exceed 50% per-venue exposure limit")]
+    ExceedsVenueLimit,
+    #[msg("Invalid platform treasury account")]
+    InvalidTreasury,
 }

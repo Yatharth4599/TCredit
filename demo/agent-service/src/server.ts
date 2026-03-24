@@ -6,7 +6,16 @@ import { requirePayment } from './x402-middleware.js';
 import { analyzeToken, analyzeTrending } from './analyzer.js';
 
 const app = express();
-app.use(cors());
+// BUG-078: restrict CORS origins
+app.use(cors({
+  origin: [
+    'https://krexa.xyz',
+    'https://www.krexa.xyz',
+    /\.krexa\.xyz$/,
+    'http://localhost:5173',
+    'http://localhost:3000',
+  ],
+}));
 app.use(express.json());
 
 const startTime = Date.now();
@@ -36,7 +45,7 @@ app.get(
     const { tokenAddress } = req.params;
     const paymentTx = (req as Request & { paymentTx: string }).paymentTx;
 
-    // BUG-037 fix: validate base58 format, not just length (prevents prompt injection)
+    // BUG-037: validate base58 format (prevents prompt injection)
     const SOLANA_ADDR_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
     if (!tokenAddress || !SOLANA_ADDR_RE.test(tokenAddress)) {
       res.status(400).json({ error: 'Invalid Solana token address format' });

@@ -23,10 +23,8 @@ import { env } from '../config/env.js';
 // ---------------------------------------------------------------------------
 
 const POLL_INTERVAL_MS = 2_000;          // 2 seconds — tight loop for keepers
-
-// BUG-038: These match on-chain constants from krexa-common/src/constants.rs
+// BUG-038: These must match on-chain constants (krexa-common/src/constants.rs)
 // TODO: Read from on-chain VaultConfig PDA at keeper startup for production
-// For now, kept in sync manually with on-chain values.
 const HF_WARNING_BPS   = 13_000;         // 1.30x  (on-chain: HF_WARNING)
 const HF_DANGER_BPS    = 12_000;         // 1.20x  (on-chain: HF_DANGER)
 const HF_LIQUIDATION_BPS = 10_500;       // 1.05x  (on-chain: HF_LIQUIDATION)
@@ -181,10 +179,21 @@ async function runKeeperCycle(): Promise<void> {
 
   if (wallets.length === 0) return;
 
+  // BUG-073: cap transactions per cycle to prevent RPC exhaustion
+  const MAX_ACTIONS_PER_CYCLE = 10;
+  let actionsThisCycle = 0;
+
   // Process wallets with active credit lines sequentially to avoid RPC floods
   for (const { pubkey, wallet } of wallets) {
+    if (actionsThisCycle >= MAX_ACTIONS_PER_CYCLE) {
+      console.log(`[SolanaKeeper] Throttled: ${MAX_ACTIONS_PER_CYCLE} actions reached, deferring rest`);
+      break;
+    }
     try {
       await processWallet(pubkey, wallet);
+      if (wallet.healthFactorBps < HF_DANGER_BPS && wallet.creditDrawn > 0n) {
+        actionsThisCycle++;
+      }
     } catch (err) {
       console.error(`[SolanaKeeper] Error processing ${pubkey.toBase58()}:`, err instanceof Error ? err.message : err);
     }

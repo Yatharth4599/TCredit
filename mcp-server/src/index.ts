@@ -30,19 +30,18 @@ import type { Chain } from '@krexa/sdk';
 // SDK initialisation
 // ---------------------------------------------------------------------------
 
-// BUG-041 fix: validate agent address format at startup
+// BUG-041: validate agent address format at startup
 const SOLANA_ADDR_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const EVM_ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
 const chain = (process.env.KREXA_CHAIN ?? 'solana') as Chain;
 const agentAddress = process.env.KREXA_AGENT_ADDRESS;
-
 if (agentAddress) {
   if (chain === 'solana' && !SOLANA_ADDR_RE.test(agentAddress)) {
-    process.stderr.write(`[krexa-mcp] FATAL: KREXA_AGENT_ADDRESS is not a valid Solana address: ${agentAddress}\n`);
+    process.stderr.write(`[krexa-mcp] FATAL: invalid Solana address: ${agentAddress}\n`);
     process.exit(1);
   }
   if (chain === 'base' && !EVM_ADDR_RE.test(agentAddress)) {
-    process.stderr.write(`[krexa-mcp] FATAL: KREXA_AGENT_ADDRESS is not a valid EVM address: ${agentAddress}\n`);
+    process.stderr.write(`[krexa-mcp] FATAL: invalid EVM address: ${agentAddress}\n`);
     process.exit(1);
   }
 }
@@ -267,19 +266,10 @@ const server = new Server(
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
 
-// BUG-063 fix: audit logging for all tool calls
+// BUG-063: audit logging
 function auditLog(tool: string, args: Args, status: 'ok' | 'error', detail?: string) {
-  const sanitized = { ...args };
-  // Redact sensitive fields
-  if ('paymentId' in sanitized) sanitized.paymentId = '***';
-  process.stderr.write(JSON.stringify({
-    ts: new Date().toISOString(),
-    tool,
-    args: sanitized,
-    agent: sdk.agentAddress ?? 'unknown',
-    status,
-    ...(detail ? { detail } : {}),
-  }) + '\n');
+  const s = { ...args }; if ('paymentId' in s) s.paymentId = '***';
+  process.stderr.write(JSON.stringify({ ts: new Date().toISOString(), tool, args: s, agent: sdk.agentAddress ?? 'unknown', status, ...(detail ? { detail } : {}) }) + '\n');
 }
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {

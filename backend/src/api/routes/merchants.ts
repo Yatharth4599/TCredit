@@ -133,7 +133,7 @@ router.get('/:address/settlement', async (req, res, next) => {
   }
 });
 
-// GET /api/v1/merchants/:address/repayments — query real OraclePayment records (BUG-035 fix: auth required)
+// GET /api/v1/merchants/:address/repayments — query real OraclePayment records (BUG-035: auth required)
 router.get('/:address/repayments', requireApiKey as never, async (req, res, next) => {
   try {
     const addr = req.params.address.toLowerCase();

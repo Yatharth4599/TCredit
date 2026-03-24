@@ -1,71 +1,11 @@
 # Krexa — Full Bug Report
 
-**Last updated:** 2026-03-16
+**Last updated:** 2026-03-24
 **Scopes covered:**
 - `base-contracts/` + `backend/` — EVM / Base Sepolia (BUG-001 – BUG-024)
 - `solana-programs/` — Solana / Anchor programs (SOL-001 – SOL-049)
-- `backend/` + `sdk/` + `mcp-server/` + `demo/` + `frontend/` — Full-stack (BUG-033 – BUG-064)
-
-### Overall Status
-
-| Status | Count |
-|--------|-------|
-| ✅ Fixed / Resolved | 91 |
-| 🟡 Mitigated | 2 |
-| ⚠️ Accepted risk | 3 |
-| ⬜ Open (deferred/by-design) | 13 |
-| ⬜ Open (needs work) | 5 |
-| **Total** | **114** |
-
-### Open Bugs — Quick Reference
-
-#### Needs Code (5)
-
-| ID | Severity | Component | Issue | Blocker |
-|----|----------|-----------|-------|---------|
-| BUG-032 | Medium | Backend | Rate limiting is in-memory, resets on restart/scale-out | Needs Redis |
-| BUG-038 | Medium | Keeper | Health factor thresholds hardcoded instead of read from chain | Needs on-chain VaultConfig reader |
-| BUG-052 | High | Oracle | Credit score computed from mutable DB — no on-chain cross-validation | Architectural: needs IndexerState integration |
-| BUG-053 | Medium | Oracle | Keypair cached indefinitely, no rotation mechanism | Needs KMS integration (AWS/Hashicorp) |
-| BUG-058 | High | SDK | Server responses not schema-validated — MITM can inject fake data | Needs Zod dependency + response schemas |
-
-#### Deferred — Solana On-Chain Changes Required (8)
-
-| ID | Severity | Program | Issue | Rationale |
-|----|----------|---------|-------|-----------|
-| SOL-025 | Medium | agent-wallet | `deleverage` only freezes, no position reduction | Rework planned |
-| SOL-026 | Medium | agent-wallet | Double liquidation not prevented in shortfall | Shortfall tracking partially mitigates |
-| SOL-030 | Medium | credit-vault | `deposited_amount` breaks on withdrawal with yield | Proportional tracking needed |
-| SOL-032 | Medium | payment-router | Fee truncation to zero on small payments | Min payment enforcement needed |
-| SOL-042 | Medium | agent-wallet | `venue_token` not validated against venue identity | Requires ATA derivation check |
-| SOL-050 | Medium | agent-registry | No expiry on ownership transfer requests | Add 7-day expiry check |
-| SOL-051 | Low | agent-wallet | Minimum keeper reward not enforced — dust positions | Add min reward or admin force_liquidate |
-| SOL-052 | Low | agent-wallet | Admin can unfreeze wallet with outstanding shortfall | Add shortfall check on unfreeze |
-
-#### By Design (5)
-
-| ID | Severity | Program | Issue | Rationale |
-|----|----------|---------|-------|-----------|
-| SOL-023 | Medium | agent-wallet | `liquidate` does not check `is_paused` | Liquidation must work when paused — safety critical |
-| SOL-044 | Low | credit-vault | `receive_repayment` not paused-gated | Repayments should always be accepted |
-| SOL-045 | Low | credit-vault | `accrue_interest` not paused-gated | Interest accrual is passive/read-like |
-| SOL-049 | Low | venue-whitelist | `deactivate_venue` does not check pause | Deactivation is a safety action |
-| BUG-061 | High | MCP | Two divergent implementations | Needs decision: consolidate to one |
-
-#### Cosmetic (2)
-
-| ID | Severity | Program | Issue |
-|----|----------|---------|-------|
-| SOL-038 | Low | venue-whitelist | `total_venues` never decremented on deactivation — rename to `total_venues_created` |
-| SOL-043 | Low | agent-wallet | `WalletConfig::LEN` comment mismatch |
-
-#### Accepted Risk (3)
-
-| ID | Severity | Component | Issue | Rationale |
-|----|----------|-----------|-------|-----------|
-| BUG-019 | Low | Base contracts | Admin can overwrite reputation values | Governance risk — timelock/multisig future |
-| BUG-031 | Medium | Backend | Webhook secrets stored plaintext | Industry standard (Stripe, GitHub do same) |
-| BUG-045 | Low | Backend | No CSRF protection | Mitigated by X-API-Key header requirement |
+- `backend/` + `sdk/` + `mcp-server/` + `demo/` + `frontend/` — Full-stack security hardening (BUG-033 – BUG-064)
+- `backend/src/api/routes/solana-*` + `solana-programs/programs/krexa-score` + `krexa-service-plan` — New code audit (BUG-065 – BUG-080, SOL-053 – SOL-057)
 
 ---
 
@@ -653,436 +593,718 @@ No explicit one-time liquidation guard in instruction path; repeated keeper-trig
 
 ---
 
-## Part 5 — Full-Stack Security Audit (2026-03-16)
+## Part 7 — New Code Audit: Devnet Stack + Score/ServicePlan Programs (2026-03-24)
 
-**Audit scope:** Solana programs (re-audit), Backend REST API, Oracle, Keeper, SDK, MCP server, Demo infrastructure, Frontend
-**Method:** 3 parallel static analysis agents + manual cross-reference against Parts 1–4
+**Audit scope:** 3 new backend routes (faucet, oracle co-sign, score lookup), 2 new Solana programs (krexa-score, krexa-service-plan), new app/ frontend, keeper + oracle service updates
+**Method:** Automated scans (npm audit, secrets grep, CORS, lockfiles) + 2 parallel deep agent reviews
 
 ### Summary
 
 | Severity | Total | Scope |
 |----------|-------|-------|
-| Critical | 2     | Demo infra, .env.example |
-| High     | 3     | Backend IDOR, Demo x402 |
-| Medium   | 7     | Keeper, Oracle, SDK, MCP, Frontend, Solana |
-| Low      | 4     | Error handling, CSRF, info disclosure, Solana |
-| **Total**| **16**| |
+| Critical | 1     | Oracle co-sign endpoint unauthenticated |
+| High     | 5     | Token account validation, caller validation, faucet rate limit |
+| Medium   | 7     | Info disclosure, logging, rate limiting, keeper auth, performance |
+| Low      | 5     | Heuristic gaming, bounds checks, deserialization fallbacks |
+| **Total**| **18**| |
 
-### Solana Programs Re-Audit
-
-All SOL-001 through SOL-049 fixes verified in place. No regressions. Overall posture: **strong**.
+### Security Strengths (Positive Findings)
+- ✅ **Helmet enabled** on backend (`app.use(helmet())`) — proper security headers
+- ✅ **CORS whitelisted** on demo server — only krexa.xyz + localhost origins
+- ✅ **TypeScript strict mode** enabled in backend, sdk, and both MCP servers
+- ✅ **Solana program signers** properly gated — oracle-only writes on krexa-score
+- ✅ **Score range validation** (200-850) enforced in krexa-score program
+- ✅ **Ring buffer** for score history — prevents unbounded growth
+- ✅ **Nonce replay protection** in payment router — monotonically increasing
 
 ---
 
 ### Critical
 
-#### BUG-033: Demo server writes Solana keypairs to world-readable `/tmp`
-**File:** `demo/server.ts:28-46`
+#### BUG-065: Oracle co-sign endpoint has NO authentication
+**File:** `backend/src/api/routes/solana-oracle.routes.ts:47`
 **Status:** ✅ Fixed
 **Severity:** Critical
 
-`bootstrapKeypairs()` decodes base64 env vars (AGENT_KEYPAIR, OWNER_KEYPAIR, ORACLE_KEYPAIR, CUSTOMER_KEYPAIR) and writes them as plaintext JSON to `/tmp/krexa-keys/`. On shared Render dynos or any multi-user host, any process can read these files (`/tmp` is world-readable by default).
+`POST /api/v1/solana/oracle/sign-credit` has no `requireApiKey` or `requireAdmin` middleware. Any caller can trigger the oracle to partially sign a credit request for ANY agent. Combined with the on-chain eligibility check passing, this means unauthenticated users can trigger oracle signing.
 
-**Fix:** Keep keypairs in memory only. Replace file-write approach with an in-memory loader that returns `Keypair` objects directly from the base64 env var, passed to `runDemo()` as a config argument. Remove all `writeFileSync` to `/tmp`.
-
----
-
-#### BUG-034: `base-contracts/.env.example` contains real Basescan API key
-**File:** `base-contracts/.env.example:3`
-**Status:** ✅ Fixed
-**Severity:** Critical
-
-`BASESCAN_API_KEY=JVPQ3556WXETFE7FSKRQEW84W2MZTKA9FV` — a real API key committed to source. BUG-010 fixed the private key placeholder but missed this credential.
-
-**Fix:** Replace with `BASESCAN_API_KEY=<your-basescan-api-key>`. Rotate the exposed key in the Basescan dashboard.
+**Fix:** Add `requireApiKey` middleware: `router.post('/sign-credit', requireApiKey, async (req, res, next) => { ... })`
 
 ---
 
 ### High
 
-#### BUG-035: IDOR on `GET /merchants/:address/repayments` — no auth
-**File:** `backend/src/api/routes/merchants.ts:137`
-**Status:** ✅ Fixed
+#### BUG-066: Oracle co-sign does not validate `agentOrOwnerPubkey` matches caller
+**File:** `backend/src/api/routes/solana-oracle.routes.ts:49`
+**Status:** ⬜ Open
 **Severity:** High
 
-Endpoint returns full payment history (amounts, tx hashes, payment IDs, error messages) for any merchant address. No `requireApiKey` middleware. An attacker can enumerate all merchant payment histories by iterating addresses.
+Even with auth added, `agentOrOwnerPubkey` is accepted from the request body without verifying the caller owns that pubkey. An authenticated API key holder can request credit on behalf of any agent.
 
-**Fix:** Add `requireApiKey` middleware to this route.
+**Fix:** Bind `agentOrOwnerPubkey` to the authenticated wallet or require proof of ownership.
 
 ---
 
-#### BUG-036: Demo x402 middleware doesn't verify payment recipient, amount, or idempotency
-**File:** `demo/agent-service/src/x402-middleware.ts:9-27`
-**Status:** ✅ Fixed
+#### SOL-053: krexa-service-plan `DisburseMilestone` — token account ownership not validated
+**File:** `solana-programs/programs/krexa-service-plan/src/lib.rs:891-897`
+**Status:** ⬜ Open
 **Severity:** High
 
-`verifyPayment()` only checks: (1) tx exists on-chain, (2) within 5 minutes, (3) no on-chain errors. Does NOT verify payment recipient matches merchant wallet, payment amount matches required price, or that the signature hasn't been used before. An attacker can reuse one valid tx signature for unlimited API calls.
+`vault_token` and `agent_token` are `Account<'info, TokenAccount>` but have no `token::owner` or `token::mint` constraints. State mutation (marking milestone as disbursed) happens BEFORE the token transfer — if transfer fails, milestone is permanently marked as disbursed (DoS).
 
-**Fix:** Validate recipient by parsing SPL token transfer instructions. Validate amount matches the price parameter. Track used signatures in a Set/DB and reject duplicates.
+**Fix:** Add constraints: `token::mint = usdc_mint`, `token::authority = config` on vault_token; `token::mint = vault_token.mint` on agent_token.
 
 ---
 
-#### BUG-037: Demo agent-service token address not format-validated — prompt injection risk
-**File:** `demo/agent-service/src/server.ts:32-52`
-**Status:** ✅ Fixed
+#### SOL-054: krexa-service-plan `execute_expense` — destination not validated against whitelist
+**File:** `solana-programs/programs/krexa-service-plan/src/lib.rs:589-591, 998-1006`
+**Status:** ⬜ Open
 **Severity:** High
 
-Only validates string length (32-44 chars), not base58 format. Input is passed directly into Claude prompt: `Analyze the token at address: ${tokenAddress}`. An attacker can inject prompt manipulation via a crafted "address" string that passes the length check.
+`destination_token.owner` is not constrained to equal `expense_dest.destination` (the whitelisted address). An attacker can pass any token account as destination, diverting funds.
 
-**Fix:** Validate against base58 regex: `/^[1-9A-HJ-NP-Za-km-z]{32,44}$/`. Optionally validate as a real `PublicKey`.
+**Fix:** Add constraint: `constraint = destination_token.owner == expense_dest.destination`
+
+---
+
+#### BUG-067: Faucet rate limit is in-memory — lost on restart, bypassed by scaling
+**File:** `backend/src/api/routes/solana-faucet.routes.ts:23`
+**Status:** ⬜ Open
+**Severity:** High
+
+Same pattern as BUG-032 — in-memory `Map` for rate limiting. Server restart = all limits reset. Multiple instances = each has independent limits.
+
+**Fix:** Use Prisma `faucetMint` table with `upsert` on (recipient, mintDate) or Redis.
 
 ---
 
 ### Medium
 
-#### BUG-038: Keeper hardcodes health factor thresholds
-**File:** `backend/src/services/solana-keeper.ts:25-28`
+#### BUG-068: Score lookup leaks registered agent metadata without auth
+**File:** `backend/src/api/routes/solana-score.routes.ts:227`
 **Status:** ⬜ Open
 **Severity:** Medium
 
-Liquidation thresholds (10500, 12000, 13000 bps) are hardcoded constants. If on-chain VaultConfig thresholds are updated, the keeper operates on stale values — either missing liquidations or liquidating healthy wallets.
+Public endpoint returns agent name, credit level, and KYA tier for registered agents. Allows enumeration of all registered agents and their credit tiers.
 
-**Fix:** Read thresholds from on-chain `VaultConfig` PDA at the start of each keeper cycle.
+**Fix:** Redact profile info for unauthenticated requests or require API key for registered agent data.
 
 ---
 
-#### BUG-039: No idempotency enforcement on oracle payment endpoint
-**File:** `backend/src/api/routes/oracle.ts:18-37`
+#### BUG-069: Faucet keypair pubkey logged on startup
+**File:** `backend/src/api/routes/solana-faucet.routes.ts:47`
 **Status:** ✅ Fixed
 **Severity:** Medium
 
-`POST /api/v1/oracle/payment` accepts optional `paymentId` but doesn't enforce uniqueness. Identical requests create separate DB records and could sign/submit duplicate on-chain transactions.
+`console.log('[Faucet] keypair loaded, pubkey:', kp.publicKey.toBase58())` — pubkey is not secret, but production logs should be minimal. Could be modified to accidentally log secrets.
 
-**Fix:** Add unique constraint on `(from, to, amount, paymentId)` in Prisma schema. Reject duplicates with 409 Conflict.
+**Fix:** Only log in development: `if (env.NODE_ENV === 'development')`
 
 ---
 
-#### BUG-040: Webhook URL validation missing — SSRF risk
-**File:** `backend/src/api/routes/admin.ts:124-150`
+#### BUG-070: Score lookup has no rate limiting — RPC exhaustion risk
+**File:** `backend/src/api/routes/solana-score.routes.ts:194`
 **Status:** ✅ Fixed
 **Severity:** Medium
 
-`POST /api/v1/admin/webhooks` accepts any URL without validation. An attacker with admin API key can register `http://localhost:6379` or `http://169.254.169.254` to probe internal services when webhook fires.
+Public endpoint makes multiple RPC calls per request (getAccountInfo, getSignaturesForAddress with limit 100). No rate limiting middleware. Attacker can exhaust RPC quota.
 
-**Fix:** Validate URL scheme (HTTPS only in production). Block private IP ranges (127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16).
+**Fix:** Add rate limiter: `router.get('/:agent', rateLimit({ windowMs: 60000, max: 100 }), ...)`
 
 ---
 
-#### BUG-041: MCP server doesn't validate agent address format at startup
-**File:** `mcp-server/src/index.ts:33-38`
+#### BUG-071: Vault health endpoint queries all wallets without caching
+**File:** `backend/src/api/routes/solana-vault.routes.ts:146`
+**Status:** ⬜ Open
+**Severity:** Medium
+
+Multiple `prisma.solanaAgentWallet.count()` calls per request with no caching. At scale (10K+ wallets), this degrades performance. Likely hit every 10-30s by dashboards.
+
+**Fix:** Cache for 30s or pre-compute stats in keeper cycle.
+
+---
+
+#### BUG-072: Keeper does not validate its own authorization before liquidating
+**File:** `backend/src/services/solana-keeper.ts:92`
+**Status:** ⬜ Open
+**Severity:** Medium
+
+Keeper calls `buildLiquidate` without checking if its keypair matches the on-chain `WalletConfig.keeper`. A compromised or misconfigured keeper could attempt unauthorized liquidations (on-chain would reject, but wastes gas and creates noise).
+
+**Fix:** Read `WalletConfig` at keeper startup and validate keeper pubkey matches.
+
+---
+
+#### BUG-073: Keeper has no per-cycle transaction throttle
+**File:** `backend/src/services/solana-keeper.ts:210`
 **Status:** ✅ Fixed
 **Severity:** Medium
 
-`KREXA_AGENT_ADDRESS` is passed directly to SDK without format validation. If empty, malformed, or pointing to wrong agent, the LLM silently operates on the wrong account or gets cryptic runtime errors.
+2-second poll interval with no cap on transactions per cycle. On mainnet, this rapidly exhausts RPC quota and priority fee budget.
 
-**Fix:** Validate address format on startup (base58 for Solana, 0x hex for Base). Fail fast with clear error.
+**Fix:** Add `MAX_TXS_PER_CYCLE = 10` guard.
 
 ---
 
-#### BUG-042: SDK `baseUrl` not validated — can redirect to malicious API
-**File:** `sdk/src/client.ts:205`
-**Status:** ✅ Fixed
+#### SOL-055: krexa-score `InitializeScore` — agent_profile is UncheckedAccount with no owner validation
+**File:** `solana-programs/programs/krexa-score/src/lib.rs:421-422`
+**Status:** ⬜ Open
 **Severity:** Medium
 
-`KrexaSDK` accepts any `baseUrl` without validation. A supply-chain attack or config compromise could redirect all API calls (including payment submissions) to a malicious server.
+`agent_profile` is used for PDA derivation but never validated as being owned by the registry program. Arbitrary accounts could be passed (PDA constraint limits impact, but defense-in-depth is missing).
 
-**Fix:** Add warning log when non-default URLs are used. In production builds, optionally validate URL against `krexa.xyz` domain.
-
----
-
-#### BUG-043: Frontend WaitlistAdmin stores API key in localStorage
-**File:** `frontend/src/pages/WaitlistAdmin.tsx`
-**Status:** ✅ Fixed
-**Severity:** Medium
-
-API key persisted in `localStorage` — accessible via XSS, browser DevTools, or local malware. Any XSS vulnerability leaks the admin key.
-
-**Fix:** Use `sessionStorage` instead (clears on tab close). Better: HTTP-only cookie from backend.
-
----
-
-#### SOL-050: No expiry on ownership transfer requests
-**Program:** `krexa-agent-registry` | **Status:** ⬜ Open | **Severity:** Medium
-
-`ProfileOwnershipTransfer` stores `proposed_at` timestamp but never checks it for expiry. A transfer proposed today can be accepted years later, even if the proposed owner's wallet is later compromised.
-
-**Evidence:** `solana-programs/programs/krexa-agent-registry/src/lib.rs:525-569`
-
-**Fix:** Add expiry check in `accept_profile_transfer`: `require!(now - transfer.proposed_at <= 7 * 86_400, RegistryError::TransferExpired)`.
+**Fix:** Validate `agent_profile.owner == registry_program_id` or use typed `Account<'info, AgentProfile>`.
 
 ---
 
 ### Low
 
-#### BUG-044: Error messages leak internal state in dev mode
-**File:** `backend/src/api/middleware/errorHandler.ts`
+#### BUG-074: Preview score heuristic easily gamed
+**File:** `backend/src/api/routes/solana-score.routes.ts:164-178`
+**Status:** ⬜ Open (by design)
+**Severity:** Low
+
+Preview scores based on wallet age + tx count + SOL balance can be trivially inflated. Max preview score is 600 with no Krexa activity.
+
+**Status:** Acceptable — preview is advisory only, not used for credit decisions.
+
+---
+
+#### BUG-075: Score deserializer has no buffer bounds check on history loop
+**File:** `backend/src/api/routes/solana-score.routes.ts:91-98`
 **Status:** ✅ Fixed
 **Severity:** Low
 
-Non-production error responses include full stack traces, DB query info, and function names. Useful for attacker reconnaissance.
+30-entry history loop reads 15 bytes per entry without checking `off + 15 <= buf.length`. Malformed accounts could cause out-of-bounds read.
 
-**Fix:** Only return generic messages in production; log details server-side.
+**Fix:** Add `if (off + 15 > buf.length) break;` at loop start.
 
 ---
 
-#### BUG-045: No CSRF protection on state-changing endpoints
-**File:** `backend/src/app.ts`
-**Status:** ⚠️ Accepted risk
+#### BUG-076: App SDK deserializers silently default missing fields to 0
+**File:** `app/src/sdk/client.ts:587-623`
+**Status:** ⬜ Open (by design)
 **Severity:** Low
 
-Mitigated by API key header requirement on sensitive endpoints. Browsers don't add custom `X-API-Key` headers in CSRF attacks, so this is low-risk for API-key-gated routes.
+Backward-compatibility fallbacks mean truncated buffers don't error — could hide on-chain bugs.
 
 ---
 
-#### BUG-046: Oracle health endpoint exposes internal state without auth
-**File:** `backend/src/api/routes/oracle.ts:39-47`
+#### BUG-077: App SDK validation doesn't check pubkey format of array members
+**File:** `app/src/sdk/validation.ts:191-195`
+**Status:** ⬜ Open
+**Severity:** Low
+
+Expense whitelist array length is validated but individual pubkey format is not.
+
+**Fix:** Validate each pubkey with `validatePublicKey()`.
+
+---
+
+#### SOL-056: krexa-service-plan milestone eligible_at saturation edge case
+**File:** `solana-programs/programs/krexa-service-plan/src/lib.rs:450-456`
+**Status:** ⬜ Open
+**Severity:** Low
+
+If `eligible_at` is near `i64::MAX`, `saturating_add(YELLOW_DELAY)` saturates and the delay check becomes permanently false — DoS on that milestone.
+
+---
+
+#### SOL-057: krexa-service-plan `advance_wind_down` is permissionless
+**File:** `solana-programs/programs/krexa-service-plan/src/lib.rs:731-763`
+**Status:** ⬜ Open (by design)
+**Severity:** Low
+
+Anyone can call after grace period. By design — Solana priority fees handle spam.
+
+---
+
+### Automated Scan Findings
+
+#### [AUTO] BUG-078: Demo agent-service uses unrestricted `cors()`
+**File:** `demo/agent-service/src/server.ts:9`
 **Status:** ✅ Fixed
+**Severity:** Medium
+
+`app.use(cors())` with no origin restrictions. Any website can call the demo agent endpoints.
+
+**Fix:** Whitelist origins: `cors({ origin: ['https://krexa.xyz', 'http://localhost:5173'] })`
+
+---
+
+#### [AUTO] BUG-079: Backend has 6 high-severity npm audit vulnerabilities
+**File:** `backend/package.json` (Prisma/effect dependency chain)
+**Status:** ⬜ Open
+**Severity:** Medium
+
+`npm audit` reports 6 high vulnerabilities in Prisma >=6.13.0 via `@prisma/config` → `effect`. Not directly exploitable but should be tracked.
+
+**Fix:** Monitor Prisma releases; update when patched version available.
+
+---
+
+#### [AUTO] BUG-080: `app/` tsconfig has no `"strict": true`
+**File:** `app/tsconfig.json`
+**Status:** ✅ Verified — strict:true already in tsconfig.app.json
 **Severity:** Low
 
-`GET /api/v1/oracle/health` returns oracle address, queue depth, and failure rates. Unauthenticated. Useful for attacker reconnaissance.
+All other packages have strict mode. The new `app/` directory does not, allowing implicit any, loose null checks, etc.
 
-**Fix:** Restrict to authenticated users or remove detailed fields from public response.
-
----
-
-#### SOL-051: Minimum keeper reward not enforced — dust positions never liquidated
-**Program:** `krexa-agent-wallet` | **Status:** ⬜ Open (deferred) | **Severity:** Low
-
-Keeper reward = 0.5% of wallet balance. For wallets with <$10, reward rounds to $0 — no incentive to liquidate. Underwater dust positions persist indefinitely.
-
-**Evidence:** `solana-programs/programs/krexa-agent-wallet/src/instructions/liquidate.rs:24-28`
-
-**Fix:** Set minimum reward (e.g., 100,000 base units = 0.1 USDC). Or: add admin `force_liquidate` for dust cleanup.
+**Fix:** Add `"strict": true` to `app/tsconfig.json`.
 
 ---
 
-#### SOL-052: Admin can unfreeze wallet with outstanding shortfall
-**Program:** `krexa-agent-wallet` | **Status:** ⬜ Open (deferred) | **Severity:** Low
+## Part 8 — Solana Contract Audit: Deep Review (2026-03-24)
 
-After liquidation, `total_debt = shortfall` (unrepaid balance) and wallet is frozen. Admin `freeze_wallet(false)` can thaw the wallet without checking shortfall, potentially allowing the agent to trade again while underwater.
+**Scope:** All 8 Solana programs (9,240 LoC) — krexa-agent-wallet, krexa-service-plan, krexa-score, krexa-payment-router, krexa-credit-vault, krexa-agent-registry, krexa-venue-whitelist, krexa-common.
 
-**Evidence:** `solana-programs/programs/krexa-agent-wallet/src/instructions/freeze.rs`
+**Methodology:** Line-by-line Anchor constraint audit, cross-program interaction analysis, math safety review. All findings verified against source code. Deduplicated against SOL-001 – SOL-057.
 
-**Fix:** Add `require!(agent_wallet.total_debt == 0, WalletError::OutstandingShortfall)` to unfreeze path.
-
----
-
----
-
-## Part 6 — Deep Audit: Oracle, SDK, MCP (2026-03-16)
-
-**Audit scope:** Oracle service (all signing/scoring/retry logic), SDK (all 6 source files), MCP server (both implementations)
-**Method:** 3 parallel exhaustive code reviews reading every line of every file
-
-### Summary
-
-| Severity | Total | Scope |
-|----------|-------|-------|
-| Critical | 3     | Oracle wallet state check, attestation hash, SDK attestation |
-| High     | 9     | Oracle retry/payments/scoring, SDK validation, MCP divergence |
-| Medium   | 6     | Oracle rotation, SDK errors, MCP logging/config |
-| **Total**| **18**| |
+| Severity | Count |
+|----------|-------|
+| Critical | 3     |
+| High     | 3     |
+| Medium   | 5     |
+| Low      | 2     |
 
 ---
 
 ### Critical
 
-#### BUG-047: Oracle signs payments to frozen/liquidating wallets
-**File:** `backend/src/services/solana-oracle.service.ts` (submitPayment)
-**Status:** ✅ Fixed
+#### SOL-058: PayX402 `platform_treasury_token` missing owner constraint
+**File:** `solana-programs/programs/krexa-agent-wallet/src/lib.rs:324-329`
+**Status:** ⬜ Open
 **Severity:** Critical
 
-Oracle reads `MerchantSettlement` and `AgentWallet` on-chain but does NOT check `isFrozen` or `isLiquidating` flags before signing. Oracle will sign and submit a payment to a wallet that the keeper has already marked for liquidation — potentially interfering with the liquidation flow or sending funds to a seized wallet.
+The `platform_treasury_token` account validates `token::mint = config.usdc_mint` but has NO owner or address constraint. An attacker can pass ANY USDC token account they own as the treasury. On every x402 payment, the platform fee (up to 1% per PLATFORM_FEE_BPS) is siphoned to the attacker instead of the real treasury.
 
-**Fix:** Add `if (agentWallet.isFrozen) throw new AppError(400, 'Wallet is frozen')` and `if (agentWallet.isLiquidating) throw new AppError(400, 'Wallet is being liquidated')` before signing.
+**Fix:** Add `platform_treasury_token: Pubkey` to `WalletConfig`, set during `Initialize`, then constrain: `address = config.platform_treasury_token @ WalletError::InvalidTreasury`.
 
 ---
 
-#### BUG-048: Attestation hash uses ambiguous ASCII concatenation
-**File:** `backend/src/services/credit-score.ts:155-163`
-**Status:** ✅ Fixed
+#### SOL-059: DisburseMilestone `vault_token` has ZERO constraints
+**File:** `solana-programs/programs/krexa-service-plan/src/lib.rs:891-893`
+**Status:** ⬜ Open
 **Severity:** Critical
 
-`computeAttestationHash()` concatenates raw ASCII strings without length prefixes or separators: `Buffer.from(agent) + Buffer.from(score.toString()) + Buffer.from(level.toString()) + Buffer.from(timestamp.toString())`. This is ambiguous — e.g., `agent="A", score=100` produces the same buffer as `agent="A1", score=00`. An attacker can forge attestations with different parameters that hash identically.
+The source token account for milestone disbursements is `#[account(mut)]` with no mint, owner, or address validation. If oracle key is compromised, attacker can pass any token account and drain vault funds via disburse_milestone.
 
-**Fix:** Use fixed-width binary encoding: PublicKey → 32 bytes, score → 2 bytes LE, level → 1 byte, timestamp → 8 bytes LE.
+**Fix:** Add `usdc_mint: Pubkey` to `ServicePlanConfig`. Then constrain: `token::mint = config.usdc_mint, token::authority = config.key()`.
 
 ---
 
-#### BUG-054: SDK attestation verification uses SHA256 instead of Keccak256
-**File:** `sdk/src/credit-bureau.ts:124-139`
-**Status:** ✅ Fixed
+#### SOL-060: ExecuteExpense `destination_token` has NO mint constraint
+**File:** `solana-programs/programs/krexa-service-plan/src/lib.rs:1001-1003`
+**Status:** ⬜ Open
 **Severity:** Critical
 
-`verifyAttestation()` uses `createHash('sha256')` but JSDoc says "keccak256". If the on-chain contract uses keccak256, the SDK will never correctly verify an attestation. Worse, an attacker can craft a SHA256 hash that passes SDK validation but doesn't match the on-chain hash.
+Distinct from SOL-054 (whitelist validation). The token account itself has no mint check — an attacker can pass a token account with a different mint entirely. Combined with SOL-054, both destination address AND token type are unvalidated.
 
-**Fix:** Use `keccak256` from viem. Ensure hash algorithm matches on-chain program.
+**Fix:** `token::mint = config.usdc_mint, constraint = destination_token.key() == expense_dest.destination @ ServicePlanError::DestinationMismatch`.
 
 ---
 
 ### High
 
-#### BUG-049: signAndSubmit marks record 'submitted' before simulation
-**File:** `backend/src/services/oracle.service.ts:99-137`
-**Status:** ✅ Fixed
-**Severity:** High
-
-Order is: sign → update DB to 'submitted' → simulate. If simulation fails, the DB record is already marked 'submitted' but the tx was never actually submitted. This corrupts state and confuses retry logic.
-
-**Fix:** Reorder to: sign → simulate → update DB to 'submitted' → submit on-chain.
-
----
-
-#### BUG-050: Retry logic race condition — concurrent retries can double-submit
-**File:** `backend/src/services/oracle.service.ts:281-324, 357-394`
-**Status:** ✅ Fixed
-**Severity:** High
-
-`scheduleRetry()` uses `setTimeout` AND a background processor runs every 15 seconds. Both can pick up the same 'pending' record simultaneously, both call `signAndSubmit()`, producing double-submission to the chain with different nonces but same payment intent.
-
-**Fix:** Add `retryLocked` flag or use database-level lock: `UPDATE ... WHERE status = 'pending' AND retry_locked = false RETURNING *`.
-
----
-
-#### BUG-051: `GET /oracle/payments` unauthenticated — exposes payment history
-**File:** `backend/src/api/routes/oracle.ts:50`
-**Status:** ✅ Fixed
-**Severity:** High
-
-Unlike `POST /oracle/payment` (which requires `requireApiKey`), the `GET /oracle/payments` endpoint has NO auth middleware. Exposes all payment records including from/to addresses, amounts, nonces, tx hashes, error messages, and vault addresses.
-
-**Fix:** Add `requireApiKey` middleware to this endpoint.
-
----
-
-#### BUG-052: Credit score computation relies on mutable DB snapshots
-**File:** `backend/src/services/credit-score.ts:222-244`
+#### SOL-061: DisburseMilestone `agent_token` has NO constraints
+**File:** `solana-programs/programs/krexa-service-plan/src/lib.rs:895-897`
 **Status:** ⬜ Open
 **Severity:** High
 
-Oracle computes credit scores from `HealthSnapshot` and `SolanaAgentTrade` DB records. An oracle operator (or anyone with DB access) can insert fake records to inflate any agent's score. No cross-validation against immutable on-chain event logs.
+The destination token account for milestone disbursements has zero validation (`#[account(mut)]` only). Oracle can direct disbursed funds to any account.
 
-**Fix:** Cross-validate score inputs against on-chain event logs (IndexerState). Add score change rate limiting (max ±50 points per day).
-
----
-
-#### BUG-055: SDK has no input validation on amounts
-**File:** `sdk/src/agent.ts` (deposit, requestCredit, trade, payX402, withdraw, repay)
-**Status:** ✅ Fixed
-**Severity:** High
-
-All 6 financial methods accept `amount: number` with zero validation. `NaN`, `Infinity`, negative numbers, and astronomically large values all pass through to `toBase()` and the API call.
-
-**Fix:** Add `validateAmount()` guard: must be `Number.isFinite()`, positive, and under a sane cap (e.g., 1e14 USDC).
+**Fix:** `token::mint = config.usdc_mint, constraint = agent_token.owner == plan.agent_wallet @ ServicePlanError::InvalidAgentToken`.
 
 ---
 
-#### BUG-056: SDK has no recipient address format validation
-**File:** `sdk/src/agent.ts:152-167` (payX402)
-**Status:** ✅ Fixed
-**Severity:** High
-
-`recipient` parameter is passed directly to the API with no format check. A prompt-injected LLM could send funds to an invalid or attacker-controlled address.
-
-**Fix:** Validate base58 regex for Solana (`/^[1-9A-HJ-NP-Za-km-z]{32,44}$/`), 0x hex for Base.
-
----
-
-#### BUG-057: SDK has no trade venue validation
-**File:** `sdk/src/agent.ts:140-149` (trade)
-**Status:** ✅ Fixed
-**Severity:** High
-
-`venue` parameter accepts any string. SDK should enforce known venues (jupiter, raydium, orca, pump.fun) to prevent routing to attacker-controlled protocols.
-
-**Fix:** Maintain an SDK-side venue allowlist. Warn or reject unknown venues.
-
----
-
-#### BUG-058: SDK doesn't validate server responses — MITM can inject fake data
-**File:** `sdk/src/client.ts:25`, `sdk/src/agent.ts:48`
+#### SOL-062: ExecuteExpense `agent_token` (source) has NO constraints
+**File:** `solana-programs/programs/krexa-service-plan/src/lib.rs:997-999`
 **Status:** ⬜ Open
 **Severity:** High
 
-All responses are cast via `res.json() as Promise<T>` with no schema validation. A MITM or compromised backend can inject fake balances, credit limits, or health factors — causing agents to make bad financial decisions.
+The SOURCE token account for expense execution has no validation. Authority signer could drain any token account they have access to, not just the agent's wallet.
 
-**Fix:** Add runtime schema validation (Zod) on critical response types (wallet state, credit eligibility, score).
-
----
-
-#### BUG-060: MCP tools have no amount bounds — LLM can request unlimited operations
-**File:** `mcp-server/src/index.ts:76,127` + `packages/mcp-server/src/tools/*.ts`
-**Status:** ✅ Fixed
-**Severity:** High
-
-Both MCP implementations accept amounts with no min/max constraints. A rogue LLM can call `krexa_pay(amount=1e15)` or `krexa_draw_credit(amount=999999999)`. Backend should reject, but MCP should stop it first as defense-in-depth.
-
-**Fix:** Add min/max bounds to all tool input schemas (e.g., `amount: { min: 0.01, max: 500000 }`).
+**Fix:** `token::mint = config.usdc_mint, constraint = agent_token.owner == plan.agent_wallet @ ServicePlanError::InvalidAgentToken`.
 
 ---
 
-#### BUG-061: Two divergent MCP implementations — inconsistent behavior and security
-**File:** `mcp-server/src/` vs `packages/mcp-server/src/`
+#### SOL-063: `record_credit_event` caller_authority check broken for program IDs
+**File:** `solana-programs/programs/krexa-score/src/lib.rs:289-293`
 **Status:** ⬜ Open
 **Severity:** High
 
-Standalone has 6 tools via `@krexa/sdk`. Monorepo has 13+ tools via direct HTTP. Different validation approaches, different defaults (HTTPS vs HTTP), different error handling. Creates confusion and security skew.
+Compares `caller_authority.key()` against `config.wallet_program` and `config.vault_program`. These are stored as program IDs during `initialize()`. Solana program IDs CANNOT sign transactions — only PDAs can sign via CPI. If these contain program IDs (as names suggest), `record_credit_event` is permanently uncallable. If they contain PDA addresses, naming is dangerously misleading.
 
-**Fix:** Consolidate to one canonical implementation. Delete the other.
+**Fix:** Rename to `wallet_authority`/`vault_authority`. Store config PDA addresses (not program IDs). Verify during deployment that stored values are CPI-signable PDAs.
 
 ---
 
 ### Medium
 
-#### BUG-053: Oracle keypair cached indefinitely — no rotation mechanism
-**File:** `backend/src/services/solana-oracle.service.ts:54-70`
+#### SOL-064: ExecutePayment `payer_usdc` missing owner constraint
+**File:** `solana-programs/programs/krexa-payment-router/src/lib.rs:1464-1468`
 **Status:** ⬜ Open
 **Severity:** Medium
 
-`getOracleKeypair()` caches the keypair in a module-level variable forever. No TTL, no refresh, no rotation support. If the key is compromised, the only remediation is a full service restart.
+The `payer_usdc` only validates `token::mint`. SPL token::transfer CPI implicitly validates authority, but explicit owner constraint prevents future refactoring mistakes and makes trust model explicit.
 
-**Fix:** Add TTL-based refresh or integrate external key management (AWS KMS, Hashicorp Vault).
-
----
-
-#### BUG-059: SDK error messages may leak API key from server responses
-**File:** `sdk/src/agent.ts:46`, `sdk/src/client.ts:22`
-**Status:** ✅ Fixed
-**Severity:** Medium
-
-Error handling exposes raw server response body: `throw new KrexaError(res.status, body)`. If server returns `"Invalid API key: tck_abc123..."`, the key appears in the error message and potentially in agent logs.
-
-**Fix:** Sanitize auth errors — return generic "Authentication failed" for 401/403 responses.
+**Fix:** Add `constraint = payer_usdc.owner == oracle.key() @ RouterError::InvalidPayerAccount`.
 
 ---
 
-#### BUG-062: MCP monorepo defaults to HTTP for API URL
-**File:** `packages/mcp-server/src/config.ts:5`
-**Status:** ✅ Fixed
-**Severity:** Medium
-
-Default `apiUrl` is `http://localhost:3001/api/v1`. If deployed on a real server without overriding, API key is transmitted over unencrypted HTTP.
-
-**Fix:** Default to `https://api.krexa.xyz/api/v1`. Warn if URL scheme is `http://` and `NODE_ENV=production`.
-
----
-
-#### BUG-063: MCP has no audit logging — tool calls untraceable
-**File:** Both MCP implementations
-**Status:** ✅ Fixed
-**Severity:** Medium
-
-No tool calls are logged. If an LLM executes unauthorized payments, there's no audit trail to investigate post-incident.
-
-**Fix:** Log every tool call to stderr: `{ timestamp, tool, args (sanitized), agentAddress, result_status }`.
-
----
-
-#### BUG-064: MCP exposes callerAddress override — potential signature spoofing
-**File:** `packages/mcp-server/src/tools/credit.tools.ts:63`
+#### SOL-065: CreatePlan `agent_wallet` is UncheckedAccount with no existence validation
+**File:** `solana-programs/programs/krexa-service-plan/src/lib.rs:865-867`
 **Status:** ⬜ Open
 **Severity:** Medium
 
-`krexa_draw_credit` and `krexa_repay` tools accept an optional `callerAddress` parameter that overrides the signer. If not validated by the backend, this could allow signing as a different agent.
+Plans can be created referencing any arbitrary pubkey as `agent_wallet`. If set to nonexistent account, combined with SOL-061, milestone funds can be directed to wrong destinations.
 
-**Fix:** Remove `callerAddress` from MCP tool schemas. Let the backend determine the caller from the API key.
+**Fix:** `#[account(owner = config.agent_wallet_program)] pub agent_wallet: UncheckedAccount<'info>`.
+
+---
+
+#### SOL-066: `repay` instruction not paused-gated
+**File:** `solana-programs/programs/krexa-agent-wallet/src/instructions/repay.rs:7`
+**Status:** ⬜ Open
+**Severity:** Medium
+
+Unlike deposit, withdraw, execute_trade, pay_x402, and request_credit — repay does not check `config.is_paused`. During emergency pause, agents can still repay debt, manipulating position before remediation. Distinct from SOL-044 (credit-vault's receive_repayment) and SOL-045 (accrue_interest).
+
+**Fix:** Add `require!(!ctx.accounts.config.is_paused, WalletError::Paused);` at line 8.
+
+---
+
+#### SOL-067: `update_score` doesn't validate credit_level against kya_tier
+**File:** `solana-programs/programs/krexa-score/src/lib.rs:142-145`
+**Status:** ⬜ Open
+**Severity:** Medium
+
+Oracle can set `new_level = 4` for agent with `kya_tier = 0`. Protocol rules require Enhanced KYA (tier 2+) for Level 3-4. Score program doesn't enforce this on-chain, relying entirely on off-chain oracle logic.
+
+**Fix:** Add on-chain validation: `let max_level = match kya_tier { 0 => 1, 1 => 2, _ => 4 }; require!(new_level <= max_level)`.
+
+---
+
+#### SOL-068: venue-whitelist `update_config` allows `Pubkey::default()` as admin
+**File:** `solana-programs/programs/krexa-venue-whitelist/src/lib.rs:142-147`
+**Status:** ⬜ Open
+**Severity:** Medium
+
+Admin can set `new_admin = Pubkey::default()`, permanently locking the program — no one can update config, pause, or manage venues afterward.
+
+**Fix:** `require!(admin != Pubkey::default(), VenueError::InvalidAdmin);`
+
+---
+
+### Low
+
+#### SOL-069: LinkWallet uses wrong error code
+**File:** `solana-programs/programs/krexa-agent-registry/src/lib.rs:403`
+**Status:** ⬜ Open
+**Severity:** Low
+
+Uses `RegistryError::AgentNotActive` when wallet is already linked. Semantically incorrect — agent IS active, wallet is already assigned. Confuses clients/debugging.
+
+**Fix:** Add `WalletAlreadyLinked` error variant to `RegistryError`.
+
+---
+
+#### SOL-070: ProfileOwnershipTransfer has no timelock
+**File:** `solana-programs/programs/krexa-agent-registry/src/lib.rs`
+**Status:** ⬜ Open
+**Severity:** Low
+
+Proposal and acceptance can happen in the same block/transaction. Two-step pattern provides basic protection, but a timelock would add defense against compromised admin scenarios.
+
+**Fix:** Add `proposed_at: i64` field; require `clock.unix_timestamp >= proposed_at + TIMELOCK_SECONDS` in accept handler.
+
+---
+
+### Security Strengths Observed
+- ✅ **Math safety**: All arithmetic uses `checked_add`/`saturating_sub` — no raw operations
+- ✅ **PDA design**: Seeds well-structured with program-specific prefixes, bump stored
+- ✅ **Anchor has_one**: Correctly used on most admin/oracle/owner contexts
+- ✅ **CEI pattern**: Checks-Effects-Interactions followed in DisburseMilestone and others
+- ✅ **CPI validation**: Target programs validated via `Program<>` typed accounts
+- ✅ **Score integrity**: Liquidation penalty enforced on-chain (-40 floor), KYA only increases
+- ✅ **Ownership transfer**: Proper propose/accept/cancel three-step with PDA close
+- ✅ **Revenue validation**: 3-layer anti-wash-trading system in payment-router
+- ✅ **Health factor**: Computed and stored after every financial operation
+- ✅ **Pause gates**: Present on most financial instructions (with exceptions noted above)
+
+---
+
+## Part 9 — Backend, SDK, MCP, Frontend Deep Review (2026-03-24)
+
+**Scope:** Backend API routes, oracle service, keeper, SDK, MCP servers, demo infrastructure, frontend. Deduplicated against BUG-001–BUG-080 and SOL-001–SOL-070.
+
+| Severity | Count |
+|----------|-------|
+| Critical | 2     |
+| High     | 5     |
+| Medium   | 9     |
+| Low      | 6     |
+
+---
+
+### Critical
+
+#### BUG-081: Admin API key stored in sessionStorage (WaitlistAdmin)
+**File:** `frontend/src/pages/WaitlistAdmin.tsx:22,40`
+**Status:** ⬜ Open
+**Severity:** Critical
+
+API key (`tck_*`) is persisted in `sessionStorage.setItem(STORAGE_KEY, key)` and auto-restored on page load. SessionStorage is accessible to any JavaScript on the same origin — a single XSS vector (even in a dependency) exposes the admin API key. This key grants access to: waitlist export (all emails/wallets), API key CRUD, and webhook management.
+
+**Fix:** Remove sessionStorage persistence. Accept API key only via form input, hold in React state (memory only, lost on refresh). Alternatively, implement short-lived session tokens with HttpOnly cookies.
+
+---
+
+#### BUG-082: PATCH webhook endpoint missing URL validation (SSRF)
+**File:** `backend/src/api/routes/admin.ts:174-188`
+**Status:** ⬜ Open
+**Severity:** Critical
+
+`PATCH /api/v1/admin/webhooks/:id` allows updating webhook URL without calling `validateWebhookUrl()`. The POST handler (line 148-150) validates, but PATCH skips entirely. Attacker with admin key can change webhook destination to `http://169.254.169.254/metadata` (cloud SSRF) or internal services.
+
+**Fix:** Add `if (url !== undefined) { validateWebhookUrl(url); data.url = url; }` at line 179.
+
+---
+
+### High
+
+#### BUG-083: Merchant credit-score endpoint has no authentication
+**File:** `backend/src/api/routes/merchants.ts:238`
+**Status:** ⬜ Open
+**Severity:** High
+
+`POST /api/v1/merchants/:address/credit-score` is publicly accessible. No `requireAdmin` or `requireApiKey` middleware. Comment says "admin only" but no guard is applied. Any caller can build an unsigned `updateCreditScore` transaction for any merchant.
+
+**Fix:** Add `requireAdmin` middleware: `router.post('/:address/credit-score', requireAdmin, async (...) => { ... })`.
+
+---
+
+#### BUG-084: Merchant repay endpoint has IDOR (any API key can repay for any merchant)
+**File:** `backend/src/api/routes/merchants.ts:174-213`
+**Status:** ⬜ Open
+**Severity:** High
+
+`POST /api/v1/merchants/:address/repay` has `requireApiKey` but no ownership check. Any API key holder can trigger oracle-signed repayment for any merchant address, incrementing their nonce and diverting routing fees.
+
+**Fix:** Bind API key to wallet address or require admin tier for cross-merchant operations.
+
+---
+
+#### BUG-085: Webhook URL validation allows IPv6 loopback SSRF bypass
+**File:** `backend/src/api/routes/admin.ts:131-142`
+**Status:** ⬜ Open
+**Severity:** High
+
+Line 132 checks for `'[::1]'` (with brackets), but `new URL('http://[::1]:8080').hostname` returns `::1` (without brackets in Node.js). Additionally, IPv6 private ranges (`fd00::`, `fe80::`, `fc00::`) are not checked by the IPv4-only regex at line 135.
+
+**Fix:** Use a proper IP parsing library (e.g., `ipaddr.js`) that handles both IPv4 and IPv6 private ranges. Or add: `if (hostname === '::1' || hostname.startsWith('fd') || hostname.startsWith('fe80')) throw ...`.
+
+---
+
+#### BUG-086: Anthropic API key stored in plain config object (demo agent-service)
+**File:** `demo/agent-service/src/config.ts:11`
+**Status:** ⬜ Open
+**Severity:** High
+
+`config.anthropicApiKey` stores the key in a plain exported object. If any error handler, logging middleware, or debug statement serializes `config`, the key is exposed in logs. Config objects are a common accidental-leak vector.
+
+**Fix:** Don't export the key in the config object. Use a getter function: `export function getAnthropicApiKey() { return process.env.ANTHROPIC_API_KEY; }`.
+
+---
+
+#### BUG-087: Frontend Solana API client falls back to HTTP in production
+**File:** `frontend/src/api/solanaClient.ts:3`
+**Status:** ⬜ Open
+**Severity:** High
+
+`const KREXA_API_URL = import.meta.env.VITE_KREXA_API_URL || 'http://localhost:3001'` — if `VITE_KREXA_API_URL` is unset in production, all Solana API requests (including API key headers) transmit over unencrypted HTTP.
+
+**Fix:** Fail fast if URL is not HTTPS: `if (!url.startsWith('https') && !url.includes('localhost')) throw new Error(...)`.
+
+---
+
+### Medium
+
+#### BUG-088: Merchant address params lack EVM format validation
+**File:** `backend/src/api/routes/merchants.ts` (multiple endpoints)
+**Status:** ⬜ Open
+**Severity:** Medium
+
+GET/POST endpoints accept `:address` with no EVM format validation. `req.params.address as Address` is a TypeScript-only cast. Invalid addresses like `0x123` (too short) or `0xZZZ` are accepted, causing silent failures or cache poisoning.
+
+**Fix:** Add zod schema: `z.string().regex(/^0x[a-fA-F0-9]{40}$/)` on all address params.
+
+---
+
+#### BUG-089: Faucet amount parameter lacks type and bounds validation
+**File:** `backend/src/api/routes/solana-faucet.routes.ts:109`
+**Status:** ⬜ Open
+**Severity:** Medium
+
+`amountUsdc` from request body accepts any type. Negative numbers pass through `Math.floor()` and `Math.min()` creating negative `BigInt` values for SPL token transfer.
+
+**Fix:** Add zod validation: `z.number().positive().finite().max(100)`.
+
+---
+
+#### BUG-090: Oracle error messages leak internal state to clients
+**File:** `backend/src/services/oracle.service.ts:262`
+**Status:** ⬜ Open
+**Severity:** Medium
+
+`throw new AppError(502, \`Payment submission failed: ${errMsg}\`)` exposes raw viem/Prisma/RPC error details including internal IPs, connection strings, and configuration.
+
+**Fix:** Log detailed error internally; return generic message to client: `'Payment submission failed. Please try again.'`.
+
+---
+
+#### BUG-091: Faucet rate limit bypassable via pubkey format normalization
+**File:** `backend/src/api/routes/solana-faucet.routes.ts:115`
+**Status:** ⬜ Open
+**Severity:** Medium
+
+Rate limit key uses raw `recipient` string. Same Solana pubkey can be submitted in base58 vs JSON array format, bypassing the rate limit (different string keys in Map).
+
+**Fix:** Normalize to canonical base58 before rate limit check: `const normalizedKey = new PublicKey(recipient).toBase58()`.
+
+---
+
+#### BUG-092: MCP `rateBps` parameter has no bounds validation
+**File:** `mcp-server/src/index.ts:151-157`
+**Status:** ⬜ Open
+**Severity:** Medium
+
+`krexa_draw_credit` tool accepts `rateBps` without min/max bounds. LLM can pass `Infinity`, `-99999`, or `NaN`, causing backend logic errors in interest calculations.
+
+**Fix:** Add `minimum: 0, maximum: 10000` to JSON schema.
+
+---
+
+#### BUG-093: Credit Bureau SDK HTTP requests lack timeout
+**File:** `sdk/src/credit-bureau.ts:83`
+**Status:** ⬜ Open
+**Severity:** Medium
+
+`fetch()` with no timeout hangs indefinitely if server doesn't respond. Can cause agent processes to freeze and memory exhaustion from accumulated pending requests.
+
+**Fix:** Add `AbortSignal.timeout(10_000)` to fetch options.
+
+---
+
+#### BUG-094: x402 middleware replay protection uses unbounded in-memory Set
+**File:** `demo/agent-service/src/x402-middleware.ts:9-42`
+**Status:** ⬜ Open
+**Severity:** Medium
+
+`usedSignatures` Set has no TTL, grows unboundedly (cleanup at 10K is not TTL-based), and is lost on restart (all previous signatures become replayable). Iterator cleanup order is implementation-dependent.
+
+**Fix:** Use Map with timestamps, clean entries older than 1 hour. For production: persist to database.
+
+---
+
+#### BUG-095: MCP tool argument type coercion allows type confusion
+**File:** `mcp-server/src/index.ts:219-247`
+**Status:** ⬜ Open
+**Severity:** Medium
+
+Handlers use `args.amount as number` without runtime type checks. If LLM generates malformed JSON (`"amount": "5.00"`), TypeScript cast produces NaN silently. `args.recipient as string` on a number input creates string `"123"`.
+
+**Fix:** Add explicit type checks: `if (typeof args.amount !== 'number' || !Number.isFinite(args.amount)) throw ...`.
+
+---
+
+#### BUG-096: Demo server error broadcast leaks internal state to WebSocket clients
+**File:** `demo/server.ts:128-129`
+**Status:** ⬜ Open
+**Severity:** Medium
+
+Error messages from `runDemo()` are broadcast to ALL WebSocket clients without sanitization. Errors may contain API keys, database connection strings, file paths, or stack traces.
+
+**Fix:** Sanitize error before broadcast: only send generic message or first 100 chars with sensitive pattern filtering.
+
+---
+
+### Low
+
+#### BUG-097: API key comparison not constant-time (timing attack)
+**File:** `backend/src/api/middleware/apiKeyAuth.ts:21,46,71`
+**Status:** ⬜ Open
+**Severity:** Low
+
+Prisma `findUnique(where: { key: headerKey })` uses standard DB comparison. Timing differences between "key not found" (fast) and "key found + validated" (slower) can be measured to infer valid key prefixes.
+
+**Fix:** Use `crypto.timingSafeEqual()` after DB lookup. Compare against dummy on miss to normalize timing.
+
+---
+
+#### BUG-098: SDK `toBase()` precision loss on fractional amounts
+**File:** `sdk/src/agent.ts:92-94`
+**Status:** ⬜ Open
+**Severity:** Low
+
+`Math.round(usdc * 1_000_000)` has floating-point imprecision. While usually < 1 gwei ($0.000001), edge cases exist (e.g., `toBase(0.0000001)` → 0 base units, silent loss).
+
+**Fix:** Add minimum check: `if (cents <= 0) throw new Error('Amount too small')`.
+
+---
+
+#### BUG-099: SDK client response body not type-validated
+**File:** `sdk/src/client.ts:14-26`
+**Status:** ⬜ Open
+**Severity:** Low
+
+`res.json() as Promise<T>` casts without runtime validation. MITM or backend version mismatch returns unexpected schema, silently corrupting downstream data.
+
+**Fix:** Add basic runtime check: `if (!data || typeof data !== 'object') throw ...`. Better: use zod schemas for critical response types.
+
+---
+
+#### BUG-100: Demo server race condition on concurrent trigger
+**File:** `demo/server.ts:107-132`
+**Status:** ⬜ Open
+**Severity:** Low
+
+Two concurrent POST `/trigger` requests both pass the `demoStatus === 'running'` check before either sets it, causing parallel demo runs with interleaved WebSocket broadcasts.
+
+**Fix:** Use a boolean lock: `if (demoRunning) return 409; demoRunning = true; try { ... } finally { demoRunning = false; }`.
+
+---
+
+#### BUG-101: CORS regex too permissive in demo agent-service
+**File:** `demo/agent-service/src/server.ts:14`
+**Status:** ⬜ Open
+**Severity:** Low
+
+`/\.krexa\.xyz$/` matches ANY subdomain including `attacker.krexa.xyz` if attacker controls DNS for that subdomain.
+
+**Fix:** Use explicit whitelist: `['https://krexa.xyz', 'https://www.krexa.xyz', 'https://demo.krexa.xyz']`.
+
+---
+
+#### BUG-102: Webhook secret returned in creation response
+**File:** `backend/src/api/routes/admin.ts:161-167`
+**Status:** ⬜ Open
+**Severity:** Low
+
+Webhook secret (`whsec_*`) is returned in the POST response body. If response is captured by proxy logs, browser history, or HTTP interceptor, the secret is exposed. Correctly NOT returned in GET/PATCH.
+
+**Fix:** Return secret only once via a one-time-view pattern, or require client to generate the secret.
+
+---
+
+### Security Strengths (Backend/SDK/MCP/Frontend)
+- ✅ **Helmet**: Active with default CSP in `backend/src/app.ts`
+- ✅ **TypeScript strict mode**: Enabled in all 5 packages
+- ✅ **CORS allowlist**: Origin-based in backend, not wildcard
+- ✅ **API key middleware**: Present on admin routes with tier system
+- ✅ **Zod env validation**: Backend environment validated at startup
+- ✅ **Unsigned tx pattern**: Backend returns unsigned tx data for wallet signing — never holds user keys
+- ✅ **Webhook event filtering**: Endpoints receive only subscribed event types
+- ✅ **Rate limiting**: Global rate limiter active (30 req/min for standard, 100 for admin)
+- ✅ **MCP audit logging**: Tool calls logged to stderr with parameter masking
+- ✅ **SDK error boundaries**: `try/catch` on all HTTP calls with typed errors

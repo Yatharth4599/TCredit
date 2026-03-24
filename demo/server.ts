@@ -20,12 +20,7 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import type { BroadcastFn } from './run-demo.ts';
 
-// ── Keypair bootstrap ─────────────────────────────────────────────────────
-// On Render, keypairs are stored as base64-encoded JSON arrays.
-// We write them to temp files with restricted permissions (owner-only)
-// and set the *_PATH env vars so run-demo.ts can find them.
-// BUG-033 fix: directory and files are chmod 0700/0600 (owner-only access).
-
+// ── Keypair bootstrap (BUG-033: restricted permissions) ──────────────────
 function bootstrapKeypairs(): void {
   const dir = join(tmpdir(), `krexa-keys-${process.pid}`);
   mkdirSync(dir, { recursive: true, mode: 0o700 });
@@ -46,12 +41,8 @@ function bootstrapKeypairs(): void {
     }
   }
 
-  // Cleanup on exit
   process.on('exit', () => {
-    try {
-      const { rmSync } = require('fs');
-      rmSync(dir, { recursive: true, force: true });
-    } catch { /* best effort */ }
+    try { const { rmSync } = require('fs'); rmSync(dir, { recursive: true, force: true }); } catch {}
   });
 }
 

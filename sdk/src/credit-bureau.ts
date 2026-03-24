@@ -119,8 +119,7 @@ export function createCreditBureauNamespace(apiBase: string, apiKey?: string) {
 
     /**
      * Verify a score attestation hash matches the expected inputs.
-     * Returns true if the hash matches sha256(agent‖score‖level‖timestamp)
-     * using fixed-width binary encoding (matching backend computeAttestationHash).
+     * Returns true if the hash matches keccak256(agent, score, level, timestamp).
      */
     verifyAttestation: (
       agentPubkey: string,
@@ -129,26 +128,15 @@ export function createCreditBureauNamespace(apiBase: string, apiKey?: string) {
       timestamp: number,
       expectedHash: string,
     ): boolean => {
-      // BUG-054 fix: use fixed-width binary encoding (must match backend exactly)
+      // BUG-054: fixed-width binary encoding (matches backend computeAttestationHash)
       const agentBuf = Buffer.alloc(32);
-      // Decode base58 pubkey to 32 bytes
       const bs58Chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
       let num = BigInt(0);
-      for (const c of agentPubkey) {
-        num = num * 58n + BigInt(bs58Chars.indexOf(c));
-      }
-      for (let i = 31; i >= 0; i--) {
-        agentBuf[i] = Number(num & 0xffn);
-        num >>= 8n;
-      }
-
-      const scoreBuf = Buffer.alloc(2);
-      scoreBuf.writeUInt16LE(score);
-      const levelBuf = Buffer.alloc(1);
-      levelBuf.writeUInt8(level);
-      const tsBuf = Buffer.alloc(8);
-      tsBuf.writeBigUInt64LE(BigInt(timestamp));
-
+      for (const c of agentPubkey) { num = num * 58n + BigInt(bs58Chars.indexOf(c)); }
+      for (let i = 31; i >= 0; i--) { agentBuf[i] = Number(num & 0xffn); num >>= 8n; }
+      const scoreBuf = Buffer.alloc(2); scoreBuf.writeUInt16LE(score);
+      const levelBuf = Buffer.alloc(1); levelBuf.writeUInt8(level);
+      const tsBuf = Buffer.alloc(8); tsBuf.writeBigUInt64LE(BigInt(timestamp));
       const data = Buffer.concat([agentBuf, scoreBuf, levelBuf, tsBuf]);
       const computed = createHash('sha256').update(data).digest('hex');
       return computed === expectedHash;

@@ -28,8 +28,7 @@ export function errorHandler(
     return;
   }
 
-  // BUG-044 fix: never leak internal error details to clients
-  // Full error already logged to console above
+  // BUG-044: never leak internal error details to clients
   res.status(500).json({
     error: 'InternalError',
     message: 'Internal server error',
