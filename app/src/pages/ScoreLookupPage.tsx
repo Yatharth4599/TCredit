@@ -333,10 +333,10 @@ export default function ScoreLookupPage() {
                             <div className="w-24 h-1.5 bg-gray-700 rounded-full overflow-hidden">
                               <div
                                 className="h-full bg-blue-500 rounded-full"
-                                style={{ width: `${Math.min(100, (val / 200) * 100)}%` }}
+                                style={{ width: `${Math.min(100, ((val as number) / 200) * 100)}%` }}
                               />
                             </div>
-                            <span className="text-sm font-medium text-gray-200 w-8 text-right">+{val}</span>
+                            <span className="text-sm font-medium text-gray-200 w-8 text-right">+{val as number}</span>
                           </div>
                         </div>
                       ))}
@@ -347,6 +347,83 @@ export default function ScoreLookupPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Credit Eligibility Preview */}
+                {(data as any).creditPreview && (() => {
+                  const cp = (data as any).creditPreview
+                  return (
+                    <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
+                      <h3 className="text-sm font-semibold text-gray-300 mb-1 uppercase tracking-wider">Credit Eligibility Preview</h3>
+                      <p className="text-xs text-gray-500 mb-5">{cp.note}</p>
+
+                      {/* Current best level */}
+                      <div className={`rounded-xl p-4 mb-5 border ${cp.estimatedLevel > 0 ? 'bg-green-500/10 border-green-500/30' : 'bg-gray-700/30 border-gray-600/30'}`}>
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div>
+                            <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Estimated Eligibility</p>
+                            <p className={`text-lg font-bold ${cp.estimatedLevel > 0 ? 'text-green-400' : 'text-gray-400'}`}>
+                              {cp.estimatedLevel > 0 ? `Level ${cp.estimatedLevel}` : 'Not Eligible Yet'}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-0.5">{cp.description}</p>
+                          </div>
+                          <div className="text-right">
+                            {cp.maxCreditUsd > 0 && (
+                              <>
+                                <p className="text-2xl font-bold text-white">${cp.maxCreditUsd.toLocaleString()}</p>
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                  cp.type === 'undercollateralized'
+                                    ? 'bg-purple-500/20 text-purple-400'
+                                    : 'bg-amber-500/20 text-amber-400'
+                                }`}>
+                                  {cp.type === 'undercollateralized' ? 'No collateral needed' : 'Collateral required'}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        {cp.kyaRequired && (
+                          <p className="text-xs text-gray-500 mt-3">
+                            Requires KYA Tier {cp.kyaRequired} verification after registration.
+                          </p>
+                        )}
+                      </div>
+
+                      {/* All levels table */}
+                      <div className="space-y-2">
+                        {cp.levels.map((l: any) => (
+                          <div key={l.level} className={`flex items-center justify-between rounded-xl px-4 py-3 border text-sm ${
+                            l.qualified
+                              ? 'bg-green-500/5 border-green-500/20'
+                              : 'bg-gray-900/30 border-gray-700/30'
+                          }`}>
+                            <div className="flex items-center gap-3">
+                              <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
+                                l.qualified
+                                  ? 'bg-green-600/30 border-green-500 text-green-400'
+                                  : 'bg-gray-800 border-gray-600 text-gray-500'
+                              }`}>L{l.level}</span>
+                              <div>
+                                <p className={`font-medium ${l.qualified ? 'text-gray-200' : 'text-gray-500'}`}>
+                                  ${l.maxUsd.toLocaleString()} max
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {l.type === 'undercollateralized' ? 'Uncollateralized' : `${l.ltv}× collateral`} · min score {l.minScore} · KYA {l.minKya}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              {l.qualified ? (
+                                <span className="text-xs text-green-400 font-medium">✓ Qualifies</span>
+                              ) : (
+                                <span className="text-xs text-gray-500">+{l.pointsNeeded} pts needed</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
               </>
             ) : (
               <div className="text-center py-16">

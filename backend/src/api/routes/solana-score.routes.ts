@@ -174,35 +174,123 @@ function deserializeKrexitScore(buf: Buffer) {
   };
 }
 
+// ─── Credit level definitions (mirrors krexa-common constants) ──────────────
+const CREDIT_LEVELS = [
+  {
+    level: 4, minScore: 750, minKya: 3,
+    maxUsdc: 500_000_000_000, // $500,000
+    type: 'undercollateralized' as const,
+    description: 'Elite — up to $500,000, no collateral required',
+  },
+  {
+    level: 3, minScore: 650, minKya: 2,
+    maxUsdc: 100_000_000_000, // $100,000
+    type: 'collateralized' as const,
+    description: 'Trusted — up to $100,000, 10× collateral required',
+    ltv: 10,
+  },
+  {
+    level: 2, minScore: 500, minKya: 2,
+    maxUsdc: 10_000_000_000,  // $10,000
+    type: 'collateralized' as const,
+    description: 'Established — up to $10,000, 5× collateral required',
+    ltv: 5,
+  },
+  {
+    level: 1, minScore: 400, minKya: 1,
+    maxUsdc: 200_000_000,     // $200
+    type: 'undercollateralized' as const,
+    description: 'Starter — up to $200, no collateral required',
+  },
+] as const;
+
+function computeCreditPreview(score: number) {
+  // For a preview (unregistered) wallet, KYA = 0 so they can't draw credit yet.
+  // We show what level they'd reach if they register and complete KYA.
+  // We also show the next threshold needed.
+  const eligibleLevel = CREDIT_LEVELS.find(l => score >= l.minScore) ?? null;
+
+  const levels = CREDIT_LEVELS.slice().reverse().map(l => ({
+    level: l.level,
+    minScore: l.minScore,
+    minKya: l.minKya,
+    maxUsd: l.maxUsdc / 1_000_000,
+    type: l.type,
+    description: l.description,
+    ...(('ltv' in l) ? { ltv: l.ltv } : {}),
+    qualified: score >= l.minScore,
+    pointsNeeded: Math.max(0, l.minScore - score),
+  }));
+
+  const currentLevel = eligibleLevel ?? null;
+  const nextLevel = currentLevel
+    ? CREDIT_LEVELS.find(l => l.minScore > score) ?? null
+    : CREDIT_LEVELS[CREDIT_LEVELS.length - 1]; // L1 is first target
+
+  return {
+    estimatedLevel: currentLevel?.level ?? 0,
+    type: currentLevel?.type ?? 'none',
+    maxCreditUsd: currentLevel ? currentLevel.maxUsdc / 1_000_000 : 0,
+    description: currentLevel?.description ?? 'Score below 400 — not yet eligible for any credit level',
+    kyaRequired: currentLevel?.minKya ?? 1,
+    nextLevel: nextLevel ? {
+      level: nextLevel.level,
+      minScore: nextLevel.minScore,
+      pointsNeeded: Math.max(0, nextLevel.minScore - score),
+      maxCreditUsd: nextLevel.maxUsdc / 1_000_000,
+      type: nextLevel.type,
+    } : null,
+    levels,
+    note: score < 400
+      ? 'Register as a Krexa agent and complete KYA to unlock credit. Building on-chain history increases your score.'
+      : `With score ${score} and basic KYA you qualify for Level ${currentLevel!.level} credit. Register to activate.`,
+  };
+}
+
 /**
- * Compute a simple "activity preview" score for unregistered wallets.
- * Uses Solana RPC data only — no Krexa PDAs needed.
+ * Compute a preview score for unregistered wallets from on-chain signals.
+ * Uses raw JSON-RPC for mainnet to bypass Connection class IP blocks.
  */
 async function computePreviewScore(agent: PublicKey, conn: Connection): Promise<{
   score: number;
   breakdown: Record<string, number>;
   note: string;
   network: string;
+  txCount: number;
+  walletAgeDays: number;
 }> {
   const isMainnet = conn === mainnetConnection;
+  const addrStr = agent.toBase58();
 
-  // For mainnet use raw fetch to avoid Connection class quirks with server IPs
   let accountLamports = 0;
   let signatures: Array<{ blockTime?: number | null }> = [];
+  let tokenAccountCount = 0;
 
   if (isMainnet) {
-    const [acctResult, sigsResult] = await Promise.allSettled([
-      rpcCallWithFallback('getAccountInfo', [agent.toBase58(), { encoding: 'base64' }]),
-      rpcCallWithFallback('getSignaturesForAddress', [agent.toBase58(), { limit: 100 }]),
+    const [acctResult, sigsResult, tokenResult] = await Promise.allSettled([
+      rpcCallWithFallback('getAccountInfo', [addrStr, { encoding: 'base64' }]),
+      // Try both method names — some RPCs use the old name
+      rpcCallWithFallback('getSignaturesForAddress', [addrStr, { limit: 100, commitment: 'confirmed' }])
+        .catch(() => rpcCallWithFallback('getConfirmedSignaturesForAddress2', [addrStr, { limit: 100 }])),
+      rpcCallWithFallback('getTokenAccountsByOwner', [
+        addrStr,
+        { programId: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA' },
+        { encoding: 'base64' },
+      ]),
     ]);
+
     if (acctResult.status === 'fulfilled' && acctResult.value) {
       const val = acctResult.value as { value?: { lamports?: number } };
       accountLamports = val?.value?.lamports ?? 0;
     }
     if (sigsResult.status === 'fulfilled' && Array.isArray(sigsResult.value)) {
       signatures = sigsResult.value as Array<{ blockTime?: number | null }>;
-    } else if (sigsResult.status === 'rejected') {
-      console.warn('[Score] Mainnet getSignaturesForAddress failed:', sigsResult.reason?.message);
+    } else {
+      console.warn('[Score] Mainnet signatures fetch failed — using token account count as proxy');
+    }
+    if (tokenResult.status === 'fulfilled' && tokenResult.value) {
+      const val = tokenResult.value as { value?: unknown[] };
+      tokenAccountCount = Array.isArray(val?.value) ? val.value.length : 0;
     }
   } else {
     const [accountInfo, sigs] = await Promise.all([
@@ -225,35 +313,45 @@ async function computePreviewScore(agent: PublicKey, conn: Connection): Promise<
     }
   }
 
-  // Simple scoring heuristics (200–600 range for unregistered)
+  // ── Scoring heuristics (200–600 for unregistered) ──
   const baseScore = 200;
 
-  // Age: up to +150 pts (30 pts per month, capped at 5 months)
+  // Age: +30 per month, capped at +150 (5 months)
   const ageScore = Math.min(150, Math.floor(walletAgeDays / 30) * 30);
 
-  // Activity: up to +100 pts (1 pt per tx, capped at 100)
-  const activityScore = Math.min(100, txCount);
+  // Activity: 1 pt per tx, capped at +100
+  // If signatures fail, use token account count as proxy (each SPL token = 10 activity pts)
+  const activityScore = txCount > 0
+    ? Math.min(100, txCount)
+    : Math.min(100, tokenAccountCount * 10);
 
-  // Balance: up to +50 pts (5 pts per SOL, capped at 50)
+  // Balance: +5 per SOL, capped at +50
   const balanceScore = Math.min(50, Math.floor(solBalance * 5));
 
-  // Token account diversity: check if wallet exists at all
+  // Existence: +50 if wallet exists
   const existenceScore = accountLamports > 0 ? 50 : 0;
 
-  const totalScore = Math.min(600, baseScore + ageScore + activityScore + balanceScore + existenceScore);
-  const network = conn === mainnetConnection ? 'mainnet' : 'devnet';
+  // Token diversity bonus: +30 if holding 3+ SPL tokens (shows DeFi engagement)
+  const tokenDiversityScore = tokenAccountCount >= 3 ? 30 : tokenAccountCount >= 1 ? 10 : 0;
+
+  const totalScore = Math.min(600, baseScore + ageScore + activityScore + balanceScore + existenceScore + tokenDiversityScore);
+  const network = isMainnet ? 'mainnet' : 'devnet';
+  const activitySource = txCount > 0 ? `${txCount} transactions` : tokenAccountCount > 0 ? `${tokenAccountCount} token accounts` : '0 transactions';
 
   return {
     score: totalScore,
     network,
+    txCount,
+    walletAgeDays: Math.round(walletAgeDays),
     breakdown: {
       base: baseScore,
       walletAge: ageScore,
       transactionActivity: activityScore,
       solBalance: balanceScore,
       accountExists: existenceScore,
+      tokenDiversity: tokenDiversityScore,
     },
-    note: `Preview score computed from ${txCount} transactions over ${Math.round(walletAgeDays)} days on ${network}. Register as a Krexa agent to get a full 5-component Krexit Score.`,
+    note: `Preview score based on ${activitySource} over ${Math.round(walletAgeDays)} days on ${network}. Register as a Krexa agent for a full 5-component Krexit Score.`,
   };
 }
 
@@ -285,16 +383,19 @@ router.get('/:agent', async (req, res, next) => {
 
     // 3. Compute preview — try devnet first, fall back to mainnet if no activity
     let preview = await computePreviewScore(agentPk, solanaConnection);
-    if (preview.score === 200 && preview.breakdown.transactionActivity === 0) {
-      // Wallet has no devnet activity — try mainnet for a richer preview
+    if (preview.breakdown.accountExists === 0 && preview.breakdown.transactionActivity === 0) {
+      // No devnet activity at all — try mainnet
       const mainnetPreview = await computePreviewScore(agentPk, mainnetConnection).catch((e) => {
         console.warn('[Score] Mainnet fallback failed:', e?.message);
         return null;
       });
-      if (mainnetPreview && mainnetPreview.score > 200) {
+      if (mainnetPreview && mainnetPreview.score > preview.score) {
         preview = mainnetPreview;
       }
     }
+
+    // 4. Compute credit eligibility preview from the score
+    const creditPreview = computeCreditPreview(preview.score);
 
     res.json({
       source: 'preview',
@@ -305,6 +406,7 @@ router.get('/:agent', async (req, res, next) => {
       creditScore: profile?.creditScore ?? null,
       creditLevel: profile?.creditLevel ?? null,
       preview,
+      creditPreview,
     });
   } catch (err) {
     next(err);
