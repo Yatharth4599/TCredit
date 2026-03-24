@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useConnection } from '@solana/wallet-adapter-react'
-import { PublicKey, Connection } from '@solana/web3.js'
+import { PublicKey } from '@solana/web3.js'
 import { KrexaClient } from '../sdk'
 import { config } from '../config'
 
@@ -53,7 +53,7 @@ export interface ScoreLookupResult {
   source?: 'on-chain' | 'preview'
 }
 
-// ── Mainnet RPC (browser-side — not blocked like server IPs) ─────────────────
+// ── Mainnet RPC (browser-side raw fetch — not blocked like server IPs) ───────
 const MAINNET_RPC = 'https://api.mainnet-beta.solana.com'
 
 function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
@@ -63,6 +63,18 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
   ])
 }
 
+async function solanaRpc(method: string, params: unknown[]): Promise<unknown> {
+  const res = await fetch(MAINNET_RPC, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+    signal: AbortSignal.timeout(9000),
+  })
+  const json = await res.json() as { result?: unknown; error?: unknown }
+  if (json.error) throw new Error(JSON.stringify(json.error))
+  return json.result
+}
+
 async function fetchMainnetActivity(address: string): Promise<{
   lamports: number
   txCount: number
@@ -70,26 +82,35 @@ async function fetchMainnetActivity(address: string): Promise<{
   tokenAccounts: number
 } | null> {
   try {
-    const pk = new PublicKey(address)
-    // Create connection inside function — avoids module-level Buffer issues
-    const conn = new Connection(MAINNET_RPC, { commitment: 'confirmed', disableRetryOnRateLimit: true })
-
-    const [accountInfo, sigs] = await Promise.all([
-      withTimeout(conn.getAccountInfo(pk), 6000, null),
-      withTimeout(conn.getSignaturesForAddress(pk, { limit: 50 }), 6000, [] as Awaited<ReturnType<typeof conn.getSignaturesForAddress>>),
+    const [acctResult, sigsResult] = await Promise.allSettled([
+      solanaRpc('getAccountInfo', [address, { encoding: 'base64' }]),
+      solanaRpc('getSignaturesForAddress', [address, { limit: 100, commitment: 'confirmed' }]),
     ])
 
-    const lamports = accountInfo?.lamports ?? 0
-    const txCount = sigs.length
-
-    let walletAgeDays = 0
-    if (sigs.length > 0) {
-      const oldest = sigs[sigs.length - 1]
-      if (oldest.blockTime) walletAgeDays = (Date.now() / 1000 - oldest.blockTime) / 86400
+    // Account info → lamports
+    let lamports = 0
+    if (acctResult.status === 'fulfilled' && acctResult.value) {
+      const v = acctResult.value as { value?: { lamports?: number } }
+      lamports = v?.value?.lamports ?? 0
     }
 
-    // Use tx count as token account proxy — avoids slow getParsedTokenAccountsByOwner call
-    const tokenAccounts = Math.floor(txCount / 5)
+    // Signatures → tx count + wallet age
+    let txCount = 0
+    let walletAgeDays = 0
+    if (sigsResult.status === 'fulfilled' && Array.isArray(sigsResult.value)) {
+      const sigs = sigsResult.value as Array<{ blockTime?: number | null }>
+      txCount = sigs.length
+      // Find the oldest non-null blockTime
+      for (let i = sigs.length - 1; i >= 0; i--) {
+        if (sigs[i].blockTime) {
+          walletAgeDays = (Date.now() / 1000 - sigs[i].blockTime!) / 86400
+          break
+        }
+      }
+    }
+
+    // Estimate token account diversity from tx density
+    const tokenAccounts = Math.min(10, Math.floor(txCount / 5))
 
     return { lamports, txCount, walletAgeDays, tokenAccounts }
   } catch {
