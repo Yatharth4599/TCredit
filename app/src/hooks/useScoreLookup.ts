@@ -71,7 +71,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 
 async function solanaRpcOne(url: string, method: string, params: unknown[]): Promise<unknown> {
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 6000)
+  const timer = setTimeout(() => controller.abort(), 10000)
   try {
     const res = await fetch(url, {
       method: 'POST',
@@ -88,14 +88,9 @@ async function solanaRpcOne(url: string, method: string, params: unknown[]): Pro
   }
 }
 
-// Fire all endpoints in parallel, wait up to 6s, pick the richest result
+// Fire all endpoints in parallel, wait for all to settle, pick the richest result
 async function solanaRpc(method: string, params: unknown[], rpcs = MAINNET_RPCS): Promise<unknown> {
-  const settled = await withTimeout(
-    Promise.allSettled(rpcs.map(url => solanaRpcOne(url, method, params))),
-    6000,
-    [] as PromiseSettledResult<unknown>[],
-  )
-  // Pick the best fulfilled result (largest array, or first non-null)
+  const settled = await Promise.allSettled(rpcs.map(url => solanaRpcOne(url, method, params)))
   let best: unknown = undefined
   for (const r of settled) {
     if (r.status !== 'fulfilled' || r.value == null) continue
@@ -118,7 +113,7 @@ async function fetchNetworkActivity(address: string, rpcs: string[]): Promise<{
     // Fetch account info and first page of sigs in parallel
     const [acctResult, firstSigsResult] = await Promise.allSettled([
       solanaRpc('getAccountInfo', [address, { encoding: 'base64' }], rpcs),
-      solanaRpc('getSignaturesForAddress', [address, { limit: 50 }], rpcs),
+      solanaRpc('getSignaturesForAddress', [address, { limit: 200 }], rpcs),
     ])
 
     // Account info → lamports
@@ -135,13 +130,13 @@ async function fetchNetworkActivity(address: string, rpcs: string[]): Promise<{
     if (firstSigsResult.status === 'fulfilled' && Array.isArray(firstSigsResult.value)) {
       allSigs = firstSigsResult.value as Sig[]
 
-      // Paginate to find true wallet age (up to 20 pages × 50 = 1,000 txs)
+      // Paginate to find true wallet age (up to 5 pages × 200 = 1,000 txs)
       let page = 0
-      while (allSigs.length === (page + 1) * 50 && page < 19) {
+      while (allSigs.length === (page + 1) * 200 && page < 4) {
         const cursor = allSigs[allSigs.length - 1].signature
         const older = await solanaRpc('getSignaturesForAddress', [
           address,
-          { limit: 50, before: cursor },
+          { limit: 200, before: cursor },
         ], rpcs).catch(() => null)
         if (!Array.isArray(older) || older.length === 0) break
         allSigs = [...allSigs, ...(older as Sig[])]
@@ -232,10 +227,10 @@ export function useScoreLookup(address: string | null) {
         withTimeout(
           fetch(`${config.apiUrl}/api/v1/mainnet/activity/${address}`)
             .then(r => r.ok ? r.json() as Promise<ActivityStats> : null),
-          12000, null
+          15000, null
         ),
-        // Browser-side fallback in case backend proxy is down
-        withTimeout(fetchNetworkActivity(address, MAINNET_RPCS), 10000, null),
+        // Browser-side RPC (user's IP can reach api.mainnet-beta.solana.com)
+        withTimeout(fetchNetworkActivity(address, MAINNET_RPCS), 30000, null),
       ])
 
       const backendData = backendResp.status === 'fulfilled' ? backendResp.value : null
