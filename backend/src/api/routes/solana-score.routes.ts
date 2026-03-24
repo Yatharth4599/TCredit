@@ -5,30 +5,52 @@
  * GET  /api/v1/solana/score/:agent/preview  — preview without registration
  */
 
-import { Router, Request } from 'express';
+import { Router } from 'express';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { solanaConnection } from '../../chain/solana/connection.js';
+import { krexitScorePda } from '../../chain/solana/programs.js';
+import { readAgentProfile } from '../../chain/solana/reader.js';
+import { AppError } from '../middleware/errorHandler.js';
 
-const MAINNET_RPC_URL = process.env.SOLANA_MAINNET_RPC_URL || 'https://rpc.ankr.com/solana';
+// Mainnet RPCs tried in order — first successful one wins
+const MAINNET_RPC_URLS: string[] = process.env.SOLANA_MAINNET_RPC_URL
+  ? [process.env.SOLANA_MAINNET_RPC_URL]
+  : [
+      'https://rpc.ankr.com/solana',
+      'https://solana-mainnet.g.alchemy.com/v2/demo',
+      'https://api.mainnet-beta.solana.com',
+    ];
 
-// Read-only mainnet connection for preview score fallback
-const mainnetConnection = new Connection(MAINNET_RPC_URL, { commitment: 'confirmed', disableRetryOnRateLimit: true });
+// Read-only mainnet connection (used as identity sentinel only)
+const mainnetConnection = new Connection(MAINNET_RPC_URLS[0], { commitment: 'confirmed', disableRetryOnRateLimit: true });
 
-/** Raw JSON-RPC call — bypasses Connection class fetch quirks for server-side use */
+/** Raw JSON-RPC call with timeout */
 async function rpcCall(url: string, method: string, params: unknown[]): Promise<unknown> {
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'User-Agent': 'krexa-backend/1.0' },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-    signal: AbortSignal.timeout(8000),
+    signal: AbortSignal.timeout(7000),
   });
+  if (!res.ok) throw new Error(`HTTP ${res.status} from ${url}`);
   const json = await res.json() as { result?: unknown; error?: { message: string } };
   if (json.error) throw new Error(json.error.message);
   return json.result;
 }
-import { krexitScorePda } from '../../chain/solana/programs.js';
-import { readAgentProfile } from '../../chain/solana/reader.js';
-import { AppError } from '../middleware/errorHandler.js';
+
+/** Try each mainnet RPC in order, return first success */
+async function rpcCallWithFallback(method: string, params: unknown[]): Promise<unknown> {
+  let lastErr: Error | undefined;
+  for (const url of MAINNET_RPC_URLS) {
+    try {
+      return await rpcCall(url, method, params);
+    } catch (e) {
+      lastErr = e as Error;
+      console.warn(`[Score] RPC ${url} failed (${method}):`, lastErr.message);
+    }
+  }
+  throw lastErr ?? new Error('All mainnet RPCs failed');
+}
 
 const router = Router();
 
@@ -163,16 +185,15 @@ async function computePreviewScore(agent: PublicKey, conn: Connection): Promise<
   network: string;
 }> {
   const isMainnet = conn === mainnetConnection;
-  const rpcUrl = isMainnet ? MAINNET_RPC_URL : undefined;
 
   // For mainnet use raw fetch to avoid Connection class quirks with server IPs
   let accountLamports = 0;
   let signatures: Array<{ blockTime?: number | null }> = [];
 
-  if (isMainnet && rpcUrl) {
+  if (isMainnet) {
     const [acctResult, sigsResult] = await Promise.allSettled([
-      rpcCall(rpcUrl, 'getAccountInfo', [agent.toBase58(), { encoding: 'base64' }]),
-      rpcCall(rpcUrl, 'getSignaturesForAddress', [agent.toBase58(), { limit: 100 }]),
+      rpcCallWithFallback('getAccountInfo', [agent.toBase58(), { encoding: 'base64' }]),
+      rpcCallWithFallback('getSignaturesForAddress', [agent.toBase58(), { limit: 100 }]),
     ]);
     if (acctResult.status === 'fulfilled' && acctResult.value) {
       const val = acctResult.value as { value?: { lamports?: number } };
