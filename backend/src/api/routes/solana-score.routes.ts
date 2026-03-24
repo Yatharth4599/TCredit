@@ -10,8 +10,9 @@ import { Connection, PublicKey } from '@solana/web3.js';
 import { solanaConnection } from '../../chain/solana/connection.js';
 
 // Read-only mainnet connection for preview score fallback
+// ankr is more permissive than api.mainnet-beta.solana.com for server-side calls
 const mainnetConnection = new Connection(
-  process.env.SOLANA_MAINNET_RPC_URL || 'https://api.mainnet-beta.solana.com',
+  process.env.SOLANA_MAINNET_RPC_URL || 'https://rpc.ankr.com/solana',
   { commitment: 'confirmed', disableRetryOnRateLimit: true },
 );
 import { krexitScorePda } from '../../chain/solana/programs.js';
@@ -229,7 +230,10 @@ router.get('/:agent', async (req, res, next) => {
     let preview = await computePreviewScore(agentPk, solanaConnection);
     if (preview.score === 200 && preview.breakdown.transactionActivity === 0) {
       // Wallet has no devnet activity — try mainnet for a richer preview
-      const mainnetPreview = await computePreviewScore(agentPk, mainnetConnection).catch(() => null);
+      const mainnetPreview = await computePreviewScore(agentPk, mainnetConnection).catch((e) => {
+        console.warn('[Score] Mainnet fallback failed:', e?.message);
+        return null;
+      });
       if (mainnetPreview && mainnetPreview.score > 200) {
         preview = mainnetPreview;
       }
