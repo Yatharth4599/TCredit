@@ -55,7 +55,13 @@ export interface ScoreLookupResult {
 
 // ── Mainnet RPC (browser-side — not blocked like server IPs) ─────────────────
 const MAINNET_RPC = 'https://api.mainnet-beta.solana.com'
-const mainnetConn = new Connection(MAINNET_RPC, 'confirmed')
+
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>(resolve => setTimeout(() => resolve(fallback), ms)),
+  ])
+}
 
 async function fetchMainnetActivity(address: string): Promise<{
   lamports: number
@@ -65,24 +71,27 @@ async function fetchMainnetActivity(address: string): Promise<{
 } | null> {
   try {
     const pk = new PublicKey(address)
-    const [accountInfo, sigs, tokenAccts] = await Promise.allSettled([
-      mainnetConn.getAccountInfo(pk),
-      mainnetConn.getSignaturesForAddress(pk, { limit: 100 }),
-      mainnetConn.getParsedTokenAccountsByOwner(pk, {
-        programId: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
-      }),
+    // Create connection inside function — avoids module-level Buffer issues
+    const conn = new Connection(MAINNET_RPC, { commitment: 'confirmed', disableRetryOnRateLimit: true })
+
+    const [accountInfo, sigs] = await Promise.all([
+      withTimeout(conn.getAccountInfo(pk), 6000, null),
+      withTimeout(conn.getSignaturesForAddress(pk, { limit: 50 }), 6000, [] as Awaited<ReturnType<typeof conn.getSignaturesForAddress>>),
     ])
-    const lamports = accountInfo.status === 'fulfilled' ? (accountInfo.value?.lamports ?? 0) : 0
-    const signatures = sigs.status === 'fulfilled' ? sigs.value : []
-    const tokenCount = tokenAccts.status === 'fulfilled' ? tokenAccts.value.value.length : 0
+
+    const lamports = accountInfo?.lamports ?? 0
+    const txCount = sigs.length
 
     let walletAgeDays = 0
-    if (signatures.length > 0) {
-      const oldest = signatures[signatures.length - 1]
+    if (sigs.length > 0) {
+      const oldest = sigs[sigs.length - 1]
       if (oldest.blockTime) walletAgeDays = (Date.now() / 1000 - oldest.blockTime) / 86400
     }
 
-    return { lamports, txCount: signatures.length, walletAgeDays, tokenAccounts: tokenCount }
+    // Use tx count as token account proxy — avoids slow getParsedTokenAccountsByOwner call
+    const tokenAccounts = Math.floor(txCount / 5)
+
+    return { lamports, txCount, walletAgeDays, tokenAccounts }
   } catch {
     return null
   }
@@ -138,9 +147,13 @@ export function useScoreLookup(address: string | null) {
       }
 
       // No on-chain score — fetch backend preview (devnet) + mainnet in parallel
+      // Both have timeouts so the page never hangs indefinitely
       const [backendResp, mainnetStats] = await Promise.allSettled([
-        fetch(`${config.apiUrl}/api/v1/solana/score/${address}`).then(r => r.ok ? r.json() : null),
-        fetchMainnetActivity(address),
+        withTimeout(
+          fetch(`${config.apiUrl}/api/v1/solana/score/${address}`).then(r => r.ok ? r.json() : null),
+          10000, null
+        ),
+        withTimeout(fetchMainnetActivity(address), 8000, null),
       ])
 
       const backendData = backendResp.status === 'fulfilled' ? backendResp.value : null
