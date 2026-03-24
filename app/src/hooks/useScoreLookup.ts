@@ -64,15 +64,21 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 }
 
 async function solanaRpc(method: string, params: unknown[]): Promise<unknown> {
-  const res = await fetch(MAINNET_RPC, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-    signal: AbortSignal.timeout(9000),
-  })
-  const json = await res.json() as { result?: unknown; error?: unknown }
-  if (json.error) throw new Error(JSON.stringify(json.error))
-  return json.result
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 9000)
+  try {
+    const res = await fetch(MAINNET_RPC, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+      signal: controller.signal,
+    })
+    const json = await res.json() as { result?: unknown; error?: unknown }
+    if (json.error) throw new Error(JSON.stringify(json.error))
+    return json.result
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 async function fetchMainnetActivity(address: string): Promise<{
@@ -196,24 +202,27 @@ export function useScoreLookup(address: string | null) {
       const backendData = backendResp.status === 'fulfilled' ? backendResp.value : null
       const mainnet = mainnetStats.status === 'fulfilled' ? mainnetStats.value : null
 
-      // Compute mainnet preview client-side (browser can hit mainnet-beta freely)
-      const mainnetPreview = mainnet && (mainnet.lamports > 0 || mainnet.txCount > 0 || mainnet.tokenAccounts > 0)
-        ? computePreviewFromStats(mainnet, 'mainnet')
-        : null
+      // Compute mainnet preview client-side (always, even if all zeros)
+      const mainnetPreview = mainnet ? computePreviewFromStats(mainnet, 'mainnet') : null
 
-      // Use whichever preview has a higher score
+      // Use whichever preview has a higher score; fall back to a base-200 default
       const backendPreview: ScorePreview | null = backendData?.preview ?? null
-      const bestPreview = mainnetPreview && (!backendPreview || mainnetPreview.score > backendPreview.score)
-        ? mainnetPreview
-        : backendPreview
+      const bestPreview: ScorePreview = (() => {
+        if (mainnetPreview && (!backendPreview || mainnetPreview.score >= backendPreview.score)) return mainnetPreview
+        if (backendPreview) return backendPreview
+        // Both failed — return a safe default so the page never shows "No Score Found"
+        return {
+          score: 200,
+          network: 'unknown',
+          txCount: 0,
+          walletAgeDays: 0,
+          breakdown: { base: 200, walletAge: 0, transactionActivity: 0, solBalance: 0, accountExists: 0, tokenDiversity: 0 },
+          note: 'Unable to fetch on-chain data. Register as a Krexa agent to get a full score.',
+        }
+      })()
 
-      // Credit preview always comes from backend (uses the best score for evaluation)
-      // If mainnet preview is better, re-fetch with the mainnet score override
-      let creditPreview: CreditPreview | null = backendData?.creditPreview ?? null
-      if (mainnetPreview && mainnetPreview.score > (backendPreview?.score ?? 0) && bestPreview) {
-        // Recompute credit eligibility client-side with mainnet score
-        creditPreview = computeCreditPreview(bestPreview.score)
-      }
+      // Credit eligibility from the best available score
+      const creditPreview: CreditPreview = backendData?.creditPreview ?? computeCreditPreview(bestPreview.score)
 
       return {
         profile,
