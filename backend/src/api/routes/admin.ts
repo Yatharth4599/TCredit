@@ -121,30 +121,17 @@ router.get('/webhooks', async (_req, res, next) => {
   }
 });
 
-// BUG-040 fix: validate webhook URL to prevent SSRF
+// BUG-040: validate webhook URL to prevent SSRF
 function validateWebhookUrl(url: string): void {
   let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    throw new AppError(400, 'Invalid URL format');
-  }
-
-  // Must be HTTPS in production
+  try { parsed = new URL(url); } catch { throw new AppError(400, 'Invalid URL format'); }
   if (process.env.NODE_ENV === 'production' && parsed.protocol !== 'https:') {
     throw new AppError(400, 'Webhook URL must use HTTPS in production');
   }
-
-  // Block private/internal IP ranges
   const hostname = parsed.hostname.toLowerCase();
-  const blocked = [
-    'localhost', '127.0.0.1', '0.0.0.0', '[::1]',
-  ];
-  if (blocked.includes(hostname)) {
+  if (['localhost', '127.0.0.1', '0.0.0.0', '[::1]'].includes(hostname)) {
     throw new AppError(400, 'Webhook URL cannot target localhost');
   }
-
-  // Block private IP ranges (10.x, 172.16-31.x, 192.168.x, 169.254.x)
   const ipMatch = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
   if (ipMatch) {
     const [, a, b] = ipMatch.map(Number);

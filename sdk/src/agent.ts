@@ -43,7 +43,7 @@ async function req<T>(
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    // BUG-059 fix: sanitize auth errors to prevent API key leaks
+    // BUG-059: sanitize auth errors to prevent API key leaks
     if (res.status === 401 || res.status === 403) {
       throw new KrexaError(res.status, 'Authentication failed');
     }
@@ -65,29 +65,23 @@ function post<T>(baseUrl: string, path: string, apiKey: string | undefined, body
 
 const SOLANA_ADDR_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const EVM_ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
-
 const KNOWN_VENUES = ['jupiter', 'raydium', 'orca', 'pump.fun', 'pump_fun', 'x402'];
 
 function validateAmount(amount: number, method: string): void {
   if (!Number.isFinite(amount)) throw new KrexaError(400, `${method}: amount must be finite, got ${amount}`);
   if (amount <= 0) throw new KrexaError(400, `${method}: amount must be positive, got ${amount}`);
-  if (amount > 1e14) throw new KrexaError(400, `${method}: amount exceeds maximum (100T USDC)`);
+  if (amount > 1e14) throw new KrexaError(400, `${method}: amount exceeds maximum`);
 }
 
-function validateAddress(addr: string, chain: Chain, field: string): void {
+function validateAddress(addr: string, chain: string, field: string): void {
   if (!addr) throw new KrexaError(400, `${field} is required`);
-  if (chain === 'solana' && !SOLANA_ADDR_RE.test(addr)) {
-    throw new KrexaError(400, `${field}: invalid Solana address format`);
-  }
-  if (chain === 'base' && !EVM_ADDR_RE.test(addr)) {
-    throw new KrexaError(400, `${field}: invalid EVM address format`);
-  }
+  if (chain === 'solana' && !SOLANA_ADDR_RE.test(addr)) throw new KrexaError(400, `${field}: invalid Solana address`);
+  if (chain === 'base' && !EVM_ADDR_RE.test(addr)) throw new KrexaError(400, `${field}: invalid EVM address`);
 }
 
 function validateVenue(venue: string): void {
-  const v = venue.toLowerCase();
-  if (!KNOWN_VENUES.includes(v)) {
-    throw new KrexaError(400, `Unknown trade venue: "${venue}". Allowed: ${KNOWN_VENUES.join(', ')}`);
+  if (!KNOWN_VENUES.includes(venue.toLowerCase())) {
+    throw new KrexaError(400, `Unknown venue: "${venue}". Allowed: ${KNOWN_VENUES.join(', ')}`);
   }
 }
 

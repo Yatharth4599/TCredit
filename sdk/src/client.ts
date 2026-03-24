@@ -202,14 +202,11 @@ export class KrexaSDK {
   readonly raw: KrexaClient;
 
   constructor(config: KrexaSDKConfig = {}) {
-    const baseUrl = config.baseUrl ?? 'https://api.krexa.xyz';
-
-    // BUG-042 fix: warn when using non-default base URL
+    // BUG-042: warn when using non-default base URL
     if (config.baseUrl && !config.baseUrl.includes('krexa.xyz')) {
-      console.warn(`[KrexaSDK] WARNING: Using non-default baseUrl "${config.baseUrl}" — ensure this is intentional`);
+      console.warn(`[KrexaSDK] WARNING: Using non-default baseUrl "${config.baseUrl}"`);
     }
-
-    this._apiBase = baseUrl.replace(/\/$/, '') + '/api/v1';
+    this._apiBase = (config.baseUrl ?? 'https://api.krexa.xyz').replace(/\/$/, '') + '/api/v1';
     this._apiKey = config.apiKey;
     this._chain = config.chain ?? 'solana';
     this._agentAddress = config.agentAddress;

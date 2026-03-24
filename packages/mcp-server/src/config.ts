@@ -2,7 +2,7 @@
 
 const apiUrl = process.env.KREXA_API_URL ?? 'https://api.krexa.xyz/api/v1';
 
-// BUG-062 fix: warn if using HTTP in production
+// BUG-062: warn if using HTTP in production
 if (apiUrl.startsWith('http://') && process.env.NODE_ENV === 'production') {
   process.stderr.write('[krexa-mcp] WARNING: API URL uses HTTP — API key will be transmitted unencrypted\n');
 }

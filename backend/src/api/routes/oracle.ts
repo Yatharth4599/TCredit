@@ -36,7 +36,7 @@ router.post('/payment', requireApiKey, async (req, res, next) => {
   }
 });
 
-// GET /api/v1/oracle/health — oracle service status (BUG-046 fix: auth required)
+// GET /api/v1/oracle/health — oracle service status (BUG-046: auth required)
 router.get('/health', requireApiKey, async (_req, res, next) => {
   try {
     const health = await getOracleHealth();
@@ -46,7 +46,7 @@ router.get('/health', requireApiKey, async (_req, res, next) => {
   }
 });
 
-// GET /api/v1/oracle/payments — list oracle payments (BUG-051 fix: requires API key)
+// GET /api/v1/oracle/payments — list oracle payments (BUG-051: auth required)
 router.get('/payments', requireApiKey, async (req, res, next) => {
   try {
     const { status, vault, limit } = req.query;

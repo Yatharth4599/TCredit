@@ -113,7 +113,7 @@ async function signAndSubmit(
     paymentId: payment.paymentId,
   };
 
-  // BUG-049 fix: simulate BEFORE marking as submitted to avoid corrupted state
+  // BUG-049: simulate BEFORE marking as submitted
   await publicClient.simulateContract({
     address: addresses.paymentRouter,
     abi: PaymentRouterABI,
@@ -122,7 +122,7 @@ async function signAndSubmit(
     account: oracleAccount!,
   });
 
-  // Mark submitted + increment attempts (only after simulation passes)
+  // Mark submitted only after simulation passes
   await prisma.oraclePayment.update({
     where: { id: recordId },
     data: { status: 'submitted', attempts: { increment: 1 } },
@@ -194,7 +194,7 @@ export async function processPayment(params: WebhookPaymentRequest): Promise<Ora
   const block = await publicClient.getBlock();
   const deadline = block.timestamp + 300n;
 
-  // BUG-039 fix: enforce idempotency on user-provided paymentId
+  // BUG-039: enforce idempotency on user-provided paymentId
   if (params.paymentId) {
     const existing = await prisma.oraclePayment.findFirst({
       where: { paymentId: params.paymentId, status: { in: ['pending', 'submitted', 'confirmed'] } },
@@ -372,7 +372,6 @@ export function startRetryProcessor(): void {
 
   retryInterval = setInterval(async () => {
     try {
-      // BUG-050 fix: skip records that already have a scheduled retry timer (prevent double-submit)
       const stale = await prisma.oraclePayment.findMany({
         where: {
           status: 'pending',
@@ -383,9 +382,8 @@ export function startRetryProcessor(): void {
       });
 
       for (const payment of stale) {
-        // Skip if a timer-based retry is already scheduled for this record
+        // BUG-050: skip records with active timer-based retry to prevent double-submit
         if (retryTimers.has(payment.id)) continue;
-
         try {
           const block = await publicClient.getBlock();
           if (block.timestamp > payment.deadline) {
