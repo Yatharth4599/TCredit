@@ -56,12 +56,10 @@ export interface ScoreLookupResult {
 // ── RPC endpoints ─────────────────────────────────────────────────────────────
 const MAINNET_RPCS = [
   'https://api.mainnet-beta.solana.com',
-  'https://rpc.ankr.com/solana',
   'https://solana-rpc.publicnode.com',
 ]
 const DEVNET_RPCS = [
   'https://api.devnet.solana.com',
-  'https://rpc.ankr.com/solana_devnet',
 ]
 
 function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
@@ -244,10 +242,11 @@ export function useScoreLookup(address: string | null) {
       const proxyStats: ActivityStats | null = proxyResult.status === 'fulfilled' ? proxyResult.value : null
       const browserStats = browserResult.status === 'fulfilled' ? browserResult.value : null
 
-      // Use backend proxy (full data) if available, otherwise browser-side (partial)
-      const mainnetStats = (proxyStats && proxyStats.txCount > 0) ? proxyStats
-        : (browserStats && browserStats.txCount > 0) ? browserStats
-        : proxyStats ?? browserStats
+      // Use whichever source returned MORE transactions (backend proxy or browser RPC)
+      const mainnetStats = (() => {
+        if (proxyStats && browserStats) return proxyStats.txCount >= browserStats.txCount ? proxyStats : browserStats
+        return proxyStats ?? browserStats
+      })()
 
       // Compute preview from mainnet activity
       const mainnetPreview = mainnetStats

@@ -5,7 +5,6 @@ const router = Router();
 
 const MAINNET_RPCS = [
   'https://api.mainnet-beta.solana.com',
-  'https://rpc.ankr.com/solana',
   'https://solana-rpc.publicnode.com',
 ];
 
