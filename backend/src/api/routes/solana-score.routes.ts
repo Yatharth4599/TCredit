@@ -5,9 +5,15 @@
  * GET  /api/v1/solana/score/:agent/preview  — preview without registration
  */
 
-import { Router } from 'express';
-import { PublicKey } from '@solana/web3.js';
+import { Router, Request } from 'express';
+import { Connection, PublicKey } from '@solana/web3.js';
 import { solanaConnection } from '../../chain/solana/connection.js';
+
+// Read-only mainnet connection for preview score fallback
+const mainnetConnection = new Connection(
+  process.env.SOLANA_MAINNET_RPC_URL || 'https://api.mainnet-beta.solana.com',
+  { commitment: 'confirmed', disableRetryOnRateLimit: true },
+);
 import { krexitScorePda } from '../../chain/solana/programs.js';
 import { readAgentProfile } from '../../chain/solana/reader.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -138,14 +144,15 @@ function deserializeKrexitScore(buf: Buffer) {
  * Compute a simple "activity preview" score for unregistered wallets.
  * Uses Solana RPC data only — no Krexa PDAs needed.
  */
-async function computePreviewScore(agent: PublicKey): Promise<{
+async function computePreviewScore(agent: PublicKey, conn: Connection): Promise<{
   score: number;
   breakdown: Record<string, number>;
   note: string;
+  network: string;
 }> {
   const [accountInfo, signatures] = await Promise.all([
-    solanaConnection.getAccountInfo(agent),
-    solanaConnection.getSignaturesForAddress(agent, { limit: 100 }).catch(() => []),
+    conn.getAccountInfo(agent),
+    conn.getSignaturesForAddress(agent, { limit: 100 }).catch(() => []),
   ]);
 
   const solBalance = (accountInfo?.lamports ?? 0) / 1e9;
@@ -176,9 +183,11 @@ async function computePreviewScore(agent: PublicKey): Promise<{
   const existenceScore = accountInfo ? 50 : 0;
 
   const totalScore = Math.min(600, baseScore + ageScore + activityScore + balanceScore + existenceScore);
+  const network = conn === mainnetConnection ? 'mainnet' : 'devnet';
 
   return {
     score: totalScore,
+    network,
     breakdown: {
       base: baseScore,
       walletAge: ageScore,
@@ -186,7 +195,7 @@ async function computePreviewScore(agent: PublicKey): Promise<{
       solBalance: balanceScore,
       accountExists: existenceScore,
     },
-    note: `Preview score computed from ${txCount} transactions over ${Math.round(walletAgeDays)} days. Register as a Krexa agent to get a full 5-component Krexit Score.`,
+    note: `Preview score computed from ${txCount} transactions over ${Math.round(walletAgeDays)} days on ${network}. Register as a Krexa agent to get a full 5-component Krexit Score.`,
   };
 }
 
@@ -216,12 +225,19 @@ router.get('/:agent', async (req, res, next) => {
     // 2. Check if agent is registered (has AgentProfile) — give more context
     const profile = await readAgentProfile(agentPk).catch(() => null);
 
-    // 3. Compute preview from raw Solana activity
-    const preview = await computePreviewScore(agentPk);
+    // 3. Compute preview — try devnet first, fall back to mainnet if no activity
+    let preview = await computePreviewScore(agentPk, solanaConnection);
+    if (preview.score === 200 && preview.breakdown.transactionActivity === 0) {
+      // Wallet has no devnet activity — try mainnet for a richer preview
+      const mainnetPreview = await computePreviewScore(agentPk, mainnetConnection).catch(() => null);
+      if (mainnetPreview && mainnetPreview.score > 200) {
+        preview = mainnetPreview;
+      }
+    }
 
     res.json({
       source: 'preview',
-      agentPubkey: req.params.agent,
+      agentPubkey: req.params.agent as string,
       scorePda: scorePda.toBase58(),
       isRegistered: !!profile,
       registeredName: profile ? Buffer.from(profile.name as unknown as Buffer).toString('utf-8').replace(/\0/g, '').trim() : null,
