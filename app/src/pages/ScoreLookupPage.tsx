@@ -328,29 +328,65 @@ export default function ScoreLookupPage() {
                     </a>
                   </div>
 
-                  {/* Score Breakdown */}
+                  {/* Score Breakdown — 5-component or legacy */}
                   <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
-                    <h3 className="text-sm font-semibold text-gray-300 mb-4 uppercase tracking-wider">Activity Breakdown</h3>
-                    <div className="space-y-3">
-                      {Object.entries(data.preview.breakdown).map(([key, val]) => (
-                        <div key={key} className="flex items-center justify-between">
-                          <span className="text-sm text-gray-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                          <div className="flex items-center gap-2">
-                            <div className="w-24 h-1.5 bg-gray-700 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-blue-500 rounded-full"
-                                style={{ width: `${Math.min(100, ((val as number) / 200) * 100)}%` }}
-                              />
-                            </div>
-                            <span className="text-sm font-medium text-gray-200 w-8 text-right">+{val as number}</span>
-                          </div>
+                    {(data.preview as any).components ? (
+                      <>
+                        <h3 className="text-sm font-semibold text-gray-300 mb-1 uppercase tracking-wider">Estimated Component Scores</h3>
+                        <p className="text-xs text-gray-500 mb-4">Values are approximated from on-chain activity</p>
+                        <div className="space-y-3">
+                          {COMPONENTS.map((c) => {
+                            const bps = ((data.preview as any).components as Record<string, number>)[c.key] ?? 0
+                            const pct = Math.min(bps / 100, 100)
+                            return (
+                              <div key={c.key}>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className={`text-sm font-medium ${c.text}`}>{c.name}</span>
+                                  <span className="text-sm text-gray-300">{pct.toFixed(1)}%</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
+                                    <div
+                                      className={`h-full ${c.color} rounded-full transition-all duration-700`}
+                                      style={{ width: `${pct}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-xs text-gray-500 w-10 text-right">{c.weight}%</span>
+                                </div>
+                              </div>
+                            )
+                          })}
                         </div>
-                      ))}
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-gray-700/50 flex justify-between">
-                      <span className="text-sm text-gray-400">Total Preview Score</span>
-                      <span className="text-lg font-bold text-amber-400">{data.preview.score}</span>
-                    </div>
+                        <div className="mt-4 pt-4 border-t border-gray-700/50 flex justify-between">
+                          <span className="text-sm text-gray-400">Estimated Score</span>
+                          <span className="text-lg font-bold text-amber-400">{data.preview.score} / 850</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <h3 className="text-sm font-semibold text-gray-300 mb-4 uppercase tracking-wider">Activity Breakdown</h3>
+                        <div className="space-y-3">
+                          {Object.entries(data.preview.breakdown).map(([key, val]) => (
+                            <div key={key} className="flex items-center justify-between">
+                              <span className="text-sm text-gray-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                              <div className="flex items-center gap-2">
+                                <div className="w-24 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-blue-500 rounded-full"
+                                    style={{ width: `${Math.min(100, ((val as number) / 200) * 100)}%` }}
+                                  />
+                                </div>
+                                <span className="text-sm font-medium text-gray-200 w-8 text-right">+{val as number}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-gray-700/50 flex justify-between">
+                          <span className="text-sm text-gray-400">Total Preview Score</span>
+                          <span className="text-lg font-bold text-amber-400">{data.preview.score}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 

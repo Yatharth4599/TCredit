@@ -4,9 +4,18 @@ import { PublicKey } from '@solana/web3.js'
 import { KrexaClient } from '../sdk'
 import { config } from '../config'
 
+export interface ScoreComponents {
+  c1Repayment: number
+  c2Profitability: number
+  c3Behavioral: number
+  c4Usage: number
+  c5Maturity: number
+}
+
 export interface ScorePreview {
   score: number
   breakdown: Record<string, number>
+  components?: ScoreComponents
   note: string
   network?: string
   txCount?: number
@@ -53,13 +62,10 @@ export interface ScoreLookupResult {
   source?: 'on-chain' | 'preview'
 }
 
-// ── RPC endpoints ─────────────────────────────────────────────────────────────
+// ── RPC endpoints (browser fallback only) ────────────────────────────────────
 const MAINNET_RPCS = [
   'https://api.mainnet-beta.solana.com',
   'https://solana-rpc.publicnode.com',
-]
-const DEVNET_RPCS = [
-  'https://api.devnet.solana.com',
 ]
 
 function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
@@ -88,7 +94,6 @@ async function solanaRpcOne(url: string, method: string, params: unknown[]): Pro
   }
 }
 
-// Fire all endpoints in parallel, wait for all to settle, pick the richest result
 async function solanaRpc(method: string, params: unknown[], rpcs = MAINNET_RPCS): Promise<unknown> {
   const settled = await Promise.allSettled(rpcs.map(url => solanaRpcOne(url, method, params)))
   let best: unknown = undefined
@@ -110,27 +115,23 @@ async function fetchNetworkActivity(address: string, rpcs: string[]): Promise<{
   tokenAccounts: number
 } | null> {
   try {
-    // Fetch account info and first page of sigs in parallel
     const [acctResult, firstSigsResult] = await Promise.allSettled([
       solanaRpc('getAccountInfo', [address, { encoding: 'base64' }], rpcs),
       solanaRpc('getSignaturesForAddress', [address, { limit: 200 }], rpcs),
     ])
 
-    // Account info → lamports
     let lamports = 0
     if (acctResult.status === 'fulfilled' && acctResult.value) {
       const v = acctResult.value as { value?: { lamports?: number } }
       lamports = v?.value?.lamports ?? 0
     }
 
-    // Paginate backwards until we reach the oldest transaction (< 1000 in a page)
     type Sig = { blockTime?: number | null; signature: string }
     let allSigs: Sig[] = []
 
     if (firstSigsResult.status === 'fulfilled' && Array.isArray(firstSigsResult.value)) {
       allSigs = firstSigsResult.value as Sig[]
 
-      // Paginate to find true wallet age (up to 5 pages × 200 = 1,000 txs)
       let page = 0
       while (allSigs.length === (page + 1) * 200 && page < 4) {
         const cursor = allSigs[allSigs.length - 1].signature
@@ -147,7 +148,6 @@ async function fetchNetworkActivity(address: string, rpcs: string[]): Promise<{
     const txCount = allSigs.length
     const sigsOk = firstSigsResult.status === 'fulfilled'
 
-    // Find the oldest non-null blockTime (last in the array = chronologically first)
     let walletAgeDays = 0
     for (let i = allSigs.length - 1; i >= 0; i--) {
       if (allSigs[i].blockTime) {
@@ -156,9 +156,7 @@ async function fetchNetworkActivity(address: string, rpcs: string[]): Promise<{
       }
     }
 
-    // If sigs fetch failed but we know the wallet exists (has lamports), still return partial data
-    // so we can at least score balance + existence
-    if (!sigsOk && lamports === 0) return null  // nothing useful
+    if (!sigsOk && lamports === 0) return null
     const tokenAccounts = Math.min(10, Math.floor(txCount / 5))
     return { lamports, txCount, walletAgeDays, tokenAccounts }
   } catch {
@@ -166,19 +164,31 @@ async function fetchNetworkActivity(address: string, rpcs: string[]): Promise<{
   }
 }
 
-function computePreviewFromStats(stats: {
+// ── 5-Component Krexit Score (client-side fallback) ──────────────────────────
+// S = 200 + 650 × (0.30×C₁ + 0.25×C₂ + 0.20×C₃ + 0.15×C₄ + 0.10×C₅)
+
+function compute5ComponentPreview(stats: {
   lamports: number; txCount: number; walletAgeDays: number; tokenAccounts: number
 }, network: string): ScorePreview {
   const solBalance = stats.lamports / 1e9
-  const base = 200
-  const ageScore = Math.min(150, Math.floor(stats.walletAgeDays / 30) * 30)
-  const activityScore = stats.txCount > 0
-    ? Math.min(100, stats.txCount)
-    : Math.min(100, stats.tokenAccounts * 10)
-  const balanceScore = Math.min(50, Math.floor(solBalance * 5))
-  const existenceScore = stats.lamports > 0 ? 50 : 0
-  const tokenDiversity = stats.tokenAccounts >= 3 ? 30 : stats.tokenAccounts >= 1 ? 10 : 0
-  const score = Math.min(600, base + ageScore + activityScore + balanceScore + existenceScore + tokenDiversity)
+
+  // C₁ Repayment History: default 0.70 (benefit of doubt)
+  const c1 = 0.70
+  // C₂ Profitability: min(1, solBalance / 20)
+  const c2 = Math.min(1, solBalance / 20)
+  // C₃ Behavioral Health: default 0.50 (neutral)
+  const c3 = 0.50
+  // C₄ Usage Patterns: simplified — min(1, tokenAccounts / 10) (no getTransaction from browser)
+  const c4 = Math.min(1, stats.tokenAccounts / 10)
+  // C₅ Account Maturity: 0.4×min(1,age/180) + 0.3×min(1,txCount/200) + 0.3×min(1,tokenAccounts/10)
+  const c5 = 0.4 * Math.min(1, stats.walletAgeDays / 180)
+           + 0.3 * Math.min(1, stats.txCount / 200)
+           + 0.3 * Math.min(1, stats.tokenAccounts / 10)
+
+  const weighted = 0.30 * c1 + 0.25 * c2 + 0.20 * c3 + 0.15 * c4 + 0.10 * c5
+  const score = Math.min(850, Math.max(200, Math.round(200 + 650 * weighted)))
+
+  const toBps = (v: number) => Math.round(v * 10000)
   const activitySource = stats.txCount > 0
     ? `${stats.txCount} transactions`
     : stats.tokenAccounts > 0 ? `${stats.tokenAccounts} token accounts` : '0 transactions'
@@ -188,7 +198,21 @@ function computePreviewFromStats(stats: {
     network,
     txCount: stats.txCount,
     walletAgeDays: Math.round(stats.walletAgeDays),
-    breakdown: { base, walletAge: ageScore, transactionActivity: activityScore, solBalance: balanceScore, accountExists: existenceScore, tokenDiversity },
+    breakdown: {
+      base: 200,
+      walletAge: Math.round(c5 * 0.4 * 650 * 0.10),
+      transactionActivity: Math.round((0.30 * c1 + 0.15 * c4) * 650),
+      solBalance: Math.round(c2 * 0.25 * 650),
+      accountExists: stats.lamports > 0 ? 50 : 0,
+      tokenDiversity: Math.round(c4 * 0.15 * 650),
+    },
+    components: {
+      c1Repayment: toBps(c1),
+      c2Profitability: toBps(c2),
+      c3Behavioral: toBps(c3),
+      c4Usage: toBps(c4),
+      c5Maturity: toBps(c5),
+    },
     note: `Preview score based on ${activitySource} over ${Math.round(stats.walletAgeDays)} days on ${network}. Register as a Krexa agent for a full 5-component Krexit Score.`,
   }
 }
@@ -215,45 +239,50 @@ export function useScoreLookup(address: string | null) {
         return { profile, score, health, wallet, source: 'on-chain' }
       }
 
-      // No on-chain score — fetch mainnet activity (backend proxy preferred) + backend score preview
-      // Backend proxy is more reliable (server-side RPC, no CORS/rate-limit issues)
-      type ActivityStats = { lamports: number; txCount: number; walletAgeDays: number; tokenAccounts: number }
-
-      const [backendResp, proxyResult, browserResult] = await Promise.allSettled([
-        withTimeout(
+      // No on-chain score — try backend first, then browser fallback
+      // Step 1: Try backend score endpoint (most reliable — server-side RPC)
+      let backendData: Record<string, unknown> | null = null
+      try {
+        backendData = await withTimeout(
           fetch(`${config.apiUrl}/api/v1/solana/score/${address}`).then(r => r.ok ? r.json() : null),
-          10000, null
-        ),
-        withTimeout(
-          fetch(`${config.apiUrl}/api/v1/mainnet/activity/${address}`)
-            .then(r => r.ok ? r.json() as Promise<ActivityStats> : null),
           15000, null
-        ),
-        // Browser-side RPC (user's IP can reach api.mainnet-beta.solana.com)
-        withTimeout(fetchNetworkActivity(address, MAINNET_RPCS), 30000, null),
-      ])
+        )
+      } catch { /* ignore */ }
 
-      const backendData = backendResp.status === 'fulfilled' ? backendResp.value : null
-      const proxyStats: ActivityStats | null = proxyResult.status === 'fulfilled' ? proxyResult.value : null
-      const browserStats = browserResult.status === 'fulfilled' ? browserResult.value : null
-
-      // Use whichever source returned MORE transactions (backend proxy or browser RPC)
-      const mainnetStats = (() => {
-        if (proxyStats && browserStats) return proxyStats.txCount >= browserStats.txCount ? proxyStats : browserStats
-        return proxyStats ?? browserStats
-      })()
-
-      // Compute preview from mainnet activity
-      const mainnetPreview = mainnetStats
-        ? computePreviewFromStats(mainnetStats, 'mainnet')
+      const backendPreview: ScorePreview | null = backendData?.preview
+        ? backendData.preview as ScorePreview
         : null
 
-      // Use whichever preview has a higher score; fall back to a base-200 default
-      const backendPreview: ScorePreview | null = backendData?.preview ?? null
+      // Step 2: If backend returned a preview with components, use it directly
+      if (backendPreview && backendPreview.components) {
+        const creditPreview: CreditPreview = backendData?.creditPreview as CreditPreview
+          ?? computeCreditPreview(backendPreview.score)
+
+        return {
+          profile,
+          score: null,
+          health,
+          wallet,
+          source: 'preview',
+          preview: backendPreview,
+          creditPreview,
+          isRegistered: (backendData?.isRegistered as boolean) ?? false,
+        }
+      }
+
+      // Step 3: Backend failed or didn't return components — browser fallback
+      const browserStats = await withTimeout(fetchNetworkActivity(address, MAINNET_RPCS), 30000, null)
+
       const bestPreview: ScorePreview = (() => {
-        if (mainnetPreview && (!backendPreview || mainnetPreview.score >= backendPreview.score)) return mainnetPreview
+        // If we have browser stats, compute 5-component score client-side
+        if (browserStats) {
+          const browserPreview = compute5ComponentPreview(browserStats, 'mainnet')
+          // Use whichever is higher between backend (if any) and browser
+          if (backendPreview && backendPreview.score >= browserPreview.score) return backendPreview
+          return browserPreview
+        }
+        // Only backend preview available (no components)
         if (backendPreview) return backendPreview
-        if (mainnetStats) return computePreviewFromStats(mainnetStats, 'mainnet')
         // All failed — safe base-score default
         return {
           score: 200,
@@ -265,8 +294,8 @@ export function useScoreLookup(address: string | null) {
         }
       })()
 
-      // Credit eligibility from the best available score
-      const creditPreview: CreditPreview = backendData?.creditPreview ?? computeCreditPreview(bestPreview.score)
+      const creditPreview: CreditPreview = backendData?.creditPreview as CreditPreview
+        ?? computeCreditPreview(bestPreview.score)
 
       return {
         profile,
@@ -276,7 +305,7 @@ export function useScoreLookup(address: string | null) {
         source: 'preview',
         preview: bestPreview,
         creditPreview,
-        isRegistered: backendData?.isRegistered ?? false,
+        isRegistered: (backendData?.isRegistered as boolean) ?? false,
       }
     },
     enabled: !!address && address.length >= 32,

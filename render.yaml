@@ -101,5 +101,7 @@ services:
         sync: false
       - key: SOLANA_FAUCET_PRIVATE_KEY
         sync: false
+      - key: SOLANA_MAINNET_RPC_URL
+        sync: false
       - key: CORS_ORIGIN
         sync: false

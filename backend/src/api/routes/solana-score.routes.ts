@@ -11,15 +11,13 @@ import { solanaConnection } from '../../chain/solana/connection.js';
 import { krexitScorePda } from '../../chain/solana/programs.js';
 import { readAgentProfile } from '../../chain/solana/reader.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { env } from '../../config/env.js';
 
-// Mainnet RPCs tried in order — first successful one wins
-const MAINNET_RPC_URLS: string[] = process.env.SOLANA_MAINNET_RPC_URL
-  ? [process.env.SOLANA_MAINNET_RPC_URL]
-  : [
-      'https://rpc.ankr.com/solana',
-      'https://solana-mainnet.g.alchemy.com/v2/demo',
-      'https://api.mainnet-beta.solana.com',
-    ];
+// Mainnet RPCs — env var first, then public fallback (deduped)
+const MAINNET_RPC_URLS: string[] = [...new Set([
+  env.SOLANA_MAINNET_RPC_URL,
+  'https://api.mainnet-beta.solana.com',
+])];
 
 // Read-only mainnet connection (used as identity sentinel only)
 const mainnetConnection = new Connection(MAINNET_RPC_URLS[0], { commitment: 'confirmed', disableRetryOnRateLimit: true });
@@ -30,7 +28,7 @@ async function rpcCall(url: string, method: string, params: unknown[]): Promise<
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'User-Agent': 'krexa-backend/1.0' },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-    signal: AbortSignal.timeout(7000),
+    signal: AbortSignal.timeout(15000),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status} from ${url}`);
   const json = await res.json() as { result?: unknown; error?: { message: string } };
@@ -50,6 +48,23 @@ async function rpcCallWithFallback(method: string, params: unknown[]): Promise<u
     }
   }
   throw lastErr ?? new Error('All mainnet RPCs failed');
+}
+
+/** Fire all RPCs in parallel, pick richest result */
+async function rpcCallBest(method: string, params: unknown[]): Promise<unknown> {
+  const results = await Promise.allSettled(
+    MAINNET_RPC_URLS.map(url => rpcCall(url, method, params))
+  );
+  let best: unknown = undefined;
+  for (const r of results) {
+    if (r.status !== 'fulfilled' || r.value == null) continue;
+    if (best === undefined) { best = r.value; continue; }
+    if (Array.isArray(r.value) && Array.isArray(best) && r.value.length > best.length) {
+      best = r.value;
+    }
+  }
+  if (best !== undefined) return best;
+  throw new Error('All RPC endpoints failed');
 }
 
 const router = Router();
@@ -205,9 +220,6 @@ const CREDIT_LEVELS = [
 ] as const;
 
 function computeCreditPreview(score: number) {
-  // For a preview (unregistered) wallet, KYA = 0 so they can't draw credit yet.
-  // We show what level they'd reach if they register and complete KYA.
-  // We also show the next threshold needed.
   const eligibleLevel = CREDIT_LEVELS.find(l => score >= l.minScore) ?? null;
 
   const levels = CREDIT_LEVELS.slice().reverse().map(l => ({
@@ -247,13 +259,91 @@ function computeCreditPreview(score: number) {
   };
 }
 
+// ─── 5-Component Krexit Score Formula ────────────────────────────────────────
+// S = 200 + 650 × (0.30×C₁ + 0.25×C₂ + 0.20×C₃ + 0.15×C₄ + 0.10×C₅)
+// Each Cᵢ ∈ [0.0, 1.0]
+
+function shannonEntropy(counts: Map<string, number>): number {
+  const total = Array.from(counts.values()).reduce((a, b) => a + b, 0);
+  if (total === 0) return 0;
+  let h = 0;
+  for (const count of counts.values()) {
+    if (count === 0) continue;
+    const p = count / total;
+    h -= p * Math.log2(p);
+  }
+  return h;
+}
+
+interface ActivityData {
+  solBalance: number;
+  txCount: number;
+  walletAgeDays: number;
+  tokenAccounts: number;
+  programIds?: string[];
+}
+
+function compute5ComponentScore(data: ActivityData): {
+  score: number;
+  c1: number; c2: number; c3: number; c4: number; c5: number;
+  components: { c1Repayment: number; c2Profitability: number; c3Behavioral: number; c4Usage: number; c5Maturity: number };
+} {
+  // C₁ Repayment History: default 0.70 (benefit of doubt, no credit history)
+  const c1 = 0.70;
+
+  // C₂ Profitability: min(1, solBalance / 20)
+  const c2 = Math.min(1, data.solBalance / 20);
+
+  // C₃ Behavioral Health: default 0.50 (neutral, no NAV data)
+  const c3 = 0.50;
+
+  // C₄ Usage Patterns: Shannon entropy of program IDs / log₂(10)
+  let c4 = 0;
+  if (data.programIds && data.programIds.length > 0) {
+    const counts = new Map<string, number>();
+    for (const pid of data.programIds) {
+      counts.set(pid, (counts.get(pid) ?? 0) + 1);
+    }
+    const maxEntropy = Math.log2(10); // normalize by log₂(10)
+    c4 = Math.min(1, shannonEntropy(counts) / maxEntropy);
+  } else {
+    // Fallback: use tokenAccounts as diversity proxy
+    c4 = Math.min(1, data.tokenAccounts / 10);
+  }
+
+  // C₅ Account Maturity: 0.4×min(1,age/180) + 0.3×min(1,txCount/200) + 0.3×min(1,tokenAccounts/10)
+  const c5 = 0.4 * Math.min(1, data.walletAgeDays / 180)
+           + 0.3 * Math.min(1, data.txCount / 200)
+           + 0.3 * Math.min(1, data.tokenAccounts / 10);
+
+  // S = 200 + 650 × (0.30×C₁ + 0.25×C₂ + 0.20×C₃ + 0.15×C₄ + 0.10×C₅)
+  const weighted = 0.30 * c1 + 0.25 * c2 + 0.20 * c3 + 0.15 * c4 + 0.10 * c5;
+  const score = Math.round(200 + 650 * weighted);
+
+  // Convert to BPS (0-10000) for component display
+  const toBps = (v: number) => Math.round(v * 10000);
+
+  return {
+    score: Math.min(850, Math.max(200, score)),
+    c1, c2, c3, c4, c5,
+    components: {
+      c1Repayment: toBps(c1),
+      c2Profitability: toBps(c2),
+      c3Behavioral: toBps(c3),
+      c4Usage: toBps(c4),
+      c5Maturity: toBps(c5),
+    },
+  };
+}
+
 /**
  * Compute a preview score for unregistered wallets from on-chain signals.
- * Uses raw JSON-RPC for mainnet to bypass Connection class IP blocks.
+ * Uses the real 5-component Krexit Score formula with estimated inputs.
  */
 async function computePreviewScore(agent: PublicKey, conn: Connection): Promise<{
   score: number;
   breakdown: Record<string, number>;
+  components: { c1Repayment: number; c2Profitability: number; c3Behavioral: number; c4Usage: number; c5Maturity: number };
   note: string;
   network: string;
   txCount: number;
@@ -263,15 +353,14 @@ async function computePreviewScore(agent: PublicKey, conn: Connection): Promise<
   const addrStr = agent.toBase58();
 
   let accountLamports = 0;
-  let signatures: Array<{ blockTime?: number | null }> = [];
   let tokenAccountCount = 0;
+  type Sig = { blockTime?: number | null; signature: string };
+  let allSigs: Sig[] = [];
 
   if (isMainnet) {
     const [acctResult, sigsResult, tokenResult] = await Promise.allSettled([
-      rpcCallWithFallback('getAccountInfo', [addrStr, { encoding: 'base64' }]),
-      // Try both method names — some RPCs use the old name
-      rpcCallWithFallback('getSignaturesForAddress', [addrStr, { limit: 100, commitment: 'confirmed' }])
-        .catch(() => rpcCallWithFallback('getConfirmedSignaturesForAddress2', [addrStr, { limit: 100 }])),
+      rpcCallBest('getAccountInfo', [addrStr, { encoding: 'base64' }]),
+      rpcCallBest('getSignaturesForAddress', [addrStr, { limit: 200, commitment: 'confirmed' }]),
       rpcCallWithFallback('getTokenAccountsByOwner', [
         addrStr,
         { programId: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA' },
@@ -284,9 +373,22 @@ async function computePreviewScore(agent: PublicKey, conn: Connection): Promise<
       accountLamports = val?.value?.lamports ?? 0;
     }
     if (sigsResult.status === 'fulfilled' && Array.isArray(sigsResult.value)) {
-      signatures = sigsResult.value as Array<{ blockTime?: number | null }>;
-    } else {
-      console.warn('[Score] Mainnet signatures fetch failed — using token account count as proxy');
+      allSigs = sigsResult.value as Sig[];
+
+      // Paginate to find true wallet age (up to 5 pages × 200 = 1,000 txs)
+      let page = 0;
+      while (allSigs.length === (page + 1) * 200 && page < 4) {
+        const cursor = allSigs[allSigs.length - 1].signature;
+        try {
+          const older = await rpcCallBest('getSignaturesForAddress', [
+            addrStr,
+            { limit: 200, before: cursor, commitment: 'confirmed' },
+          ]);
+          if (!Array.isArray(older) || older.length === 0) break;
+          allSigs = [...allSigs, ...(older as Sig[])];
+        } catch { break; }
+        page++;
+      }
     }
     if (tokenResult.status === 'fulfilled' && tokenResult.value) {
       const val = tokenResult.value as { value?: unknown[] };
@@ -298,59 +400,75 @@ async function computePreviewScore(agent: PublicKey, conn: Connection): Promise<
       conn.getSignaturesForAddress(agent, { limit: 100 }).catch(() => []),
     ]);
     accountLamports = accountInfo?.lamports ?? 0;
-    signatures = sigs;
+    allSigs = sigs.map(s => ({ blockTime: s.blockTime, signature: s.signature }));
   }
 
   const solBalance = accountLamports / 1e9;
-  const txCount = signatures.length;
+  const txCount = allSigs.length;
 
   // Estimate wallet age from oldest signature
   let walletAgeDays = 0;
-  if (signatures.length > 0) {
-    const oldest = signatures[signatures.length - 1];
-    if (oldest.blockTime) {
-      walletAgeDays = (Date.now() / 1000 - oldest.blockTime) / 86400;
+  for (let i = allSigs.length - 1; i >= 0; i--) {
+    if (allSigs[i].blockTime) {
+      walletAgeDays = (Date.now() / 1000 - allSigs[i].blockTime!) / 86400;
+      break;
     }
   }
 
-  // ── Scoring heuristics (200–600 for unregistered) ──
-  const baseScore = 200;
+  // Sample transactions to extract program IDs for C₄
+  let programIds: string[] = [];
+  if (isMainnet && allSigs.length > 0) {
+    const sampled = allSigs.slice(0, 20);
+    const txResults = await Promise.allSettled(
+      sampled.map(s =>
+        rpcCallWithFallback('getTransaction', [s.signature, { encoding: 'json', maxSupportedTransactionVersion: 0 }])
+      )
+    );
+    const programSet = new Set<string>();
+    for (const r of txResults) {
+      if (r.status !== 'fulfilled' || !r.value) continue;
+      const tx = r.value as {
+        transaction?: { message?: { accountKeys?: string[] } };
+        meta?: { logMessages?: string[] };
+      };
+      const logs = tx?.meta?.logMessages ?? [];
+      for (const log of logs) {
+        const match = log.match(/^Program (\w{32,}) invoke/);
+        if (match) programSet.add(match[1]);
+      }
+    }
+    programIds = [...programSet];
+  }
 
-  // Age: +30 per month, capped at +150 (5 months)
-  const ageScore = Math.min(150, Math.floor(walletAgeDays / 30) * 30);
+  // ── 5-Component Krexit Score ──
+  const result = compute5ComponentScore({
+    solBalance,
+    txCount,
+    walletAgeDays,
+    tokenAccounts: tokenAccountCount,
+    programIds: programIds.length > 0 ? programIds : undefined,
+  });
 
-  // Activity: 1 pt per tx, capped at +100
-  // If signatures fail, use token account count as proxy (each SPL token = 10 activity pts)
-  const activityScore = txCount > 0
-    ? Math.min(100, txCount)
-    : Math.min(100, tokenAccountCount * 10);
-
-  // Balance: +5 per SOL, capped at +50
-  const balanceScore = Math.min(50, Math.floor(solBalance * 5));
-
-  // Existence: +50 if wallet exists
-  const existenceScore = accountLamports > 0 ? 50 : 0;
-
-  // Token diversity bonus: +30 if holding 3+ SPL tokens (shows DeFi engagement)
-  const tokenDiversityScore = tokenAccountCount >= 3 ? 30 : tokenAccountCount >= 1 ? 10 : 0;
-
-  const totalScore = Math.min(600, baseScore + ageScore + activityScore + balanceScore + existenceScore + tokenDiversityScore);
   const network = isMainnet ? 'mainnet' : 'devnet';
   const activitySource = txCount > 0 ? `${txCount} transactions` : tokenAccountCount > 0 ? `${tokenAccountCount} token accounts` : '0 transactions';
 
+  // Legacy breakdown for backward compatibility
+  const breakdown: Record<string, number> = {
+    base: 200,
+    walletAge: Math.round(result.c5 * 0.4 * 650 * 0.10),
+    transactionActivity: Math.round((0.30 * result.c1 + 0.15 * result.c4) * 650),
+    solBalance: Math.round(result.c2 * 0.25 * 650),
+    accountExists: accountLamports > 0 ? 50 : 0,
+    tokenDiversity: Math.round(result.c4 * 0.15 * 650),
+  };
+
   return {
-    score: totalScore,
+    score: result.score,
     network,
     txCount,
     walletAgeDays: Math.round(walletAgeDays),
-    breakdown: {
-      base: baseScore,
-      walletAge: ageScore,
-      transactionActivity: activityScore,
-      solBalance: balanceScore,
-      accountExists: existenceScore,
-      tokenDiversity: tokenDiversityScore,
-    },
+    breakdown,
+    components: result.components,
     note: `Preview score based on ${activitySource} over ${Math.round(walletAgeDays)} days on ${network}. Register as a Krexa agent for a full 5-component Krexit Score.`,
   };
 }
@@ -383,7 +501,7 @@ router.get('/:agent', async (req, res, next) => {
 
     // 3. Compute preview — try devnet first, fall back to mainnet if no activity
     let preview = await computePreviewScore(agentPk, solanaConnection);
-    if (preview.breakdown.accountExists === 0 && preview.breakdown.transactionActivity === 0) {
+    if (preview.breakdown.accountExists === 0 && preview.txCount === 0) {
       // No devnet activity at all — try mainnet
       const mainnetPreview = await computePreviewScore(agentPk, mainnetConnection).catch((e) => {
         console.warn('[Score] Mainnet fallback failed:', e?.message);

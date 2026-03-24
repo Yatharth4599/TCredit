@@ -1,16 +1,19 @@
 import { Router } from 'express';
 import { AppError } from '../middleware/errorHandler.js';
+import { env } from '../../config/env.js';
 
 const router = Router();
 
-const MAINNET_RPCS = [
+// Deduplicated RPC list — env var first, then public fallbacks
+const MAINNET_RPCS = [...new Set([
+  env.SOLANA_MAINNET_RPC_URL,
   'https://api.mainnet-beta.solana.com',
   'https://solana-rpc.publicnode.com',
-];
+])];
 
 async function rpcCall(url: string, method: string, params: unknown[]): Promise<unknown> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 8000);
+  const timer = setTimeout(() => controller.abort(), 15000);
   try {
     const res = await fetch(url, {
       method: 'POST',
@@ -43,12 +46,26 @@ async function rpcCallBest(method: string, params: unknown[]): Promise<unknown> 
   throw new Error('All RPC endpoints failed');
 }
 
+/** Try each RPC in order (sequential fallback) */
+async function rpcCallFallback(method: string, params: unknown[]): Promise<unknown> {
+  let lastErr: Error | undefined;
+  for (const url of MAINNET_RPCS) {
+    try {
+      return await rpcCall(url, method, params);
+    } catch (e) {
+      lastErr = e as Error;
+    }
+  }
+  throw lastErr ?? new Error('All RPC endpoints failed');
+}
+
 router.get('/:address', async (req, res, next) => {
   try {
     const { address } = req.params;
     if (!address || address.length < 32) {
       throw new AppError(400, 'Invalid address');
     }
+    const detailed = req.query.detailed === 'true';
 
     const [acctResult, sigsResult] = await Promise.allSettled([
       rpcCallBest('getAccountInfo', [address, { encoding: 'base64' }]),
@@ -93,7 +110,58 @@ router.get('/:address', async (req, res, next) => {
     }
 
     const tokenAccounts = Math.min(10, Math.floor(txCount / 5));
-    res.json({ lamports, txCount, walletAgeDays: Math.round(walletAgeDays * 10) / 10, tokenAccounts });
+    const solBalance = lamports / 1e9;
+
+    // Detailed mode: sample transactions to extract program IDs
+    let programIds: string[] = [];
+    let uniquePrograms = 0;
+    if (detailed && allSigs.length > 0) {
+      // Sample up to 20 recent signatures
+      const sampled = allSigs.slice(0, 20);
+      const txResults = await Promise.allSettled(
+        sampled.map(s =>
+          rpcCallFallback('getTransaction', [s.signature, { encoding: 'json', maxSupportedTransactionVersion: 0 }])
+        )
+      );
+      const programSet = new Set<string>();
+      for (const r of txResults) {
+        if (r.status !== 'fulfilled' || !r.value) continue;
+        const tx = r.value as {
+          transaction?: { message?: { accountKeys?: string[] } };
+          meta?: { logMessages?: string[] };
+        };
+        // Extract program IDs from account keys (programs are typically at the end)
+        const keys = tx?.transaction?.message?.accountKeys ?? [];
+        // Extract invoked programs from log messages (more reliable)
+        const logs = tx?.meta?.logMessages ?? [];
+        for (const log of logs) {
+          const match = log.match(/^Program (\w{32,}) invoke/);
+          if (match) programSet.add(match[1]);
+        }
+        // Fallback: last few account keys are often programs
+        if (programSet.size === 0 && keys.length > 0) {
+          // Add last 3 keys as potential programs
+          keys.slice(-3).forEach(k => programSet.add(k));
+        }
+      }
+      programIds = [...programSet];
+      uniquePrograms = programIds.length;
+    }
+
+    const response: Record<string, unknown> = {
+      lamports,
+      txCount,
+      walletAgeDays: Math.round(walletAgeDays * 10) / 10,
+      tokenAccounts,
+      solBalance,
+    };
+
+    if (detailed) {
+      response.programIds = programIds;
+      response.uniquePrograms = uniquePrograms;
+    }
+
+    res.json(response);
   } catch (err) {
     next(err);
   }

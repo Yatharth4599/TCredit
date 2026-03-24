@@ -49,6 +49,9 @@ const envSchema = z.object({
   // Keeper signing keypair (base58-encoded secret key)
   SOLANA_KEEPER_PRIVATE_KEY: z.string().optional().default(''),
 
+  // Mainnet RPC (for score previews — recommend Helius free tier)
+  SOLANA_MAINNET_RPC_URL: z.string().default('https://api.mainnet-beta.solana.com'),
+
   // Score program ID
   SOLANA_SCORE_PROGRAM_ID: z.string().optional().default('2GwtAXnjY5LehfZfT77ZH3XSshwbni8LP9zXeA84WUqh'),
 
