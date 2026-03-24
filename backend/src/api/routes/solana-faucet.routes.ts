@@ -16,11 +16,10 @@ import bs58 from 'bs58';
 import { solanaConnection } from '../../chain/solana/connection.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { env } from '../../config/env.js';
+import { prisma } from '../../config/prisma.js';
 
 const router = Router();
 
-// Simple in-memory rate limit: address → last mint timestamp
-const recentMints = new Map<string, number>();
 const RATE_LIMIT_MS = 24 * 60 * 60 * 1000; // 24 hours
 const MAX_USDC = 100_000_000; // 100 USDC (6 decimals)
 
@@ -44,10 +43,8 @@ function loadFaucetKeypair(): Keypair {
       const decoded = bs58.decode(raw);
       kp = Keypair.fromSecretKey(decoded);
     }
-    console.log('[Faucet] keypair loaded, pubkey:', kp.publicKey.toBase58());
     return kp;
   } catch (e) {
-    console.error('[Faucet] keypair load error:', e);
     throw new AppError(503, 'Faucet keypair is invalid');
   }
 }
@@ -109,11 +106,14 @@ router.post('/usdc', async (req, res, next) => {
 
     const recipientPk = parsePubkey(recipient);
 
-    // Rate limit check
-    const lastMint = recentMints.get(recipient);
-    if (lastMint && Date.now() - lastMint < RATE_LIMIT_MS) {
-      const nextMintAt = new Date(lastMint + RATE_LIMIT_MS).toISOString();
-      throw new AppError(429, `Rate limit: this address can request again after ${nextMintAt}`);
+    // Rate limit check (DB-backed — survives server restarts)
+    const existing = await prisma.faucetMint.findUnique({ where: { recipient } });
+    if (existing) {
+      const msSinceLast = Date.now() - existing.lastMintAt.getTime();
+      if (msSinceLast < RATE_LIMIT_MS) {
+        const nextMintAt = new Date(existing.lastMintAt.getTime() + RATE_LIMIT_MS).toISOString();
+        throw new AppError(429, `Rate limit: this address can request again after ${nextMintAt}`);
+      }
     }
 
     const amount = BigInt(Math.min(Math.floor(amountUsdc * 1_000_000), MAX_USDC));
@@ -145,8 +145,12 @@ router.post('/usdc', async (req, res, next) => {
 
     await solanaConnection.confirmTransaction(signature, 'confirmed');
 
-    // Record rate limit
-    recentMints.set(recipient, Date.now());
+    // Record rate limit (DB-backed — survives restarts)
+    await prisma.faucetMint.upsert({
+      where: { recipient },
+      create: { recipient, lastMintAt: new Date(), totalMinted: Math.round(Number(amount) / 1_000_000) },
+      update: { lastMintAt: new Date(), totalMinted: { increment: Math.round(Number(amount) / 1_000_000) } },
+    });
 
     res.json({
       signature,

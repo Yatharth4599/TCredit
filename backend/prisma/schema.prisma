@@ -292,6 +292,14 @@ model SolanaEvent {
   @@index([slot])
 }
 
+/// Faucet rate limiting — one row per recipient address
+model FaucetMint {
+  id          String   @id @default(uuid())
+  recipient   String   @unique
+  lastMintAt  DateTime @default(now())
+  totalMinted Int      @default(0)
+}
+
 /// Tracks the last indexed transaction signature per program
 model SolanaIndexerState {
   id            String   @id
