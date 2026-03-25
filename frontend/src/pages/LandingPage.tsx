@@ -1,112 +1,171 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion } from 'motion/react'
-import { AnimatedNumber } from '../components/ui/AnimatedNumber'
-import { waitlistApi } from '../api/client'
+import { motion, animate } from 'motion/react'
+import {
+  ChevronDown, ChevronUp, ArrowDown,
+  Activity, Wallet, Layers, Eye,
+} from 'lucide-react'
 import styles from './LandingPage.module.css'
 
-// ─── Animation variants ───────────────────────────────────────────────────────
-
 const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] } },
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] } },
 }
 
 const stagger = {
-  visible: { transition: { staggerChildren: 0.1 } },
+  visible: { transition: { staggerChildren: 0.12 } },
 }
 
-// ─── Reusable waitlist form ───────────────────────────────────────────────────
-
-function WaitlistForm({ dark = false }: { dark?: boolean }) {
-  const [email, setEmail] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [done, setDone] = useState(false)
-  const [error, setError] = useState('')
-
-  const submit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email.trim()) return
-    setLoading(true)
-    setError('')
-    try {
-      await waitlistApi.join(email.trim())
-      setDone(true)
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data?.message ||
-        (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data?.error ||
-        'Something went wrong. Try again.'
-      setError(msg)
-    } finally {
-      setLoading(false)
-    }
-  }, [email])
-
-  if (done) {
-    return (
-      <div className={styles.waitlistSuccess}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-        You're on the list!
-      </div>
-    )
-  }
-
-  return (
-    <form onSubmit={submit} className={styles.waitlistWrap}>
-      <div className={dark ? styles.ctaWaitlistBox : styles.waitlistBox}>
-        <input
-          type="email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          placeholder="Enter your email"
-          required
-          className={dark ? styles.ctaInput : styles.waitlistInput}
-        />
-        <button
-          type="submit"
-          disabled={loading || !email.trim()}
-          className={styles.waitlistBtn}
-        >
-          {loading ? 'Joining…' : 'Get Early Access'}
-        </button>
-      </div>
-      {error && <p className={styles.waitlistError}>{error}</p>}
-    </form>
-  )
+const waterfallStagger = {
+  visible: { transition: { staggerChildren: 0.15 } },
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+const faqItems = [
+  {
+    q: 'Why simple interest, not compound?',
+    a: 'At 36–69% APR, compound interest would be extremely punitive. Simple interest keeps cost proportional to time — an agent can calculate break-even precisely. It\'s also cheaper on-chain: one multiplication vs exponentiation.',
+  },
+  {
+    q: 'How does an agent build credit?',
+    a: 'Every x402 payment builds a Krexit Score (200–850) from 5 components: repayment history (30%), profitability (25%), behavioral health (20%), usage patterns (15%), and account maturity (10%). No applications, no bureaus — revenue is the signal.',
+  },
+  {
+    q: 'What happens if an agent defaults?',
+    a: 'Insurance reserve absorbs first. Then Junior tranche, then Mezzanine, then Senior. It takes 384 simultaneous defaults to reach Senior LP capital. The insurance reserve alone covers 93+ Level 2 defaults.',
+  },
+  {
+    q: 'Why four oracle sources?',
+    a: 'Single oracle = single point of failure. Jupiter down? Pyth takes over. All three down? Birdeye covers it. All four down? Keeper pauses — no mass liquidation. Defense in depth.',
+  },
+  {
+    q: 'What\'s the minimum collateral?',
+    a: 'Zero. Krexa operates with zero collateral at every level. But agents who choose to deposit collateral get lower rates — and the collateral earns ~16-20% APR in the Senior pool.',
+  },
+  {
+    q: 'How are haircuts determined?',
+    a: 'Two factors: liquidity and volatility. Hard to sell AND volatile? 35% haircut. One factor? 15-20%. No price available? Valued at $0. Conservative by design.',
+  },
+]
+
+/* ── Bento SVG Icons ─────────────────────────────────────── */
+const AgentIcon = () => (
+  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#2DD4BF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={styles.bentoIcon}>
+    <rect x="8" y="4" width="16" height="12" rx="2" />
+    <circle cx="13" cy="10" r="1.5" fill="#2DD4BF" stroke="none" />
+    <circle cx="19" cy="10" r="1.5" fill="#2DD4BF" stroke="none" />
+    <path d="M12 20v4M20 20v4M10 24h12M16 16v4" />
+    <path d="M4 10h4M24 10h4" />
+  </svg>
+)
+
+const VaultIcon = () => (
+  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#034694" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={styles.bentoIcon}>
+    <rect x="4" y="6" width="24" height="20" rx="2" />
+    <circle cx="16" cy="16" r="5" />
+    <circle cx="16" cy="16" r="2" />
+    <path d="M16 6v-2M16 2l-3 3M16 2l3 3" />
+  </svg>
+)
+
+const MerchantIcon = () => (
+  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={styles.bentoIcon}>
+    <path d="M4 12h24V26a2 2 0 01-2 2H6a2 2 0 01-2-2V12z" />
+    <path d="M4 12L8 4h16l4 8" />
+    <path d="M12 18h8v10h-8z" />
+    <path d="M20 6l2 3M12 6l-2 3" />
+  </svg>
+)
+
+const ChainIcon = () => (
+  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#034694" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={styles.bentoIcon}>
+    <path d="M16 4l10 6v12l-10 6L6 22V10l10-6z" />
+    <path d="M16 10l5 3v6l-5 3-5-3v-6l5-3z" />
+    <line x1="16" y1="4" x2="16" y2="10" />
+    <line x1="26" y1="10" x2="21" y2="13" />
+    <line x1="6" y1="10" x2="11" y2="13" />
+  </svg>
+)
+
 
 export default function LandingPage() {
   const navigate = useNavigate()
-  const [scrolled, setScrolled] = useState(false)
+  const [navVisible, setNavVisible] = useState(true)
+  const [navScrolled, setNavScrolled] = useState(false)
+  const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [scoreInView, setScoreInView] = useState(false)
+  const lastScrollY = useRef(0)
+  const scoreRef = useRef<HTMLDivElement>(null)
+  const scoreNumRef = useRef<HTMLDivElement>(null)
+  const [activeRepayStep, setActiveRepayStep] = useState(0)
+  const [activeLossStep, setActiveLossStep] = useState(0)
 
+  // Waterfall: cycle highlight every 1s
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 10)
+    const interval = setInterval(() => {
+      setActiveRepayStep((p) => (p + 1) % 5)
+      setActiveLossStep((p) => (p + 1) % 4)
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Nav: hide on scroll down, show on scroll up
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY
+      const delta = y - lastScrollY.current
+      setNavScrolled(y > 10)
+      if (Math.abs(delta) > 5) {
+        setNavVisible(delta < 0 || y < 80)
+      }
+      lastScrollY.current = y
+    }
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const scrollToHowItWorks = () => {
-    document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })
-  }
+  // Krexit Score: animate on scroll into view
+  useEffect(() => {
+    const el = scoreRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setScoreInView(true) },
+      { threshold: 0.3 }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
 
-  const fmt = (v: number) =>
-    v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${(v / 1e3).toFixed(0)}K` : `$${v}`
+  useEffect(() => {
+    if (!scoreInView || !scoreNumRef.current) return
+    const ctrl = animate(200, 780, {
+      duration: 2.5,
+      ease: [0.16, 1, 0.3, 1],
+      onUpdate: (v) => {
+        if (scoreNumRef.current) scoreNumRef.current.textContent = String(Math.round(v))
+      },
+    })
+    return () => ctrl.stop()
+  }, [scoreInView])
+
+  const scrollTo = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+  }
 
   return (
     <div className={styles.page}>
 
-      {/* ── Nav ──────────────────────────────────────────────────────────────── */}
-      <nav className={`${styles.nav} ${scrolled ? styles.navScrolled : ''}`}>
+      {/* ── Nav ──────────────────────────────────────────────── */}
+      <nav className={`${styles.nav} ${navScrolled ? styles.navScrolled : ''} ${!navVisible ? styles.navHidden : ''}`}>
         <div className={styles.navInner}>
-          <span className={styles.navLogo}>KREXA</span>
+          <div className={styles.navBrand}>
+            <img src="/images/krexa-logo-mark.png" alt="Krexa" className={styles.navLogoImg} />
+          </div>
           <div className={styles.navLinks}>
-            <button className={styles.navLink} onClick={scrollToHowItWorks}>
-              How It Works
+            <button className={styles.navLink} onClick={() => scrollTo('how-it-works')}>
+              PROTOCOL
+            </button>
+            <button className={styles.navLink} onClick={() => scrollTo('krexit-score')}>
+              KREXIT SCORE
             </button>
             <a
               href="https://github.com/Yatharth4599/TCredit"
@@ -114,135 +173,74 @@ export default function LandingPage() {
               rel="noopener noreferrer"
               className={styles.navLink}
             >
-              GitHub
+              GITHUB
             </a>
-            <button
-              className={styles.navCta}
-              onClick={scrollToHowItWorks}
-            >
-              Join Waitlist
+            <button className={styles.navCta} onClick={() => navigate('/app')}>
+              Launch App →
             </button>
           </div>
         </div>
       </nav>
 
-      {/* ── Hero ─────────────────────────────────────────────────────────────── */}
+      {/* ── Hero ─────────────────────────────────────────────── */}
       <section className={styles.hero}>
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={stagger}
-          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
-        >
-          <motion.div variants={fadeUp} className={styles.heroLabel}>
-            <span className={styles.heroDot} />
-            Live on Solana
+        <motion.div initial="hidden" animate="visible" variants={stagger} className={styles.heroContent}>
+          <motion.div variants={fadeUp} className={styles.heroBadge}>
+            DEVNET_LIVE — 5 PROGRAMS DEPLOYED
           </motion.div>
-
           <motion.h1 variants={fadeUp} className={styles.heroHeadline}>
-            The Credit Layer for{' '}
-            <span className={styles.heroAccent}>the Agent Economy</span>
+            THE CREDIT LAYER
+            <br />
+            <span className={styles.heroAccent}>FOR THE AGENT ECONOMY</span>
           </motion.h1>
-
           <motion.p variants={fadeUp} className={styles.heroSubtitle}>
-            Revenue-enforced credit infrastructure for AI agents and digital commerce.
-            Built on Solana. Repayment enforced by code, not courts.
+            Revenue-enforced credit for AI agents. Krexit Score 200–850.
+            Zero collateral. Waterfall repayment enforced by code, not courts.
           </motion.p>
-
-          <motion.div variants={fadeUp} style={{ width: '100%', maxWidth: 460 }}>
-            <WaitlistForm />
-            <p className={styles.trustLine}>No token. No spam. Just early access.</p>
+          <motion.div variants={fadeUp} className={styles.heroCtas}>
+            <button className={styles.heroBtn} onClick={() => navigate('/app')}>Launch App →</button>
+            <button className={styles.heroBtnSecondary} onClick={() => scrollTo('how-it-works')}>Read Protocol</button>
           </motion.div>
-
-          <motion.div variants={fadeUp} style={{ marginTop: 12 }}>
-            <button
-              className={styles.demoBtn}
-              onClick={() => navigate('/demo')}
-            >
-              <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-              </svg>
-              Watch Live Demo
-            </button>
-          </motion.div>
-
           <motion.div variants={fadeUp} className={styles.techBadges}>
-            <span className={styles.techBadge}>Solana</span>
-            <span className={styles.techSep}>·</span>
-            <span className={styles.techBadge}>USDC</span>
-            <span className={styles.techSep}>·</span>
-            <span className={styles.techBadge}>x402</span>
-            <span className={styles.techSep}>·</span>
-            <span className={styles.techBadge}>Anchor Programs</span>
-            <span className={styles.techSep}>·</span>
-            <span className={styles.techBadge}>5 Programs Deployed</span>
+            {['SOLANA', 'ANCHOR', 'x402', 'USDC', 'ZERO COLLATERAL'].map((t, i) => (
+              <span key={i}>
+                {i > 0 && <span className={styles.techSep}>·</span>}
+                <span className={styles.techBadge}>{t}</span>
+              </span>
+            ))}
           </motion.div>
         </motion.div>
       </section>
 
-      {/* ── Live Metrics ─────────────────────────────────────────────────────── */}
-      <section className={styles.metricsSection}>
-        <div className={styles.container}>
-          <motion.div
-            className={styles.metricsGrid}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-50px' }}
-            variants={stagger}
-          >
-            {[
-              { val: 2_400_000, label: 'Total Value Locked', fmt },
-              { val: 128, label: 'Agents Onboarded', fmt: (v: number) => String(v) },
-              { val: 47, label: 'Active Vaults', fmt: (v: number) => String(v) },
-              { val: 0, label: 'Default Rate', fmt: () => '0%' },
-            ].map((m, i) => (
-              <motion.div key={i} variants={fadeUp} className={styles.metricItem}>
-                <div className={styles.metricVal}>
-                  <AnimatedNumber value={m.val} format={m.fmt} />
-                </div>
-                <div className={styles.metricLabel}>{m.label}</div>
-              </motion.div>
-            ))}
-          </motion.div>
+      {/* ── Stats — WHITE ────────────────────────────────────── */}
+      <section className={styles.statsSection}>
+        <div className={styles.statsGrid}>
+          {[
+            { val: '200–850', label: 'KREXIT SCORE RANGE' },
+            { val: '8', label: 'SAFETY LAYERS' },
+            { val: '4', label: 'ORACLE SOURCES' },
+            { val: '384', label: 'DEFAULTS TO REACH SENIOR' },
+          ].map((m, i) => (
+            <div key={i} className={styles.statItem}>
+              <div className={styles.statVal}>{m.val}</div>
+              <div className={styles.statLabel}>{m.label}</div>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* ── How It Works ─────────────────────────────────────────────────────── */}
-      <section className={styles.section} id="how-it-works">
+      {/* ── How It Works — BLACK ──────────────────────────────── */}
+      <section className={styles.sectionDark} id="how-it-works">
         <div className={styles.container}>
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-50px' }}
-            variants={stagger}
-          >
-            <motion.span variants={fadeUp} className={styles.sectionTag}>The Protocol</motion.span>
-            <motion.h2 variants={fadeUp} className={styles.sectionTitle}>
-              How the agent credit lifecycle works
-            </motion.h2>
-
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }} variants={stagger}>
+            <motion.span variants={fadeUp} className={styles.sectionTag}>THE_PROTOCOL</motion.span>
+            <motion.h2 variants={fadeUp} className={styles.sectionTitle}>HOW IT WORKS</motion.h2>
             <motion.div className={styles.stepsGrid} variants={stagger}>
               {[
-                {
-                  num: '01',
-                  title: 'Agents Earn via x402',
-                  desc: 'AI agents monetize APIs, tasks, and services. Every payment flows through Krexa\'s PaymentRouter — oracle-signed, nonce-protected, settled on Solana in under 400ms.',
-                },
-                {
-                  num: '02',
-                  title: 'Credit Score Builds Automatically',
-                  desc: 'Payment history creates a real-time on-chain credit score. FairScale 0–1000, Tiers A–D. No applications, no credit bureaus — your revenue is the signal.',
-                },
-                {
-                  num: '03',
-                  title: 'Revenue-Backed Credit Line',
-                  desc: 'Tier A/B/C agents unlock structured credit vaults. Capital comes from Senior pools, LP pools, and community investors — all on-chain, all transparent.',
-                },
-                {
-                  num: '04',
-                  title: 'Automatic Waterfall Repayment',
-                  desc: 'Every incoming payment auto-splits on-chain: Platform Fee → Senior → Pool → Community → Agent. No manual payments. Enforced by smart contract.',
-                },
+                { num: '01', title: 'Agent Earns via x402', desc: 'Revenue flows through PaymentRouter — oracle-signed, nonce-protected, settled on Solana in under 400ms. Every payment is an on-chain credit event.' },
+                { num: '02', title: 'Krexit Score Builds', desc: '5-component score (200–850): repayment history, profitability, behavioral health, usage patterns, account maturity. Recency-weighted. Asymmetric penalties.' },
+                { num: '03', title: 'Credit Line Opens', desc: 'L1 Micro ($500) to L4 Prime ($500K). Zero collateral required at every level. Optional collateral earns yield AND reduces rates.' },
+                { num: '04', title: 'Waterfall Enforces', desc: 'Revenue auto-splits: Protocol Fee → Senior → Mezzanine → Junior → Insurance. Losses flow the opposite direction. Senior is last to bleed.' },
               ].map((s) => (
                 <motion.div key={s.num} variants={fadeUp} className={styles.stepCard}>
                   <span className={styles.stepNum}>{s.num}</span>
@@ -255,184 +253,355 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── The Insight ──────────────────────────────────────────────────────── */}
-      <section className={styles.insightSection}>
-        <motion.div
-          className={styles.insightInner}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-50px' }}
-          variants={fadeUp}
-        >
-          <p className={styles.insightQuote}>
-            "In traditional lending, default means the borrower refuses to pay.
-            In Krexa, default means the business stopped generating revenue entirely.
-            The first happens all the time. The second is rare — and detectable months in advance."
-          </p>
-          <p className={styles.insightSub}>
-            <strong>Revenue becomes collateral.</strong> Settlement becomes enforcement.
-          </p>
-        </motion.div>
+      {/* ── Krexit Score — WHITE ─────────────────────────────── */}
+      <section className={styles.sectionLight} id="krexit-score">
+        <div className={styles.container}>
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }} variants={stagger}>
+            <motion.span variants={fadeUp} className={styles.sectionTagDark}>CREDIT_ENGINE</motion.span>
+            <motion.h2 variants={fadeUp} className={styles.sectionTitleDark}>THE KREXIT SCORE</motion.h2>
+
+            <motion.div variants={fadeUp} className={styles.scoreSection} ref={scoreRef}>
+              <div className={styles.scoreLeft}>
+                <div className={styles.scoreBig} ref={scoreNumRef}>200</div>
+                <div className={styles.scoreLabel}>SAMPLE AGENT SCORE</div>
+                <div className={styles.scoreBar}>
+                  <div className={styles.scoreBarRed} />
+                  <div className={styles.scoreBarYellow} />
+                  <div className={styles.scoreBarGreen} />
+                  <div className={styles.scoreBarMarker} style={{ left: scoreInView ? '89%' : '0%' }} />
+                </div>
+                <div className={styles.scoreRange}>
+                  <span>200</span>
+                  <span>525</span>
+                  <span>850</span>
+                </div>
+              </div>
+
+              <div className={styles.scoreRight}>
+                <div className={styles.scoreFormula}>
+                  <span className={styles.formulaLabel}>HOW IT WORKS</span>
+                  <p className={styles.formulaDesc}>
+                    Your Krexit Score starts at 200 and grows to 850 based on five on-chain factors.
+                    Every payment builds your credit history automatically — no applications, no bureaus.
+                  </p>
+                </div>
+                {[
+                  { name: 'REPAYMENT_HISTORY', weight: '30%', w: 30 },
+                  { name: 'PROFITABILITY', weight: '25%', w: 25 },
+                  { name: 'BEHAVIORAL_HEALTH', weight: '20%', w: 20 },
+                  { name: 'USAGE_PATTERNS', weight: '15%', w: 15 },
+                  { name: 'ACCOUNT_MATURITY', weight: '10%', w: 10 },
+                ].map((c, i) => (
+                  <div key={c.name} className={styles.componentRow}>
+                    <span className={styles.componentName}>{c.name}</span>
+                    <div className={styles.componentBarTrack}>
+                      <div
+                        className={styles.componentBarFill}
+                        style={{ width: scoreInView ? `${c.w * 3.3}%` : '0%', transitionDelay: `${i * 0.15}s` }}
+                      />
+                    </div>
+                    <span className={styles.componentWeight}>{c.weight}</span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Credit Levels */}
+            <motion.div variants={fadeUp} className={styles.levelsGrid}>
+              {[
+                { level: 'L1', name: 'MICRO', rate: '0.19%/day', apr: '69.35%', max: '$500', trigger: '90%', color: '#A3A3A3' },
+                { level: 'L2', name: 'STANDARD', rate: '0.16%/day', apr: '58.40%', max: '$20K', trigger: '85%', color: '#2DD4BF' },
+                { level: 'L3', name: 'GROWTH', rate: '0.12%/day', apr: '43.80%', max: '$50K', trigger: '80%', color: '#034694' },
+                { level: 'L4', name: 'PRIME', rate: '0.10%/day', apr: '36.50%', max: '$500K', trigger: '80%', color: '#034694' },
+              ].map((l) => (
+                <div key={l.level} className={styles.levelCard}>
+                  <div className={styles.levelBadge} style={{ borderColor: l.color, color: l.color }}>{l.level}</div>
+                  <div className={styles.levelName}>{l.name}</div>
+                  <div className={styles.levelMax}>{l.max}</div>
+                  <div className={styles.levelMeta}>
+                    <div><span className={styles.levelMetaLabel}>RATE</span><span className={styles.levelMetaVal}>{l.rate}</span></div>
+                    <div><span className={styles.levelMetaLabel}>APR</span><span className={styles.levelMetaVal}>{l.apr}</span></div>
+                    <div><span className={styles.levelMetaLabel}>NAV TRIGGER</span><span className={styles.levelMetaVal}>{l.trigger}</span></div>
+                  </div>
+                </div>
+              ))}
+            </motion.div>
+          </motion.div>
+        </div>
       </section>
 
-      {/* ── For Builders ─────────────────────────────────────────────────────── */}
-      <section className={styles.section}>
+      {/* ── Waterfall Economics — WHITE ──────────────────────── */}
+      <section className={styles.sectionLight} id="waterfall">
         <div className={styles.container}>
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-50px' }}
-            variants={stagger}
-          >
-            <motion.span variants={fadeUp} className={styles.sectionTag}>Who It's For</motion.span>
-            <motion.h2 variants={fadeUp} className={styles.sectionTitle}>
-              Built for every participant
-            </motion.h2>
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }} variants={stagger}>
+            <motion.span variants={fadeUp} className={styles.sectionTagDark}>TRANCHE_ECONOMICS</motion.span>
+            <motion.h2 variants={fadeUp} className={styles.sectionTitleDark}>THE WATERFALL</motion.h2>
 
-            <motion.div className={styles.buildersGrid} variants={stagger}>
-              {/* For AI Agents */}
-              <motion.div variants={fadeUp} className={styles.builderCard}>
-                <div className={styles.builderIcon}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                    <rect x="3" y="3" width="18" height="18" rx="3" />
-                    <circle cx="9" cy="10" r="1.5" />
-                    <circle cx="15" cy="10" r="1.5" />
-                    <path d="M9 15h6" />
-                  </svg>
-                </div>
-                <h3 className={styles.builderTitle}>For AI Agents</h3>
-                <p className={styles.builderDesc}>
-                  Get credit lines for x402 services and API monetization. Build a FairScale score automatically from your revenue history. Pay for compute and APIs on credit.
-                </p>
-                <button className={styles.builderLink} onClick={() => navigate('/app/lifecycle')}>
-                  See live demo →
-                </button>
+            <motion.div variants={stagger} className={styles.waterfallLayout}>
+              <motion.div variants={fadeUp} className={styles.waterfallCol}>
+                <div className={styles.waterfallColTitle}>REPAYMENT WATERFALL</div>
+                <div className={styles.waterfallColSub}>Who gets paid — in order</div>
+                <motion.div className={styles.waterfallSteps} variants={waterfallStagger} initial="hidden" whileInView="visible" viewport={{ once: true }}>
+                  {[
+                    { label: 'PROTOCOL FEE', value: '10%', desc: 'Treasury' },
+                    { label: 'SENIOR TRANCHE', value: '20% APR', desc: '50% of capital · First to eat' },
+                    { label: 'MEZZANINE', value: '31% APR', desc: '30% of capital · Middle risk' },
+                    { label: 'JUNIOR TRANCHE', value: '55% APR', desc: '20% of capital · Last to eat' },
+                    { label: 'SURPLUS', value: '→', desc: '60% insurance · 40% treasury' },
+                  ].map((step, i) => (
+                    <motion.div key={i} variants={fadeUp} className={`${styles.waterfallStep} ${activeRepayStep === i ? styles.waterfallStepActive : ''}`}>
+                      <div className={styles.waterfallStepLabel}>{step.label}</div>
+                      <div className={styles.waterfallStepValue}>{step.value}</div>
+                      <div className={styles.waterfallStepDesc}>{step.desc}</div>
+                      {i < 4 && <ArrowDown size={14} className={styles.waterfallArrow} />}
+                    </motion.div>
+                  ))}
+                </motion.div>
               </motion.div>
 
-              {/* For Investors */}
-              <motion.div variants={fadeUp} className={styles.builderCard}>
-                <div className={styles.builderIcon}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-                    <polyline points="17 6 23 6 23 12" />
-                  </svg>
-                </div>
-                <h3 className={styles.builderTitle}>For Investors</h3>
-                <p className={styles.builderDesc}>
-                  Earn 12–15% APY from real agent and merchant revenue. Not token emissions — sustainable yield from economic activity. Choose your risk tier: Senior, Pool, or Community.
+              <motion.div variants={fadeUp} className={styles.waterfallCol}>
+                <div className={styles.waterfallColTitle}>LOSS WATERFALL</div>
+                <div className={styles.waterfallColSub}>Who absorbs losses — opposite direction</div>
+                <motion.div className={styles.waterfallSteps} variants={waterfallStagger} initial="hidden" whileInView="visible" viewport={{ once: true }}>
+                  {[
+                    { label: 'INSURANCE RESERVE', value: '93+', desc: 'L2 defaults absorbed' },
+                    { label: 'JUNIOR TRANCHE', value: '116', desc: 'Additional defaults covered' },
+                    { label: 'MEZZANINE', value: '175', desc: 'Additional defaults covered' },
+                    { label: 'SENIOR TRANCHE', value: 'LAST', desc: 'Last resort — never reached' },
+                  ].map((step, i) => (
+                    <motion.div key={i} variants={fadeUp} className={`${styles.waterfallStep} ${styles.waterfallStepLoss} ${activeLossStep === i ? styles.waterfallStepActiveLoss : ''}`}>
+                      <div className={styles.waterfallStepLabel}>{step.label}</div>
+                      <div className={styles.waterfallStepValue}>{step.value}</div>
+                      <div className={styles.waterfallStepDesc}>{step.desc}</div>
+                      {i < 3 && <ArrowDown size={14} className={styles.waterfallArrow} />}
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </motion.div>
+            </motion.div>
+
+            <motion.div variants={fadeUp} className={styles.waterfallStat}>
+              <span className={styles.waterfallStatNum}>384</span>
+              <span className={styles.waterfallStatText}>simultaneous defaults before Senior tranche is touched</span>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── Risk Model Bento — BLACK ─────────────────────────── */}
+      <section className={styles.sectionDark} id="risk">
+        <div className={styles.container}>
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }} variants={stagger}>
+            <motion.span variants={fadeUp} className={styles.sectionTag}>RISK_ENGINE</motion.span>
+            <motion.h2 variants={fadeUp} className={styles.sectionTitle}>THE RISK MODEL</motion.h2>
+
+            <motion.div className={styles.riskBento} variants={stagger}>
+              <motion.div variants={fadeUp} className={styles.riskCardLarge}>
+                <Eye size={24} className={styles.riskIcon} />
+                <span className={styles.riskLabel}>NAV_ENGINE</span>
+                <h3 className={styles.riskTitle}>REAL-TIME HEALTH CHECK</h3>
+                <p className={styles.riskDesc}>
+                  We check every agent wallet&apos;s value every 2 seconds. If it drops too low,
+                  the system acts before losses pile up. Interest owed never triggers a false alarm.
                 </p>
-                <button className={styles.builderLink} onClick={() => navigate('/app/vaults')}>
-                  Browse vaults →
-                </button>
+                <div className={styles.riskTags}>
+                  <span>REAL-TIME</span><span>PER-SECOND</span><span>CONSERVATIVE</span>
+                </div>
               </motion.div>
 
-              {/* For Merchants */}
-              <motion.div variants={fadeUp} className={styles.builderCard}>
-                <div className={styles.builderIcon}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                    <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
-                    <line x1="3" y1="6" x2="21" y2="6" />
-                    <path d="M16 10a4 4 0 01-8 0" />
-                  </svg>
-                </div>
-                <h3 className={styles.builderTitle}>For Merchants</h3>
-                <p className={styles.builderDesc}>
-                  Access working capital against your revenue. No collateral. No 6-week wait. Automatic repayment splits from incoming revenue — enforced by smart contract.
+              <motion.div variants={fadeUp} className={styles.riskCardSmall}>
+                <Layers size={24} className={styles.riskIcon} />
+                <span className={styles.riskLabel}>TOKEN_HAIRCUTS</span>
+                <h3 className={styles.riskTitle}>RISK-ADJUSTED VALUE</h3>
+                <p className={styles.riskDesc}>
+                  Risky tokens count for less. Hard to sell and volatile? Worth 35% less on paper.
+                  No market price? Counted as zero. Conservative by design.
                 </p>
-                <button className={styles.builderLink} onClick={() => navigate('/app/merchant')}>
-                  Open dashboard →
-                </button>
+              </motion.div>
+
+              <motion.div variants={fadeUp} className={styles.riskCardBlue}>
+                <Activity size={24} className={styles.riskIcon} />
+                <span className={styles.riskLabel}>HHI_DETECTION</span>
+                <h3 className={styles.riskTitle}>CONCENTRATION RISK</h3>
+                <p className={styles.riskDesc}>
+                  All eggs in one basket? Penalized. 80% in a single token gets a 10% health penalty.
+                  Diversification is enforced, not suggested.
+                </p>
+              </motion.div>
+
+              <motion.div variants={fadeUp} className={styles.riskCardLarge}>
+                <Wallet size={24} className={styles.riskIcon} />
+                <span className={styles.riskLabel}>ORACLE_CHAIN</span>
+                <h3 className={styles.riskTitle}>4-SOURCE PRICE FEED</h3>
+                <p className={styles.riskDesc}>
+                  Prices from four independent sources. If one goes down, the next takes over.
+                  If all four fail, the system pauses safely — no panic selling.
+                </p>
+                <div className={styles.riskTags}>
+                  <span>JUPITER</span><span>PYTH</span><span>SWITCHBOARD</span><span>BIRDEYE</span>
+                </div>
               </motion.div>
             </motion.div>
           </motion.div>
         </div>
       </section>
 
-      {/* ── Code Preview ─────────────────────────────────────────────────────── */}
-      <section className={`${styles.section} ${styles.sectionAlt} ${styles.codeSection}`}>
+      {/* ── Who It's For — WHITE — Bento Grid ────────────────── */}
+      <section className={styles.sectionLight}>
         <div className={styles.container}>
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-50px' }}
-            variants={stagger}
-          >
-            <motion.span variants={fadeUp} className={styles.sectionTag}>Developer Ready</motion.span>
-            <motion.h2 variants={fadeUp} className={styles.sectionTitle}>
-              Machine readable
-            </motion.h2>
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }} variants={stagger}>
+            <motion.span variants={fadeUp} className={styles.sectionTagDark}>ACTIVE_DOSSIERS</motion.span>
+            <motion.h2 variants={fadeUp} className={styles.sectionTitleDark}>WHO IT&apos;S FOR</motion.h2>
+
+            <motion.div className={styles.bentoGrid} variants={stagger}>
+              <motion.div variants={fadeUp} className={styles.cardDark}>
+                <div>
+                  <AgentIcon />
+                  <span className={styles.categoryLabel}>CREDIT_INFRA</span>
+                  <h3 className={styles.bentoTitle}>FOR AI AGENTS</h3>
+                  <p className={styles.bentoDesc}>
+                    Get credit lines from $500 to $500K. Build a Krexit Score automatically from x402 revenue —
+                    5 components, recency-weighted, asymmetric penalties. Zero collateral. PDA wallet with 8 safety layers.
+                  </p>
+                  <div className={styles.techTags}>
+                    <span className={styles.techTag}>SOLANA</span>
+                    <span className={styles.techTag}>x402</span>
+                    <span className={styles.techTag}>KREXIT</span>
+                    <span className={styles.techTag}>PDA WALLET</span>
+                  </div>
+                </div>
+                <button className={styles.pillBtn} onClick={() => navigate('/app/lifecycle')}>ACCESS FILES →</button>
+              </motion.div>
+
+              <motion.div variants={fadeUp} className={styles.cardLight}>
+                <div>
+                  <VaultIcon />
+                  <span className={styles.categoryLabel}>YIELD_LAYER</span>
+                  <h3 className={styles.bentoTitle}>FOR INVESTORS</h3>
+                  <p className={styles.bentoDesc}>
+                    Senior tranche: 20% APR, first to eat, last to bleed. Junior: 55% APR for risk-seekers.
+                    Real revenue yield — not token emissions. 384 defaults before Senior is touched.
+                  </p>
+                </div>
+                <button className={styles.pillLink} onClick={() => navigate('/app/vaults')}>BROWSE_VAULTS ↗</button>
+              </motion.div>
+
+              <motion.div variants={fadeUp} className={styles.cardBlue}>
+                <div>
+                  <MerchantIcon />
+                  <span className={styles.categoryLabel}>MERCHANT_OS</span>
+                  <h3 className={styles.bentoTitle}>FOR MERCHANTS</h3>
+                  <p className={styles.bentoDesc}>
+                    Working capital against your revenue. No collateral. No 6-week wait.
+                    Automatic repayment via PaymentRouter — enforced by smart contract, not courts.
+                  </p>
+                </div>
+                <span className={styles.statusBadge}>ACT_LINK: ON</span>
+              </motion.div>
+
+              <motion.div variants={fadeUp} className={styles.cardLight}>
+                <div>
+                  <ChainIcon />
+                  <span className={styles.categoryLabel}>LIVE &nbsp;&nbsp; SOLANA DEVNET — 2026</span>
+                  <h3 className={styles.bentoTitle}>KREXA ON SOLANA</h3>
+                  <p className={styles.bentoDesc}>
+                    5 programs on devnet: PaymentRouter, AgentRegistry, CreditVault, VenueWhitelist, AgentWallet.
+                    NAV engine, oracle chain, keeper bot — full credit lifecycle running on-chain.
+                  </p>
+                </div>
+                <button className={styles.pillLink} onClick={() => navigate('/app')}>LAUNCH_APP ↗</button>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── Code Preview — BLACK ──────────────────────────────── */}
+      <section className={styles.sectionDark}>
+        <div className={styles.container}>
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }} variants={stagger}>
+            <motion.span variants={fadeUp} className={styles.sectionTag}>DEVELOPER_READY</motion.span>
+            <motion.h2 variants={fadeUp} className={styles.sectionTitle}>MACHINE READABLE</motion.h2>
 
             <motion.div variants={fadeUp} className={styles.codeBlock}>
-              <span className={styles.codeLine}><span className={styles.codeComment}>{'// Route payments through Krexa PaymentRouter'}</span></span>
-              <span className={styles.codeLine}><span className={styles.codeKeyword}>const</span> <span className={styles.codeDefault}>krexa</span> <span className={styles.codeDefault}>=</span> <span className={styles.codeKeyword}>new</span> <span className={styles.codeFunc}>KrexaSDK</span><span className={styles.codeDefault}>({'{ chain: '}</span><span className={styles.codeString}>'solana'</span><span className={styles.codeDefault}>{', agentAddress }'})</span></span>
+              <span className={styles.codeLine}><span className={styles.codeComment}>{'// Initialize Krexa SDK'}</span></span>
+              <span className={styles.codeLine}><span className={styles.codeKw}>const</span> krexa = <span className={styles.codeKw}>new</span> <span className={styles.codeFn}>KrexaSDK</span>({'{ chain: '}<span className={styles.codeStr}>&apos;solana&apos;</span>{', agentAddress }'})</span>
               <span className={styles.codeLine}> </span>
-              <span className={styles.codeLine}><span className={styles.codeComment}>{'// Every payment auto-splits through the waterfall'}</span></span>
-              <span className={styles.codeLine}><span className={styles.codeKeyword}>await</span> <span className={styles.codeDefault}>krexa.agent.</span><span className={styles.codeFunc}>payX402</span><span className={styles.codeDefault}>{'({'}</span></span>
-              <span className={styles.codeLine}><span className={styles.codeDefault}>{'  recipient: '}</span><span className={styles.codeString}>'AgntVx9dMz…rK4f'</span><span className={styles.codeDefault}>,</span></span>
-              <span className={styles.codeLine}><span className={styles.codeDefault}>{'  amount:    '}</span><span className={styles.codeString}>25.00</span><span className={styles.codeDefault}>,</span></span>
-              <span className={styles.codeLine}><span className={styles.codeDefault}>{'  paymentId: '}</span><span className={styles.codeString}>'task-7f3a'</span></span>
-              <span className={styles.codeLine}><span className={styles.codeDefault}>{'})'}</span></span>
+              <span className={styles.codeLine}><span className={styles.codeComment}>{'// Check Krexit Score — 5-component, 200-850'}</span></span>
+              <span className={styles.codeLine}><span className={styles.codeKw}>const</span> score = <span className={styles.codeKw}>await</span> krexa.credit.<span className={styles.codeFn}>getKrexitScore</span>()</span>
+              <span className={styles.codeLine}><span className={styles.codeComment}>{'// { score: 780, level: 3, maxCredit: 50000 }'}</span></span>
               <span className={styles.codeLine}> </span>
-              <span className={styles.codeLine}><span className={styles.codeComment}>{'// Check credit eligibility via FairScale score'}</span></span>
-              <span className={styles.codeLine}><span className={styles.codeKeyword}>const</span> <span className={styles.codeDefault}>score</span> <span className={styles.codeDefault}>=</span> <span className={styles.codeKeyword}>await</span> <span className={styles.codeDefault}>krexa.credit.</span><span className={styles.codeFunc}>getScore</span><span className={styles.codeDefault}>()</span></span>
-              <span className={styles.codeLine}><span className={styles.codeComment}>{'// { score: 780, level: 3, eligible: true }'}</span></span>
+              <span className={styles.codeLine}><span className={styles.codeComment}>{'// Route payment through waterfall'}</span></span>
+              <span className={styles.codeLine}><span className={styles.codeKw}>await</span> krexa.agent.<span className={styles.codeFn}>payX402</span>{'({'}</span>
+              <span className={styles.codeLine}>{'  recipient: '}<span className={styles.codeStr}>&apos;AgntVx9dMz…rK4f&apos;</span>,</span>
+              <span className={styles.codeLine}>{'  amount:    '}<span className={styles.codeStr}>25.00</span>,</span>
+              <span className={styles.codeLine}>{'  paymentId: '}<span className={styles.codeStr}>&apos;task-7f3a&apos;</span></span>
+              <span className={styles.codeLine}>{'})'}</span>
+              <span className={styles.codeLine}> </span>
+              <span className={styles.codeLine}><span className={styles.codeComment}>{'// Check wallet health — real-time'}</span></span>
+              <span className={styles.codeLine}><span className={styles.codeKw}>const</span> nav = <span className={styles.codeKw}>await</span> krexa.risk.<span className={styles.codeFn}>getNAV</span>()</span>
+              <span className={styles.codeLine}><span className={styles.codeComment}>{'// { nav: 0.87, trigger: 0.85, safe: true }'}</span></span>
             </motion.div>
 
             <motion.div variants={fadeUp} className={styles.codeLinks}>
-              <a
-                href="https://github.com/Yatharth4599/TCredit"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={styles.codeLink}
-              >
-                View on GitHub →
-              </a>
-              <button className={styles.codeLink} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => navigate('/app/lifecycle')}>
-                Live Demo →
-              </button>
+              <a href="https://github.com/Yatharth4599/TCredit" target="_blank" rel="noopener noreferrer" className={styles.codeLink}>View on GitHub →</a>
+              <button className={styles.codeLink} onClick={() => navigate('/app/lifecycle')}>Live Demo →</button>
             </motion.div>
           </motion.div>
         </div>
       </section>
 
-      {/* ── Final CTA ────────────────────────────────────────────────────────── */}
+      {/* ── FAQ — WHITE ──────────────────────────────────────── */}
+      <section className={styles.sectionLight} id="faq">
+        <div className={styles.container}>
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }} variants={stagger}>
+            <motion.span variants={fadeUp} className={styles.sectionTagDark}>KNOWLEDGE_BASE</motion.span>
+            <motion.h2 variants={fadeUp} className={styles.sectionTitleDark}>FAQ</motion.h2>
+            <motion.div variants={fadeUp} className={styles.faqList}>
+              {faqItems.map((item, i) => (
+                <div key={i} className={`${styles.faqItem} ${openFaq === i ? styles.faqOpen : ''}`}>
+                  <button className={styles.faqQuestion} onClick={() => setOpenFaq(openFaq === i ? null : i)}>
+                    <span>{item.q}</span>
+                    {openFaq === i ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                  </button>
+                  {openFaq === i && <div className={styles.faqAnswer}>{item.a}</div>}
+                </div>
+              ))}
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── Final CTA — BLACK ────────────────────────────────── */}
       <section className={styles.ctaSection}>
-        <div className={styles.ctaInner}>
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-50px' }}
-            variants={stagger}
-          >
-            <motion.h2 variants={fadeUp} className={styles.ctaTitle}>
-              Ready to build on Krexa?
-            </motion.h2>
-            <motion.p variants={fadeUp} className={styles.ctaSubtitle}>
-              Join the waitlist for early access to the protocol.
-            </motion.p>
-            <motion.div variants={fadeUp}>
-              <WaitlistForm dark />
-            </motion.div>
-            <motion.div variants={fadeUp} style={{ marginTop: 20 }}>
-              <button className={styles.ctaDemoLink} onClick={() => navigate('/app/lifecycle')}>
-                Or explore the live testnet demo →
-              </button>
-            </motion.div>
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }} variants={stagger} className={styles.ctaInner}>
+          <motion.h2 variants={fadeUp} className={styles.ctaTitle}>
+            READY TO BUILD<br /><span className={styles.heroAccent}>ON KREXA?</span>
+          </motion.h2>
+          <motion.div variants={fadeUp}>
+            <button className={styles.ctaBtn} onClick={() => navigate('/app')}>Launch App →</button>
           </motion.div>
-        </div>
+          <motion.div variants={fadeUp} className={styles.ctaSocials}>
+            <a href="https://t.me/tigerpayx" target="_blank" rel="noopener noreferrer" className={styles.ctaSocialLink}>Telegram</a>
+            <span className={styles.techSep}>·</span>
+            <a href="https://x.com/krexa_xyz" target="_blank" rel="noopener noreferrer" className={styles.ctaSocialLink}>Twitter</a>
+            <span className={styles.techSep}>·</span>
+            <a href="https://github.com/Yatharth4599/TCredit" target="_blank" rel="noopener noreferrer" className={styles.ctaSocialLink}>GitHub</a>
+          </motion.div>
+        </motion.div>
       </section>
 
-      {/* ── Footer ───────────────────────────────────────────────────────────── */}
+      {/* ── Footer ───────────────────────────────────────────── */}
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
           <div className={styles.footerTop}>
             <div>
               <div className={styles.footerBrand}>KREXA</div>
-              <div className={styles.footerTagline}>The Programmable Credit Network</div>
+              <div className={styles.footerTagline}>The Credit Layer for the Agent Economy</div>
             </div>
             <div className={styles.footerCols}>
               <div>
-                <div className={styles.footerColTitle}>Product</div>
+                <div className={styles.footerColTitle}>PRODUCT</div>
                 <div className={styles.footerLinks}>
                   <button className={styles.footerLink} onClick={() => navigate('/app')}>Protocol App</button>
                   <button className={styles.footerLink} onClick={() => navigate('/app/vaults')}>Vaults</button>
@@ -441,15 +610,16 @@ export default function LandingPage() {
                 </div>
               </div>
               <div>
-                <div className={styles.footerColTitle}>Resources</div>
+                <div className={styles.footerColTitle}>PROTOCOL</div>
                 <div className={styles.footerLinks}>
-                  <a href="https://github.com/Yatharth4599/TCredit" target="_blank" rel="noopener noreferrer" className={styles.footerLink}>Documentation</a>
-                  <span className={styles.footerLink}>Blog</span>
-                  <span className={styles.footerLink}>Support</span>
+                  <button className={styles.footerLink} onClick={() => scrollTo('krexit-score')}>Krexit Score</button>
+                  <button className={styles.footerLink} onClick={() => scrollTo('waterfall')}>Waterfall</button>
+                  <button className={styles.footerLink} onClick={() => scrollTo('risk')}>Risk Model</button>
+                  <button className={styles.footerLink} onClick={() => scrollTo('faq')}>FAQ</button>
                 </div>
               </div>
               <div>
-                <div className={styles.footerColTitle}>Legal</div>
+                <div className={styles.footerColTitle}>LEGAL</div>
                 <div className={styles.footerLinks}>
                   <span className={styles.footerLink}>Privacy Policy</span>
                   <span className={styles.footerLink}>Terms of Use</span>
@@ -457,21 +627,17 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-
           <div className={styles.footerBottom}>
-            <div className={styles.footerCopyright}>
-              © 2026 Krexa Protocol. All rights reserved. Built on Solana.
-            </div>
+            <div className={styles.footerCopyright}>© 2026 Krexa Protocol. Built on Solana.</div>
             <div className={styles.footerSocials}>
-              <a href="https://x.com/tigerbnkHQ" target="_blank" rel="noopener noreferrer" className={styles.footerSocialLink} aria-label="X (Twitter)">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                </svg>
+              <a href="https://x.com/krexa_xyz" target="_blank" rel="noopener noreferrer" className={styles.footerSocialLink} aria-label="Twitter">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
               </a>
               <a href="https://github.com/Yatharth4599/TCredit" target="_blank" rel="noopener noreferrer" className={styles.footerSocialLink} aria-label="GitHub">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
-                </svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" /></svg>
+              </a>
+              <a href="https://t.me/tigerpayx" target="_blank" rel="noopener noreferrer" className={styles.footerSocialLink} aria-label="Telegram">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0a12 12 0 00-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 01.171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" /></svg>
               </a>
             </div>
           </div>

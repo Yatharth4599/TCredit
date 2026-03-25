@@ -2,13 +2,14 @@
     display: block;
     background: linear-gradient(
         90deg,
-        var(--surface-2) 0%,
-        var(--surface-3) 40%,
-        var(--surface-2) 100%
+        #111111 0%,
+        #1A1A1A 40%,
+        #111111 100%
     );
     background-size: 300% 100%;
     animation: shimmer 1.8s ease-in-out infinite;
     flex-shrink: 0;
+    border: 1px solid #222222;
 }
 
 @keyframes shimmer {
