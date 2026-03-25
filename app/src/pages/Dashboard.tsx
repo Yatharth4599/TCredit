@@ -6,9 +6,11 @@ import { PageHeader } from '../components/layout'
 import { StatCard, EmptyState } from '../components/shared'
 import { RegisterAgentModal } from '../components/agent/RegisterAgentModal'
 import { CreateWalletStep } from '../components/agent/CreateWalletStep'
-import { useAgentProfile, useAgentHealth, useCreditLine, useAgentWallet, useFaucet } from '../hooks'
-import { Wallet, Bot, Shield, CreditCard, Activity, Plus, Loader2, Droplets } from 'lucide-react'
+import { KYAStep } from '../components/agent/KYAStep'
+import { useAgentProfile, useAgentHealth, useCreditLine, useAgentWallet, useFaucet, useScoreLookup } from '../hooks'
+import { Wallet, Bot, Shield, CreditCard, Activity, Plus, Loader2, Droplets, AlertTriangle, ArrowUpCircle, BarChart3, Wifi, WifiOff } from 'lucide-react'
 import { decodeName } from '../sdk/utils'
+import { config } from '../config'
 
 const fadeIn = {
   initial: { opacity: 0, y: 12 },
@@ -30,6 +32,13 @@ const CREDIT_LEVELS: Record<number, string> = {
 }
 const AGENT_TYPES: Record<number, string> = {
   0: 'Trader', 1: 'Service', 2: 'Hybrid',
+}
+
+const LEVEL_THRESHOLDS: Record<number, { score: number; name: string; maxCredit: string }> = {
+  1: { score: 400, name: 'Starter', maxCredit: '$500' },
+  2: { score: 500, name: 'Established', maxCredit: '$20,000' },
+  3: { score: 650, name: 'Trusted', maxCredit: '$50,000' },
+  4: { score: 750, name: 'Elite', maxCredit: '$500,000' },
 }
 
 function getHealthZone(factor: number): { label: string; color: string; bg: string } {
@@ -101,7 +110,6 @@ function DashboardContent({ pubkey }: { pubkey: string }) {
 
   // Profile exists but no wallet — show wallet creation
   if (!wallet) {
-    const agentKey = sessionStorage.getItem(`krexa_agent_${pubkey}`)
     const agentPubkey = profile.agent.toBase58()
     return (
       <div className="space-y-6">
@@ -115,6 +123,24 @@ function DashboardContent({ pubkey }: { pubkey: string }) {
   return (
     <motion.div variants={stagger} initial="initial" animate="animate" className="space-y-6">
       <LiveProfileCard profile={profile} />
+
+      {/* Network Mismatch Warning */}
+      {config.cluster === 'devnet' && (
+        <motion.div variants={fadeIn} className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-3 flex items-center gap-3">
+          <WifiOff size={16} className="text-yellow-400 shrink-0" />
+          <p className="text-xs text-yellow-400">
+            Connected to <span className="font-medium">devnet</span> — transactions use test tokens only.
+          </p>
+        </motion.div>
+      )}
+
+      {/* Score Summary */}
+      <ScoreSummaryCard pubkey={pubkey} />
+
+      {/* KYA prompt when tier is 0 */}
+      {profile.kyaTier === 0 && (
+        <KYAStep agentPubkey={profile.agent.toBase58()} currentTier={0} />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Health Factor */}
@@ -182,6 +208,55 @@ function DashboardContent({ pubkey }: { pubkey: string }) {
         </motion.div>
       </div>
 
+      {/* Liquidation Warning */}
+      {health && health.healthFactorBps > 0 && health.healthFactorBps < 13000 && (
+        <motion.div variants={fadeIn} className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 flex items-start gap-3">
+          <AlertTriangle size={20} className="text-red-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-red-400">
+              {health.healthFactorBps < 12000
+                ? 'Liquidation risk — your health factor is critically low'
+                : 'Warning — your health factor is approaching the danger zone'}
+            </p>
+            <p className="text-xs text-red-400/70 mt-1">
+              Repay some debt to restore your health factor above 1.50x.
+              Current: {(health.healthFactorBps / 10000).toFixed(2)}x
+            </p>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Level Upgrade Path */}
+      {profile && (() => {
+        const currentLevel = profile.creditLevel
+        const nextLevel = currentLevel + 1
+        const next = LEVEL_THRESHOLDS[nextLevel]
+        if (!next || currentLevel >= 4) return null
+        const score = profile.creditScore
+        const progress = Math.min(((score - (LEVEL_THRESHOLDS[currentLevel]?.score ?? 0)) / (next.score - (LEVEL_THRESHOLDS[currentLevel]?.score ?? 0))) * 100, 100)
+        const pointsNeeded = Math.max(0, next.score - score)
+        return (
+          <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <ArrowUpCircle size={16} className="text-blue-400" />
+              <h3 className="text-sm font-medium text-gray-400">Level Upgrade Path</h3>
+            </div>
+            <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
+              <span>L{currentLevel} {CREDIT_LEVELS[currentLevel]}</span>
+              <span>L{nextLevel} {next.name} (up to {next.maxCredit})</span>
+            </div>
+            <div className="h-2 bg-gray-900 rounded-full overflow-hidden mb-2">
+              <div className="h-full bg-blue-500 rounded-full transition-all duration-700" style={{ width: `${Math.max(progress, 2)}%` }} />
+            </div>
+            <p className="text-xs text-gray-500">
+              {pointsNeeded > 0
+                ? `${pointsNeeded} more score points needed (current: ${score}, target: ${next.score})`
+                : 'Score requirement met — complete KYA to upgrade'}
+            </p>
+          </motion.div>
+        )
+      })()}
+
       {/* Wallet Stats */}
       <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
         <div className="flex items-center justify-between mb-4">
@@ -218,6 +293,105 @@ function DashboardContent({ pubkey }: { pubkey: string }) {
           </div>
         </div>
       </motion.div>
+    </motion.div>
+  )
+}
+
+function ScoreSummaryCard({ pubkey }: { pubkey: string }) {
+  const { data, isLoading } = useScoreLookup(pubkey)
+
+  if (isLoading) {
+    return (
+      <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 size={16} className="text-indigo-400" />
+          <h3 className="text-sm font-medium text-gray-400">Krexit Score</h3>
+        </div>
+        <div className="flex items-center justify-center py-4">
+          <Loader2 size={20} className="text-blue-400 animate-spin" />
+        </div>
+      </motion.div>
+    )
+  }
+
+  if (!data) return null
+
+  const score = data.score?.score ?? data.preview?.score ?? 0
+  const components = data.score
+    ? {
+        c1Repayment: data.score.c1Repayment,
+        c2Profitability: data.score.c2Profitability,
+        c3Behavioral: data.score.c3Behavioral,
+        c4Usage: data.score.c4Usage,
+        c5Maturity: data.score.c5Maturity,
+      }
+    : data.preview?.components ?? null
+  const source = data.source === 'on-chain' ? 'On-chain' : 'Preview'
+  const maxScore = 850
+  const pct = Math.round((score / maxScore) * 100)
+
+  const componentLabels: [string, string, number][] = components
+    ? [
+        ['Repayment', 'bg-green-500', components.c1Repayment],
+        ['Profitability', 'bg-blue-500', components.c2Profitability],
+        ['Behavioral', 'bg-purple-500', components.c3Behavioral],
+        ['Usage', 'bg-cyan-500', components.c4Usage],
+        ['Maturity', 'bg-orange-500', components.c5Maturity],
+      ]
+    : []
+
+  return (
+    <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <BarChart3 size={16} className="text-indigo-400" />
+          <h3 className="text-sm font-medium text-gray-400">Krexit Score</h3>
+          <span className="text-[10px] text-gray-600 px-1.5 py-0.5 bg-gray-800 rounded">{source}</span>
+        </div>
+        <a href="/score" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
+          View details →
+        </a>
+      </div>
+      <div className="flex items-center gap-6">
+        {/* Score gauge */}
+        <div className="text-center shrink-0">
+          <p className="text-4xl font-bold text-gray-100">{score}</p>
+          <p className="text-[10px] text-gray-500 mt-1">/ {maxScore}</p>
+        </div>
+        {/* Component bars */}
+        {componentLabels.length > 0 && (
+          <div className="flex-1 space-y-1.5">
+            {componentLabels.map(([label, color, val]) => (
+              <div key={label} className="flex items-center gap-2">
+                <span className="text-[10px] text-gray-500 w-20 text-right">{label}</span>
+                <div className="flex-1 h-1.5 bg-gray-900 rounded-full overflow-hidden">
+                  <div className={`h-full ${color} rounded-full`} style={{ width: `${Math.round(val / 100)}%` }} />
+                </div>
+                <span className="text-[10px] text-gray-500 w-8">{(val / 100).toFixed(0)}%</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {/* Improvement suggestions */}
+      {components && (() => {
+        const suggestions: string[] = []
+        if (components.c1Repayment < 7000) suggestions.push('Repay on-time to boost your Repayment score')
+        if (components.c2Profitability < 5000) suggestions.push('Increase SOL balance or trade profitably')
+        if (components.c4Usage < 5000) suggestions.push('Use more DeFi venues to improve Usage diversity')
+        if (components.c5Maturity < 5000) suggestions.push('Keep transacting — account maturity grows over time')
+        if (suggestions.length === 0) return null
+        return (
+          <div className="mt-3 pt-3 border-t border-gray-700/30">
+            <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Improve your score</p>
+            {suggestions.slice(0, 2).map((s, i) => (
+              <p key={i} className="text-[11px] text-gray-400 flex items-center gap-1.5">
+                <span className="text-blue-400">+</span> {s}
+              </p>
+            ))}
+          </div>
+        )
+      })()}
     </motion.div>
   )
 }

@@ -4,6 +4,7 @@ import { PublicKey } from '@solana/web3.js'
 import BN from 'bn.js'
 import toast from 'react-hot-toast'
 import { buildDepositCollateral, USDC_MINT, getAssociatedTokenAddress } from '../sdk/transactions'
+import { explorerTxUrl } from '../components/shared/TransactionToast'
 
 interface DepositCollateralParams {
   agentPubkey: string
@@ -32,8 +33,8 @@ export function useDepositCollateral() {
       await connection.confirmTransaction(sig, 'confirmed')
       return { signature: sig }
     },
-    onSuccess: () => {
-      toast.success('Collateral deposited!')
+    onSuccess: ({ signature }) => {
+      toast.success(`Collateral deposited! View: ${explorerTxUrl(signature)}`, { duration: 6000 })
       queryClient.invalidateQueries({ queryKey: ['agent-health'] })
       queryClient.invalidateQueries({ queryKey: ['agent-wallet'] })
     },

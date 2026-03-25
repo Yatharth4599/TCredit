@@ -4,6 +4,7 @@ import { PublicKey } from '@solana/web3.js'
 import BN from 'bn.js'
 import toast from 'react-hot-toast'
 import { buildRepay, USDC_MINT, getAssociatedTokenAddress } from '../sdk/transactions'
+import { explorerTxUrl } from '../components/shared/TransactionToast'
 
 interface RepayParams {
   agentPubkey: string
@@ -32,8 +33,8 @@ export function useRepay() {
       await connection.confirmTransaction(sig, 'confirmed')
       return { signature: sig }
     },
-    onSuccess: () => {
-      toast.success('Repayment successful!')
+    onSuccess: ({ signature }) => {
+      toast.success(`Repayment confirmed! View: ${explorerTxUrl(signature)}`, { duration: 6000 })
       queryClient.invalidateQueries({ queryKey: ['credit-line'] })
       queryClient.invalidateQueries({ queryKey: ['agent-wallet'] })
       queryClient.invalidateQueries({ queryKey: ['agent-health'] })

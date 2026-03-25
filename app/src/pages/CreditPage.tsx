@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { TrendingUp } from 'lucide-react'
-import { useAgentProfile, useAgentHealth, useCreditLine, useAgentWallet } from '../hooks'
+import { TrendingUp, AlertTriangle, ArrowUpCircle, History, ExternalLink } from 'lucide-react'
+import { useAgentProfile, useAgentHealth, useCreditLine, useAgentWallet, useCreditActivity } from '../hooks'
 import { EmptyState } from '../components/shared'
 import { RequestCreditModal } from '../components/credit/RequestCreditModal'
 import { RepayModal } from '../components/credit/RepayModal'
+import { config } from '../config'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -24,6 +25,13 @@ const KYA_TIERS: Record<number, string> = {
   1: 'Basic',
   2: 'Enhanced',
   3: 'Institutional',
+}
+
+const LEVEL_THRESHOLDS: Record<number, { score: number; name: string; maxCredit: string; kya: number }> = {
+  1: { score: 400, name: 'Starter', maxCredit: '$500', kya: 1 },
+  2: { score: 500, name: 'Established', maxCredit: '$20,000', kya: 2 },
+  3: { score: 650, name: 'Trusted', maxCredit: '$50,000', kya: 2 },
+  4: { score: 750, name: 'Elite', maxCredit: '$500,000', kya: 3 },
 }
 
 const AGENT_TYPES: Record<number, string> = {
@@ -106,6 +114,7 @@ export default function CreditPage() {
   const { data: health, isLoading: healthLoading, error: healthError } = useAgentHealth()
   const { data: creditLine, isLoading: creditLoading, error: creditError } = useCreditLine()
   const { data: wallet, isLoading: walletLoading, error: walletError } = useAgentWallet()
+  const { data: activity } = useCreditActivity()
 
   if (!connected) {
     return (
@@ -124,6 +133,60 @@ export default function CreditPage() {
         <h2 className="text-xl font-semibold text-white tracking-tight">Agent Credit Dashboard</h2>
         <p className="text-sm text-white/30 mt-0.5">Your credit profile, health, and wallet on the Krexa protocol.</p>
       </motion.div>
+
+      {/* Liquidation Warning */}
+      {health && health.healthFactorBps > 0 && health.healthFactorBps < 13000 && (
+        <motion.div {...fadeIn} className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 flex items-start gap-3">
+          <AlertTriangle size={20} className="text-red-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-red-400">
+              {health.healthFactorBps < 12000
+                ? 'Liquidation risk — repay debt immediately to avoid liquidation'
+                : 'Warning — health factor approaching danger zone'}
+            </p>
+            <p className="text-xs text-red-400/70 mt-1">
+              Current health: {(health.healthFactorBps / 10000).toFixed(2)}x — target 1.50x or higher
+            </p>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Level Upgrade Path */}
+      {profile && (() => {
+        const currentLevel = profile.creditLevel
+        const nextLevel = currentLevel + 1
+        const next = LEVEL_THRESHOLDS[nextLevel]
+        if (!next || currentLevel >= 4) return null
+        const score = profile.creditScore
+        const prevScore = LEVEL_THRESHOLDS[currentLevel]?.score ?? 0
+        const progress = next.score > prevScore ? Math.min(((score - prevScore) / (next.score - prevScore)) * 100, 100) : 0
+        const pointsNeeded = Math.max(0, next.score - score)
+        const kyaMet = (profile.kyaTier ?? 0) >= next.kya
+        return (
+          <motion.div {...fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <ArrowUpCircle size={16} className="text-blue-400" />
+              <h3 className="text-sm font-medium text-gray-400">Upgrade to L{nextLevel} {next.name}</h3>
+              <span className="text-xs text-gray-600 ml-auto">Up to {next.maxCredit} credit</span>
+            </div>
+            <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
+              <span>Score: {score}</span>
+              <span>Target: {next.score}</span>
+            </div>
+            <div className="h-2 bg-gray-900 rounded-full overflow-hidden mb-3">
+              <div className="h-full bg-blue-500 rounded-full transition-all duration-700" style={{ width: `${Math.max(progress, 2)}%` }} />
+            </div>
+            <div className="flex gap-3 text-xs">
+              <span className={pointsNeeded <= 0 ? 'text-green-400' : 'text-gray-500'}>
+                {pointsNeeded > 0 ? `${pointsNeeded} more score points needed` : '✓ Score requirement met'}
+              </span>
+              <span className={kyaMet ? 'text-green-400' : 'text-gray-500'}>
+                {kyaMet ? `✓ KYA ${KYA_TIERS[next.kya]}` : `Requires KYA ${KYA_TIERS[next.kya]}`}
+              </span>
+            </div>
+          </motion.div>
+        )
+      })()}
 
       <motion.div variants={stagger} initial="initial" animate="animate" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
@@ -292,6 +355,58 @@ export default function CreditPage() {
           </div>
         </motion.div>
 
+        {/* === Repayment Schedule === */}
+        {creditLine && Number(creditLine.creditDrawn.toString()) > 0 && (() => {
+          const drawn = Number(creditLine.creditDrawn.toString()) / 1e6
+          const interest = Number(creditLine.accruedInterest.toString()) / 1e6
+          const totalOwed = drawn + interest
+          const rateBps = creditLine.interestRateBps ?? 0
+          const dailyRate = rateBps / 10000 / 365
+          const dailyInterest = drawn * dailyRate
+          const weeklyInterest = dailyInterest * 7
+          const monthlyInterest = dailyInterest * 30
+          return (
+            <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6 lg:col-span-2">
+              <h2 className="text-lg font-semibold text-gray-100 mb-4">Repayment Schedule</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div>
+                  <p className="text-xs text-gray-400 uppercase tracking-wider">Principal</p>
+                  <p className="text-xl font-bold text-gray-100">${drawn.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 uppercase tracking-wider">Accrued Interest</p>
+                  <p className="text-xl font-bold text-orange-400">${interest.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 uppercase tracking-wider">Total Owed</p>
+                  <p className="text-xl font-bold text-red-400">${totalOwed.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 uppercase tracking-wider">Daily Accrual</p>
+                  <p className="text-xl font-bold text-gray-100">${dailyInterest.toFixed(4)}</p>
+                </div>
+              </div>
+              <div className="bg-gray-900/50 rounded-xl p-4">
+                <p className="text-xs text-gray-400 uppercase tracking-wider mb-3">Interest Projection</p>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <p className="text-sm font-bold text-gray-100">${weeklyInterest.toFixed(2)}</p>
+                    <p className="text-[10px] text-gray-500">7 days</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-100">${monthlyInterest.toFixed(2)}</p>
+                    <p className="text-[10px] text-gray-500">30 days</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-100">${(dailyInterest * 365).toFixed(2)}</p>
+                    <p className="text-[10px] text-gray-500">1 year</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )
+        })()}
+
         {/* === Wallet Info === */}
         <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
           <h2 className="text-lg font-semibold text-gray-100 mb-4">Wallet</h2>
@@ -316,6 +431,80 @@ export default function CreditPage() {
 
       </motion.div>
 
+      {/* Credit Activity History */}
+      {activity && (activity.scoreHistory.length > 0 || activity.recentTrades.length > 0) && (
+        <motion.div {...fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <History size={16} className="text-gray-400" />
+            <h2 className="text-lg font-semibold text-gray-100">Credit Activity</h2>
+          </div>
+
+          {/* Score History */}
+          {activity.scoreHistory.length > 0 && (
+            <div className="mb-5">
+              <h3 className="text-xs text-gray-400 uppercase tracking-wider mb-3">Score History</h3>
+              <div className="space-y-2">
+                {activity.scoreHistory.slice(0, 8).map((entry, i) => {
+                  const prev = activity.scoreHistory[i + 1]
+                  const delta = prev ? entry.score - prev.score : 0
+                  return (
+                    <div key={i} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-bold text-gray-100">{entry.score}</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-blue-500/20 text-blue-400">
+                          L{entry.level}
+                        </span>
+                        {delta !== 0 && (
+                          <span className={`text-xs font-medium ${delta > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {delta > 0 ? '+' : ''}{delta}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {new Date(entry.timestamp).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Recent Trades */}
+          {activity.recentTrades.length > 0 && (
+            <div>
+              <h3 className="text-xs text-gray-400 uppercase tracking-wider mb-3">Recent Trades</h3>
+              <div className="space-y-2">
+                {activity.recentTrades.slice(0, 8).map((trade, i) => {
+                  const explorerUrl = `https://explorer.solana.com/tx/${trade.txSignature}${config.cluster !== 'mainnet-beta' ? `?cluster=${config.cluster}` : ''}`
+                  return (
+                    <div key={i} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
+                      <div className="flex items-center gap-3">
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                          trade.direction === 'buy' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                        }`}>
+                          {trade.direction.toUpperCase()}
+                        </span>
+                        <span className="text-sm text-gray-100">{formatUsdc(trade.amount)}</span>
+                        <span className="text-xs text-gray-500">{trade.venue}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">
+                          {new Date(trade.timestamp).toLocaleDateString()}
+                        </span>
+                        <a href={explorerUrl} target="_blank" rel="noreferrer" className="text-gray-600 hover:text-gray-400">
+                          <ExternalLink size={12} />
+                        </a>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </motion.div>
+      )}
+
       <RequestCreditModal
         isOpen={showRequestCredit}
         onClose={() => setShowRequestCredit(false)}
@@ -327,6 +516,8 @@ export default function CreditPage() {
         agentPubkey={address ?? ''}
         currentDebt={creditLine ? formatUsdc(creditLine.creditDrawn) : undefined}
         accruedInterest={creditLine ? formatUsdc(creditLine.accruedInterest) : undefined}
+        rawDebtUsdc={creditLine ? Number(creditLine.creditDrawn.toString()) : undefined}
+        rawInterestUsdc={creditLine ? Number(creditLine.accruedInterest.toString()) : undefined}
       />
     </div>
   )

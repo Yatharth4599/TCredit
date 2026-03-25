@@ -9,11 +9,19 @@ interface RepayModalProps {
   agentPubkey: string
   currentDebt?: string
   accruedInterest?: string
+  /** Raw debt in USDC base units (6 decimals) for "Repay All" */
+  rawDebtUsdc?: number
+  /** Raw accrued interest in USDC base units (6 decimals) */
+  rawInterestUsdc?: number
 }
 
-export function RepayModal({ isOpen, onClose, agentPubkey, currentDebt, accruedInterest }: RepayModalProps) {
+export function RepayModal({ isOpen, onClose, agentPubkey, currentDebt, accruedInterest, rawDebtUsdc, rawInterestUsdc }: RepayModalProps) {
   const [amount, setAmount] = useState('')
   const repay = useRepay()
+
+  const totalDebtUsdc = rawDebtUsdc != null && rawInterestUsdc != null
+    ? ((rawDebtUsdc + rawInterestUsdc) / 1e6)
+    : null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -69,15 +77,26 @@ export function RepayModal({ isOpen, onClose, agentPubkey, currentDebt, accruedI
                 <label className="text-xs text-gray-400 uppercase tracking-wider block mb-2">
                   Amount (USDC)
                 </label>
-                <input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="100.00"
-                  step="0.01"
-                  min="0.01"
-                  className="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="100.00"
+                    step="0.01"
+                    min="0.01"
+                    className="flex-1 bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                  />
+                  {totalDebtUsdc != null && totalDebtUsdc > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setAmount(totalDebtUsdc.toFixed(2))}
+                      className="px-3 py-2 text-xs font-medium bg-green-600/20 hover:bg-green-600/30 text-green-400 border border-green-500/30 rounded-xl transition-colors whitespace-nowrap"
+                    >
+                      Repay All
+                    </button>
+                  )}
+                </div>
               </div>
 
               <button

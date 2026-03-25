@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { Layers, Plus, ArrowDownToLine } from 'lucide-react'
+import { Layers, Plus, ArrowDownToLine, Info, ArrowDown } from 'lucide-react'
 import { useLPPositions } from '../hooks'
 import { EmptyState } from '../components/shared'
 import { DepositModal } from '../components/lp/DepositModal'
@@ -301,6 +301,100 @@ export default function LPPage() {
               </div>
             )
           })()}
+        </motion.div>
+
+        {/* === Tranche Education === */}
+        <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Info size={16} className="text-gray-400" />
+            <h2 className="text-lg font-semibold text-gray-100">Understanding Tranches</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="border border-blue-500/30 bg-blue-500/5 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-bold text-blue-400">Senior</span>
+                <span className="text-xs font-medium text-blue-300 bg-blue-500/20 px-2 py-0.5 rounded">10% APR</span>
+              </div>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Lowest risk. Senior LPs are repaid first from protocol yields. Losses are absorbed by Junior and Mezzanine tranches before reaching Senior.
+              </p>
+              <div className="mt-3 pt-3 border-t border-blue-500/20">
+                <p className="text-[10px] text-gray-500">Risk: Low | Priority: First</p>
+              </div>
+            </div>
+            <div className="border border-purple-500/30 bg-purple-500/5 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-bold text-purple-400">Mezzanine</span>
+                <span className="text-xs font-medium text-purple-300 bg-purple-500/20 px-2 py-0.5 rounded">12% APR</span>
+              </div>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Medium risk. Mezzanine absorbs losses after Junior is depleted. Higher yield compensates for additional risk exposure.
+              </p>
+              <div className="mt-3 pt-3 border-t border-purple-500/20">
+                <p className="text-[10px] text-gray-500">Risk: Medium | Priority: Second</p>
+              </div>
+            </div>
+            <div className="border border-orange-500/30 bg-orange-500/5 rounded-xl p-4 opacity-60">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-bold text-orange-400">Junior</span>
+                <span className="text-xs font-medium text-orange-300 bg-orange-500/20 px-2 py-0.5 rounded">20% APR</span>
+              </div>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Highest risk/reward. Junior absorbs losses first. Protocol-only tranche — not available for external deposits. Acts as the protocol's insurance layer.
+              </p>
+              <div className="mt-3 pt-3 border-t border-orange-500/20">
+                <p className="text-[10px] text-gray-500">Risk: High | Priority: Last | Protocol-only</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* === Repayment Waterfall === */}
+        <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
+          <h2 className="text-lg font-semibold text-gray-100 mb-4">Repayment Waterfall</h2>
+          <p className="text-xs text-gray-500 mb-4">How agent repayments flow through the protocol</p>
+          <div className="flex flex-col items-center gap-1">
+            {[
+              { label: 'Agent Repayment', desc: 'Principal + interest collected', color: 'bg-green-500/20 border-green-500/30 text-green-400' },
+              { label: 'Senior Tranche', desc: 'Paid first — lowest risk', color: 'bg-blue-500/20 border-blue-500/30 text-blue-400' },
+              { label: 'Protocol Pool', desc: 'Operating costs + insurance reserve', color: 'bg-gray-700/50 border-gray-600/30 text-gray-300' },
+              { label: 'Mezzanine Tranche', desc: 'Paid second — medium risk', color: 'bg-purple-500/20 border-purple-500/30 text-purple-400' },
+              { label: 'Junior Tranche', desc: 'Residual — highest risk/reward', color: 'bg-orange-500/20 border-orange-500/30 text-orange-400' },
+            ].map((step, i, arr) => (
+              <div key={step.label} className="w-full max-w-sm">
+                <div className={`border rounded-xl p-3 ${step.color}`}>
+                  <p className="text-sm font-medium">{step.label}</p>
+                  <p className="text-[10px] opacity-70">{step.desc}</p>
+                </div>
+                {i < arr.length - 1 && (
+                  <div className="flex justify-center py-1">
+                    <ArrowDown size={14} className="text-gray-600" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* === Lock-up & Withdrawal Rules === */}
+        <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
+          <h2 className="text-lg font-semibold text-gray-100 mb-4">Withdrawal Rules</h2>
+          <div className="space-y-3">
+            {[
+              { rule: 'No lock-up period', desc: 'Withdraw at any time — no minimum hold duration required.' },
+              { rule: 'Available liquidity', desc: 'Withdrawals are limited to idle liquidity not currently lent out. If utilization is high, partial withdrawal may apply.' },
+              { rule: 'Share-based redemption', desc: 'You redeem shares, not a fixed USD amount. Share value accrues yield over time.' },
+              { rule: 'Tranche-specific', desc: 'Each tranche withdrawal is independent. Senior withdrawals are processed before Mezzanine.' },
+            ].map((item) => (
+              <div key={item.rule} className="flex gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 shrink-0" />
+                <div>
+                  <p className="text-sm text-gray-200">{item.rule}</p>
+                  <p className="text-xs text-gray-500">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </motion.div>
 
       </motion.div>

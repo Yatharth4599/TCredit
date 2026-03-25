@@ -174,6 +174,57 @@ router.post('/:agent/repay', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /solana/credit/:agent/activity — recent credit activity (score + health snapshots)
+router.get('/:agent/activity', async (req, res, next) => {
+  try {
+    const agentPk = parsePubkey(req.params.agent);
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
+
+    const [scoreSnapshots, healthSnapshots, trades] = await Promise.all([
+      prisma.scoreSnapshot.findMany({
+        where: { agentPubkey: req.params.agent },
+        orderBy: { snapshotAt: 'desc' },
+        take: limit,
+        select: { score: true, level: true, snapshotAt: true },
+      }),
+      prisma.healthSnapshot.findMany({
+        where: { agentPubkey: req.params.agent },
+        orderBy: { snapshotAt: 'desc' },
+        take: limit,
+        select: { healthFactorBps: true, creditDrawn: true, totalDebt: true, snapshotAt: true },
+      }),
+      prisma.solanaAgentTrade.findMany({
+        where: { agentPubkey: req.params.agent },
+        orderBy: { executedAt: 'desc' },
+        take: limit,
+        select: { venue: true, amount: true, direction: true, txSignature: true, executedAt: true },
+      }),
+    ]);
+
+    res.json({
+      agentPubkey: req.params.agent,
+      scoreHistory: scoreSnapshots.map(s => ({
+        score: s.score,
+        level: s.level,
+        timestamp: s.snapshotAt.toISOString(),
+      })),
+      healthHistory: healthSnapshots.map(h => ({
+        healthFactorBps: h.healthFactorBps,
+        creditDrawn: h.creditDrawn.toString(),
+        totalDebt: h.totalDebt.toString(),
+        timestamp: h.snapshotAt.toISOString(),
+      })),
+      recentTrades: trades.map(t => ({
+        venue: t.venue,
+        amount: t.amount.toString(),
+        direction: t.direction,
+        txSignature: t.txSignature,
+        timestamp: t.executedAt.toISOString(),
+      })),
+    });
+  } catch (err) { next(err); }
+});
+
 // POST /solana/credit/:agent/sign-agreement — initiate legal e-signing
 router.post('/:agent/sign-agreement', async (req, res, next) => {
   try {

@@ -1,9 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
-import { Keypair, PublicKey } from '@solana/web3.js'
+import { Keypair } from '@solana/web3.js'
 import BN from 'bn.js'
 import toast from 'react-hot-toast'
 import { buildCreateWallet } from '../sdk/transactions'
+import { explorerTxUrl } from '../components/shared/TransactionToast'
+import { loadAgentKeypair } from '../utils/agentKeystore'
 
 interface CreateWalletParams {
   dailySpendLimit: number // in USDC (e.g. 1000 = $1,000)
@@ -18,11 +20,11 @@ export function useCreateWallet() {
     mutationFn: async ({ dailySpendLimit }: CreateWalletParams) => {
       if (!publicKey || !sendTransaction) throw new Error('Wallet not connected')
 
-      // Load agent keypair from sessionStorage (written by useRegisterAgent)
-      const stored = sessionStorage.getItem(`krexa_agent_${publicKey.toBase58()}`)
-      if (!stored) throw new Error('No agent keypair found. Register an agent first.')
+      // Load agent keypair from encrypted localStorage (falls back to legacy sessionStorage)
+      const secretKey = await loadAgentKeypair(publicKey.toBase58())
+      if (!secretKey) throw new Error('No agent keypair found. Register an agent first.')
 
-      const agentKeypair = Keypair.fromSecretKey(new Uint8Array(JSON.parse(stored)))
+      const agentKeypair = Keypair.fromSecretKey(secretKey)
       const limitLamports = new BN(dailySpendLimit).mul(new BN(1_000_000)) // USDC 6 decimals
 
       const tx = buildCreateWallet(agentKeypair.publicKey, publicKey, limitLamports)
@@ -37,8 +39,8 @@ export function useCreateWallet() {
 
       return { signature: sig }
     },
-    onSuccess: () => {
-      toast.success('Wallet created!')
+    onSuccess: ({ signature }) => {
+      toast.success(`Wallet created! View: ${explorerTxUrl(signature)}`, { duration: 6000 })
       queryClient.invalidateQueries({ queryKey: ['agent-wallet'] })
       queryClient.invalidateQueries({ queryKey: ['agent-profile'] })
     },

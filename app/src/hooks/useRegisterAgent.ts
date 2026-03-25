@@ -4,6 +4,7 @@ import { Keypair } from '@solana/web3.js'
 import toast from 'react-hot-toast'
 import { buildRegisterAgent } from '../sdk/transactions'
 import { explorerTxUrl } from '../components/shared/TransactionToast'
+import { saveAgentKeypair } from '../utils/agentKeystore'
 
 interface RegisterAgentParams {
   name: string
@@ -22,13 +23,9 @@ export function useRegisterAgent() {
       // Generate agent keypair client-side
       const agentKeypair = Keypair.generate()
 
-      // Store in sessionStorage (cleared when the tab closes — not persisted to disk).
-      // WARNING: this is acceptable for devnet. For mainnet, replace with a proper
-      // encrypted keystore or hardware wallet derived key.
-      sessionStorage.setItem(
-        `krexa_agent_${publicKey.toBase58()}`,
-        JSON.stringify(Array.from(agentKeypair.secretKey))
-      )
+      // Store encrypted in localStorage (persists across sessions, encrypted at rest).
+      // Also writes to sessionStorage for backward compat.
+      await saveAgentKeypair(publicKey.toBase58(), agentKeypair.secretKey)
 
       const tx = buildRegisterAgent(agentKeypair.publicKey, publicKey, name, agentType)
 
@@ -48,7 +45,7 @@ export function useRegisterAgent() {
     },
     onSuccess: (data) => {
       toast.success(
-        `Agent registered! ${data.agentPubkey.slice(0, 8)}...`,
+        `Agent registered! ${data.agentPubkey.slice(0, 8)}…`,
         { duration: 5000 }
       )
       queryClient.invalidateQueries({ queryKey: ['agent-profile'] })

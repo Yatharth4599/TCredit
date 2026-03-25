@@ -3,6 +3,7 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import BN from 'bn.js'
 import toast from 'react-hot-toast'
 import { buildDepositLP, USDC_MINT, getAssociatedTokenAddress } from '../sdk/transactions'
+import { explorerTxUrl } from '../components/shared/TransactionToast'
 
 interface DepositLPParams {
   amount: number // USDC
@@ -30,8 +31,8 @@ export function useDepositLP() {
       await connection.confirmTransaction(sig, 'confirmed')
       return { signature: sig }
     },
-    onSuccess: () => {
-      toast.success('LP deposit successful!')
+    onSuccess: ({ signature }) => {
+      toast.success(`LP deposit confirmed! View: ${explorerTxUrl(signature)}`, { duration: 6000 })
       queryClient.invalidateQueries({ queryKey: ['lp-positions'] })
       queryClient.invalidateQueries({ queryKey: ['vault-stats'] })
     },
