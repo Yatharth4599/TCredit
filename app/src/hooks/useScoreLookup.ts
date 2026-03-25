@@ -27,9 +27,8 @@ export interface CreditLevelPreview {
   minScore: number
   minKya: number
   maxUsd: number
-  type: 'undercollateralized' | 'collateralized'
+  type: 'revenue-enforced'
   description?: string
-  ltv?: number
   qualified: boolean
   pointsNeeded: number
 }
@@ -316,10 +315,10 @@ export function useScoreLookup(address: string | null) {
 
 // ── Credit level definitions (mirrors backend constants) ────────────────────
 const LEVEL_DEFS = [
-  { level: 1, minScore: 400, minKya: 1, maxUsdc: 200_000_000,     type: 'undercollateralized' as const, description: 'Starter — up to $200, no collateral required' },
-  { level: 2, minScore: 500, minKya: 2, maxUsdc: 10_000_000_000,  type: 'collateralized'       as const, description: 'Established — up to $10,000, 5× collateral required',  ltv: 5  },
-  { level: 3, minScore: 650, minKya: 2, maxUsdc: 100_000_000_000, type: 'collateralized'       as const, description: 'Trusted — up to $100,000, 10× collateral required',    ltv: 10 },
-  { level: 4, minScore: 750, minKya: 3, maxUsdc: 500_000_000_000, type: 'undercollateralized' as const, description: 'Elite — up to $500,000, no collateral required' },
+  { level: 1, minScore: 400, minKya: 1, maxUsdc: 500_000_000,     type: 'revenue-enforced' as const, description: 'Micro — up to $500, zero collateral. 0.10%/day' },
+  { level: 2, minScore: 500, minKya: 2, maxUsdc: 20_000_000_000,  type: 'revenue-enforced' as const, description: 'Standard — up to $20K, zero collateral. 0.08%/day' },
+  { level: 3, minScore: 650, minKya: 2, maxUsdc: 50_000_000_000,  type: 'revenue-enforced' as const, description: 'Growth — up to $50K, zero collateral. 0.07%/day' },
+  { level: 4, minScore: 750, minKya: 3, maxUsdc: 500_000_000_000, type: 'revenue-enforced' as const, description: 'Prime — up to $500K, zero collateral. 0.06%/day' },
 ] as const
 
 function computeCreditPreview(score: number): CreditPreview {
@@ -328,7 +327,6 @@ function computeCreditPreview(score: number): CreditPreview {
     level: l.level, minScore: l.minScore, minKya: l.minKya,
     maxUsd: l.maxUsdc / 1_000_000, type: l.type,
     description: l.description,
-    ...('ltv' in l ? { ltv: l.ltv } : {}),
     qualified: score >= l.minScore,
     pointsNeeded: Math.max(0, l.minScore - score),
   }))

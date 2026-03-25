@@ -412,12 +412,8 @@ export default function ScoreLookupPage() {
                             {cp.maxCreditUsd > 0 && (
                               <>
                                 <p className="text-2xl font-bold text-white">${cp.maxCreditUsd.toLocaleString()}</p>
-                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                                  cp.type === 'undercollateralized'
-                                    ? 'bg-purple-500/20 text-purple-400'
-                                    : 'bg-amber-500/20 text-amber-400'
-                                }`}>
-                                  {cp.type === 'undercollateralized' ? 'No collateral needed' : 'Collateral required'}
+                                <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-purple-500/20 text-purple-400">
+                                  Revenue-enforced
                                 </span>
                               </>
                             )}
@@ -449,7 +445,7 @@ export default function ScoreLookupPage() {
                                   ${l.maxUsd.toLocaleString()} max
                                 </p>
                                 <p className="text-xs text-gray-500">
-                                  {l.type === 'undercollateralized' ? 'Uncollateralized' : `${l.ltv}× collateral`} · min score {l.minScore} · KYA {l.minKya}
+                                  {(['0.10%', '0.08%', '0.07%', '0.06%'] as const)[l.level - 1]}/day · min score {l.minScore} · KYA {l.minKya}
                                 </p>
                               </div>
                             </div>

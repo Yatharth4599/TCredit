@@ -71,8 +71,8 @@ export function getCreditTerms(level: number) {
     interestRateDaily: bpsToPercent(Math.round((rates[level] ?? 0) / 365)),
     interestRateAnnual: bpsToPercent(rates[level] ?? 0),
     navTriggerBps: navTriggers[level] ?? 0,
-    collateralRequired: level >= 2,
-    leverageRatio: level === 0 ? "N/A" : level === 1 ? "No collateral" : level === 2 ? "1:1" : level === 3 ? "1:2" : "1:5",
+    collateralRequired: false,
+    leverageRatio: level === 0 ? "N/A" : "Zero collateral",
   };
 }
 

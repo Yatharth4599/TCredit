@@ -194,28 +194,26 @@ const CREDIT_LEVELS = [
   {
     level: 4, minScore: 750, minKya: 3,
     maxUsdc: 500_000_000_000, // $500,000
-    type: 'undercollateralized' as const,
-    description: 'Elite — up to $500,000, no collateral required',
+    type: 'revenue-enforced' as const,
+    description: 'Prime — up to $500K, zero collateral. 0.06%/day',
   },
   {
     level: 3, minScore: 650, minKya: 2,
-    maxUsdc: 100_000_000_000, // $100,000
-    type: 'collateralized' as const,
-    description: 'Trusted — up to $100,000, 10× collateral required',
-    ltv: 10,
+    maxUsdc: 50_000_000_000, // $50,000
+    type: 'revenue-enforced' as const,
+    description: 'Growth — up to $50K, zero collateral. 0.07%/day',
   },
   {
     level: 2, minScore: 500, minKya: 2,
-    maxUsdc: 10_000_000_000,  // $10,000
-    type: 'collateralized' as const,
-    description: 'Established — up to $10,000, 5× collateral required',
-    ltv: 5,
+    maxUsdc: 20_000_000_000,  // $20,000
+    type: 'revenue-enforced' as const,
+    description: 'Standard — up to $20K, zero collateral. 0.08%/day',
   },
   {
     level: 1, minScore: 400, minKya: 1,
-    maxUsdc: 200_000_000,     // $200
-    type: 'undercollateralized' as const,
-    description: 'Starter — up to $200, no collateral required',
+    maxUsdc: 500_000_000,     // $500
+    type: 'revenue-enforced' as const,
+    description: 'Micro — up to $500, zero collateral. 0.10%/day',
   },
 ] as const;
 
@@ -229,7 +227,6 @@ function computeCreditPreview(score: number) {
     maxUsd: l.maxUsdc / 1_000_000,
     type: l.type,
     description: l.description,
-    ...(('ltv' in l) ? { ltv: l.ltv } : {}),
     qualified: score >= l.minScore,
     pointsNeeded: Math.max(0, l.minScore - score),
   }));
@@ -250,7 +247,7 @@ function computeCreditPreview(score: number) {
       minScore: nextLevel.minScore,
       pointsNeeded: Math.max(0, nextLevel.minScore - score),
       maxCreditUsd: nextLevel.maxUsdc / 1_000_000,
-      type: nextLevel.type,
+      type: 'revenue-enforced',
     } : null,
     levels,
     note: score < 400

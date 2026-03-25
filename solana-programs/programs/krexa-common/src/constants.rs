@@ -88,10 +88,10 @@ pub const LEVEL_4_LEVERAGE_DEN: u64 = 1;
 pub const LEVEL_1_RATE_BPS: u16 = 3_650;
 /// L2 Standard: 0.08%/day = 29.20% APR
 pub const LEVEL_2_RATE_BPS: u16 = 2_920;
-/// L3 Growth:   0.06%/day = 21.90% APR
-pub const LEVEL_3_RATE_BPS: u16 = 2_190;
-/// L4 Prime:    0.05%/day = 18.25% APR
-pub const LEVEL_4_RATE_BPS: u16 = 1_825;
+/// L3 Growth:   0.07%/day = 25.55% APR
+pub const LEVEL_3_RATE_BPS: u16 = 2_555;
+/// L4 Prime:    0.06%/day = 21.90% APR
+pub const LEVEL_4_RATE_BPS: u16 = 2_190;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Credit level — NAV liquidation triggers (basis points of original credit)

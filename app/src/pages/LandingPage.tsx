@@ -24,7 +24,7 @@ const FEATURES = [
   {
     icon: TrendingUp,
     title: 'Credit Lines',
-    desc: 'Collateral-backed credit from $500 to $500K with 4 tier levels.',
+    desc: 'Revenue-enforced credit from $500 to $500K. Zero collateral. Four credit tiers.',
   },
   {
     icon: Award,
@@ -165,7 +165,7 @@ export default function LandingPage() {
               On-chain credit infrastructure for AI&nbsp;agents
             </h1>
             <p className="mt-6 text-lg text-white/50 leading-relaxed max-w-lg">
-              Krexa provides autonomous agents with credit scoring, collateral-backed lending, and 8-layer safety controls — all on Solana.
+              Krexa provides autonomous agents with credit scoring, revenue-enforced credit, and 8-layer safety controls — all on Solana.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
               <Link
