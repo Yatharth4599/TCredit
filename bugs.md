@@ -1308,3 +1308,88 @@ Webhook secret (`whsec_*`) is returned in the POST response body. If response is
 - ✅ **Rate limiting**: Global rate limiter active (30 req/min for standard, 100 for admin)
 - ✅ **MCP audit logging**: Tool calls logged to stderr with parameter masking
 - ✅ **SDK error boundaries**: `try/catch` on all HTTP calls with typed errors
+
+---
+
+## Part 10 — Full-Repo Exploit Findings (2026-03-24)
+
+**Scope:** `base-contracts/`, `backend/`, `packages/mcp-server/`, `x402-middleware/`  
+**Method:** Deep exploit-focused full-repo review, deduplicated against BUG-001 – BUG-102 and SOL-001 – SOL-070.
+
+| Severity | Count |
+|----------|-------|
+| Critical | 0     |
+| High     | 2     |
+| Medium   | 4     |
+| Low      | 0     |
+| **Total**| **6** |
+
+---
+
+### High
+
+#### BUG-103: x402 middleware accepts payment tokens without verification by default
+**File:** `x402-middleware/src/index.ts:175-183,215-226`
+**Status:** ⬜ Open
+**Severity:** High
+
+`krexaPaywall()` defaults `verify = false`, and then trusts `X-Payment-Token` presence plus unverified payload decode. This creates a fail-open path where integrators using defaults can accept forged payment tokens.
+
+**Fix:** Make verification default-on (`verify = true`) and fail closed if oracle verification cannot run. Treat unverified token payload as advisory only, never as authorization.
+
+---
+
+#### BUG-104: Oracle payment endpoint is API-key gated but not payer-bound
+**Files:** `backend/src/api/routes/oracle.ts:19-31`, `backend/src/services/oracle.service.ts:167-230`, `backend/prisma/schema.prisma:105-113`
+**Status:** ⬜ Open
+**Severity:** High
+
+`POST /api/v1/oracle/payment` accepts `{ from, to, amount }` from any active API key. API keys are not bound to an owner wallet in schema/middleware, so callers can submit payments on behalf of arbitrary `from` addresses (subject to on-chain allowance and router checks).
+
+**Fix:** Bind API keys to owner wallet(s) and enforce `req.apiKey.owner == from` (or explicit scoped permissions). Reject mismatches and log as security events.
+
+---
+
+### Medium
+
+#### BUG-105: packages/mcp-server tools under-validate address/amount inputs
+**Files:** `packages/mcp-server/src/tools/payment.tools.ts:27-30`, `packages/mcp-server/src/tools/wallet.tools.ts:39-42,65-67`, `packages/mcp-server/src/tools/merchant.tools.ts:60-63`
+**Status:** ⬜ Open
+**Severity:** Medium
+
+Multiple tool schemas use broad `z.string()` for addresses and amounts without chain-format checks or numeric bounds. This increases malformed request surface and makes tool misuse easier under LLM prompt injection.
+
+**Fix:** Add strict zod validators (EVM/Solana address regex + canonical parsing, decimal amount regex, min/max bounds, and length constraints).
+
+---
+
+#### BUG-106: packages/mcp-server client trusts backend JSON without runtime validation
+**File:** `packages/mcp-server/src/client.ts:40`
+**Status:** ⬜ Open
+**Severity:** Medium
+
+`return res.json() as Promise<T>` performs unchecked type assertion. Backend schema drift or malicious responses can silently propagate malformed data into MCP tool outputs.
+
+**Fix:** Validate response payloads with runtime schemas (zod) for each endpoint before returning typed objects.
+
+---
+
+#### BUG-107: TraderVaultFactory predicted CREATE2 address can diverge from deployed vault
+**File:** `base-contracts/src/TraderVaultFactory.sol:108-113` (vs deployment path at `:85-99`)
+**Status:** ⬜ Open
+**Severity:** Medium
+
+`predictVaultAddress()` hardcodes `CREDIT_LIMIT_C`, while `createVault()` deploys using tier-derived `creditLimit` (`_limitForTier`). For non-C tiers, predicted and actual addresses can differ.
+
+**Fix:** Make prediction use the same credit-limit derivation path as deployment (or accept all constructor parameters explicitly and hash identically).
+
+---
+
+#### BUG-108: x402 middleware verification path points to a backend route that does not exist
+**Files:** `x402-middleware/src/index.ts:152`, `backend/src/api/routes/oracle.ts:18-75`
+**Status:** ⬜ Open
+**Severity:** Medium
+
+Middleware verification calls `POST /api/v1/oracle/verify-payment`, but current backend oracle routes expose `/payment`, `/health`, and `/payments` only. This breaks verify-mode behavior and encourages running with `verify=false`.
+
+**Fix:** Implement `/api/v1/oracle/verify-payment` or update middleware to a real verification endpoint (e.g. existing x402 verify surface), and add startup health checks to fail fast on misconfiguration.

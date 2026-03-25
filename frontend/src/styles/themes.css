@@ -1,42 +1,19 @@
 /* ============================================
-   THEME SYSTEM
-   Single consistent blue theme across all pages.
-   Per-page accent overrides removed for visual consistency.
-   Only Kickstart keeps its EasyA green (external collab).
+   THEME SYSTEM — Brutalist
+   Single dark theme. Navy + Teal from Krexa logo.
    ============================================ */
 
-/* Default: Blue (all pages) */
 :root {
-  --accent:       #3B82F6;
-  --accent-light: #60A5FA;
-  --accent-dark:  #2563EB;
-  --accent-rgb:   59, 130, 246;
-  --accent-glow:  0 0 60px rgba(59, 130, 246, 0.15);
-  --gradient-primary: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
-  --glow-aurora-primary: radial-gradient(
-    ellipse 80% 40% at 50% 110%,
-    rgba(59, 130, 246, 0.08) 0%,
-    transparent 70%
-  );
-  --text-highlight: #60A5FA;
-  --border-highlight: #2563EB;
-  --border-glow: rgba(59, 130, 246, 0.35);
-}
-
-/* ─── Kickstart: EasyA Green (keep for external collab) ─── */
-[data-theme="kickstart"] {
-  --accent:       #52FFA1;
-  --accent-light: #7BFFC0;
-  --accent-dark:  #3AE085;
-  --accent-rgb:   82, 255, 161;
-  --accent-glow:  0 0 60px rgba(82, 255, 161, 0.20);
-  --gradient-primary: linear-gradient(135deg, #52FFA1 0%, #7BFFC0 100%);
-  --glow-aurora-primary: radial-gradient(
-    ellipse 80% 40% at 50% 110%,
-    rgba(82, 255, 161, 0.10) 0%,
-    transparent 70%
-  );
-  --text-highlight: #7BFFC0;
-  --border-highlight: #3AE085;
-  --border-glow: rgba(82, 255, 161, 0.35);
+  --accent:       #034694;
+  --accent-light: #0A5FCF;
+  --accent-dark:  #022B5C;
+  --accent-rgb:   3, 70, 148;
+  --accent-glow:  none;
+  --accent-teal:      #2DD4BF;
+  --accent-teal-rgb:  45, 212, 191;
+  --gradient-primary: linear-gradient(135deg, #034694 0%, #2DD4BF 100%);
+  --glow-aurora-primary: none;
+  --text-highlight: #2DD4BF;
+  --border-highlight: #034694;
+  --border-glow: none;
 }

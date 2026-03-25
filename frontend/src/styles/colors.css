@@ -1,148 +1,156 @@
 :root {
-  /* ─── Base ───────────────────────────────────── */
-  --bg-black:   #050A12;        /* Deepest background */
-  --bg-dark:    #0B1120;        /* Section backgrounds */
-  --bg-deepest: #050A12;        /* Page background alias */
-  --bg-card:    #111827;        /* Card/panel backgrounds */
-  --bg-card-hover: #1A2235;     /* Card hover state */
-  --bg-elevated:   #1E293B;     /* Elevated elements, dropdowns */
-  --bg-input:      #0F172A;     /* Input field backgrounds */
+  /* ─── Surfaces — Brutalist Pure Black ──────── */
+  --bg-black:      #000000;
+  --bg-dark:       #0A0A0A;
+  --bg-deepest:    #000000;
+  --bg-card:       #111111;
+  --bg-card-hover: #1A1A1A;
+  --bg-elevated:   #222222;
+  --bg-input:      #111111;
+  --bg-page:       #000000;
 
-  /* ─── Surface layers (no borders — differentiate by color) ─── */
-  --surface-0: #050A12;   /* Page background */
-  --surface-1: #0B1120;   /* Subtle elevated (sidebar, panels) */
-  --surface-2: #111827;   /* Cards, main content blocks */
-  --surface-3: #1A2235;   /* Inputs, nested elements, hover targets */
-  --surface-4: #1E293B;   /* Active/selected states */
+  --surface-0: #000000;
+  --surface-1: #0A0A0A;
+  --surface-2: #111111;
+  --surface-3: #1A1A1A;
+  --surface-4: #222222;
 
-  /* Legacy aliases (keep for backward compat) */
-  --color-black:     #050A12;
-  --color-dark-gray: #0B1120;
-  --color-gray:      #1A2235;
+  /* Legacy aliases */
+  --color-black:     #000000;
+  --color-dark-gray: #0A0A0A;
+  --color-gray:      #1A1A1A;
   --color-white:     #FFFFFF;
-  --surface-glass:   rgba(17, 24, 39, 0.8);
+  --surface-glass:   #111111;
   --surface-card:    var(--surface-2);
-  --surface-overlay: rgba(5, 10, 18, 0.92);
+  --surface-overlay: rgba(0, 0, 0, 0.92);
 
-  /* ─── Text ───────────────────────────────────── */
-  --text-primary:   #F1F5F9;   /* Near-white with slight blue tint */
-  --text-secondary: #E2E8F0;   /* Secondary text */
-  --text-tertiary:  #94A3B8;   /* Muted text, labels, placeholders */
-  --text-muted:     #94A3B8;   /* Alias */
-  --text-dim:       #64748B;   /* Very muted, timestamps, footnotes */
-  --text-disabled:  #475569;   /* Disabled state text */
-  --text-highlight: var(--accent);
+  /* ─── Light sections (alternating B&W) ─────── */
+  --surface-light:        #F9F9F9;
+  --text-light-primary:   #1A1C1C;
+  --text-light-secondary: #5E5E5E;
+  --text-light-dim:       #A3A3A3;
 
-  /* ─── Borders ────────────────────────────────── */
+  /* ─── Text ─────────────────────────────────── */
+  --text-primary:   #FFFFFF;
+  --text-secondary: #D4D4D4;
+  --text-tertiary:  #A3A3A3;
+  --text-muted:     #A3A3A3;
+  --text-dim:       #5E5E5E;
+  --text-disabled:  #3A3A3A;
+  --text-highlight: var(--accent-teal);
+
+  /* ─── Borders — Brutalist Thick ────────────── */
   --border-light:     transparent;
-  --border-subtle:    #1E293B;          /* Subtle borders between sections */
-  --border-default:   #334155;          /* Default borders on cards, inputs */
-  --border-medium:    #334155;          /* Alias */
-  --border-hover:     #475569;          /* Hover state borders */
-  --border-focus:     #3B82F6;          /* Focus state — blue glow */
+  --border-subtle:    #222222;
+  --border-default:   #333333;
+  --border-medium:    #333333;
+  --border-hover:     #555555;
+  --border-focus:     var(--accent-teal);
   --border-highlight: var(--accent);
-  --border-glow:      rgba(var(--accent-rgb), 0.35);
+  --border-glow:      none;
+  --border-primary:   #FFFFFF;
+  --border-secondary: #333333;
+  --border-width:     4px;
+  --border-width-lg:  6px;
 
-  /* ─── Accent — default Blue (consistent across all pages) ─── */
-  --accent:       #3B82F6;
-  --accent-light: #60A5FA;
-  --accent-dark:  #2563EB;
-  --accent-rgb:   59, 130, 246;
-  --accent-glow:  0 0 60px rgba(59, 130, 246, 0.15);
+  /* ─── Accent — Logo Colors ─────────────────── */
+  --accent:       #034694;
+  --accent-light: #0A5FCF;
+  --accent-dark:  #022B5C;
+  --accent-rgb:   3, 70, 148;
+  --accent-glow:  none;
+  --accent-teal:      #2DD4BF;
+  --accent-teal-rgb:  45, 212, 191;
 
-  /* ─── Gradients ─────────────────────────────── */
-  --gradient-primary:   linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
-  --gradient-blue:      linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%);
-  --gradient-cta:       linear-gradient(135deg, #2563EB 0%, #06B6D4 100%);
-  --gradient-dark:      linear-gradient(135deg, #050A12 0%, #0B1120 100%);
-  --gradient-card:      linear-gradient(180deg, rgba(17, 24, 39, 0.95) 0%, rgba(11, 17, 32, 0.9) 100%);
-  --gradient-glass:     linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
-  --gradient-gray-1:    #F1F5F9;
-  --gradient-gray-2:    #CBD5E1;
-  --gradient-gray-3:    #94A3B8;
+  /* ─── Gradients — Minimal ──────────────────── */
+  --gradient-primary:   linear-gradient(135deg, #034694 0%, #2DD4BF 100%);
+  --gradient-blue:      linear-gradient(135deg, #022B5C 0%, #034694 100%);
+  --gradient-cta:       linear-gradient(135deg, #034694 0%, #2DD4BF 100%);
+  --gradient-dark:      none;
+  --gradient-card:      none;
+  --gradient-glass:     none;
+  --gradient-gray-1:    #FFFFFF;
+  --gradient-gray-2:    #D4D4D4;
+  --gradient-gray-3:    #A3A3A3;
 
-  /* ─── Aurora glow (bottom ambient) ─────────── */
-  --glow-aurora-primary: radial-gradient(
-    ellipse 80% 40% at 50% 110%,
-    rgba(59, 130, 246, 0.08) 0%,
-    transparent 70%
-  );
+  /* ─── No Aurora ────────────────────────────── */
+  --glow-aurora-primary: none;
 
-  /* ─── Shadows ────────────────────────────────── */
-  --shadow-sm:         0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-md:         0 4px 20px rgba(0, 0, 0, 0.4);
-  --shadow-lg:         0 8px 40px rgba(0, 0, 0, 0.5);
-  --shadow-xl:         0 16px 60px rgba(0, 0, 0, 0.6);
-  --shadow-card:       0 4px 24px rgba(0, 0, 0, 0.4);
-  --shadow-elevated:   0 8px 32px rgba(0, 0, 0, 0.5);
-  --shadow-color:      rgba(0, 0, 0, 0.5);
-  --shadow-light:      rgba(0, 0, 0, 0.2);
-  --shadow-strong:     rgba(0, 0, 0, 0.7);
-  --shadow-glow-blue:  0 0 20px rgba(59, 130, 246, 0.15);
-  --shadow-glow-cyan:  0 0 20px rgba(6, 182, 212, 0.15);
-  --shadow-glow-emerald: 0 0 20px rgba(16, 185, 129, 0.15);
-  --glow-light:        0 0 15px rgba(255, 255, 255, 0.04);
-  --glow-medium:       0 0 24px rgba(255, 255, 255, 0.07);
+  /* ─── No Shadows — Brutalist ───────────────── */
+  --shadow-sm:       none;
+  --shadow-md:       none;
+  --shadow-lg:       none;
+  --shadow-xl:       none;
+  --shadow-card:     none;
+  --shadow-elevated: none;
+  --shadow-color:    none;
+  --shadow-light:    none;
+  --shadow-strong:   none;
+  --shadow-glow-blue:    none;
+  --shadow-glow-cyan:    none;
+  --shadow-glow-emerald: none;
+  --glow-light:      none;
+  --glow-medium:     none;
 
-  /* ─── Glass ──────────────────────────────────── */
-  --glass-blur:    25px;
-  --glass-opacity: 0.85;
+  /* ─── No Glass — Brutalist ─────────────────── */
+  --glass-blur:    0px;
+  --glass-opacity: 1;
   --glass-border:  none;
 
-  /* ─── Buttons ────────────────────────────────── */
+  /* ─── Buttons ──────────────────────────────── */
   --button-primary-bg:      var(--accent);
   --button-primary-text:    #FFFFFF;
-  --button-primary-hover:   var(--accent-dark);
-  --button-secondary-bg:    var(--surface-3);
+  --button-primary-hover:   var(--accent-teal);
+  --button-secondary-bg:    transparent;
   --button-secondary-text:  var(--text-primary);
-  --button-secondary-hover: var(--surface-4);
+  --button-secondary-hover: var(--surface-3);
 
-  /* ─── Shape ──────────────────────────────────── */
-  --card-border-radius:  16px;
-  --panel-border-radius: 20px;
-  --pill-radius:         9999px;
-  --radius-sm:           6px;
-  --radius-md:           10px;
-  --radius-lg:           16px;
-  --radius-xl:           24px;
-  --radius-full:         9999px;
+  /* ─── Shape — 0 Radius ─────────────────────── */
+  --card-border-radius:  0px;
+  --panel-border-radius: 0px;
+  --pill-radius:         0px;
+  --radius-sm:           0px;
+  --radius-md:           0px;
+  --radius-lg:           0px;
+  --radius-xl:           0px;
+  --radius-full:         0px;
 
-  /* ─── Transitions ────────────────────────────── */
+  /* ─── Transitions ──────────────────────────── */
   --transition-fast:   150ms ease;
   --transition-normal: 250ms ease;
   --transition-slow:   400ms ease;
 
-  /* ─── Section Colors ──────────────────────────── */
-  --section-green:  #2CFF05;
-  --section-cyan:   #00FFF0;
+  /* ─── Section Colors ───────────────────────── */
+  --section-green:  #2DD4BF;
+  --section-cyan:   #2DD4BF;
   --section-ruby:   #E0115F;
   --section-orange: #FF5C00;
   --section-gold:   #FFD700;
 
-  /* ─── Standardized Opacity Tiers ─────────────── */
+  /* ─── Opacity Tiers ────────────────────────── */
   --opacity-heavy:  0.85;
   --opacity-body:   0.7;
   --opacity-muted:  0.55;
   --opacity-subtle: 0.4;
   --opacity-ghost:  0.25;
 
-  /* ─── Brand Colors ───────────────────────────── */
-  --color-blue:         #3B82F6;
-  --color-blue-light:   #60A5FA;
-  --color-blue-dark:    #2563EB;
-  --color-cyan:         #06B6D4;
-  --color-cyan-light:   #22D3EE;
+  /* ─── Brand Colors ─────────────────────────── */
+  --color-blue:         #034694;
+  --color-blue-light:   #0A5FCF;
+  --color-blue-dark:    #022B5C;
+  --color-cyan:         #2DD4BF;
+  --color-cyan-light:   #5EEAD4;
   --color-emerald:      #10B981;
   --color-emerald-light: #34D399;
   --color-purple:       #8B5CF6;
   --color-purple-light: #A78BFA;
-  --color-success:      #10B981;
+  --color-success:      #2DD4BF;
   --color-error:        #EF4444;
   --color-warning:      #F59E0B;
-  --color-info:         #3B82F6;
+  --color-info:         #034694;
 
-  /* Legacy orange aliases — map to blue to avoid breaking references */
-  --color-orange:       #3B82F6;
-  --color-orange-light: #60A5FA;
-  --color-orange-dark:  #2563EB;
+  /* Legacy orange aliases */
+  --color-orange:       #034694;
+  --color-orange-light: #0A5FCF;
+  --color-orange-dark:  #022B5C;
 }
