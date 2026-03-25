@@ -9,7 +9,6 @@ import styles from './App.module.css'
 const LandingPage = lazy(() => import('./pages/LandingPage'))
 const DemoPage = lazy(() => import('./pages/DemoPage'))
 const Home = lazy(() => import('./pages/Home'))
-const Demo = lazy(() => import('./pages/Demo'))
 const Vaults = lazy(() => import('./pages/Vaults'))
 const Portfolio = lazy(() => import('./pages/Portfolio'))
 const MerchantDashboard = lazy(() => import('./pages/MerchantDashboard'))
@@ -19,20 +18,14 @@ const AgentWallets = lazy(() => import('./pages/AgentWallets'))
 const WalletDetail = lazy(() => import('./pages/WalletDetail'))
 const AgentIdentity = lazy(() => import('./pages/AgentIdentity'))
 const Gateway = lazy(() => import('./pages/Gateway'))
-const TraderDashboard = lazy(() => import('./pages/TraderDashboard'))
-const WaitlistAdmin = lazy(() => import('./pages/WaitlistAdmin'))
 const X402Demo = lazy(() => import('./pages/X402Demo'))
-const LifecycleDemo = lazy(() => import('./pages/LifecycleDemo'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 
-// Landing page gets its own dark theme; all pages are dark now (brutalist)
 function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation()
 
   useEffect(() => {
-    // Remove any leftover theme attributes
     document.documentElement.removeAttribute('data-theme')
-    // All pages are dark in brutalist design
     document.documentElement.classList.add('dark')
   }, [pathname])
 
@@ -73,11 +66,10 @@ function AppShell() {
       />
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          {/* Landing page — brutalist, no app chrome */}
+          {/* Landing — public, no app chrome */}
           <Route path="/" element={<LandingPage />} />
-          {/* App home */}
+          {/* App pages */}
           <Route path="/app" element={<Home />} />
-          {/* Functional app pages */}
           <Route path="/app/vaults" element={<Vaults />} />
           <Route path="/app/vaults/:address" element={<VaultDetail />} />
           <Route path="/app/portfolio" element={<Portfolio />} />
@@ -87,12 +79,8 @@ function AppShell() {
           <Route path="/app/wallets/:address" element={<WalletDetail />} />
           <Route path="/app/identity" element={<AgentIdentity />} />
           <Route path="/app/gateway" element={<Gateway />} />
-          <Route path="/app/traders" element={<TraderDashboard />} />
           <Route path="/app/x402" element={<X402Demo />} />
-          <Route path="/app/demo" element={<Demo />} />
-          <Route path="/app/lifecycle" element={<LifecycleDemo />} />
-          <Route path="/admin/waitlist" element={<WaitlistAdmin />} />
-          {/* Live demo dashboard — public */}
+          {/* Live demo — public */}
           <Route path="/demo" element={<DemoPage />} />
           {/* Legacy redirects */}
           <Route path="/vaults" element={<Navigate to="/app/vaults" replace />} />
@@ -101,7 +89,6 @@ function AppShell() {
           <Route path="/pools" element={<Navigate to="/app/pools" replace />} />
           <Route path="/merchant" element={<Navigate to="/app/merchant" replace />} />
           <Route path="/x402" element={<Navigate to="/app/x402" replace />} />
-          <Route path="/lifecycle" element={<Navigate to="/app/lifecycle" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>

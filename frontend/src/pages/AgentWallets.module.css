@@ -1,10 +1,15 @@
+/* ============================================
+   AGENT WALLETS — Neo-Brutalist Theme
+   ============================================ */
+
 .page {
   min-height: 100vh;
-  padding: 100px 24px 60px;
+  background: #000;
+  padding: 80px 24px 60px;
 }
 
 .container {
-  max-width: 960px;
+  max-width: 1440px;
   margin: 0 auto;
 }
 
@@ -16,16 +21,21 @@
 }
 
 .title {
-  font-family: var(--font-display);
-  font-size: var(--font-size-3xl);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 48px;
   font-weight: 700;
-  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: -2px;
+  color: #FFF;
   margin: 0;
 }
 
 .subtitle {
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
+  font-family: 'JetBrains Mono', monospace;
+  color: #888;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
   margin: 6px 0 0;
 }
 
@@ -33,25 +43,30 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 20px;
-  background: var(--accent);
-  color: #000;
-  border: none;
-  border-radius: var(--pill-radius);
-  font-weight: 600;
-  font-size: var(--font-size-sm);
+  padding: 12px 22px;
+  background: #034694;
+  border: 3px solid #034694;
+  box-shadow: 4px 4px 0 #333;
+  color: #FFF;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
 .createBtn:hover {
-  opacity: 0.9;
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #034694;
 }
 
 /* My Wallet */
 .myWallet {
-  background: var(--surface-2);
-  border-radius: var(--card-border-radius);
+  background: #0A0A0A;
+  border: 3px solid #333;
+  box-shadow: 6px 6px 0 #333;
   padding: 24px;
   margin-bottom: 32px;
 }
@@ -60,29 +75,36 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--text-primary);
-  font-weight: 600;
+  color: #FFF;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
   margin-bottom: 8px;
 }
 
 .frozenBadge {
-  background: rgba(239, 68, 68, 0.15);
+  background: transparent;
   color: #ef4444;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
-  padding: 2px 8px;
-  border-radius: var(--pill-radius);
-  font-weight: 500;
+  padding: 3px 10px;
+  border: 3px solid #ef4444;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .myWalletAddress {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: var(--font-size-sm);
+  color: #2DD4BF;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
   cursor: pointer;
   margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .myWalletAddress:hover {
@@ -102,25 +124,31 @@
 }
 
 .statLabel {
-  color: var(--text-tertiary);
+  font-family: 'JetBrains Mono', monospace;
+  color: #2DD4BF;
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.14em;
 }
 
 .statValue {
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: var(--font-size-base);
-  font-weight: 600;
+  color: #FFF;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1rem;
+  font-weight: 700;
 }
 
 /* Section */
 .sectionTitle {
-  font-size: var(--font-size-lg);
-  font-weight: 600;
-  color: var(--text-primary);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #FFF;
+  text-transform: uppercase;
+  letter-spacing: -0.5px;
   margin: 0 0 16px;
+  padding-bottom: 12px;
+  border-bottom: 3px solid #333;
 }
 
 /* Grid */
@@ -132,15 +160,18 @@
 
 /* Card */
 .card {
-  background: var(--surface-2);
-  border-radius: var(--card-border-radius);
+  background: #0A0A0A;
+  border: 3px solid #333;
+  box-shadow: 6px 6px 0 #333;
   padding: 20px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
 }
 
 .card:hover {
-  background: var(--surface-3);
+  border-color: #2DD4BF;
+  box-shadow: 6px 6px 0 #2DD4BF;
+  transform: translate(-2px, -2px);
 }
 
 .cardHeader {
@@ -151,10 +182,10 @@
 }
 
 .cardAddr {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-sm);
-  color: var(--text-primary);
-  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #FFF;
+  font-weight: 700;
 }
 
 .frozenIcon {
@@ -162,27 +193,38 @@
 }
 
 .activeIcon {
-  color: #22c55e;
+  color: #2DD4BF;
 }
 
 .cardRow {
   display: flex;
   justify-content: space-between;
   padding: 6px 0;
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #888;
+  border-bottom: 1px solid #222;
+}
+
+.cardRow:last-child {
+  border-bottom: none;
 }
 
 .cardRow span:last-child {
-  color: var(--text-primary);
-  font-family: var(--font-mono);
+  color: #FFF;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
 }
 
 /* Empty */
 .empty {
   text-align: center;
   padding: 60px 20px;
-  color: var(--text-tertiary);
+  color: #666;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .empty svg {
@@ -194,26 +236,30 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
-  backdrop-filter: blur(4px);
 }
 
 .modal {
-  background: var(--surface-1);
-  border-radius: var(--panel-border-radius);
+  background: #F9F9F9;
+  border: 3px solid #000;
+  box-shadow: 8px 8px 0 #000;
   padding: 32px;
   width: 100%;
   max-width: 480px;
+  color: #1A1C1C;
 }
 
 .modalTitle {
-  font-size: var(--font-size-xl);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.25rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #000;
+  text-transform: uppercase;
+  letter-spacing: -1px;
   margin: 0 0 24px;
 }
 
@@ -223,8 +269,12 @@
 
 .formGroup label {
   display: block;
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
   margin-bottom: 6px;
 }
 
@@ -237,35 +287,43 @@
 .input {
   width: 100%;
   padding: 10px 14px;
-  background: var(--surface-3);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: var(--font-size-sm);
+  background: #FFF;
+  border: 3px solid #000;
+  color: #000;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
   outline: none;
   box-sizing: border-box;
 }
 
 .input:focus {
-  border-color: var(--accent);
+  border-color: #2DD4BF;
 }
 
 .submitBtn {
   width: 100%;
-  padding: 12px;
-  background: var(--accent);
-  color: #000;
-  border: none;
-  border-radius: var(--pill-radius);
-  font-weight: 600;
-  font-size: var(--font-size-base);
+  padding: 14px;
+  background: #034694;
+  border: 3px solid #034694;
+  box-shadow: 4px 4px 0 #000;
+  color: #FFF;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   margin-top: 8px;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.submitBtn:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #000;
 }
 
 .submitBtn:disabled {
@@ -281,11 +339,28 @@
   to { transform: rotate(360deg); }
 }
 
-@media (max-width: 768px) {
+/* Responsive */
+@media (max-width: 1024px) {
+  .title {
+    font-size: 36px;
+  }
+}
+
+@media (max-width: 680px) {
+  .page {
+    padding: 80px 16px 60px;
+  }
+  .title {
+    font-size: 28px;
+  }
   .myWalletStats {
     grid-template-columns: repeat(2, 1fr);
   }
   .formRow {
     grid-template-columns: 1fr;
+  }
+  .header {
+    flex-direction: column;
+    gap: 16px;
   }
 }

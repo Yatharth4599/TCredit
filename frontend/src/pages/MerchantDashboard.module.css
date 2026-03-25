@@ -1,109 +1,119 @@
 /* ============================================
-   MERCHANT DASHBOARD — Amber accent, alternating sections
+   MERCHANT DASHBOARD — Neo-Brutalist Theme
    ============================================ */
 
 .page {
   min-height: 100vh;
-  background: var(--bg-dark);
+  background: #000;
 }
 
-/* ─── Hero Band ────────────────────────────── */
+/* --- Hero Band --- */
 .hero {
-  background: var(--accent);
+  background: #034694;
   padding: 120px 24px 48px;
+  border-bottom: 3px solid #000;
 }
 
 .heroInner {
-  max-width: 1280px;
+  max-width: 1440px;
   margin: 0 auto;
 }
 
 .heroLabel {
-  font-size: 0.72rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(0, 0, 0, 0.45);
-  margin-bottom: 8px;
+  color: #2DD4BF;
+  margin-bottom: 12px;
 }
 
 .heroTitle {
-  font-family: var(--font-display);
-  font-size: clamp(2.2rem, 5vw, 3.4rem);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  color: #000;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(40px, 5vw, 64px);
+  font-weight: 700;
+  letter-spacing: -3px;
+  text-transform: uppercase;
+  color: #FFF;
   margin: 0 0 8px;
 }
 
 .heroSub {
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
   font-weight: 600;
-  color: rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
-/* ─── Stats Row (dark bg) ─────────────────── */
+/* --- Stats Row (dark bg) --- */
 .statsRow {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-  max-width: 1280px;
+  max-width: 1440px;
   margin: 0 auto;
   padding: 32px 24px 0;
 }
 
 .statCard {
   padding: 24px 20px;
-  border-radius: 12px;
-  background: var(--surface-1);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #0A0A0A;
+  border: 3px solid #333;
+  box-shadow: 6px 6px 0 #333;
 }
 
 .statValue {
-  font-family: var(--font-mono);
+  font-family: 'JetBrains Mono', monospace;
   font-size: clamp(1.5rem, 3vw, 2rem);
   font-weight: 800;
-  color: var(--accent);
+  color: #2DD4BF;
   line-height: 1;
   margin-bottom: 4px;
 }
 
 .statLabel {
-  font-size: 0.72rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--text-tertiary);
+  color: #888;
 }
 
 .statSub {
-  font-size: 0.72rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
   margin-top: 4px;
-  color: var(--text-tertiary);
-  opacity: 0.7;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
-/* ─── White Section (content panels) ───────── */
+/* --- White Section (content panels) --- */
 .body {
-  background: #FFFFFF;
+  background: #F9F9F9;
   margin-top: 32px;
   padding: 48px 24px 60px;
+  border-top: 3px solid #000;
+  color: #1A1C1C;
 }
 
-/* ─── Content Panels ───────────────────────── */
+/* --- Content Panels --- */
 .contentGrid {
   display: grid;
   grid-template-columns: 1fr 2fr;
   gap: 20px;
-  max-width: 1280px;
+  max-width: 1440px;
   margin: 0 auto;
 }
 
 .panel {
-  background: #FFFFFF;
-  border: 1px solid #E5E5E5;
-  border-radius: 12px;
+  background: #F9F9F9;
+  border: 3px solid #000;
+  box-shadow: 8px 8px 0 #000;
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -115,31 +125,35 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 3px solid #000;
 }
 
 .sectionTitle {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.72rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.14em;
   color: #000;
 }
 
-.sectionIcon { color: var(--accent); }
+.sectionIcon { color: #2DD4BF; }
 
 .liveBadge {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 0.68rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
   font-weight: 700;
-  color: #16a34a;
+  color: #2DD4BF;
   padding: 4px 10px;
-  background: rgba(22, 163, 74, 0.08);
-  border-radius: 999px;
+  background: #000;
+  border: 2px solid #2DD4BF;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -147,8 +161,7 @@
 .liveDot {
   width: 6px;
   height: 6px;
-  border-radius: 50%;
-  background: #16a34a;
+  background: #2DD4BF;
   animation: pulse 1.5s infinite;
 }
 
@@ -170,39 +183,46 @@
   align-items: center;
   gap: 10px;
   padding: 12px 0;
-  border-bottom: 1px solid #E5E5E5;
+  border-bottom: 2px solid #DDD;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.1s;
 }
 
 .paymentRow:last-child { border-bottom: none; }
-.paymentRow:hover { background: #FAFAFA; }
+.paymentRow:hover { background: #F0F0F0; }
 
 .paymentLeft { flex: 1; }
 .paymentSource {
   display: block;
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
   color: #000;
-  font-family: var(--font-mono);
+  text-transform: uppercase;
 }
-.paymentVault { font-size: 0.7rem; color: rgba(0, 0, 0, 0.45); }
+.paymentVault {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
 
 .paymentRight { text-align: right; }
 .paymentAmount {
   display: block;
-  font-family: var(--font-mono);
-  font-size: 0.88rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
   font-weight: 700;
-  color: var(--accent);
+  color: #2DD4BF;
 }
 .paymentTime {
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  color: rgba(0, 0, 0, 0.4);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #999;
 }
 
-.paymentChevron { color: rgba(0, 0, 0, 0.25); flex-shrink: 0; }
+.paymentChevron { color: #CCC; flex-shrink: 0; }
 
 /* Vault list */
 .vaultList {
@@ -213,14 +233,15 @@
 
 .vaultItem {
   padding: 16px;
-  background: #F5F5F7;
-  border: 1px solid #E5E5E5;
-  border-radius: 12px;
-  transition: background 0.15s ease;
+  background: #FFF;
+  border: 3px solid #000;
+  box-shadow: 4px 4px 0 #000;
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
 .vaultItem:hover {
-  background: #ECECEE;
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #000;
 }
 
 .vaultTop {
@@ -231,28 +252,32 @@
 }
 
 .vaultName {
-  font-family: var(--font-display);
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #000;
+  text-transform: uppercase;
   margin: 0 0 3px;
 }
 
 .vaultMeta {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: rgba(0, 0, 0, 0.45);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .vaultStatus {
-  font-size: 0.68rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
   font-weight: 700;
   padding: 4px 10px;
-  border-radius: 999px;
+  border: 2px solid #000;
   white-space: nowrap;
   flex-shrink: 0;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
 .vaultAmounts {
@@ -262,39 +287,41 @@
 }
 
 .vaultAmtVal {
-  font-family: var(--font-mono);
+  font-family: 'JetBrains Mono', monospace;
   font-size: 1rem;
   font-weight: 700;
   color: #000;
   display: block;
 }
 .vaultAmtLbl {
-  font-size: 0.68rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: rgba(0, 0, 0, 0.45);
+  letter-spacing: 0.14em;
+  color: #666;
 }
 
 .vaultProgressBar {
-  height: 4px;
-  background: #E5E5E5;
-  border-radius: 999px;
+  height: 6px;
+  background: #DDD;
+  border: 2px solid #000;
   overflow: hidden;
   margin-bottom: 4px;
 }
 
 .vaultProgressFill {
   height: 100%;
-  background: var(--accent);
-  border-radius: 999px;
+  background: #2DD4BF;
   transition: width 0.8s ease;
 }
 
 .vaultProgressMeta {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: rgba(0, 0, 0, 0.45);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #666;
   margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .vaultActions {
@@ -304,41 +331,41 @@
 
 .manageBtn {
   padding: 8px 16px;
-  border-radius: 8px;
   background: transparent;
-  border: 1px solid #E5E5E5;
+  border: 3px solid #000;
+  box-shadow: 3px 3px 0 #000;
   color: #000;
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
 .manageBtn:hover {
-  border-color: #ccc;
-  background: #F0F0F0;
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 #000;
 }
 
 .copyBtn {
   padding: 8px 16px;
-  border-radius: 8px;
   background: transparent;
-  border: 1px solid #E5E5E5;
+  border: 3px solid #CCC;
   color: #666;
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  transition: border-color 0.1s, color 0.1s;
 }
 
 .copyBtn:hover {
-  border-color: var(--accent, #52FFA1);
-  color: var(--accent, #52FFA1);
-  background: rgba(82, 255, 161, 0.06);
+  border-color: #2DD4BF;
+  color: #2DD4BF;
 }
 
 /* Create button */
@@ -346,244 +373,32 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  background: var(--accent);
-  border: none;
-  color: #000;
+  padding: 10px 18px;
+  background: #034694;
+  border: 3px solid #034694;
+  box-shadow: 4px 4px 0 #000;
+  color: #FFF;
+  font-family: 'JetBrains Mono', monospace;
   font-weight: 700;
-  font-size: 0.78rem;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   cursor: pointer;
-  transition: transform 0.15s ease, filter 0.15s ease;
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
 .createBtn:hover {
-  transform: scale(0.97);
-  filter: brightness(1.1);
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #000;
 }
 
-/* ─── Modal (dark bg) ─────────────────────── */
-.modalOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  z-index: 500;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal {
-  background: #0C0F14;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  width: 480px;
-  max-width: 90vw;
-}
-
-.modalHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.modalHeader h2 {
-  font-family: var(--font-display);
-  font-size: 0.85rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.modalClose {
-  width: 28px; height: 28px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: transparent;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: border-color 0.15s ease, color 0.15s ease;
-}
-
-.modalClose:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.modalBody {
-  padding: 20px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.formLabel {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-tertiary);
-  display: block;
-  margin-bottom: 6px;
-}
-
-.formInput {
-  width: 100%;
-  padding: 10px 12px;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: 0.875rem;
-  box-sizing: border-box;
-  transition: border-color 0.15s ease;
-}
-
-.formInput:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-.formInput::placeholder { color: var(--text-tertiary); }
-
-.formRow {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.formGroup { display: flex; flex-direction: column; }
-
-.inputError { border-color: #e53e3e !important; }
-.fieldError { font-size: 11px; color: #e53e3e; margin-top: 4px; }
-
-.creditWarning {
-  margin-bottom: 8px;
-  padding: 12px 16px;
-  background: rgba(229, 62, 62, 0.1);
-  border: 1px solid rgba(229, 62, 62, 0.3);
-  border-radius: 8px;
-  font-size: 12px;
-  color: #e53e3e;
-  line-height: 1.5;
-}
-
-.modalFooter {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 16px 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.cancelBtn {
-  padding: 10px 20px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease;
-}
-
-.cancelBtn:hover {
-  border-color: rgba(255, 255, 255, 0.2);
-  color: var(--text-primary);
-}
-
-.submitBtn {
-  padding: 10px 22px;
-  border-radius: 8px;
-  background: var(--accent);
-  border: none;
-  color: #000;
-  font-weight: 700;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  cursor: pointer;
-  transition: transform 0.15s ease, filter 0.15s ease;
-}
-
-.submitBtn:hover {
-  transform: scale(0.97);
-  filter: brightness(1.1);
-}
-
-.submitBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-/* ─── Connect / Empty / Loading ────────────── */
-.connectPrompt {
-  min-height: 60vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  color: var(--text-tertiary);
-  text-align: center;
-  padding: 120px 24px 60px;
-}
-
-.connectPrompt h2 {
-  font-family: var(--font-display);
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.connectPrompt p {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-.emptyPayments,
-.emptyVaults,
-.emptyChart {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 30px 20px;
-  color: rgba(0, 0, 0, 0.4);
-  font-size: 0.85rem;
-  flex: 1;
-}
-
-.emptyChart p,
-.emptyVaults p {
-  margin: 0;
-  color: rgba(0, 0, 0, 0.4);
-}
-
-/* Spinner */
-.spinner { animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ─── Quick Apply Card ─────────────────────── */
+/* --- Quick Apply Card --- */
 .quickApply {
-  max-width: 1280px;
+  max-width: 1440px;
   margin: 0 auto 24px;
-  background: #0C0F14;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
+  background: #0A0A0A;
+  border: 3px solid #333;
+  box-shadow: 6px 6px 0 #333;
   overflow: hidden;
 }
 
@@ -592,25 +407,27 @@
   align-items: center;
   gap: 16px;
   padding: 24px 28px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 3px solid #333;
   flex-wrap: wrap;
 }
 
 .qaEyebrow {
-  font-size: 0.68rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: #2DD4BF;
   white-space: nowrap;
 }
 
 .qaTitle {
-  font-family: var(--font-display);
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 1.6rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: #fff;
+  font-weight: 700;
+  letter-spacing: -1px;
+  text-transform: uppercase;
+  color: #FFF;
   flex: 1;
 }
 
@@ -623,36 +440,36 @@
 }
 
 .qaTierBadge {
-  font-size: 0.72rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   padding: 5px 12px;
-  border-radius: 999px;
-  border: 1px solid;
+  border: 3px solid;
 }
 
 .qaTierBadge[data-tier="A"] {
-  background: rgba(82, 255, 161, 0.12);
-  border-color: rgba(82, 255, 161, 0.35);
-  color: #52FFA1;
+  background: transparent;
+  border-color: #2DD4BF;
+  color: #2DD4BF;
 }
 
 .qaTierBadge[data-tier="B"] {
-  background: rgba(82, 200, 255, 0.12);
-  border-color: rgba(82, 200, 255, 0.35);
+  background: transparent;
+  border-color: #52C8FF;
   color: #52C8FF;
 }
 
 .qaTierBadge[data-tier="C"] {
-  background: rgba(255, 200, 82, 0.12);
-  border-color: rgba(255, 200, 82, 0.35);
+  background: transparent;
+  border-color: #FFC852;
   color: #FFC852;
 }
 
 .qaTierBadge[data-tier="D"] {
-  background: rgba(229, 62, 62, 0.1);
-  border-color: rgba(229, 62, 62, 0.3);
+  background: transparent;
+  border-color: #FC8181;
   color: #FC8181;
 }
 
@@ -674,18 +491,19 @@
 }
 
 .qaFieldLabel {
-  font-size: 0.72rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.4);
+  color: #888;
 }
 
 .qaAmountVal {
-  font-family: var(--font-mono);
+  font-family: 'JetBrains Mono', monospace;
   font-size: 1.5rem;
   font-weight: 800;
-  color: #fff;
+  color: #FFF;
 }
 
 /* Range slider */
@@ -693,9 +511,8 @@
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 999px;
+  height: 6px;
+  background: #333;
   outline: none;
   cursor: pointer;
 }
@@ -703,26 +520,25 @@
 .qaSlider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--accent);
+  width: 20px;
+  height: 20px;
+  background: #2DD4BF;
+  border: 3px solid #FFF;
   cursor: pointer;
-  box-shadow: 0 0 0 3px rgba(82, 255, 161, 0.2);
-  transition: box-shadow 0.15s ease;
 }
 
 .qaSlider::-webkit-slider-thumb:hover {
-  box-shadow: 0 0 0 5px rgba(82, 255, 161, 0.25);
+  background: #FFF;
 }
 
 .qaSliderBounds {
   display: flex;
   justify-content: space-between;
   margin-top: 6px;
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  color: rgba(255, 255, 255, 0.3);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
 }
 
 /* Term pills */
@@ -734,25 +550,27 @@
 
 .qaTermPill {
   padding: 8px 18px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 3px solid #333;
   background: transparent;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.8rem;
-  font-weight: 600;
+  color: #888;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.1s, color 0.1s;
 }
 
 .qaTermPill:hover {
-  border-color: rgba(255, 255, 255, 0.25);
-  color: rgba(255, 255, 255, 0.8);
+  border-color: #FFF;
+  color: #FFF;
 }
 
 .qaTermActive {
-  border-color: var(--accent) !important;
-  color: var(--accent) !important;
-  background: rgba(82, 255, 161, 0.08) !important;
+  border-color: #2DD4BF !important;
+  color: #2DD4BF !important;
+  background: rgba(45, 212, 191, 0.08) !important;
 }
 
 /* Summary row */
@@ -760,9 +578,8 @@
   display: flex;
   gap: 32px;
   padding: 16px 20px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
+  background: #111;
+  border: 3px solid #333;
   flex-wrap: wrap;
 }
 
@@ -773,14 +590,14 @@
 }
 
 .qaSummaryRow .qaFieldLabel {
-  font-size: 0.65rem;
+  font-size: 11px;
 }
 
 .qaSummaryVal {
-  font-family: var(--font-mono);
+  font-family: 'JetBrains Mono', monospace;
   font-size: 1rem;
   font-weight: 700;
-  color: #fff;
+  color: #FFF;
 }
 
 /* Footer */
@@ -796,44 +613,45 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 13px 28px;
-  border-radius: 10px;
-  background: var(--accent);
-  border: none;
+  padding: 14px 28px;
+  background: #2DD4BF;
+  border: 3px solid #2DD4BF;
+  box-shadow: 4px 4px 0 #333;
   color: #000;
+  font-family: 'JetBrains Mono', monospace;
   font-weight: 800;
-  font-size: 0.9rem;
+  font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   cursor: pointer;
-  transition: transform 0.15s ease, filter 0.15s ease;
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
-.qaCta:hover {
-  transform: scale(0.97);
-  filter: brightness(1.08);
+.qaCta:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #2DD4BF;
 }
 
 .qaCta:disabled {
   opacity: 0.45;
   cursor: not-allowed;
   transform: none;
-  filter: none;
 }
 
 .qaExplorerLink {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  color: var(--accent);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #2DD4BF;
   text-decoration: none;
-  opacity: 0.8;
-  transition: opacity 0.15s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: opacity 0.15s;
 }
 
-.qaExplorerLink:hover { opacity: 1; }
+.qaExplorerLink:hover { opacity: 0.7; }
 
 /* Advanced Options toggle */
 .advancedToggle {
@@ -843,16 +661,18 @@
   margin-left: auto;
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  color: #666;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: color 0.15s ease;
   padding: 0;
+  transition: color 0.1s;
 }
 
-.advancedToggle:hover { color: rgba(255, 255, 255, 0.7); }
+.advancedToggle:hover { color: #FFF; }
 
 .advancedChevron {
   transition: transform 0.25s ease;
@@ -866,7 +686,7 @@
 /* Advanced expandable section */
 .advancedSection {
   overflow: hidden;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 3px solid #333;
 }
 
 .advancedInner {
@@ -877,18 +697,100 @@
 }
 
 .advancedTitle {
-  font-size: 0.68rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.3);
+  color: #666;
   margin-bottom: 4px;
+}
+
+.creditWarning {
+  margin-bottom: 8px;
+  padding: 12px 16px;
+  background: rgba(229, 62, 62, 0.1);
+  border: 3px solid #e53e3e;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #e53e3e;
+  line-height: 1.5;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.formGroup { display: flex; flex-direction: column; }
+
+.formLabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #888;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.formInput {
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: 3px solid #333;
+  color: #FFF;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: #2DD4BF;
+}
+.formInput::placeholder { color: #555; }
+
+.inputError { border-color: #e53e3e !important; }
+.fieldError {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #e53e3e;
+  margin-top: 4px;
+  text-transform: uppercase;
 }
 
 .advancedActions {
   display: flex;
   justify-content: flex-end;
   padding-top: 8px;
+}
+
+.submitBtn {
+  padding: 12px 24px;
+  background: #034694;
+  border: 3px solid #034694;
+  box-shadow: 4px 4px 0 #333;
+  color: #FFF;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.submitBtn:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #034694;
+}
+
+.submitBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* Tier D blocked state */
@@ -898,22 +800,81 @@
   gap: 12px;
   padding: 16px 20px;
   background: rgba(229, 62, 62, 0.08);
-  border: 1px solid rgba(229, 62, 62, 0.25);
-  border-radius: 10px;
-  font-size: 0.85rem;
+  border: 3px solid #e53e3e;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
   color: #FC8181;
   line-height: 1.5;
+  text-transform: uppercase;
 }
 
-/* ─── Responsive ───────────────────────────── */
+/* --- Connect / Empty / Loading --- */
+.connectPrompt {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: #888;
+  text-align: center;
+  padding: 120px 24px 60px;
+}
+
+.connectPrompt h2 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 48px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -2px;
+  color: #FFF;
+  margin: 0;
+}
+
+.connectPrompt p {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: #888;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.emptyPayments,
+.emptyVaults {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 30px 20px;
+  color: #999;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex: 1;
+}
+
+.emptyVaults p {
+  margin: 0;
+  color: #999;
+}
+
+/* Spinner */
+.spinner { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* --- Responsive --- */
 @media (max-width: 1024px) {
   .contentGrid { grid-template-columns: 1fr; }
   .statsRow { grid-template-columns: repeat(2, 1fr); }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 680px) {
   .hero { padding: 100px 16px 36px; }
   .statsRow { grid-template-columns: 1fr; padding: 24px 16px 0; }
   .body { padding: 32px 16px 40px; }
   .formRow { grid-template-columns: 1fr; }
+  .heroTitle { font-size: 36px; letter-spacing: -2px; }
 }

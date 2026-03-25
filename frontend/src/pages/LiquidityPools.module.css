@@ -1,104 +1,114 @@
 /* ============================================
-   LIQUIDITY POOLS — Purple accent, alternating sections
+   LIQUIDITY POOLS — Neo-Brutalist Theme
    ============================================ */
 
 .page {
   min-height: 100vh;
-  background: var(--bg-dark);
+  background: #000;
 }
 
-/* ─── Hero Band ────────────────────────────── */
+/* --- Hero Band --- */
 .hero {
-  background: var(--accent);
+  background: #034694;
   padding: 120px 24px 48px;
+  border-bottom: 3px solid #000;
 }
 
 .heroInner {
-  max-width: 1280px;
+  max-width: 1440px;
   margin: 0 auto;
 }
 
 .heroLabel {
-  font-size: 0.72rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.6);
-  margin-bottom: 8px;
+  color: #2DD4BF;
+  margin-bottom: 12px;
 }
 
 .heroTitle {
-  font-family: var(--font-display);
-  font-size: clamp(2.2rem, 5vw, 3.4rem);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  color: #fff;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(40px, 5vw, 64px);
+  font-weight: 700;
+  letter-spacing: -3px;
+  text-transform: uppercase;
+  color: #FFF;
   margin: 0 0 12px;
 }
 
 .heroSubtitle {
-  font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.7);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
   max-width: 540px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1.7;
 }
 
-/* ─── Stats Row (dark bg) ─────────────────── */
+/* --- Stats Row (dark bg) --- */
 .statsRow {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-  max-width: 1280px;
+  max-width: 1440px;
   margin: 0 auto;
   padding: 32px 24px 0;
 }
 
 .statCard {
-  background: var(--surface-1);
-  border-radius: 12px;
+  background: #0A0A0A;
+  border: 3px solid #333;
+  box-shadow: 6px 6px 0 #333;
   padding: 24px 20px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .statLabel {
-  font-size: 0.68rem;
-  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-tertiary);
+  letter-spacing: 0.14em;
+  color: #2DD4BF;
 }
 
 .statValue {
-  font-family: var(--font-mono);
+  font-family: 'JetBrains Mono', monospace;
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--accent);
+  color: #FFF;
 }
 
-/* ─── White Section (pool cards) ──────────── */
+/* --- White Section (pool cards) --- */
 .whiteSection {
-  background: #FFFFFF;
+  background: #F9F9F9;
   margin-top: 32px;
   padding: 48px 24px 60px;
+  border-top: 3px solid #000;
 }
 
 .whiteSectionInner {
-  max-width: 1280px;
+  max-width: 1440px;
   margin: 0 auto;
 }
 
 .sectionLabel {
-  font-size: 0.72rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.18em;
-  color: rgba(0, 0, 0, 0.45);
+  letter-spacing: 0.14em;
+  color: #1A1C1C;
   margin-bottom: 20px;
 }
 
-/* ─── Pool Grid ───────────────────────────── */
+/* --- Pool Grid --- */
 .poolGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -107,19 +117,22 @@
 }
 
 .poolCard {
-  background: #FFFFFF;
-  border-radius: 12px;
-  border: 1px solid #E5E5E5;
+  background: #F9F9F9;
+  border: 3px solid #000;
+  box-shadow: 8px 8px 0 #000;
   padding: 28px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  color: #1A1C1C;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
 }
 
 .poolCard:hover {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  border-color: #2DD4BF;
+  box-shadow: 8px 8px 0 #2DD4BF;
+  transform: translate(-2px, -2px);
 }
 
 .treasuryCard {
-  border-top: 4px solid var(--accent);
+  border-top: 6px solid #034694;
 }
 
 /* Pool header */
@@ -138,50 +151,52 @@
 }
 
 .poolApyVal {
-  font-family: var(--font-mono);
+  font-family: 'JetBrains Mono', monospace;
   font-size: 2.5rem;
   font-weight: 800;
-  color: var(--accent);
+  color: #2DD4BF;
   line-height: 1;
 }
 
 .poolApyLabel {
-  font-size: 0.62rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(0, 0, 0, 0.4);
+  letter-spacing: 0.14em;
+  color: #666;
 }
 
 .poolType {
-  font-size: 0.68rem;
-  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(0, 0, 0, 0.4);
+  letter-spacing: 0.14em;
+  color: #666;
   margin-bottom: 6px;
 }
 
 .poolName {
-  font-family: var(--font-display);
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 1.2rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #000;
+  text-transform: uppercase;
 }
 
 /* Utilization bar */
 .utilizationBar {
   height: 8px;
-  background: #E5E5E5;
-  border-radius: 999px;
+  background: #DDD;
+  border: 2px solid #000;
   overflow: hidden;
   margin-bottom: 20px;
 }
 
 .utilizationFill {
   height: 100%;
-  background: var(--accent);
-  border-radius: 999px;
+  background: #2DD4BF;
   transition: width 0.8s ease;
 }
 
@@ -191,8 +206,8 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   padding: 16px 0;
-  border-top: 1px solid #E5E5E5;
-  border-bottom: 1px solid #E5E5E5;
+  border-top: 3px solid #000;
+  border-bottom: 3px solid #000;
   margin-bottom: 16px;
 }
 
@@ -202,18 +217,19 @@
 
 .poolStatValue {
   display: block;
-  font-family: var(--font-mono);
+  font-family: 'JetBrains Mono', monospace;
   font-size: 0.95rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #000;
   margin-bottom: 4px;
 }
 
 .poolStatLabel {
-  font-size: 0.65rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: rgba(0, 0, 0, 0.45);
+  letter-spacing: 0.14em;
+  color: #666;
 }
 
 /* Pool footer */
@@ -230,20 +246,23 @@
 
 .depositBtn {
   flex: 1;
-  padding: 10px 20px;
-  border-radius: 8px;
-  background: var(--accent);
-  border: none;
-  color: #fff;
+  padding: 12px 20px;
+  background: #034694;
+  border: 3px solid #034694;
+  box-shadow: 4px 4px 0 #000;
+  color: #FFF;
+  font-family: 'JetBrains Mono', monospace;
   font-weight: 700;
-  font-size: 0.8rem;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   cursor: pointer;
-  transition: transform 0.15s ease, filter 0.15s ease;
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
 .depositBtn:hover:not(:disabled) {
-  transform: scale(0.97);
-  filter: brightness(1.1);
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #000;
 }
 
 .depositBtn:disabled {
@@ -253,20 +272,23 @@
 
 .withdrawBtn {
   flex: 1;
-  padding: 10px 20px;
-  border-radius: 8px;
+  padding: 12px 20px;
   background: transparent;
-  border: 1px solid #E5E5E5;
+  border: 3px solid #000;
+  box-shadow: 4px 4px 0 #000;
   color: #000;
-  font-weight: 600;
-  font-size: 0.8rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
 .withdrawBtn:hover:not(:disabled) {
-  background: #F5F5F7;
-  border-color: #ccc;
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #000;
 }
 
 .withdrawBtn:disabled {
@@ -274,7 +296,7 @@
   cursor: not-allowed;
 }
 
-/* ─── Loading & Empty ─────────────────────── */
+/* --- Loading & Empty --- */
 .spinner {
   animation: spin 0.8s linear infinite;
 }
@@ -282,39 +304,31 @@
   to { transform: rotate(360deg); }
 }
 
-.loadingState {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 60px 20px;
-  color: rgba(0, 0, 0, 0.4);
-  font-size: 0.9rem;
-}
-
 .emptyState {
   grid-column: 1 / -1;
   text-align: center;
   padding: 60px 20px;
-  color: rgba(0, 0, 0, 0.4);
-  font-size: 0.9rem;
+  color: #666;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .connectHint {
   margin: 0;
-  font-size: 0.8125rem;
-  color: rgba(245, 245, 247, 0.35);
-  font-style: italic;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
-/* ─── Modal (dark bg) ─────────────────────── */
+/* --- Modal (light panel) --- */
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(16px);
+  background: rgba(0, 0, 0, 0.8);
   z-index: 500;
   display: flex;
   align-items: center;
@@ -322,20 +336,21 @@
 }
 
 .modalContent {
-  background: #0C0F14;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
+  background: #F9F9F9;
+  border: 3px solid #000;
+  box-shadow: 8px 8px 0 #000;
   padding: 28px;
   width: 420px;
   max-width: 90vw;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  color: #1A1C1C;
 }
 
 .modalContent h3 {
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #000;
+  text-transform: uppercase;
   margin: 0 0 20px;
 }
 
@@ -345,30 +360,29 @@
 
 .modalInput label {
   display: block;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-tertiary);
+  letter-spacing: 0.14em;
+  color: #666;
   margin-bottom: 8px;
 }
 
 .modalInput input {
   width: 100%;
   padding: 12px 14px;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-family: var(--font-mono);
+  background: #FFF;
+  border: 3px solid #000;
+  color: #000;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 0.95rem;
   box-sizing: border-box;
-  transition: border-color 0.15s ease;
 }
 
 .modalInput input:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: #2DD4BF;
 }
 
 .modalActions {
@@ -379,38 +393,43 @@
 
 .cancelBtn {
   padding: 10px 20px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 3px solid #000;
   background: transparent;
-  color: var(--text-secondary);
-  font-size: 0.85rem;
+  color: #000;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition: background 0.1s;
 }
 
 .cancelBtn:hover {
-  border-color: rgba(255, 255, 255, 0.2);
-  color: var(--text-primary);
+  background: #EEE;
 }
 
 .confirmBtn {
   padding: 10px 24px;
-  border-radius: 8px;
-  background: var(--accent);
-  border: none;
-  color: #fff;
+  background: #034694;
+  border: 3px solid #034694;
+  box-shadow: 4px 4px 0 #000;
+  color: #FFF;
+  font-family: 'JetBrains Mono', monospace;
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   cursor: pointer;
-  transition: transform 0.15s ease, filter 0.15s ease;
   display: flex;
   align-items: center;
   gap: 6px;
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
 .confirmBtn:hover:not(:disabled) {
-  transform: scale(0.97);
-  filter: brightness(1.1);
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #000;
 }
 
 .confirmBtn:disabled {
@@ -418,25 +437,19 @@
   cursor: not-allowed;
 }
 
-/* ─── Responsive ──────────────────────────── */
+/* --- Responsive --- */
 @media (max-width: 1024px) {
   .statsRow {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 680px) {
   .hero { padding: 100px 16px 36px; }
   .statsRow { grid-template-columns: 1fr; padding: 24px 16px 0; }
   .whiteSection { padding: 32px 16px 40px; }
 
   .poolGrid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 480px) {
-  .statsRow {
     grid-template-columns: 1fr;
   }
 
