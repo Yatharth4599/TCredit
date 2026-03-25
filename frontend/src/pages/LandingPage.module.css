@@ -993,11 +993,11 @@
 
 /* ── Footer ──────────────────────────────────────────────── */
 
-/* ── Footer — Navy Blue (Valeo-inspired) ──────────────── */
+/* ── Footer — Classic + Boxy Cards ────────────────────── */
 
 .footer {
-  background: #034694;
-  padding: 64px 24px 32px;
+  background: #F9F9F9;
+  padding: 80px 24px 32px;
 }
 
 .footerInner {
@@ -1005,14 +1005,16 @@
   margin: 0 auto;
 }
 
-.footerContent {
+.footerTop {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
   gap: 80px;
 }
 
-.footerLeft { max-width: 400px; }
+.footerLeft {
+  max-width: 360px;
+  flex-shrink: 0;
+}
 
 .footerBrandRow {
   display: flex;
@@ -1021,77 +1023,112 @@
   margin-bottom: 16px;
 }
 
-.footerLogoImg {
-  height: 32px;
-  width: auto;
-}
+.footerLogoImg { height: 36px; width: auto; }
 
 .footerBrand {
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
-  color: #FFF;
-  letter-spacing: 0.04em;
+  color: #1A1C1C;
 }
 
 .footerTagline {
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 16px;
-  color: rgba(255,255,255,0.7);
-  line-height: 1.5;
+  font-size: 15px;
+  color: #5E5E5E;
+  line-height: 1.6;
   margin-bottom: 12px;
 }
 
 .footerAddr {
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
-  color: rgba(255,255,255,0.4);
-  letter-spacing: 0.02em;
+  color: #A3A3A3;
+  letter-spacing: 0.04em;
 }
 
-.footerCols {
+.footerRight {
   display: flex;
-  gap: 80px;
+  gap: 40px;
+  flex: 1;
+  justify-content: flex-end;
 }
 
-.footerCol {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.footerColGroup {
+  min-width: 200px;
 }
 
 .footerColTitle {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  color: #FFF;
-  margin-bottom: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: #A3A3A3;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
 }
 
-.footerLink {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 15px;
-  color: rgba(255,255,255,0.65);
-  text-decoration: none;
-  transition: color 0.15s;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  text-align: left;
+.footerCards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-.footerLink:hover { color: #FFF; }
+
+.footerCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #FFF;
+  border: 2px solid #1A1C1C;
+  box-shadow: 4px 4px 0 #1A1C1C;
+  padding: 12px 16px;
+  text-decoration: none;
+  color: #1A1C1C;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.footerCard:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #1A1C1C;
+}
+
+.footerCardLabel {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  flex: 1;
+}
+
+.footerCardArrow {
+  font-size: 14px;
+  color: #A3A3A3;
+  flex-shrink: 0;
+}
 
 .footerDivider {
   height: 1px;
-  background: rgba(255,255,255,0.15);
+  background: #E0E0E0;
   margin: 48px 0 20px;
 }
 
+.footerBottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .footerCopyright {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 13px;
-  color: rgba(255,255,255,0.4);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #A3A3A3;
+}
+
+.footerLegal {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #A3A3A3;
+  letter-spacing: 0.04em;
 }
 
 /* ── Responsive ──────────────────────────────────────────── */
@@ -1107,7 +1144,6 @@
   .levelsGrid { grid-template-columns: repeat(2, 1fr); }
   .scoreSection { grid-template-columns: 1fr; }
   .waterfallLayout { grid-template-columns: 1fr; }
-  .footerCols { gap: 40px; }
   .scoreBig { font-size: 80px; }
   .waterfallStatNum { font-size: 48px; }
 }
@@ -1134,8 +1170,9 @@
   .sectionDark, .sectionLight { padding: 80px 0; }
   .heroCtas { flex-direction: column; width: 100%; }
   .heroBtn, .heroBtnSecondary { width: 100%; text-align: center; }
-  .footerContent { flex-direction: column; gap: 40px; }
-  .footerCols { flex-direction: column; gap: 32px; }
+  .footerTop { flex-direction: column; gap: 40px; }
+  .footerRight { justify-content: flex-start; }
+  .footerBottom { flex-direction: column; gap: 8px; text-align: center; }
   .navLinks { gap: 16px; }
   .navLink { display: none; }
   .hero { padding: 100px 16px 60px; }

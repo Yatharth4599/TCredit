@@ -593,35 +593,65 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* ── Footer — Valeo-style navy ─────────────────────── */}
+      {/* ── Footer ───────────────────────────────────────── */}
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
-          <div className={styles.footerContent}>
+          {/* Top: Brand left + Link cards right */}
+          <div className={styles.footerTop}>
             <div className={styles.footerLeft}>
               <div className={styles.footerBrandRow}>
                 <img src="/images/krexa-logo-mark.png" alt="Krexa" className={styles.footerLogoImg} />
                 <span className={styles.footerBrand}>Krexa</span>
               </div>
-              <p className={styles.footerTagline}>The credit layer for the agent economy</p>
-              <p className={styles.footerAddr}>Built on Solana · krexa.xyz</p>
+              <p className={styles.footerTagline}>The credit layer for the agent economy. Revenue-enforced lending for AI agents, built on Solana.</p>
+              <p className={styles.footerAddr}>krexa.xyz</p>
             </div>
-            <div className={styles.footerCols}>
-              <div className={styles.footerCol}>
-                <div className={styles.footerColTitle}>Legal</div>
-                <a href="#" className={styles.footerLink}>Disclaimer</a>
-                <a href="#" className={styles.footerLink}>Terms</a>
-                <a href="#" className={styles.footerLink}>Privacy Policy</a>
+
+            <div className={styles.footerRight}>
+              <div className={styles.footerColGroup}>
+                <h4 className={styles.footerColTitle}>PRODUCT</h4>
+                <div className={styles.footerCards}>
+                  <button className={styles.footerCard} onClick={() => navigate('/app')}>
+                    <span className={styles.footerCardLabel}>Launch App</span>
+                    <span className={styles.footerCardArrow}>→</span>
+                  </button>
+                  <button className={styles.footerCard} onClick={() => navigate('/app/vaults')}>
+                    <span className={styles.footerCardLabel}>Vaults</span>
+                    <span className={styles.footerCardArrow}>→</span>
+                  </button>
+                  <button className={styles.footerCard} onClick={() => navigate('/app/identity')}>
+                    <span className={styles.footerCardLabel}>Krexit Score</span>
+                    <span className={styles.footerCardArrow}>→</span>
+                  </button>
+                </div>
               </div>
-              <div className={styles.footerCol}>
-                <div className={styles.footerColTitle}>Social</div>
-                <a href="https://x.com/krexa_xyz" target="_blank" rel="noopener noreferrer" className={styles.footerLink}>Twitter (X)</a>
-                <a href="https://t.me/tigerpayx" target="_blank" rel="noopener noreferrer" className={styles.footerLink}>Telegram</a>
-                <a href="https://github.com/Yatharth4599/TCredit" target="_blank" rel="noopener noreferrer" className={styles.footerLink}>GitHub</a>
+
+              <div className={styles.footerColGroup}>
+                <h4 className={styles.footerColTitle}>COMMUNITY</h4>
+                <div className={styles.footerCards}>
+                  <a href="https://x.com/krexa_xyz" target="_blank" rel="noopener noreferrer" className={styles.footerCard}>
+                    <span className={styles.footerCardLabel}>Twitter (X)</span>
+                    <span className={styles.footerCardArrow}>↗</span>
+                  </a>
+                  <a href="https://t.me/tigerpayx" target="_blank" rel="noopener noreferrer" className={styles.footerCard}>
+                    <span className={styles.footerCardLabel}>Telegram</span>
+                    <span className={styles.footerCardArrow}>↗</span>
+                  </a>
+                  <a href="https://github.com/Yatharth4599/TCredit" target="_blank" rel="noopener noreferrer" className={styles.footerCard}>
+                    <span className={styles.footerCardLabel}>GitHub</span>
+                    <span className={styles.footerCardArrow}>↗</span>
+                  </a>
+                </div>
               </div>
             </div>
           </div>
+
+          {/* Bottom bar */}
           <div className={styles.footerDivider} />
-          <div className={styles.footerCopyright}>2026 Copyright — Krexa Protocol</div>
+          <div className={styles.footerBottom}>
+            <span className={styles.footerCopyright}>© 2026 Krexa Protocol · Built on Solana</span>
+            <span className={styles.footerLegal}>Privacy Policy · Terms · Disclaimer</span>
+          </div>
         </div>
       </footer>
 
