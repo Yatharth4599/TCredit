@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Info, Loader2 } from 'lucide-react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useRequestCredit } from '../../hooks/useRequestCredit'
+import { useProtocolParams } from '../../hooks/useProtocolParams'
 
 interface RequestCreditModalProps {
   isOpen: boolean
@@ -11,26 +12,13 @@ interface RequestCreditModalProps {
   creditLevel?: number
 }
 
-const LEVEL_LIMITS: Record<number, { name: string; max: string; rate: string }> = {
-  1: { name: 'Starter', max: '$500', rate: '36.5%' },
-  2: { name: 'Established', max: '$20,000', rate: '29.2%' },
-  3: { name: 'Trusted', max: '$50,000', rate: '21.9%' },
-  4: { name: 'Elite', max: '$500,000', rate: '18.25%' },
-}
-
-const LEVEL_MAX_USDC: Record<number, number> = {
-  1: 500,
-  2: 20_000,
-  3: 50_000,
-  4: 500_000,
-}
-
 export function RequestCreditModal({ isOpen, onClose, agentPubkey, creditLevel = 1 }: RequestCreditModalProps) {
   const [amount, setAmount] = useState('')
   const { publicKey } = useWallet()
   const requestCredit = useRequestCredit()
-  const levelInfo = LEVEL_LIMITS[creditLevel] ?? LEVEL_LIMITS[1]
-  const maxUsdc = LEVEL_MAX_USDC[creditLevel] ?? 500
+  const { data: params } = useProtocolParams()
+  const levelInfo = params?.levels[String(creditLevel)]
+  const maxUsdc = levelInfo?.maxUsdc ?? 500
 
   const agentKey = agentPubkey ?? publicKey?.toBase58() ?? ''
 
@@ -79,15 +67,15 @@ export function RequestCreditModal({ isOpen, onClose, agentPubkey, creditLevel =
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
                   <p className="text-xs text-gray-400">Level</p>
-                  <p className="text-sm font-bold text-blue-400">L{creditLevel} {levelInfo.name}</p>
+                  <p className="text-sm font-bold text-blue-400">L{creditLevel} {levelInfo?.name ?? '—'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-400">Max Credit</p>
-                  <p className="text-sm font-bold text-gray-100">{levelInfo.max}</p>
+                  <p className="text-sm font-bold text-gray-100">{levelInfo?.maxDisplay ?? '—'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-400">Interest</p>
-                  <p className="text-sm font-bold text-gray-100">{levelInfo.rate} APY</p>
+                  <p className="text-sm font-bold text-gray-100">{levelInfo?.rateDisplay ?? '—'} APY</p>
                 </div>
               </div>
             </div>

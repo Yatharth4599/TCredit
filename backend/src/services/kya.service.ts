@@ -112,7 +112,7 @@ export async function submitBasicKya(params: KyaSubmitBasicBasicParams): Promise
         agentPubkey: agentPubkeyStr,
         tier: 1, method: 'auto', status: 'rejected', reason: 'Signature verification failed',
       },
-    }).catch(() => {});
+    }).catch((e: unknown) => { console.warn('[kya] failed to record rejection audit log:', e) });
     return { status: 'rejected', tier: 0, verificationId: 'sig-fail', reason: 'Invalid owner signature' };
   }
 

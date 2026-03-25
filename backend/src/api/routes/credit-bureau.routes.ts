@@ -31,7 +31,7 @@ router.get('/:agent/check', async (req: AuthenticatedRequest, res, next) => {
     const check = await getAgentCheck(agent);
 
     const requesterKey = req.apiKey?.id ?? 'anonymous';
-    await logInquiry(agent, requesterKey, 'check').catch(() => {});
+    await logInquiry(agent, requesterKey, 'check').catch((e: unknown) => { console.warn('[credit-bureau] failed to log inquiry:', e) });
 
     res.json(check);
   } catch (err) { next(err); }
@@ -47,7 +47,7 @@ router.get('/:agent/score', async (req: AuthenticatedRequest, res, next) => {
 
     // Log inquiry
     const requesterKey = req.apiKey?.id ?? 'anonymous';
-    await logInquiry(agent, requesterKey, 'score').catch(() => {});
+    await logInquiry(agent, requesterKey, 'score').catch((e: unknown) => { console.warn('[credit-bureau] failed to log inquiry:', e) });
 
     res.json(score);
   } catch (err) { next(err); }
@@ -70,7 +70,7 @@ router.get('/:agent/report', async (req: AuthenticatedRequest, res, next) => {
     }
 
     const report = await getAgentReport(agent);
-    await logInquiry(agent, req.apiKey.id, 'report').catch(() => {});
+    await logInquiry(agent, req.apiKey.id, 'report').catch((e: unknown) => { console.warn('[credit-bureau] failed to log inquiry:', e) });
 
     res.json(report);
   } catch (err) { next(err); }
@@ -94,7 +94,7 @@ router.get('/:agent/history', async (req: AuthenticatedRequest, res, next) => {
     const pageSize = Math.min(parseInt(req.query.pageSize as string) || 50, 100);
 
     const history = await getAgentHistory(agent, page, pageSize);
-    await logInquiry(agent, req.apiKey.id, 'history').catch(() => {});
+    await logInquiry(agent, req.apiKey.id, 'history').catch((e: unknown) => { console.warn('[credit-bureau] failed to log inquiry:', e) });
 
     res.json(history);
   } catch (err) { next(err); }

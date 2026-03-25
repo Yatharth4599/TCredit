@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { Layers, Plus, ArrowDownToLine, Info, ArrowDown } from 'lucide-react'
-import { useLPPositions } from '../hooks'
+import { Layers, Plus, ArrowDownToLine, Info, ArrowDown, Shield, TrendingUp, Zap } from 'lucide-react'
+import { useLPPositions, useProtocolParams } from '../hooks'
 import { EmptyState } from '../components/shared'
 import { DepositModal } from '../components/lp/DepositModal'
 import { WithdrawModal } from '../components/lp/WithdrawModal'
@@ -80,6 +80,7 @@ const TRANCHE_STYLES: Record<string, { border: string; badge: string }> = {
 export default function LPPage() {
   const { connected } = useWallet()
   const { data: positions, isLoading, error } = useLPPositions()
+  const { data: params } = useProtocolParams()
 
   const [showDeposit, setShowDeposit] = useState(false)
   const [showWithdraw, setShowWithdraw] = useState(false)
@@ -198,6 +199,55 @@ export default function LPPage() {
           )}
         </motion.div>
 
+        {/* === Tranche Education === */}
+        <motion.div variants={fadeIn}>
+          <h2 className="text-lg font-semibold text-gray-100 mb-4">Tranche Overview</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Senior */}
+            <div className="bg-gray-800/50 border border-blue-500/30 rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Shield size={16} className="text-blue-400" />
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400">Senior</span>
+                <span className="ml-auto text-lg font-bold text-gray-100">
+                  {params?.tranches.senior?.aprDisplay ?? '10%'} APR
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Lowest risk tranche. Senior LPs are repaid first when revenue flows through the waterfall. Suitable for capital-preservation strategies.
+              </p>
+            </div>
+            {/* Mezzanine */}
+            <div className="bg-gray-800/50 border border-purple-500/30 rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <TrendingUp size={16} className="text-purple-400" />
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/20 text-purple-400">Mezzanine</span>
+                <span className="ml-auto text-lg font-bold text-gray-100">
+                  {params?.tranches.mezzanine?.aprDisplay ?? '12%'} APR
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Medium risk. Mezzanine LPs absorb losses only after the junior buffer is exhausted. Higher yield than senior in exchange for slightly more exposure.
+              </p>
+            </div>
+            {/* Junior */}
+            <div className="bg-gray-800/50 border border-orange-500/20 rounded-2xl p-5 opacity-60">
+              <div className="flex items-center gap-2 mb-3">
+                <Zap size={16} className="text-orange-400" />
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400">Junior</span>
+                <span className="ml-auto text-lg font-bold text-gray-100">
+                  {params?.tranches.junior?.aprDisplay ?? '20%'} APR
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Protocol-only tranche. Junior tokens act as the first-loss buffer, absorbing defaults before they reach Mezzanine or Senior. Not available for external deposits.
+              </p>
+            </div>
+          </div>
+          <p className="text-xs text-gray-600 mt-3">
+            Repayments flow: Senior → Mezzanine (→ Junior if applicable). Principal + yield accrued pro-rata based on shares held.
+          </p>
+        </motion.div>
+
         {/* === Deposit Preview === */}
         <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
           <h2 className="text-lg font-semibold text-gray-100 mb-4">Deposit Preview</h2>
@@ -227,8 +277,9 @@ export default function LPPage() {
             </div>
           </div>
           {depositAmount && parseFloat(depositAmount) > 0 && (() => {
-            const aprMap: Record<string, number> = { senior: 10, mezzanine: 12, junior: 20 }
-            const apr = aprMap[depositTranchePreview] ?? 10
+            const apr = params?.tranches[depositTranchePreview]
+              ? params.tranches[depositTranchePreview].aprBps / 100
+              : ({ senior: 10, mezzanine: 12, junior: 20 } as Record<string, number>)[depositTranchePreview] ?? 10
             const principal = parseFloat(depositAmount)
             const annualYield = principal * apr / 100
             return (

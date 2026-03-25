@@ -451,8 +451,8 @@ export default function LandingPage() {
               <div>
                 <div className={styles.footerColTitle}>Legal</div>
                 <div className={styles.footerLinks}>
-                  <span className={styles.footerLink} style={{ opacity: 0.5 }}>Privacy Policy</span>
-                  <span className={styles.footerLink} style={{ opacity: 0.5 }}>Terms of Use</span>
+                  <a href="https://krexa.xyz/privacy" className={styles.footerLink} style={{ opacity: 0.5 }}>Privacy Policy</a>
+                  <a href="https://krexa.xyz/terms" className={styles.footerLink} style={{ opacity: 0.5 }}>Terms of Use</a>
                 </div>
               </div>
             </div>

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { config } from '../../config'
 
 const PROGRAMS: { name: string; address: string }[] = [
   { name: 'Agent Registry', address: 'ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG' },
@@ -47,7 +48,7 @@ export function Footer() {
                 <li key={p.address} className="flex items-center gap-2 text-sm">
                   <span className="text-white/40">{p.name}</span>
                   <a
-                    href={`https://explorer.solana.com/address/${p.address}?cluster=devnet`}
+                    href={`https://explorer.solana.com/address/${p.address}${config.cluster !== 'mainnet-beta' ? `?cluster=${config.cluster}` : ''}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-mono text-white/20 hover:text-white/50 transition-colors text-xs"
