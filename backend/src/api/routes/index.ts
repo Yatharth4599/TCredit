@@ -11,7 +11,6 @@ import balanceRoutes from './balance.js';
 import x402Routes from './x402.js';
 import walletRoutes from './wallets.js';
 import gatewayRoutes from './gateway.js';
-import acpRoutes from './acp.js';
 import creditRoutes from './credit.js';
 import identityRoutes from './identity.js';
 import kickstartRoutes from './kickstart.js';
@@ -50,9 +49,8 @@ router.use('/x402', x402Routes);
 // Agent Wallets
 router.use('/wallets', walletRoutes);
 
-// Gateway & ACP
+// Gateway
 router.use('/gateway', gatewayRoutes);
-router.use('/acp', acpRoutes);
 
 // Credit Lines
 router.use('/credit', creditRoutes);
@@ -69,7 +67,7 @@ router.use('/traders', traderRoutes);
 // Waitlist
 router.use('/waitlist', waitlistRoutes);
 
-// Demo endpoints (admin auth required — BUG-027/028)
+// Demo endpoints (admin auth required)
 router.use('/demo', demoRoutes);
 
 // ── Solana Agent Credit System ─────────────────────────────────────────────

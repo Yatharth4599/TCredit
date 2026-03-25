@@ -11,7 +11,7 @@ interface DepositModalProps {
 const TRANCHES = [
   { value: 0, label: 'Senior', apr: '10%', desc: 'Lowest risk, first priority on yields', color: 'text-blue-400' },
   { value: 1, label: 'Mezzanine', apr: '12%', desc: 'Medium risk, absorbs losses after junior', color: 'text-purple-400' },
-  { value: 2, label: 'Junior', apr: '20%', desc: 'Highest risk/reward, first-loss position', color: 'text-orange-400', disabled: true },
+  { value: 2, label: 'Junior', apr: '20%', desc: 'Protocol-only tranche — not available for external deposits', color: 'text-orange-400', disabled: true },
 ]
 
 export function DepositModal({ isOpen, onClose }: DepositModalProps) {

@@ -201,97 +201,106 @@ export default function LPPage() {
         {/* === Deposit Preview === */}
         <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
           <h2 className="text-lg font-semibold text-gray-100 mb-4">Deposit Preview</h2>
-          <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="text-xs text-gray-400 uppercase tracking-wider block mb-2">Tranche</label>
-                <select
-                  value={depositTranche}
-                  onChange={(e) => setDepositTranche(e.target.value)}
-                  className="w-full bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 focus:outline-none focus:border-blue-500"
-                >
-                  {TRANCHES.map((t) => (
-                    <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 uppercase tracking-wider block mb-2">Amount (USDC)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={depositAmount}
-                  onChange={(e) => setDepositAmount(e.target.value)}
-                  placeholder="1000.00"
-                  className="w-full bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
-                />
-              </div>
-              <div className="flex items-end">
-                <button
-                  type="button"
-                  disabled
-                  className="w-full bg-blue-600/50 text-white/60 font-medium px-6 py-3 rounded-xl cursor-not-allowed"
-                >
-                  Preview
-                </button>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs text-gray-400 uppercase tracking-wider block mb-2">Tranche</label>
+              <select
+                value={depositTranchePreview}
+                onChange={(e) => setDepositTranchePreview(e.target.value)}
+                className="w-full bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 focus:outline-none focus:border-blue-500"
+              >
+                {TRANCHES.map((t) => (
+                  <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                ))}
+              </select>
             </div>
-          </form>
-          {depositAmount && (
-            <div className="mt-4 bg-gray-900/50 rounded-xl p-4 text-center">
-              <p className="text-gray-500 text-sm">
-                Deposit preview coming soon. On-chain preview calculations will be available when the vault API is live.
-              </p>
+            <div>
+              <label className="text-xs text-gray-400 uppercase tracking-wider block mb-2">Amount (USDC)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+                placeholder="1000.00"
+                className="w-full bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
+              />
             </div>
-          )}
+          </div>
+          {depositAmount && parseFloat(depositAmount) > 0 && (() => {
+            const aprMap: Record<string, number> = { senior: 10, mezzanine: 12, junior: 20 }
+            const apr = aprMap[depositTranchePreview] ?? 10
+            const principal = parseFloat(depositAmount)
+            const annualYield = principal * apr / 100
+            return (
+              <div className="mt-4 bg-gray-900/50 rounded-xl p-4 grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Annual Yield</p>
+                  <p className="text-sm font-bold text-green-400">${annualYield.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Monthly Yield</p>
+                  <p className="text-sm font-bold text-green-400">${(annualYield / 12).toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">APR</p>
+                  <p className="text-sm font-bold text-gray-100">{apr}%</p>
+                </div>
+              </div>
+            )
+          })()}
         </motion.div>
 
         {/* === Withdrawal Preview === */}
         <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
           <h2 className="text-lg font-semibold text-gray-100 mb-4">Withdrawal Preview</h2>
-          <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="text-xs text-gray-400 uppercase tracking-wider block mb-2">Tranche</label>
-                <select
-                  value={withdrawTranche}
-                  onChange={(e) => setWithdrawTranche(e.target.value)}
-                  className="w-full bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 focus:outline-none focus:border-blue-500"
-                >
-                  {TRANCHES.map((t) => (
-                    <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 uppercase tracking-wider block mb-2">Shares to Withdraw</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={withdrawShares}
-                  onChange={(e) => setWithdrawShares(e.target.value)}
-                  placeholder="500.00"
-                  className="w-full bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
-                />
-              </div>
-              <div className="flex items-end">
-                <button
-                  type="button"
-                  disabled
-                  className="w-full bg-blue-600/50 text-white/60 font-medium px-6 py-3 rounded-xl cursor-not-allowed"
-                >
-                  Preview
-                </button>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs text-gray-400 uppercase tracking-wider block mb-2">Tranche</label>
+              <select
+                value={withdrawTranchePreview}
+                onChange={(e) => setWithdrawTranchePreview(e.target.value)}
+                className="w-full bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 focus:outline-none focus:border-blue-500"
+              >
+                {TRANCHES.map((t) => (
+                  <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                ))}
+              </select>
             </div>
-          </form>
-          {withdrawShares && (
-            <div className="mt-4 bg-gray-900/50 rounded-xl p-4 text-center">
-              <p className="text-gray-500 text-sm">
-                Withdrawal preview coming soon. On-chain preview calculations will be available when the vault API is live.
-              </p>
+            <div>
+              <label className="text-xs text-gray-400 uppercase tracking-wider block mb-2">Shares to Withdraw</label>
+              <input
+                type="number"
+                step="0.01"
+                value={withdrawShares}
+                onChange={(e) => setWithdrawShares(e.target.value)}
+                placeholder="500.00"
+                className="w-full bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
+              />
             </div>
-          )}
+          </div>
+          {withdrawShares && parseFloat(withdrawShares) > 0 && (() => {
+            // Shares are 1:1 with USDC at deposit time (1 share = $1 USDC principal)
+            const shares = parseFloat(withdrawShares)
+            const aprMap: Record<string, number> = { senior: 10, mezzanine: 12, junior: 20 }
+            const apr = aprMap[withdrawTranchePreview] ?? 10
+            const estimatedValue = shares * (1 + apr / 100 / 12) // ~1 month accrual
+            return (
+              <div className="mt-4 bg-gray-900/50 rounded-xl p-4 grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Principal</p>
+                  <p className="text-sm font-bold text-gray-100">${shares.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Est. Value</p>
+                  <p className="text-sm font-bold text-green-400">${estimatedValue.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">APR</p>
+                  <p className="text-sm font-bold text-gray-100">{apr}%</p>
+                </div>
+              </div>
+            )
+          })()}
         </motion.div>
 
       </motion.div>

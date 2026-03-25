@@ -30,7 +30,7 @@ import type {
   PolymarketStats,
 } from './types'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://tcredit-backend.onrender.com/api'
+const BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 export const api = axios.create({
   baseURL: BASE_URL,
@@ -41,7 +41,6 @@ export const api = axios.create({
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    console.error('[API Error]', err.response?.status, err.config?.url)
     return Promise.reject(err)
   }
 )

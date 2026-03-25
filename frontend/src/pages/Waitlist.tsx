@@ -41,7 +41,7 @@ export default function Waitlist() {
                 </h1>
 
                 <p className={styles.subtitle}>
-                    Revenue-backed, on-chain lending built on Base.<br />
+                    Revenue-backed, on-chain credit for AI agents on Solana.<br />
                     Be first in line when we launch.
                 </p>
 

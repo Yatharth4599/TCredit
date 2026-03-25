@@ -190,6 +190,9 @@ export default function Demo() {
           <br />
           Every step links to a live on-chain transaction on Base Sepolia.
         </p>
+        <p style={{ fontSize: '0.7rem', color: '#f59e0b', marginTop: '0.25rem', opacity: 0.75 }}>
+          Merchant data (GlobalTextiles) is illustrative — not live protocol state.
+        </p>
         <div className={styles.heroStats}>
           <StatChip label="TVL"           value={tvl > 0 ? `$${(tvl/1e6).toFixed(1)}M` : '$20M'} />
           <StatChip label="Active Vaults" value={activeVaults > 0 ? String(activeVaults) : '25'} />

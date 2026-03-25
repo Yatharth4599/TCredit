@@ -70,3 +70,17 @@ const envSchema = z.object({
 
 export const env = envSchema.parse(process.env);
 export type Env = z.infer<typeof envSchema>;
+
+// Production guard: refuse to start if critical Solana keys are missing
+if (env.NODE_ENV === 'production') {
+  const required: Array<[string, string]> = [
+    ['SOLANA_RPC_URL', env.SOLANA_RPC_URL],
+    ['SOLANA_ORACLE_PRIVATE_KEY', env.SOLANA_ORACLE_PRIVATE_KEY],
+    ['SOLANA_KEEPER_PRIVATE_KEY', env.SOLANA_KEEPER_PRIVATE_KEY],
+  ];
+  for (const [name, val] of required) {
+    if (!val || val === 'https://api.devnet.solana.com') {
+      throw new Error(`[FATAL] ${name} must be explicitly set in production (got: "${val || ''}")`);
+    }
+  }
+}

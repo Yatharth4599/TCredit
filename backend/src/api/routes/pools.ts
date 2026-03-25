@@ -86,16 +86,23 @@ router.get('/:address/allocation/:vault', async (req, res, next) => {
   }
 });
 
+function parseAmount(raw: unknown): bigint {
+  if (raw === undefined || raw === null || raw === '') throw new AppError(400, 'amount is required');
+  const str = String(raw).trim();
+  if (!/^\d+$/.test(str)) throw new AppError(400, 'amount must be a non-negative integer string (wei)');
+  return BigInt(str);
+}
+
 // POST /api/v1/pools/deposit — build unsigned deposit tx
 router.post('/deposit', async (req, res, next) => {
   try {
     const { poolAddress, amount } = req.body;
-    if (!poolAddress || !amount) throw new AppError(400, 'poolAddress and amount required');
+    if (!poolAddress) throw new AppError(400, 'poolAddress and amount required');
 
     const data = encodeFunctionData({
       abi: LiquidityPoolABI,
       functionName: 'deposit',
-      args: [BigInt(amount)],
+      args: [parseAmount(amount)],
     });
 
     res.json({ to: poolAddress as Address, data, description: 'deposit — sign with your wallet' });
@@ -108,12 +115,12 @@ router.post('/deposit', async (req, res, next) => {
 router.post('/withdraw', async (req, res, next) => {
   try {
     const { poolAddress, amount } = req.body;
-    if (!poolAddress || !amount) throw new AppError(400, 'poolAddress and amount required');
+    if (!poolAddress) throw new AppError(400, 'poolAddress and amount required');
 
     const data = encodeFunctionData({
       abi: LiquidityPoolABI,
       functionName: 'withdraw',
-      args: [BigInt(amount)],
+      args: [parseAmount(amount)],
     });
 
     res.json({ to: poolAddress as Address, data, description: 'withdraw — sign with your wallet' });
@@ -126,14 +133,14 @@ router.post('/withdraw', async (req, res, next) => {
 router.post('/allocate', async (req, res, next) => {
   try {
     const { poolAddress, vaultAddress, amount } = req.body;
-    if (!poolAddress || !vaultAddress || !amount) {
+    if (!poolAddress || !vaultAddress) {
       throw new AppError(400, 'poolAddress, vaultAddress, and amount required');
     }
 
     const data = encodeFunctionData({
       abi: LiquidityPoolABI,
       functionName: 'allocateToVault',
-      args: [vaultAddress as Address, BigInt(amount)],
+      args: [vaultAddress as Address, parseAmount(amount)],
     });
 
     res.json({ to: poolAddress as Address, data, description: 'allocateToVault — admin only' });

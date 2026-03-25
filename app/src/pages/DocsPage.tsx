@@ -57,16 +57,16 @@ const client = new KrexaClient({ cluster: 'devnet' })
 
 // Fetch an agent's credit score
 const score = await client.score.getScore(agentAddress)
-console.log('Krexit Score:', score.value)
+// score.value — Krexit Score 0–1000
 
 // Fetch vault stats
 const vault = await client.vault.getStats()
-console.log('Total TVL:', vault.totalValueLocked)
+// vault.totalValueLocked — total TVL across all vaults
 
 // Fetch agent profile & credit line
 const profile = await client.agent.getProfile(agentAddress)
 const credit = await client.agent.getCreditLine(agentAddress)
-console.log('Credit Limit:', credit.maxAmount)
+// credit.maxAmount — maximum drawable credit in USDC
 `
 
 export default function DocsPage() {

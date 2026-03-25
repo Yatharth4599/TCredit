@@ -101,7 +101,7 @@ function DashboardContent({ pubkey }: { pubkey: string }) {
 
   // Profile exists but no wallet — show wallet creation
   if (!wallet) {
-    const agentKey = localStorage.getItem(`krexa_agent_${pubkey}`)
+    const agentKey = sessionStorage.getItem(`krexa_agent_${pubkey}`)
     const agentPubkey = profile.agent.toBase58()
     return (
       <div className="space-y-6">

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useConnection } from '@solana/wallet-adapter-react'
 import { ExternalLink, CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { config } from '../../config'
 
 interface TransactionToastProps {
   signature: string
@@ -30,7 +31,7 @@ export function TransactionToast({ signature, onConfirmed, onError }: Transactio
     return () => { cancelled = true }
   }, [signature, connection, onConfirmed, onError])
 
-  const explorerUrl = `https://explorer.solana.com/tx/${signature}?cluster=devnet`
+  const explorerUrl = `https://explorer.solana.com/tx/${signature}${config.cluster !== 'mainnet-beta' ? `?cluster=${config.cluster}` : ''}`
 
   return (
     <div className="flex items-center gap-3 text-sm">
@@ -59,5 +60,5 @@ export function TransactionToast({ signature, onConfirmed, onError }: Transactio
 }
 
 export function explorerTxUrl(sig: string): string {
-  return `https://explorer.solana.com/tx/${sig}?cluster=devnet`
+  return `https://explorer.solana.com/tx/${sig}${config.cluster !== 'mainnet-beta' ? `?cluster=${config.cluster}` : ''}`
 }

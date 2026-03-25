@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useEffect, useState, useRef } from 'react'
-import { vaultsApi, waitlistApi } from '../api/client'
+import { vaultsApi, waitlistApi, platformApi } from '../api/client'
 import { formatUSDCCompact } from '../lib/format'
 import { AnimatedNumber } from '../components/ui/AnimatedNumber'
 import DecryptedText from '../components/ui/DecryptedText'
@@ -55,16 +55,27 @@ export default function Home() {
     const [waitlistDone, setWaitlistDone] = useState(false)
     const [waitlistError, setWaitlistError] = useState('')
 
+    // Live hero stats from the platform API
+    const [heroStats, setHeroStats] = useState({ tvl: 0, liquidity: 0, vaults: 0, agents: 0 })
+
     // Ticker offset for the stats bar
     const tickerRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         setMounted(true)
         vaultsApi.list().then(({ data }) => setVaults(data.vaults.slice(0, 6))).catch(() => {})
+        platformApi.stats()
+            .then(({ data }) => {
+                setHeroStats({
+                    tvl:       Math.round(Number(data.tvl) / 1e6),       // USDC 6-decimal → whole dollars
+                    liquidity: Math.round(Number(data.poolLiquidity) / 1e6),
+                    vaults:    data.activeVaults,
+                    agents:    data.totalVaults,  // proxy until agent count endpoint added
+                })
+            })
+            .catch(() => {}) // silently keep zeros if API unreachable
     }, [])
 
-    // Mocked aspirational hero stats (live stats used for vault cards below)
-    const heroStats = { tvl: 2_400_000, liquidity: 1_800_000, vaults: 47, agents: 128 }
     const fmt     = (v: number) => v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${(v / 1e3).toFixed(0)}K` : `$${v.toFixed(0)}`
 
     return (

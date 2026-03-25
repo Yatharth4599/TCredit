@@ -18,8 +18,8 @@ export function useCreateWallet() {
     mutationFn: async ({ dailySpendLimit }: CreateWalletParams) => {
       if (!publicKey || !sendTransaction) throw new Error('Wallet not connected')
 
-      // Load agent keypair from localStorage
-      const stored = localStorage.getItem(`krexa_agent_${publicKey.toBase58()}`)
+      // Load agent keypair from sessionStorage (written by useRegisterAgent)
+      const stored = sessionStorage.getItem(`krexa_agent_${publicKey.toBase58()}`)
       if (!stored) throw new Error('No agent keypair found. Register an agent first.')
 
       const agentKeypair = Keypair.fromSecretKey(new Uint8Array(JSON.parse(stored)))

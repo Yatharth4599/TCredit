@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import type { RequestHandler } from 'express';
 import type { Address } from 'viem';
 import { getAgent, getCreditTier, isCreditValid } from '../../chain/agentRegistry.js';
 import { listAllVaults } from '../../services/vault.service.js';
@@ -170,8 +171,8 @@ router.get('/:address/repayments', async (req, res, next) => {
   }
 });
 
-// POST /api/v1/merchants/:address/repay — submit a repayment via oracle (BUG-026: auth required)
-router.post('/:address/repay', requireApiKey as never, async (req: AuthenticatedRequest, res, next) => {
+// POST /api/v1/merchants/:address/repay — submit a repayment via oracle (requires API key)
+router.post('/:address/repay', requireApiKey as RequestHandler, async (req: AuthenticatedRequest, res, next) => {
   try {
     const addr = req.params.address as Address;
     const { repaymentAmount } = req.body;

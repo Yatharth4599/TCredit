@@ -236,7 +236,7 @@ export default function ScoreLookupPage() {
           <motion.div {...fadeIn} className="text-center py-16">
             <p className="text-lg text-gray-500 mb-6">Paste a Solana agent public key above to view their Krexit Score.</p>
             <div className="max-w-lg mx-auto">
-              <p className="text-sm text-gray-400 mb-3">Try these seeded test agents:</p>
+              <p className="text-sm text-gray-400 mb-3">Try these devnet test agents (seeded addresses — not real users):</p>
               <div className="space-y-2">
                 {[
                   { name: 'DataBot-Alpha', addr: '28SWEhYwWyvDic4wyK8AG9pXLYHwGaVPw2mTgEjRk1cj', score: 720, level: 'L3' },

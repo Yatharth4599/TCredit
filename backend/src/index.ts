@@ -9,6 +9,17 @@ import { startSolanaKeeper, stopSolanaKeeper } from './services/solana-keeper.js
 import { startSolanaIndexer, stopSolanaIndexer } from './indexer/solana-indexer.js';
 import { startCreditScoreJob, stopCreditScoreJob } from './services/credit-score.js';
 
+// ── Startup config sanity checks ──────────────────────────────────────────
+if (env.NODE_ENV === 'production') {
+  const missingKeys: string[] = [];
+  if (!env.SOLANA_ORACLE_PRIVATE_KEY)  missingKeys.push('SOLANA_ORACLE_PRIVATE_KEY');
+  if (!env.SOLANA_KEEPER_PRIVATE_KEY)  missingKeys.push('SOLANA_KEEPER_PRIVATE_KEY');
+  if (!env.ORACLE_PRIVATE_KEY)         missingKeys.push('ORACLE_PRIVATE_KEY');
+  if (missingKeys.length > 0) {
+    console.warn(`[Krexa] WARNING: The following signing keys are not set — oracle and keeper operations will fail: ${missingKeys.join(', ')}`);
+  }
+}
+
 const server = app.listen(env.PORT, () => {
   console.log(`[Krexa] Server running on port ${env.PORT}`);
   console.log(`[Krexa] Environment: ${env.NODE_ENV}`);

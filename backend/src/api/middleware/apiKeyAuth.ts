@@ -27,8 +27,9 @@ export async function apiKeyAuth(req: AuthenticatedRequest, res: Response, next:
 
     req.apiKey = { id: apiKey.id, name: apiKey.name, rateLimit: apiKey.rateLimit, tier: apiKey.tier };
     next();
-  } catch {
-    next();
+  } catch (err) {
+    console.error('[apiKeyAuth] DB error during auth lookup:', err);
+    res.status(503).json({ error: 'Auth service temporarily unavailable' });
   }
 }
 

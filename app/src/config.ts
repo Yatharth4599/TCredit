@@ -1,8 +1,19 @@
 import { clusterApiUrl } from '@solana/web3.js'
 
+const rpcEndpoint = import.meta.env.VITE_RPC_URL || clusterApiUrl('devnet')
+
+/** Detect cluster from the RPC URL */
+export function getCluster(): 'mainnet-beta' | 'devnet' | 'testnet' | 'custom' {
+  if (rpcEndpoint.includes('mainnet')) return 'mainnet-beta'
+  if (rpcEndpoint.includes('testnet')) return 'testnet'
+  if (rpcEndpoint.includes('devnet')) return 'devnet'
+  return 'custom'
+}
+
 export const config = {
-  rpcEndpoint: import.meta.env.VITE_RPC_URL || clusterApiUrl('devnet'),
+  rpcEndpoint,
   apiUrl: import.meta.env.VITE_API_URL || 'http://localhost:3001',
+  cluster: getCluster(),
   adminWallets: (import.meta.env.VITE_ADMIN_WALLETS || '').split(',').filter(Boolean),
   refreshIntervals: {
     health: 10_000,      // 10s

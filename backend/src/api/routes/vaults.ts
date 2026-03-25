@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import type { RequestHandler } from 'express';
 import type { Address } from 'viem';
 import { listAllVaults, getVaultDetail } from '../../services/vault.service.js';
 import { getInvestors, getClaimable, getWaterfallState } from '../../chain/merchantVault.js';
@@ -16,11 +17,18 @@ const CHAIN_ID = Number(env.CHAIN_ID);
 
 const router = Router();
 
+const VALID_STATES = new Set(['fundraising', 'active', 'repaying', 'completed', 'defaulted', 'cancelled']);
+
 // GET /api/v1/vaults — list all vaults with optional filters
 router.get('/', async (req, res, next) => {
   try {
     const vaults = await listAllVaults();
     const { state, agent } = req.query;
+
+    // Validate state param to prevent nonsense filtering
+    if (state && typeof state === 'string' && !VALID_STATES.has(state)) {
+      throw new AppError(400, `Invalid state filter. Must be one of: ${[...VALID_STATES].join(', ')}`);
+    }
 
     const filtered = vaults.filter((v) => {
       if (state && v.state !== state) return false;
@@ -200,8 +208,8 @@ router.get('/:address/tranches', async (req, res, next) => {
   }
 });
 
-// POST /api/v1/vaults/create — server-signed createVault (BUG-025: admin auth required)
-router.post('/create', requireAdmin as never, async (req: AuthenticatedRequest, res, next) => {
+// POST /api/v1/vaults/create — server-signed createVault (admin auth required)
+router.post('/create', requireAdmin as RequestHandler, async (req: AuthenticatedRequest, res, next) => {
   try {
     const {
       agent, targetAmount, interestRateBps, durationSeconds, numTranches,

@@ -113,7 +113,7 @@ export default function VaultPage() {
             {statsLoading && <LoadingSpinner />}
             {statsError && !statsLoading && (
               <div className="text-center py-6">
-                <p className="text-gray-400 text-sm">Vault stats are not available on devnet yet. The vault configuration account has not been initialized.</p>
+                <p className="text-gray-400 text-sm">Vault stats are not available yet. The vault configuration account has not been initialized.</p>
                 <p className="text-gray-600 text-xs mt-2">This section will populate once the vault is initialized with deposits.</p>
               </div>
             )}
@@ -195,7 +195,7 @@ export default function VaultPage() {
             <h2 className="text-lg font-semibold text-gray-100 mb-4">Revenue Breakdown</h2>
             {revenueLoading && <LoadingSpinner />}
             {revenueError && !revenueLoading && (
-              <p className="text-gray-500 text-sm">Revenue data is not available on devnet. This section will populate when the vault has active revenue.</p>
+              <p className="text-gray-500 text-sm">Revenue data is not available yet. This section will populate when the vault has active revenue.</p>
             )}
             {revenue && !revenueError ? (
               <div className="space-y-6">
@@ -245,7 +245,7 @@ export default function VaultPage() {
             <h2 className="text-lg font-semibold text-gray-100 mb-4">Loss Buffer Status</h2>
             {lossLoading && <LoadingSpinner />}
             {lossError && !lossLoading && (
-              <p className="text-gray-500 text-sm">Loss buffer data is not available on devnet. This section will populate when the vault has insurance reserves.</p>
+              <p className="text-gray-500 text-sm">Loss buffer data is not available yet. This section will populate when the vault has insurance reserves.</p>
             )}
             {lossBuffer && !lossError ? (
               <div className="space-y-6">

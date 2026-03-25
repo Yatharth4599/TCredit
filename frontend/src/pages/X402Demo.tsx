@@ -345,6 +345,9 @@ export default function X402Demo() {
           Submit a payment and watch the PaymentRouter split it through the
           waterfall in real-time. Every cent accounted for. No trust required.
         </p>
+        <p style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '0.5rem', opacity: 0.8 }}>
+          Simulated demo — merchant data is illustrative, not live protocol state.
+        </p>
       </header>
 
       {/* ── Main grid ───────────────────────────────────────────────── */}

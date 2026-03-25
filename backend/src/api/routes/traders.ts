@@ -89,7 +89,7 @@ const TraderVaultABI = [
 ] as const;
 
 function getTraderVaultFactoryAddress(): Address {
-  const addr = process.env.TRADER_VAULT_FACTORY_ADDRESS;
+  const addr = env.TRADER_VAULT_FACTORY_ADDRESS;
   if (!addr) throw new AppError(503, 'TraderVaultFactory not deployed yet');
   return addr as Address;
 }

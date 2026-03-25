@@ -54,10 +54,13 @@ router.get('/payments', async (req, res, next) => {
     if (status && typeof status === 'string') where.status = status;
     if (vault && typeof vault === 'string') where.vault = vault.toLowerCase();
 
+    const limitNum = limit !== undefined ? parseInt(String(limit), 10) : 50;
+    const take = Number.isFinite(limitNum) && limitNum > 0 ? Math.min(limitNum, 100) : 50;
+
     const payments = await prisma.oraclePayment.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      take: Math.min(Number(limit) || 50, 100),
+      take,
     });
 
     res.json({

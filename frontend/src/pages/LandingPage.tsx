@@ -444,15 +444,15 @@ export default function LandingPage() {
                 <div className={styles.footerColTitle}>Resources</div>
                 <div className={styles.footerLinks}>
                   <a href="https://github.com/Yatharth4599/TCredit" target="_blank" rel="noopener noreferrer" className={styles.footerLink}>Documentation</a>
-                  <span className={styles.footerLink}>Blog</span>
-                  <span className={styles.footerLink}>Support</span>
+                  <a href="https://x.com/krexa_xyz" target="_blank" rel="noopener noreferrer" className={styles.footerLink}>Blog</a>
+                  <a href="https://t.me/tigerpayx" target="_blank" rel="noopener noreferrer" className={styles.footerLink}>Support</a>
                 </div>
               </div>
               <div>
                 <div className={styles.footerColTitle}>Legal</div>
                 <div className={styles.footerLinks}>
-                  <span className={styles.footerLink}>Privacy Policy</span>
-                  <span className={styles.footerLink}>Terms of Use</span>
+                  <span className={styles.footerLink} style={{ opacity: 0.5 }}>Privacy Policy</span>
+                  <span className={styles.footerLink} style={{ opacity: 0.5 }}>Terms of Use</span>
                 </div>
               </div>
             </div>

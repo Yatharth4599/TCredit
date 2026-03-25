@@ -22,8 +22,10 @@ export function useRegisterAgent() {
       // Generate agent keypair client-side
       const agentKeypair = Keypair.generate()
 
-      // Store in localStorage for future reference
-      localStorage.setItem(
+      // Store in sessionStorage (cleared when the tab closes — not persisted to disk).
+      // WARNING: this is acceptable for devnet. For mainnet, replace with a proper
+      // encrypted keystore or hardware wallet derived key.
+      sessionStorage.setItem(
         `krexa_agent_${publicKey.toBase58()}`,
         JSON.stringify(Array.from(agentKeypair.secretKey))
       )

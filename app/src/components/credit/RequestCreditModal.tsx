@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Info } from 'lucide-react'
+import { X, Info, Loader2 } from 'lucide-react'
+import { useWallet } from '@solana/wallet-adapter-react'
+import { useRequestCredit } from '../../hooks/useRequestCredit'
 
 interface RequestCreditModalProps {
   isOpen: boolean
   onClose: () => void
+  agentPubkey?: string
   creditLevel?: number
 }
 
@@ -15,9 +18,38 @@ const LEVEL_LIMITS: Record<number, { name: string; max: string; rate: string }> 
   4: { name: 'Elite', max: '$500,000', rate: '18.25%' },
 }
 
-export function RequestCreditModal({ isOpen, onClose, creditLevel = 1 }: RequestCreditModalProps) {
+const LEVEL_MAX_USDC: Record<number, number> = {
+  1: 500,
+  2: 20_000,
+  3: 50_000,
+  4: 500_000,
+}
+
+export function RequestCreditModal({ isOpen, onClose, agentPubkey, creditLevel = 1 }: RequestCreditModalProps) {
   const [amount, setAmount] = useState('')
+  const { publicKey } = useWallet()
+  const requestCredit = useRequestCredit()
   const levelInfo = LEVEL_LIMITS[creditLevel] ?? LEVEL_LIMITS[1]
+  const maxUsdc = LEVEL_MAX_USDC[creditLevel] ?? 500
+
+  const agentKey = agentPubkey ?? publicKey?.toBase58() ?? ''
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const val = parseFloat(amount)
+    if (isNaN(val) || val <= 0 || !agentKey) return
+
+    await requestCredit.mutateAsync({
+      agentPubkey: agentKey,
+      amount: val,
+      creditLevel,
+    })
+
+    setAmount('')
+    onClose()
+  }
+
+  const isDisabled = requestCredit.isPending || !amount || parseFloat(amount) <= 0 || !agentKey
 
   return (
     <AnimatePresence>
@@ -60,7 +92,7 @@ export function RequestCreditModal({ isOpen, onClose, creditLevel = 1 }: Request
               </div>
             </div>
 
-            <div className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="text-xs text-gray-400 uppercase tracking-wider block mb-2">
                   Amount (USDC)
@@ -72,27 +104,39 @@ export function RequestCreditModal({ isOpen, onClose, creditLevel = 1 }: Request
                   placeholder="500.00"
                   step="0.01"
                   min="1"
+                  max={maxUsdc}
                   className="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
                 />
               </div>
 
-              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 flex items-start gap-2">
-                <Info size={16} className="text-amber-400 shrink-0 mt-0.5" />
-                <p className="text-xs text-amber-400">
-                  Credit requests require oracle co-signature. On devnet, requests are processed automatically within a few minutes.
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl px-4 py-3 flex items-start gap-2">
+                <Info size={16} className="text-blue-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-blue-400">
+                  Credit requests are oracle co-signed. The oracle will validate your eligibility and add its signature before you confirm.
                 </p>
               </div>
 
+              {!agentKey && (
+                <p className="text-xs text-red-400 text-center">
+                  No agent pubkey found. Register an agent first.
+                </p>
+              )}
+
               <button
-                disabled
-                className="w-full bg-blue-600/50 text-white/60 font-medium px-6 py-3 rounded-xl cursor-not-allowed"
+                type="submit"
+                disabled={isDisabled}
+                className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-6 py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
               >
-                Request Credit (Oracle Required)
+                {requestCredit.isPending ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Requesting...
+                  </>
+                ) : (
+                  'Request Credit'
+                )}
               </button>
-              <p className="text-xs text-gray-500 text-center">
-                Credit request flow requires the oracle to co-sign. This will be enabled after oracle deployment.
-              </p>
-            </div>
+            </form>
           </motion.div>
         </motion.div>
       )}

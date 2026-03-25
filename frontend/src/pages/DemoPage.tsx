@@ -78,7 +78,8 @@ const mkLog = (text: string, type: LogEntry['type'], sub?: string, tx?: string):
 
 const usd = (n: number, d = 2) => `$${n.toFixed(d)}`
 const sig = (s: string) => `${s.slice(0, 6)}\u2026${s.slice(-4)}`
-const scan = (s: string) => `https://solscan.io/tx/${s}?cluster=devnet`
+const CLUSTER = import.meta.env.VITE_SOLANA_CLUSTER || 'devnet'
+const scan = (s: string) => `https://solscan.io/tx/${s}${CLUSTER !== 'mainnet-beta' ? `?cluster=${CLUSTER}` : ''}`
 
 // ─── Story Data ─────────────────────────────────────────────────────────────
 
@@ -337,7 +338,7 @@ const TX_LABELS: Record<number, string> = {
   6: 'Full Repayment',
 }
 
-function progScan(addr: string) { return `https://solscan.io/account/${addr}?cluster=devnet` }
+function progScan(addr: string) { return `https://solscan.io/account/${addr}${CLUSTER !== 'mainnet-beta' ? `?cluster=${CLUSTER}` : ''}` }
 
 function OnChainProof({ txs }: { txs: DemoState['txs'] }) {
   const txEntries = Object.entries(txs).map(([k, v]) => ({ step: Number(k), tx: v }))

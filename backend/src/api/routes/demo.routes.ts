@@ -11,6 +11,7 @@
  */
 
 import { Router }        from 'express';
+import type { RequestHandler } from 'express';
 import type { Address }  from 'viem';
 
 import { getVaultSnapshot }  from '../../chain/merchantVault.js';
@@ -26,8 +27,8 @@ import {
 
 const router = Router();
 
-// BUG-027 + BUG-028: All demo routes require admin-tier API key
-router.use(requireAdmin as never);
+// All demo routes require admin-tier API key
+router.use(requireAdmin as RequestHandler);
 
 // ── Waterfall split constants (mirrors WaterfallLib.sol) ─────────────────────
 const PLATFORM_FEE_BPS = 250;  // 2.5%
