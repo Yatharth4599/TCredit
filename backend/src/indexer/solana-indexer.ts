@@ -15,6 +15,9 @@ import { createHash } from 'crypto';
 import { solanaConnection } from '../chain/solana/connection.js';
 import { PROGRAM_IDS } from '../chain/solana/programs.js';
 import { prisma } from '../config/prisma.js';
+import { withRetry } from '../utils/retry.js';
+import { CircuitBreaker, CircuitOpenError } from '../utils/circuit-breaker.js';
+import { createLogger } from '../utils/logger.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -22,6 +25,21 @@ import { prisma } from '../config/prisma.js';
 
 const POLL_INTERVAL_MS = 5_000;   // 5 seconds between polls
 const BATCH_SIZE = 20;            // signatures to fetch per poll
+
+const log = createLogger('SolanaIndexer');
+
+const rpcBreaker = new CircuitBreaker({
+  threshold: 5,
+  resetMs: 60_000,
+  label: 'solana-indexer-rpc',
+  onStateChange: (from, to, label) => {
+    log.warn('Circuit breaker state change', { label, from, to });
+  },
+});
+
+let totalEventsIndexed = 0;
+let lastPollAt = 0;
+let consecutiveErrors = 0;
 
 // ---------------------------------------------------------------------------
 // Event discriminator helpers
@@ -86,9 +104,9 @@ interface ParsedEvent {
 
 function parseAnchorEvents(logs: string[]): ParsedEvent[] {
   const events: ParsedEvent[] = [];
-  for (const log of logs) {
+  for (const logLine of logs) {
     // Anchor CPI events are logged as: "Program data: <base64>"
-    const match = log.match(/^Program data: (.+)$/);
+    const match = logLine.match(/^Program data: (.+)$/);
     if (!match) continue;
 
     const rawB64 = match[1];
@@ -114,7 +132,6 @@ function parseAnchorEvents(logs: string[]): ParsedEvent[] {
 // ---------------------------------------------------------------------------
 
 async function handleAgentRegistered(data: Buffer, txSig: string, slot: number): Promise<void> {
-  // AgentRegistered { agent: Pubkey, owner: Pubkey, name: [u8;32] }
   if (data.length < 96) return;
   const agentPubkey = new PublicKey(data.subarray(0, 32)).toBase58();
   const ownerPubkey = new PublicKey(data.subarray(32, 64)).toBase58();
@@ -125,7 +142,6 @@ async function handleAgentRegistered(data: Buffer, txSig: string, slot: number):
 }
 
 async function handleCreditScoreUpdated(data: Buffer, txSig: string, slot: number): Promise<void> {
-  // CreditScoreUpdated { agent, old_score: u16, new_score: u16, old_level: u8, new_level: u8 }
   if (data.length < 36) return;
   const agentPubkey = new PublicKey(data.subarray(0, 32)).toBase58();
   const newScore = data.readUInt16LE(34);
@@ -134,34 +150,31 @@ async function handleCreditScoreUpdated(data: Buffer, txSig: string, slot: numbe
   await prisma.solanaAgentWallet.updateMany({
     where: { agentPubkey },
     data: { creditLevel: newLevel },
-  }).catch(() => {});
+  }).catch((err) => {
+    log.warn('Failed to update credit level', { agent: agentPubkey, error: err instanceof Error ? err.message : String(err) });
+  });
 
   await storeEvent('CreditScoreUpdated', { agentPubkey, newScore, newLevel }, txSig, slot);
 }
 
 async function handleWalletCreated(data: Buffer, txSig: string, slot: number): Promise<void> {
-  // WalletCreated { agent: Pubkey, owner: Pubkey, daily_spend_limit: u64 }
   if (data.length < 72) return;
   const agentPubkey = new PublicKey(data.subarray(0, 32)).toBase58();
   const ownerPubkey = new PublicKey(data.subarray(32, 64)).toBase58();
   const dailySpendLimit = data.readBigUInt64LE(64);
 
-  // Upsert wallet record
   await prisma.solanaAgentWallet.upsert({
     where: { agentPubkey },
-    create: {
-      agentPubkey,
-      ownerPubkey,
-      dailySpendLimit,
-    },
+    create: { agentPubkey, ownerPubkey, dailySpendLimit },
     update: {},
-  }).catch(() => {});
+  }).catch((err) => {
+    log.warn('Failed to upsert wallet record', { agent: agentPubkey, error: err instanceof Error ? err.message : String(err) });
+  });
 
   await storeEvent('WalletCreated', { agentPubkey, ownerPubkey, dailySpendLimit: dailySpendLimit.toString() }, txSig, slot);
 }
 
 async function handleTradeExecuted(data: Buffer, txSig: string, slot: number): Promise<void> {
-  // TradeExecuted { agent: Pubkey, venue: Pubkey, amount: u64, direction: bool }
   if (data.length < 73) return;
   const agentPubkey = new PublicKey(data.subarray(0, 32)).toBase58();
   const venue = new PublicKey(data.subarray(32, 64)).toBase58();
@@ -177,18 +190,21 @@ async function handleTradeExecuted(data: Buffer, txSig: string, slot: number): P
       txSignature: txSig,
       executedAt: new Date(),
     },
-  }).catch(() => {});
+  }).catch((err) => {
+    log.warn('Failed to create trade record', { agent: agentPubkey, txSig, error: err instanceof Error ? err.message : String(err) });
+  });
 
   await prisma.solanaAgentWallet.updateMany({
     where: { agentPubkey },
     data: { totalTrades: { increment: 1n }, totalVolume: { increment: amount } },
-  }).catch(() => {});
+  }).catch((err) => {
+    log.warn('Failed to increment trade stats', { agent: agentPubkey, error: err instanceof Error ? err.message : String(err) });
+  });
 
   await storeEvent('TradeExecuted', { agentPubkey, venue, amount: amount.toString(), direction: isBuy ? 'buy' : 'sell' }, txSig, slot);
 }
 
 async function handlePaymentRouted(data: Buffer, txSig: string, slot: number): Promise<void> {
-  // PaymentRouted { merchant, agent_wallet_pda, amount, platform_fee, repayment, merchant_received, new_nonce }
   if (data.length < 104) return;
   const merchant = new PublicKey(data.subarray(0, 32)).toBase58();
   const agentWalletPda = new PublicKey(data.subarray(32, 64)).toBase58();
@@ -206,7 +222,6 @@ async function handlePaymentRouted(data: Buffer, txSig: string, slot: number): P
 }
 
 async function handleOwnershipTransferProposed(data: Buffer, txSig: string, slot: number): Promise<void> {
-  // OwnershipTransferProposed { agent: Pubkey, current_owner: Pubkey, proposed_owner: Pubkey, proposed_owner_type: u8 }
   if (data.length < 97) return;
   const agentPubkey = new PublicKey(data.subarray(0, 32)).toBase58();
   const proposedOwner = new PublicKey(data.subarray(64, 96)).toBase58();
@@ -214,13 +229,14 @@ async function handleOwnershipTransferProposed(data: Buffer, txSig: string, slot
   await prisma.solanaAgentWallet.updateMany({
     where: { agentPubkey },
     data: { pendingOwner: proposedOwner },
-  }).catch(() => {});
+  }).catch((err) => {
+    log.warn('Failed to update pending owner', { agent: agentPubkey, error: err instanceof Error ? err.message : String(err) });
+  });
 
   await storeEvent('OwnershipTransferProposed', { agentPubkey, proposedOwner }, txSig, slot);
 }
 
 async function handleOwnershipTransferAccepted(data: Buffer, txSig: string, slot: number): Promise<void> {
-  // OwnershipTransferAccepted { agent: Pubkey, old_owner: Pubkey, new_owner: Pubkey, new_owner_type: u8 }
   if (data.length < 97) return;
   const agentPubkey = new PublicKey(data.subarray(0, 32)).toBase58();
   const newOwner = new PublicKey(data.subarray(64, 96)).toBase58();
@@ -233,20 +249,23 @@ async function handleOwnershipTransferAccepted(data: Buffer, txSig: string, slot
       ownerType: newOwnerType === 1 ? 'multisig' : 'eoa',
       pendingOwner: null,
     },
-  }).catch(() => {});
+  }).catch((err) => {
+    log.warn('Failed to update ownership', { agent: agentPubkey, error: err instanceof Error ? err.message : String(err) });
+  });
 
   await storeEvent('OwnershipTransferAccepted', { agentPubkey, newOwner, newOwnerType }, txSig, slot);
 }
 
 async function handleOwnershipTransferCancelled(data: Buffer, txSig: string, slot: number): Promise<void> {
-  // OwnershipTransferCancelled { agent: Pubkey, cancelled_by: Pubkey }
   if (data.length < 64) return;
   const agentPubkey = new PublicKey(data.subarray(0, 32)).toBase58();
 
   await prisma.solanaAgentWallet.updateMany({
     where: { agentPubkey },
     data: { pendingOwner: null },
-  }).catch(() => {});
+  }).catch((err) => {
+    log.warn('Failed to clear pending owner', { agent: agentPubkey, error: err instanceof Error ? err.message : String(err) });
+  });
 
   await storeEvent('OwnershipTransferCancelled', { agentPubkey }, txSig, slot);
 }
@@ -265,7 +284,10 @@ async function storeEvent(
     where: { txSignature_eventType: { txSignature, eventType } },
     create: { eventType, data: data as never, txSignature, slot, indexedAt: new Date() },
     update: {},
-  }).catch(() => {});
+  }).catch((err) => {
+    log.warn('Failed to store event', { eventType, txSignature, error: err instanceof Error ? err.message : String(err) });
+  });
+  totalEventsIndexed++;
 }
 
 // ---------------------------------------------------------------------------
@@ -273,10 +295,13 @@ async function storeEvent(
 // ---------------------------------------------------------------------------
 
 async function processSignature(sig: string): Promise<void> {
-  const tx = await solanaConnection.getTransaction(sig, {
-    commitment: 'confirmed',
-    maxSupportedTransactionVersion: 0,
-  });
+  const tx = await withRetry(
+    () => solanaConnection.getTransaction(sig, {
+      commitment: 'confirmed',
+      maxSupportedTransactionVersion: 0,
+    }),
+    { maxAttempts: 2, baseMs: 1_000, maxMs: 5_000 },
+  );
 
   if (!tx?.meta?.logMessages) return;
   const events = parseAnchorEvents(tx.meta.logMessages);
@@ -297,7 +322,7 @@ async function processSignature(sig: string): Promise<void> {
           await storeEvent(event.name, { raw: event.raw }, sig, slot);
       }
     } catch (err) {
-      console.error(`[SolanaIndexer] Handler error for ${event.name}:`, err instanceof Error ? err.message : err);
+      log.error('Handler error', { event: event.name, txSignature: sig, error: err instanceof Error ? err.message : String(err) });
     }
   }
 }
@@ -312,8 +337,21 @@ async function pollProgram(programId: PublicKey, lastSig: string | null): Promis
 
   let sigs: ConfirmedSignatureInfo[];
   try {
-    sigs = await solanaConnection.getSignaturesForAddress(programId, opts, 'confirmed');
-  } catch {
+    sigs = await rpcBreaker.exec(() =>
+      withRetry(
+        () => solanaConnection.getSignaturesForAddress(programId, opts, 'confirmed'),
+        { maxAttempts: 3, baseMs: 1_000, maxMs: 10_000 },
+      ),
+    );
+  } catch (err) {
+    if (err instanceof CircuitOpenError) {
+      // silently skip — breaker handles logging
+    } else {
+      log.warn('Failed to fetch signatures', {
+        program: programId.toBase58(),
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
     return lastSig;
   }
 
@@ -326,7 +364,7 @@ async function pollProgram(programId: PublicKey, lastSig: string | null): Promis
     try {
       await processSignature(signature);
     } catch (e) {
-      console.error(`[SolanaIndexer] processSignature(${signature}) error:`, e instanceof Error ? e.message : e);
+      log.error('processSignature failed', { txSignature: signature, error: e instanceof Error ? e.message : String(e) });
     }
   }
 
@@ -359,6 +397,9 @@ async function runPollCycle(): Promise<void> {
       data: { lastSignature: newest },
     });
   }
+
+  consecutiveErrors = 0;
+  lastPollAt = Date.now();
 }
 
 // ---------------------------------------------------------------------------
@@ -369,11 +410,17 @@ let indexerInterval: NodeJS.Timeout | null = null;
 
 export function startSolanaIndexer(): void {
   if (indexerInterval) return;
-  console.log('[SolanaIndexer] Started (poll interval: 5s)');
+  log.info('Started', { pollIntervalMs: POLL_INTERVAL_MS });
 
-  runPollCycle().catch((err) => console.error('[SolanaIndexer] Initial poll error:', err));
+  runPollCycle().catch((err) => {
+    consecutiveErrors++;
+    log.error('Initial poll error', { error: err instanceof Error ? err.message : String(err) });
+  });
   indexerInterval = setInterval(() => {
-    runPollCycle().catch((err) => console.error('[SolanaIndexer] Poll error:', err));
+    runPollCycle().catch((err) => {
+      consecutiveErrors++;
+      log.error('Poll error', { error: err instanceof Error ? err.message : String(err) });
+    });
   }, POLL_INTERVAL_MS);
 }
 
@@ -381,7 +428,7 @@ export function stopSolanaIndexer(): void {
   if (indexerInterval) {
     clearInterval(indexerInterval);
     indexerInterval = null;
-    console.log('[SolanaIndexer] Stopped');
+    log.info('Stopped');
   }
 }
 
@@ -392,6 +439,10 @@ export async function getSolanaIndexerHealth() {
     running: indexerInterval !== null,
     lastSignature: state?.lastSignature ?? null,
     totalEvents: eventCount,
+    totalEventsIndexed,
+    consecutiveErrors,
+    lastPollAt: lastPollAt ? new Date(lastPollAt).toISOString() : null,
     updatedAt: state?.updatedAt?.toISOString() ?? null,
+    circuitBreaker: rpcBreaker.getStatus(),
   };
 }

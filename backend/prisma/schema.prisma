@@ -200,6 +200,8 @@ model SolanaAgentWallet {
   scoreSnapshots   ScoreSnapshot[]
 
   @@index([healthFactorBps])
+  @@index([creditDrawn])
+  @@index([totalDebt])
   @@index([isFrozen])
 }
 

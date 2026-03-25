@@ -17,6 +17,9 @@ import { buildCheckHealth, buildDeleverage, buildLiquidate } from '../chain/sola
 import { walletUsdcPda } from '../chain/solana/programs.js';
 import { prisma } from '../config/prisma.js';
 import { env } from '../config/env.js';
+import { withRetry } from '../utils/retry.js';
+import { CircuitBreaker, CircuitOpenError } from '../utils/circuit-breaker.js';
+import { createLogger } from '../utils/logger.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -28,25 +31,60 @@ const HF_DANGER_BPS    = 12_000;         // 1.20x — deleverage
 const HF_LIQUIDATION_BPS = 10_500;       // 1.05x — liquidate
 const USDC_MINT = new PublicKey(env.SOLANA_USDC_MINT);
 
+const log = createLogger('SolanaKeeper');
+
+// Circuit breaker for RPC calls — opens after 5 consecutive failures, resets after 60s
+const rpcBreaker = new CircuitBreaker({
+  threshold: 5,
+  resetMs: 60_000,
+  label: 'solana-keeper-rpc',
+  onStateChange: (from, to, label) => {
+    log.warn(`Circuit breaker state change`, { label, from, to });
+  },
+});
+
+// Track metrics
+let cycleCount = 0;
+let lastCycleAt = 0;
+let lastCycleDurationMs = 0;
+let consecutiveErrors = 0;
+
 // ---------------------------------------------------------------------------
-// Submit a signed transaction
+// Submit a signed transaction with retry
 // ---------------------------------------------------------------------------
 
 async function sendAndConfirm(ix: ReturnType<typeof buildDeleverage>): Promise<string | null> {
   if (!keeperSolanaKeypair) return null;
-  try {
-    const { blockhash } = await solanaConnection.getLatestBlockhash('confirmed');
-    const { Transaction } = await import('@solana/web3.js');
-    const tx = new Transaction({ recentBlockhash: blockhash, feePayer: keeperSolanaKeypair.publicKey });
-    tx.add(ix);
-    tx.sign(keeperSolanaKeypair);
-    const sig = await solanaConnection.sendRawTransaction(tx.serialize(), { skipPreflight: false });
-    await solanaConnection.confirmTransaction(sig, 'confirmed');
-    return sig;
-  } catch (err) {
-    console.error('[SolanaKeeper] sendAndConfirm error:', err instanceof Error ? err.message : err);
+
+  return withRetry(
+    async () => {
+      return rpcBreaker.exec(async () => {
+        const { blockhash } = await solanaConnection.getLatestBlockhash('confirmed');
+        const { Transaction } = await import('@solana/web3.js');
+        const tx = new Transaction({ recentBlockhash: blockhash, feePayer: keeperSolanaKeypair!.publicKey });
+        tx.add(ix);
+        tx.sign(keeperSolanaKeypair!);
+        const sig = await solanaConnection.sendRawTransaction(tx.serialize(), { skipPreflight: false });
+        await solanaConnection.confirmTransaction(sig, 'confirmed');
+        return sig;
+      });
+    },
+    {
+      maxAttempts: 3,
+      baseMs: 2_000,
+      maxMs: 15_000,
+      onRetry: (attempt, error, delayMs) => {
+        log.warn('Transaction retry', { attempt, error: error.message, delayMs });
+      },
+    },
+  ).catch((err) => {
+    if (err instanceof CircuitOpenError) {
+      log.warn('RPC circuit open, skipping transaction', { retryAfterMs: err.retryAfterMs });
+    } else {
+      log.error('sendAndConfirm failed after retries', { error: err instanceof Error ? err.message : String(err) });
+    }
     return null;
-  }
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -62,7 +100,7 @@ async function processWallet(agentPubkey: PublicKey, wallet: AgentWallet): Promi
   try {
     walletUsdcBalance = await readTokenBalance(wallet.walletUsdc);
   } catch {
-    // non-fatal
+    // non-fatal — balance read can fail if account doesn't exist yet
   }
 
   // Persist snapshot
@@ -74,17 +112,17 @@ async function processWallet(agentPubkey: PublicKey, wallet: AgentWallet): Promi
         creditDrawn: wallet.creditDrawn,
         totalDebt: wallet.totalDebt,
         walletUsdc: walletUsdcBalance,
-        collateralValue: wallet.collateralShares, // shares ≈ USDC for accounting
+        collateralValue: wallet.collateralShares,
       },
     });
-  } catch {
-    // Don't let DB errors block on-chain actions
+  } catch (err) {
+    log.warn('Failed to persist health snapshot', { agent: agentKey, error: err instanceof Error ? err.message : String(err) });
   }
 
   if (wallet.isFrozen || wallet.isLiquidating) return;
 
   if (hf < HF_LIQUIDATION_BPS && wallet.creditDrawn > 0n) {
-    console.log(`[SolanaKeeper] LIQUIDATE agent ${agentKey} HF=${hf}`);
+    log.info('LIQUIDATE triggered', { agent: agentKey, healthFactorBps: hf });
     if (keeperSolanaKeypair) {
       const keeperUsdc = getAssociatedTokenAddressSync(USDC_MINT, keeperSolanaKeypair.publicKey);
       const ixn = buildLiquidate({
@@ -95,18 +133,20 @@ async function processWallet(agentPubkey: PublicKey, wallet: AgentWallet): Promi
       });
       const sig = await sendAndConfirm(ixn);
       if (sig) {
-        console.log(`[SolanaKeeper] Liquidated ${agentKey} — sig: ${sig}`);
+        log.info('Liquidation submitted', { agent: agentKey, txSignature: sig });
         await prisma.solanaAgentWallet.update({
           where: { agentPubkey: agentKey },
           data: { isLiquidating: true, healthFactorBps: hf },
-        }).catch(() => {});
+        }).catch((err) => {
+          log.warn('Failed to update liquidation state in DB', { agent: agentKey, error: err instanceof Error ? err.message : String(err) });
+        });
       }
     }
     return;
   }
 
   if (hf < HF_DANGER_BPS && wallet.creditDrawn > 0n) {
-    console.log(`[SolanaKeeper] DELEVERAGE agent ${agentKey} HF=${hf}`);
+    log.info('DELEVERAGE triggered', { agent: agentKey, healthFactorBps: hf });
     if (keeperSolanaKeypair) {
       const ixn = buildDeleverage({
         agent: new PublicKey(wallet.agent),
@@ -114,21 +154,23 @@ async function processWallet(agentPubkey: PublicKey, wallet: AgentWallet): Promi
       });
       const sig = await sendAndConfirm(ixn);
       if (sig) {
-        console.log(`[SolanaKeeper] Deleveraged ${agentKey} — sig: ${sig}`);
+        log.info('Deleverage submitted', { agent: agentKey, txSignature: sig });
         await prisma.solanaAgentWallet.update({
           where: { agentPubkey: agentKey },
           data: { isFrozen: true, healthFactorBps: hf },
-        }).catch(() => {});
+        }).catch((err) => {
+          log.warn('Failed to update deleverage state in DB', { agent: agentKey, error: err instanceof Error ? err.message : String(err) });
+        });
       }
     }
     return;
   }
 
   if (hf < HF_WARNING_BPS && wallet.creditDrawn > 0n) {
-    console.warn(`[SolanaKeeper] WARNING: agent ${agentKey} HF=${hf} (below 1.30)`);
+    log.warn('Health factor below warning threshold', { agent: agentKey, healthFactorBps: hf });
   }
 
-  // Sync health to DB (no-op create/update)
+  // Sync health to DB
   await prisma.solanaAgentWallet.upsert({
     where: { agentPubkey: agentKey },
     create: {
@@ -159,7 +201,9 @@ async function processWallet(agentPubkey: PublicKey, wallet: AgentWallet): Promi
       isLiquidating: wallet.isLiquidating,
       lastHealthCheck: new Date(Number(wallet.lastHealthCheck) * 1000),
     },
-  }).catch(() => {});
+  }).catch((err) => {
+    log.warn('Failed to upsert wallet state', { agent: agentKey, error: err instanceof Error ? err.message : String(err) });
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -167,23 +211,49 @@ async function processWallet(agentPubkey: PublicKey, wallet: AgentWallet): Promi
 // ---------------------------------------------------------------------------
 
 async function runKeeperCycle(): Promise<void> {
+  const startMs = Date.now();
+  cycleCount++;
+
   let wallets: Awaited<ReturnType<typeof getAllAgentWallets>>;
   try {
-    wallets = await getAllAgentWallets();
+    wallets = await rpcBreaker.exec(() => getAllAgentWallets());
   } catch (err) {
-    console.error('[SolanaKeeper] Failed to fetch wallets:', err instanceof Error ? err.message : err);
+    if (err instanceof CircuitOpenError) {
+      log.warn('RPC circuit open, skipping keeper cycle', { retryAfterMs: err.retryAfterMs });
+    } else {
+      log.error('Failed to fetch wallets', { error: err instanceof Error ? err.message : String(err) });
+      consecutiveErrors++;
+    }
     return;
   }
 
   if (wallets.length === 0) return;
+
+  consecutiveErrors = 0;
 
   // Process wallets with active credit lines sequentially to avoid RPC floods
   for (const { pubkey, wallet } of wallets) {
     try {
       await processWallet(pubkey, wallet);
     } catch (err) {
-      console.error(`[SolanaKeeper] Error processing ${pubkey.toBase58()}:`, err instanceof Error ? err.message : err);
+      log.error('Error processing wallet', {
+        agent: pubkey.toBase58(),
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
+  }
+
+  lastCycleAt = Date.now();
+  lastCycleDurationMs = lastCycleAt - startMs;
+
+  if (cycleCount % 30 === 0) {
+    // Log stats every ~60s
+    log.info('Keeper cycle stats', {
+      cycle: cycleCount,
+      walletsProcessed: wallets.length,
+      durationMs: lastCycleDurationMs,
+      rpcBreaker: rpcBreaker.getStatus().state,
+    });
   }
 }
 
@@ -197,16 +267,16 @@ export function startSolanaKeeper(): void {
   if (keeperInterval) return;
 
   if (!keeperSolanaKeypair) {
-    console.log('[SolanaKeeper] Not started: SOLANA_KEEPER_PRIVATE_KEY not set');
+    log.info('Not started: SOLANA_KEEPER_PRIVATE_KEY not set');
   } else {
-    console.log(`[SolanaKeeper] Keeper started (${keeperSolanaKeypair.publicKey.toBase58()})`);
+    log.info('Keeper started', { address: keeperSolanaKeypair.publicKey.toBase58() });
   }
 
   // Run once immediately
-  runKeeperCycle().catch((err) => console.error('[SolanaKeeper] Initial run error:', err));
+  runKeeperCycle().catch((err) => log.error('Initial run error', { error: err instanceof Error ? err.message : String(err) }));
 
   keeperInterval = setInterval(() => {
-    runKeeperCycle().catch((err) => console.error('[SolanaKeeper] Cycle error:', err));
+    runKeeperCycle().catch((err) => log.error('Cycle error', { error: err instanceof Error ? err.message : String(err) }));
   }, POLL_INTERVAL_MS);
 }
 
@@ -214,7 +284,7 @@ export function stopSolanaKeeper(): void {
   if (keeperInterval) {
     clearInterval(keeperInterval);
     keeperInterval = null;
-    console.log('[SolanaKeeper] Stopped');
+    log.info('Stopped');
   }
 }
 
@@ -225,5 +295,10 @@ export function getSolanaKeeperHealth() {
     keeperAddress: keeperSolanaKeypair?.publicKey.toBase58() ?? null,
     pollIntervalMs: POLL_INTERVAL_MS,
     thresholds: { warning: HF_WARNING_BPS, deleverage: HF_DANGER_BPS, liquidate: HF_LIQUIDATION_BPS },
+    cycleCount,
+    lastCycleAt: lastCycleAt ? new Date(lastCycleAt).toISOString() : null,
+    lastCycleDurationMs,
+    consecutiveErrors,
+    circuitBreaker: rpcBreaker.getStatus(),
   };
 }

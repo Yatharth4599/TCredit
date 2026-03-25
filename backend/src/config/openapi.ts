@@ -4,9 +4,9 @@ export const openApiSpec = {
   openapi: '3.0.3',
   info: {
     title: 'Krexa API',
-    version: '0.1.0',
+    version: '0.2.0',
     description:
-      'Krexa — programmable credit vaults on Base. All monetary values are USDC wei strings (6 decimals). All write endpoints return unsigned transactions `{ to, data }` for client-side signing.',
+      'Krexa — programmable AI agent credit on Solana. All monetary values are USDC base units (6 decimals). Solana endpoints accept/return base58-encoded public keys. Write endpoints return unsigned Solana transactions for client-side signing.',
     contact: { name: 'Krexa', url: 'https://github.com/Yatharth4599/TCredit' },
   },
   servers: [
@@ -25,6 +25,13 @@ export const openApiSpec = {
     { name: 'Admin', description: 'API keys and webhook management (requires API key)' },
     { name: 'Credit Bureau', description: 'Agent credit scores, reports, and history — the CIBIL moat. Score lookup is free (100 req/day); full reports and history require a paid-tier API key.' },
     { name: 'Agent Credit', description: 'Credit eligibility, extension, repayment, score breakdown, and legal e-signing for Solana agents.' },
+    { name: 'Agent Wallets', description: 'Solana agent wallet creation, state, health, balance, and trades.' },
+    { name: 'Vault (Solana)', description: 'On-chain vault stats, LP positions, collateral, and service health.' },
+    { name: 'Oracle (Solana)', description: 'Oracle-signed credit transactions on Solana.' },
+    { name: 'Score (Solana)', description: 'On-chain Krexit Score lookup and preview.' },
+    { name: 'KYA', description: 'Know Your Agent verification — Basic (wallet signature) and Enhanced (Sumsub KYC).' },
+    { name: 'Faucet', description: 'Devnet USDC faucet for testing (rate-limited).' },
+    { name: 'x402', description: 'HTTP 402 Payment Required facilitator — register API resources, verify payments, and manage per-call pricing.' },
   ],
   paths: {
     // ── Health ──
@@ -463,6 +470,347 @@ export const openApiSpec = {
       },
     },
 
+    // ── Agent Credit (Solana) — additional endpoints ──
+    '/solana/credit/{agent}/eligibility': {
+      get: {
+        tags: ['Agent Credit'],
+        summary: 'Check credit eligibility',
+        description: 'Returns whether the agent meets requirements for credit at their current level: KYA tier, score threshold, and active wallet.',
+        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' }, description: 'Solana agent public key' }],
+        responses: {
+          200: { description: 'Eligibility result', content: { 'application/json': { schema: { $ref: '#/components/schemas/CreditEligibility' } } } },
+          404: { description: 'Agent not found' },
+        },
+      },
+    },
+    '/solana/credit/{agent}/line': {
+      get: {
+        tags: ['Agent Credit'],
+        summary: 'Current credit line state',
+        description: 'Returns the on-chain credit line: limit, drawn, accrued interest, rate, and origination date.',
+        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' }, description: 'Solana agent public key' }],
+        responses: {
+          200: { description: 'Credit line details', content: { 'application/json': { schema: { $ref: '#/components/schemas/SolanaCreditLine' } } } },
+          404: { description: 'No credit line found' },
+        },
+      },
+    },
+    '/solana/credit/{agent}/activity': {
+      get: {
+        tags: ['Agent Credit'],
+        summary: 'Recent credit activity',
+        description: 'Returns paginated score snapshots, health snapshots, and recent trades for the agent.',
+        parameters: [
+          { name: 'agent', in: 'path', required: true, schema: { type: 'string' }, description: 'Solana agent public key' },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 100 } },
+        ],
+        responses: {
+          200: { description: 'Activity feed', content: { 'application/json': { schema: { $ref: '#/components/schemas/CreditActivity' } } } },
+        },
+      },
+    },
+    '/solana/credit/{agent}/request': {
+      post: {
+        tags: ['Agent Credit'],
+        summary: 'Build unsigned request_credit transaction',
+        description: 'Builds a Solana transaction to request credit. The oracle co-signs the transaction. Requires eligible agent with sufficient score and KYA.',
+        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object', required: ['ownerPubkey', 'amount'], properties: { ownerPubkey: { type: 'string', description: 'Owner wallet public key' }, amount: { type: 'string', description: 'USDC amount in base units (6 decimals)' } } } } },
+        },
+        responses: { 200: { description: 'Unsigned Solana transaction (base64)', content: { 'application/json': { schema: { $ref: '#/components/schemas/SolanaUnsignedTx' } } } } },
+      },
+    },
+    '/solana/credit/{agent}/repay': {
+      post: {
+        tags: ['Agent Credit'],
+        summary: 'Build unsigned repay transaction',
+        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object', required: ['callerPubkey', 'amount'], properties: { callerPubkey: { type: 'string', description: 'Wallet paying the repayment' }, amount: { type: 'string', description: 'USDC amount in base units' } } } } },
+        },
+        responses: { 200: { description: 'Unsigned Solana transaction (base64)', content: { 'application/json': { schema: { $ref: '#/components/schemas/SolanaUnsignedTx' } } } } },
+      },
+    },
+    '/solana/credit/{agent}/confirm-agreement': {
+      post: {
+        tags: ['Agent Credit'],
+        summary: 'Confirm legal agreement after on-chain signing',
+        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object', required: ['txSignature'], properties: { txSignature: { type: 'string', description: 'On-chain transaction signature' } } } } },
+        },
+        responses: { 200: { description: 'Agreement confirmed' } },
+      },
+    },
+
+    // ── Agent Wallets (Solana) ──
+    '/solana/wallets': {
+      get: {
+        tags: ['Agent Wallets'],
+        summary: 'List all agent wallets',
+        parameters: [{ name: 'limit', in: 'query', schema: { type: 'integer', default: 50, maximum: 200 } }],
+        responses: { 200: { description: 'Wallet list', content: { 'application/json': { schema: { type: 'object', properties: { wallets: { type: 'array', items: { $ref: '#/components/schemas/AgentWalletSummary' } }, total: { type: 'integer' } } } } } } },
+      },
+    },
+    '/solana/wallets/create': {
+      post: {
+        tags: ['Agent Wallets'],
+        summary: 'Build unsigned create_wallet transaction',
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object', required: ['agentPubkey', 'ownerPubkey'], properties: { agentPubkey: { type: 'string' }, ownerPubkey: { type: 'string' }, dailySpendLimit: { type: 'string', default: '100000000', description: 'USDC base units (default $100)' } } } } },
+        },
+        responses: { 200: { description: 'Unsigned Solana transaction', content: { 'application/json': { schema: { $ref: '#/components/schemas/SolanaUnsignedTx' } } } } },
+      },
+    },
+    '/solana/wallets/{agent}': {
+      get: {
+        tags: ['Agent Wallets'],
+        summary: 'Full wallet state',
+        description: 'Returns on-chain wallet state including credit drawn, debt, collateral, daily spend, and health factor.',
+        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: {
+          200: { description: 'Wallet state', content: { 'application/json': { schema: { $ref: '#/components/schemas/AgentWalletState' } } } },
+          404: { description: 'Wallet not found' },
+        },
+      },
+    },
+    '/solana/wallets/{agent}/health': {
+      get: {
+        tags: ['Agent Wallets'],
+        summary: 'Current health factor',
+        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: 'Health status', content: { 'application/json': { schema: { $ref: '#/components/schemas/WalletHealth' } } } } },
+      },
+    },
+    '/solana/wallets/{agent}/balance': {
+      get: {
+        tags: ['Agent Wallets'],
+        summary: 'USDC balance',
+        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: 'Balance', content: { 'application/json': { schema: { type: 'object', properties: { agent: { type: 'string' }, balance: { type: 'string', description: 'USDC base units' } } } } } } },
+      },
+    },
+    '/solana/wallets/{agent}/trades': {
+      get: {
+        tags: ['Agent Wallets'],
+        summary: 'Recent trades',
+        parameters: [
+          { name: 'agent', in: 'path', required: true, schema: { type: 'string' } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 100 } },
+        ],
+        responses: { 200: { description: 'Trade list', content: { 'application/json': { schema: { type: 'object', properties: { trades: { type: 'array', items: { $ref: '#/components/schemas/AgentTrade' } }, total: { type: 'integer' } } } } } } },
+      },
+    },
+    '/solana/wallets/{agent}/propose-transfer': {
+      post: {
+        tags: ['Agent Wallets'],
+        summary: 'Propose wallet ownership transfer',
+        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['currentOwner', 'newOwner'], properties: { currentOwner: { type: 'string' }, newOwner: { type: 'string' } } } } } },
+        responses: { 200: { description: 'Unsigned transfer proposal transaction', content: { 'application/json': { schema: { $ref: '#/components/schemas/SolanaUnsignedTx' } } } } },
+      },
+    },
+    '/solana/wallets/{agent}/accept-transfer': {
+      post: {
+        tags: ['Agent Wallets'],
+        summary: 'Accept wallet ownership transfer',
+        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['newOwner'], properties: { newOwner: { type: 'string' } } } } } },
+        responses: { 200: { description: 'Unsigned accept transaction', content: { 'application/json': { schema: { $ref: '#/components/schemas/SolanaUnsignedTx' } } } } },
+      },
+    },
+    '/solana/wallets/{agent}/cancel-transfer': {
+      post: {
+        tags: ['Agent Wallets'],
+        summary: 'Cancel wallet ownership transfer',
+        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['owner'], properties: { owner: { type: 'string' } } } } } },
+        responses: { 200: { description: 'Unsigned cancel transaction', content: { 'application/json': { schema: { $ref: '#/components/schemas/SolanaUnsignedTx' } } } } },
+      },
+    },
+
+    // ── Vault (Solana) ──
+    '/solana/vault/stats': {
+      get: {
+        tags: ['Vault (Solana)'],
+        summary: 'Vault health and utilization',
+        description: 'Returns on-chain vault stats: total deposits, deployed, utilization, tranche breakdown, and insurance balance.',
+        responses: { 200: { description: 'Vault stats', content: { 'application/json': { schema: { $ref: '#/components/schemas/SolanaVaultStats' } } } } },
+      },
+    },
+    '/solana/vault/lp/{depositor}': {
+      get: {
+        tags: ['Vault (Solana)'],
+        summary: 'LP position for a depositor',
+        parameters: [{ name: 'depositor', in: 'path', required: true, schema: { type: 'string' }, description: 'Depositor public key' }],
+        responses: { 200: { description: 'LP positions across tranches', content: { 'application/json': { schema: { $ref: '#/components/schemas/LPPositions' } } } } },
+      },
+    },
+    '/solana/vault/collateral/{agent}': {
+      get: {
+        tags: ['Vault (Solana)'],
+        summary: 'Collateral position for an agent',
+        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: 'Collateral details', content: { 'application/json': { schema: { type: 'object', properties: { agent: { type: 'string' }, shares: { type: 'string' }, depositAmount: { type: 'string' }, depositedAt: { type: 'integer' } } } } } } },
+      },
+    },
+    '/solana/vault/health': {
+      get: {
+        tags: ['Vault (Solana)'],
+        summary: 'Indexer and keeper service health',
+        responses: { 200: { description: 'Service health', content: { 'application/json': { schema: { type: 'object', properties: { indexer: { type: 'object' }, keeper: { type: 'object' } } } } } } },
+      },
+    },
+
+    // ── Oracle (Solana) ──
+    '/solana/oracle/sign-credit': {
+      post: {
+        tags: ['Oracle (Solana)'],
+        summary: 'Build oracle-signed credit request transaction',
+        description: 'The oracle validates the credit request and co-signs the Solana transaction. Returns a partially-signed transaction for the user to complete.',
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object', required: ['agentPubkey', 'ownerPubkey', 'amount'], properties: { agentPubkey: { type: 'string' }, ownerPubkey: { type: 'string' }, amount: { type: 'string', description: 'USDC base units' } } } } },
+        },
+        responses: {
+          200: { description: 'Oracle-signed transaction', content: { 'application/json': { schema: { $ref: '#/components/schemas/SolanaUnsignedTx' } } } },
+          400: { description: 'Agent not eligible' },
+        },
+      },
+    },
+
+    // ── Score (Solana) ──
+    '/solana/score/{agent}': {
+      get: {
+        tags: ['Score (Solana)'],
+        summary: 'Full Krexit Score',
+        description: 'Returns the on-chain 5-component score. If the agent has no on-chain score, returns a preview based on wallet activity.',
+        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' }, description: 'Solana agent public key' }],
+        responses: { 200: { description: 'Krexit Score', content: { 'application/json': { schema: { $ref: '#/components/schemas/KrexitScoreResponse' } } } } },
+      },
+    },
+
+    // ── KYA ──
+    '/solana/kya/{agent}/basic': {
+      post: {
+        tags: ['KYA'],
+        summary: 'Basic KYA verification (Tier 1)',
+        description: 'Automated verification via wallet message signing. Proves ownership of the agent wallet.',
+        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object', required: ['ownerPubkey', 'ownerSignature'], properties: { ownerPubkey: { type: 'string', description: 'Owner wallet that signed the message' }, ownerSignature: { type: 'string', description: 'Base64-encoded signature' } } } } },
+        },
+        responses: {
+          200: { description: 'KYA result', content: { 'application/json': { schema: { type: 'object', properties: { status: { type: 'string', enum: ['approved', 'pending'] }, kyaTier: { type: 'integer' } } } } } },
+          400: { description: 'Invalid signature or agent' },
+        },
+      },
+    },
+    '/solana/kya/{agent}/enhanced': {
+      post: {
+        tags: ['KYA'],
+        summary: 'Enhanced KYA verification (Tier 2)',
+        description: 'Initiates Sumsub KYC flow. Returns a verification URL for the user to complete identity checks.',
+        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object', required: ['ownerPubkey'], properties: { ownerPubkey: { type: 'string' } } } } },
+        },
+        responses: { 200: { description: 'Verification URL', content: { 'application/json': { schema: { type: 'object', properties: { verificationUrl: { type: 'string', format: 'uri' }, status: { type: 'string' } } } } } } },
+      },
+    },
+    '/solana/kya/{agent}/status': {
+      get: {
+        tags: ['KYA'],
+        summary: 'Current KYA verification status',
+        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: 'KYA status', content: { 'application/json': { schema: { type: 'object', properties: { agent: { type: 'string' }, kyaTier: { type: 'integer' }, tierName: { type: 'string', enum: ['None', 'Basic', 'Enhanced', 'Institutional'] }, verifiedAt: { type: 'string', format: 'date-time', nullable: true } } } } } } },
+      },
+    },
+
+    // ── Faucet ──
+    '/solana/faucet/usdc': {
+      post: {
+        tags: ['Faucet'],
+        summary: 'Mint test USDC (devnet only)',
+        description: 'Airdrops test USDC to the specified wallet. Rate-limited to 1 request per 24 hours per wallet.',
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object', required: ['recipient'], properties: { recipient: { type: 'string', description: 'Solana wallet public key' }, amount: { type: 'integer', default: 1000, description: 'Amount in USDC (human units, default 1000)' } } } } },
+        },
+        responses: {
+          200: { description: 'Faucet success', content: { 'application/json': { schema: { type: 'object', properties: { txSignature: { type: 'string' }, amount: { type: 'string' } } } } } },
+          429: { description: 'Rate limited — try again after 24h' },
+        },
+      },
+    },
+
+    // ── x402 Payment Facilitator ──
+    '/x402/register-resource': {
+      post: {
+        tags: ['x402'],
+        summary: 'Register API resource with per-call pricing',
+        description: 'Register a URL with USDC-denominated pricing. Returns an unsigned transaction to submit on-chain. After submission, use `/x402/resource-key` to derive the storage key.',
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object', required: ['url', 'pricePerCallUsdc'], properties: { url: { type: 'string', description: 'The API endpoint URL to monetize' }, pricePerCallUsdc: { type: 'string', description: 'Price per call in USDC (e.g. "0.01")' } } } } },
+        },
+        responses: { 200: { description: 'Registration tx', content: { 'application/json': { schema: { type: 'object', properties: { rawResourceHash: { type: 'string' }, unsignedTx: { $ref: '#/components/schemas/UnsignedTx' }, description: { type: 'string' } } } } } } },
+      },
+    },
+    '/x402/verify': {
+      post: {
+        tags: ['x402'],
+        summary: 'Verify a payment receipt',
+        description: 'Verify that a payment transaction was executed correctly for a given resource. Use this to gate access to paid API endpoints.',
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object', required: ['resourceHash', 'txHash'], properties: { resourceHash: { type: 'string', description: 'Resource hash from registration' }, txHash: { type: 'string', description: 'On-chain transaction hash' } } } } },
+        },
+        responses: { 200: { description: 'Verification result', content: { 'application/json': { schema: { type: 'object', properties: { valid: { type: 'boolean' }, payer: { type: 'string' }, amount: { type: 'string' }, resource: { type: 'string' } } } } } } },
+      },
+    },
+    '/x402/resource/{key}': {
+      get: {
+        tags: ['x402'],
+        summary: 'Get resource by storage key',
+        description: 'Look up a registered resource by its on-chain storage key (derived from rawResourceHash + ownerAddress).',
+        parameters: [{ name: 'key', in: 'path', required: true, schema: { type: 'string' }, description: 'keccak256(abi.encode(rawResourceHash, ownerAddress))' }],
+        responses: { 200: { description: 'Resource details', content: { 'application/json': { schema: { type: 'object', properties: { url: { type: 'string' }, pricePerCall: { type: 'string' }, owner: { type: 'string' }, facilitatorFeeBps: { type: 'integer' }, resourceKey: { type: 'string' } } } } } } },
+      },
+    },
+    '/x402/resource-key/{rawHash}/{owner}': {
+      get: {
+        tags: ['x402'],
+        summary: 'Derive storage key from raw hash + owner',
+        description: 'Computes the on-chain storage key for a resource given the raw hash and owner address.',
+        parameters: [
+          { name: 'rawHash', in: 'path', required: true, schema: { type: 'string' } },
+          { name: 'owner', in: 'path', required: true, schema: { type: 'string' } },
+        ],
+        responses: { 200: { description: 'Derived key', content: { 'application/json': { schema: { type: 'object', properties: { rawHash: { type: 'string' }, owner: { type: 'string' }, resourceKey: { type: 'string' } } } } } } },
+      },
+    },
+
+    // ── Credit Bureau — simple check ──
+    '/credit-bureau/{agent}/check': {
+      get: {
+        tags: ['Credit Bureau'],
+        summary: 'Quick credit check (pass/fail)',
+        description: 'Simple pass/fail credit check returning score tier, eligibility, and max credit. No API key required. Designed for quick integration by third-party services.',
+        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' }, description: 'Solana agent public key' }],
+        responses: {
+          200: { description: 'Credit check result', content: { 'application/json': { schema: { $ref: '#/components/schemas/CreditCheck' } } } },
+        },
+      },
+    },
+
     // ── Admin: API Keys ──
     '/admin/keys': {
       get: {
@@ -529,8 +877,8 @@ export const openApiSpec = {
         type: 'object',
         required: ['to', 'data'],
         properties: {
-          to: { type: 'string', description: 'Contract address' },
-          data: { type: 'string', description: 'ABI-encoded calldata' },
+          to: { type: 'string', description: 'Contract/program address' },
+          data: { type: 'string', description: 'Encoded transaction data' },
           description: { type: 'string' },
         },
       },
@@ -847,6 +1195,179 @@ export const openApiSpec = {
           active: { type: 'boolean' },
           deliveryCount: { type: 'integer' },
           createdAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      // ── Solana-specific schemas ──
+      SolanaUnsignedTx: {
+        type: 'object',
+        properties: {
+          transaction: { type: 'string', description: 'Base64-encoded unsigned Solana transaction' },
+          message: { type: 'string', description: 'Human-readable description' },
+        },
+      },
+      CreditEligibility: {
+        type: 'object',
+        properties: {
+          agent: { type: 'string' },
+          eligible: { type: 'boolean' },
+          creditLevel: { type: 'integer' },
+          maxCredit: { type: 'string', description: 'USDC base units' },
+          currentScore: { type: 'integer' },
+          kyaTier: { type: 'integer' },
+          reasons: { type: 'array', items: { type: 'string' }, description: 'Reasons for ineligibility (empty if eligible)' },
+        },
+      },
+      SolanaCreditLine: {
+        type: 'object',
+        properties: {
+          agent: { type: 'string' },
+          creditLimit: { type: 'string' },
+          creditDrawn: { type: 'string' },
+          accruedInterest: { type: 'string' },
+          totalInterestPaid: { type: 'string' },
+          interestRateBps: { type: 'integer' },
+          originatedAt: { type: 'integer', description: 'Unix timestamp' },
+          lastAccrualAt: { type: 'integer' },
+          isActive: { type: 'boolean' },
+        },
+      },
+      CreditActivity: {
+        type: 'object',
+        properties: {
+          scoreHistory: { type: 'array', items: { type: 'object', properties: { score: { type: 'integer' }, level: { type: 'integer' }, snapshotAt: { type: 'string', format: 'date-time' } } } },
+          healthHistory: { type: 'array', items: { type: 'object', properties: { healthFactorBps: { type: 'integer' }, snapshotAt: { type: 'string', format: 'date-time' } } } },
+          recentTrades: { type: 'array', items: { $ref: '#/components/schemas/AgentTrade' } },
+        },
+      },
+      AgentWalletSummary: {
+        type: 'object',
+        properties: {
+          agent: { type: 'string' },
+          owner: { type: 'string' },
+          creditLevel: { type: 'integer' },
+          totalDebt: { type: 'string' },
+          healthFactorBps: { type: 'integer' },
+          createdAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      AgentWalletState: {
+        type: 'object',
+        properties: {
+          agent: { type: 'string' },
+          owner: { type: 'string' },
+          walletUsdc: { type: 'string', description: 'USDC token account address' },
+          collateralShares: { type: 'string' },
+          creditLimit: { type: 'string' },
+          creditDrawn: { type: 'string' },
+          totalDebt: { type: 'string' },
+          dailySpendLimit: { type: 'string' },
+          dailySpent: { type: 'string' },
+          healthFactorBps: { type: 'integer' },
+          creditLevel: { type: 'integer' },
+          isFrozen: { type: 'boolean' },
+          isLiquidating: { type: 'boolean' },
+          totalTrades: { type: 'string' },
+          totalVolume: { type: 'string' },
+          totalRepaid: { type: 'string' },
+          createdAt: { type: 'integer' },
+        },
+      },
+      WalletHealth: {
+        type: 'object',
+        properties: {
+          agent: { type: 'string' },
+          healthFactorBps: { type: 'integer' },
+          healthFactor: { type: 'string', description: 'Human-readable, e.g. "1.35"' },
+          status: { type: 'string', enum: ['Active', 'Warning', 'Deleveraging', 'Liquidating', 'Closed'] },
+          walletBalance: { type: 'string' },
+          collateralValue: { type: 'string' },
+          totalDebt: { type: 'string' },
+        },
+      },
+      AgentTrade: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          agent: { type: 'string' },
+          venue: { type: 'string' },
+          side: { type: 'string', enum: ['buy', 'sell'] },
+          amount: { type: 'string' },
+          pnl: { type: 'string', nullable: true },
+          txSignature: { type: 'string' },
+          timestamp: { type: 'string', format: 'date-time' },
+        },
+      },
+      SolanaVaultStats: {
+        type: 'object',
+        properties: {
+          totalDeposits: { type: 'string' },
+          totalDeployed: { type: 'string' },
+          availableLiquidity: { type: 'string' },
+          utilizationBps: { type: 'integer' },
+          utilizationPct: { type: 'string' },
+          insuranceBalance: { type: 'string' },
+          isPaused: { type: 'boolean' },
+          tranches: {
+            type: 'object',
+            properties: {
+              senior: { type: 'object', properties: { deposits: { type: 'string' }, shares: { type: 'string' }, aprBps: { type: 'integer' } } },
+              mezzanine: { type: 'object', properties: { deposits: { type: 'string' }, shares: { type: 'string' }, aprBps: { type: 'integer' } } },
+              junior: { type: 'object', properties: { deposits: { type: 'string' }, shares: { type: 'string' }, aprBps: { type: 'integer' } } },
+            },
+          },
+        },
+      },
+      LPPositions: {
+        type: 'object',
+        properties: {
+          depositor: { type: 'string' },
+          positions: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                tranche: { type: 'string', enum: ['senior', 'mezzanine', 'junior'] },
+                shares: { type: 'string' },
+                depositAmount: { type: 'string' },
+                depositedAt: { type: 'integer' },
+                estimatedValue: { type: 'string' },
+                estimatedYield: { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+      KrexitScoreResponse: {
+        type: 'object',
+        properties: {
+          agent: { type: 'string' },
+          score: { type: 'integer', minimum: 200, maximum: 850 },
+          level: { type: 'integer' },
+          components: {
+            type: 'object',
+            properties: {
+              repayment: { type: 'number', description: '0-100, weight 30%' },
+              profitability: { type: 'number', description: '0-100, weight 25%' },
+              behavioral: { type: 'number', description: '0-100, weight 20%' },
+              usage: { type: 'number', description: '0-100, weight 15%' },
+              maturity: { type: 'number', description: '0-100, weight 10%' },
+            },
+          },
+          isPreview: { type: 'boolean', description: 'True if score is a preview (not yet on-chain)' },
+          lastUpdated: { type: 'string', format: 'date-time', nullable: true },
+        },
+      },
+      CreditCheck: {
+        type: 'object',
+        description: 'Simple pass/fail credit check for third-party integration',
+        properties: {
+          agent: { type: 'string' },
+          pass: { type: 'boolean', description: 'Whether the agent passes basic creditworthiness check' },
+          score: { type: 'integer', minimum: 200, maximum: 850 },
+          tier: { type: 'string', enum: ['none', 'starter', 'established', 'trusted', 'elite'] },
+          maxCredit: { type: 'string', description: 'Maximum credit in USDC (human-readable)' },
+          riskFlags: { type: 'array', items: { type: 'string' } },
+          checkedAt: { type: 'string', format: 'date-time' },
         },
       },
       WebhookDelivery: {

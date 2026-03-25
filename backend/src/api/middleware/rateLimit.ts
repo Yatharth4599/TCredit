@@ -9,16 +9,26 @@ interface BucketEntry {
   resetAt: number;
 }
 
-// In-memory sliding window. For production, use Redis.
+/**
+ * In-memory sliding window rate limiter.
+ *
+ * For horizontal scaling, replace with a Redis-backed implementation:
+ *   - Use INCR + EXPIRE on key `rl:<bucketKey>` with TTL = WINDOW_MS/1000
+ *   - Fall back to this in-memory implementation if Redis is unavailable
+ *
+ * Current implementation is suitable for single-instance deployments.
+ */
 const buckets = new Map<string, BucketEntry>();
 
-// Clean stale entries every 5 minutes
-setInterval(() => {
+// Clean stale entries periodically to prevent memory growth
+const CLEANUP_INTERVAL_MS = 5 * 60_000;
+const cleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of buckets) {
     if (entry.resetAt < now) buckets.delete(key);
   }
-}, 5 * 60_000);
+}, CLEANUP_INTERVAL_MS);
+cleanupTimer.unref(); // Don't prevent process exit
 
 export function rateLimit(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
   const now = Date.now();
@@ -36,14 +46,17 @@ export function rateLimit(req: AuthenticatedRequest, res: Response, next: NextFu
 
   entry.count++;
 
+  // Standard rate limit headers (RFC draft)
   res.setHeader('X-RateLimit-Limit', String(limit));
   res.setHeader('X-RateLimit-Remaining', String(Math.max(0, limit - entry.count)));
   res.setHeader('X-RateLimit-Reset', String(Math.ceil(entry.resetAt / 1000)));
 
   if (entry.count > limit) {
+    const retryAfterMs = entry.resetAt - now;
+    res.setHeader('Retry-After', String(Math.ceil(retryAfterMs / 1000)));
     res.status(429).json({
       error: 'Rate limit exceeded',
-      retryAfterMs: entry.resetAt - now,
+      retryAfterMs,
     });
     return;
   }

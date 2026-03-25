@@ -8,7 +8,7 @@
 
 import { Router } from 'express';
 import { PublicKey } from '@solana/web3.js';
-import { getAgentScore, getAgentReport, getAgentHistory, logInquiry } from '../../services/credit-bureau.js';
+import { getAgentScore, getAgentReport, getAgentHistory, getAgentCheck, logInquiry } from '../../services/credit-bureau.js';
 import { apiKeyAuth, type AuthenticatedRequest } from '../middleware/apiKeyAuth.js';
 import { AppError } from '../middleware/errorHandler.js';
 
@@ -21,6 +21,21 @@ function parsePubkey(raw: string): PublicKey {
 
 // All bureau routes use optional API key auth for tracking
 router.use(apiKeyAuth);
+
+// GET /credit-bureau/:agent/check — simple pass/fail (free, no API key needed)
+router.get('/:agent/check', async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const agent = req.params.agent as string;
+    parsePubkey(agent);
+
+    const check = await getAgentCheck(agent);
+
+    const requesterKey = req.apiKey?.id ?? 'anonymous';
+    await logInquiry(agent, requesterKey, 'check').catch(() => {});
+
+    res.json(check);
+  } catch (err) { next(err); }
+});
 
 // GET /credit-bureau/:agent/score — free tier
 router.get('/:agent/score', async (req: AuthenticatedRequest, res, next) => {

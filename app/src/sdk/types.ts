@@ -5,7 +5,8 @@ import BN from "bn.js";
 // Program IDs
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const PROGRAM_IDS = {
+/** Devnet program IDs (deployed and verified). */
+export const DEVNET_PROGRAM_IDS = {
   AGENT_REGISTRY:  new PublicKey("ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG"),
   CREDIT_VAULT:    new PublicKey("26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N"),
   AGENT_WALLET:    new PublicKey("35t8yWLsUZNTLT71ej7DF59P81HrtZTx2uZeMhwuhhf6"),
@@ -14,6 +15,23 @@ export const PROGRAM_IDS = {
   SERVICE_PLAN:    new PublicKey("Eqc48c6TtKAPRosTMoC6Nasi85iqdLuzwbu6WBrsPFdt"),
   SCORE:           new PublicKey("2GwtAXnjY5LehfZfT77ZH3XSshwbni8LP9zXeA84WUqh"),
 } as const;
+
+/**
+ * Mainnet program IDs — will be populated after mainnet deployment.
+ * Until then, these mirror devnet IDs as placeholders.
+ */
+export const MAINNET_PROGRAM_IDS = {
+  AGENT_REGISTRY:  new PublicKey("ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG"),
+  CREDIT_VAULT:    new PublicKey("26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N"),
+  AGENT_WALLET:    new PublicKey("35t8yWLsUZNTLT71ej7DF59P81HrtZTx2uZeMhwuhhf6"),
+  VENUE_WHITELIST: new PublicKey("HyWQrHG14Sw6KpKYSMiBDmVj5u7PXfLWvim6FHbBLmua"),
+  PAYMENT_ROUTER:  new PublicKey("2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8"),
+  SERVICE_PLAN:    new PublicKey("Eqc48c6TtKAPRosTMoC6Nasi85iqdLuzwbu6WBrsPFdt"),
+  SCORE:           new PublicKey("2GwtAXnjY5LehfZfT77ZH3XSshwbni8LP9zXeA84WUqh"),
+} as const;
+
+/** Default program IDs (devnet). Override via KrexaClientConfig.programIds. */
+export const PROGRAM_IDS = DEVNET_PROGRAM_IDS;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Enums (matching on-chain Anchor enums)
