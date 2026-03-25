@@ -64,6 +64,13 @@ const envSchema = z.object({
   // CORS
   CORS_ORIGIN: z.string().optional().default(''),
 
+  // Admin IP allowlist (comma-separated, e.g. "1.2.3.4,5.6.7.8")
+  // If empty, IP filtering is disabled (dev mode). Set in production.
+  ADMIN_IP_ALLOWLIST: z.string().optional().default(''),
+
+  // Structured logging level
+  LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).optional().default('info'),
+
   PORT: z.coerce.number().default(3001),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 });

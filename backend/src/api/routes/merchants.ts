@@ -7,6 +7,8 @@ import { AgentRegistryABI } from '../../config/abis.js';
 import { addresses } from '../../config/contracts.js';
 import { encodeFunctionData } from 'viem';
 import { AppError } from '../middleware/errorHandler.js';
+import { validate } from '../middleware/validate.js';
+import { MerchantRegisterSchema, MerchantRepaySchema, MerchantCreditScoreSchema } from '../schemas.js';
 import { requireApiKey, type AuthenticatedRequest } from '../middleware/apiKeyAuth.js';
 import { getSettlement } from '../../chain/paymentRouter.js';
 import { processPayment } from '../../services/oracle.service.js';
@@ -172,14 +174,11 @@ router.get('/:address/repayments', async (req, res, next) => {
 });
 
 // POST /api/v1/merchants/:address/repay — submit a repayment via oracle (requires API key)
-router.post('/:address/repay', requireApiKey as RequestHandler, async (req: AuthenticatedRequest, res, next) => {
+router.post('/:address/repay', requireApiKey as RequestHandler, validate(MerchantRepaySchema), async (req: AuthenticatedRequest, res, next) => {
   try {
     const addr = req.params.address as Address;
     const { repaymentAmount } = req.body;
-    if (!repaymentAmount) throw new AppError(400, 'repaymentAmount (wei string) required');
-
     const repayBigInt = BigInt(repaymentAmount);
-    if (repayBigInt <= 0n) throw new AppError(400, 'repaymentAmount must be positive');
 
     // Get settlement to calculate gross amount
     const settlement = await getSettlement(addr);
@@ -214,7 +213,7 @@ router.post('/:address/repay', requireApiKey as RequestHandler, async (req: Auth
 });
 
 // POST /api/v1/merchants/register — build unsigned registerAgent tx
-router.post('/register', async (req, res, next) => {
+router.post('/register', validate(MerchantRegisterSchema), async (req, res, next) => {
   try {
     const { metadataURI = '' } = req.body;
 
@@ -236,11 +235,9 @@ router.post('/register', async (req, res, next) => {
 });
 
 // POST /api/v1/merchants/:address/credit-score — build unsigned updateCreditScore tx (admin only)
-router.post('/:address/credit-score', async (req, res, next) => {
+router.post('/:address/credit-score', validate(MerchantCreditScoreSchema), async (req, res, next) => {
   try {
     const { score } = req.body;
-    if (score === undefined) throw new AppError(400, 'score (0-1000) required');
-    if (score < 0 || score > 1000) throw new AppError(400, 'score must be 0-1000');
 
     const data = encodeFunctionData({
       abi: AgentRegistryABI,

@@ -1,32 +1,26 @@
 import { Router } from 'express';
 import { prisma } from '../../config/prisma.js';
-import { AppError } from '../middleware/errorHandler.js';
+import { validate } from '../middleware/validate.js';
+import { WaitlistJoinSchema } from '../schemas.js';
 
 const router = Router();
 
 // POST /api/v1/waitlist — join the waitlist
-router.post('/', async (req, res, next) => {
+router.post('/', validate(WaitlistJoinSchema), async (req, res, next) => {
   try {
     const { email, walletAddress } = req.body;
 
-    if (!email || typeof email !== 'string') {
-      throw new AppError(400, 'email is required');
-    }
-
-    const normalised = email.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalised)) {
-      throw new AppError(400, 'Invalid email address');
-    }
+    // email is already validated + normalized by Zod schema (trimmed, lowercased)
 
     // Check if already joined
-    const existing = await prisma.waitlistEntry.findUnique({ where: { email: normalised } });
+    const existing = await prisma.waitlistEntry.findUnique({ where: { email } });
     if (existing) {
       return res.json({ success: true, id: existing.id, alreadyJoined: true });
     }
 
     const entry = await prisma.waitlistEntry.create({
       data: {
-        email: normalised,
+        email,
         walletAddress: walletAddress?.trim() || null,
       },
     });

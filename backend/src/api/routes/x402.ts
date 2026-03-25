@@ -3,7 +3,8 @@ import type { Address, Hex } from 'viem';
 import { parseUnits } from 'viem';
 import { getResource, getResourceKey, getFacilitatorFeeBps } from '../../chain/facilitator.js';
 import { hashResourceUrl, registerResourceTx, verifyPaymentReceipt } from '../../services/facilitator.service.js';
-import { AppError } from '../middleware/errorHandler.js';
+import { validate } from '../middleware/validate.js';
+import { X402RegisterResourceSchema, X402VerifySchema } from '../schemas.js';
 import { env } from '../../config/env.js';
 
 const router = Router();
@@ -11,12 +12,9 @@ const router = Router();
 const FACILITATOR_ADDRESS = env.KREXA_402_FACILITATOR_ADDRESS as Address;
 
 // POST /api/v1/x402/register-resource — register URL with pricing
-router.post('/register-resource', async (req, res, next) => {
+router.post('/register-resource', validate(X402RegisterResourceSchema), async (req, res, next) => {
   try {
     const { url, pricePerCallUsdc } = req.body;
-    if (!url || !pricePerCallUsdc) {
-      throw new AppError(400, 'url and pricePerCallUsdc required');
-    }
     const price = parseUnits(String(pricePerCallUsdc), 6);
     const tx = await registerResourceTx(FACILITATOR_ADDRESS, url, price);
 
@@ -31,12 +29,9 @@ router.post('/register-resource', async (req, res, next) => {
 });
 
 // POST /api/v1/x402/verify — verify payment receipt
-router.post('/verify', async (req, res, next) => {
+router.post('/verify', validate(X402VerifySchema), async (req, res, next) => {
   try {
     const { resourceHash, txHash } = req.body;
-    if (!resourceHash || !txHash) {
-      throw new AppError(400, 'resourceHash and txHash required');
-    }
     const result = await verifyPaymentReceipt(
       FACILITATOR_ADDRESS,
       resourceHash as Hex,

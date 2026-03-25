@@ -14,6 +14,11 @@ import { readCreditLine, readAgentWallet, readAgentProfile } from '../../chain/s
 import { buildRepay, instructionToUnsignedTx } from '../../chain/solana/builder.js';
 import { getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { AppError } from '../middleware/errorHandler.js';
+import { validate } from '../middleware/validate.js';
+import {
+  SolanaCreditRequestSchema, SolanaCreditRepaySchema,
+  SolanaSignAgreementSchema, SolanaConfirmAgreementSchema,
+} from '../schemas.js';
 import { env } from '../../config/env.js';
 import { prisma } from '../../config/prisma.js';
 import { initiateAgreement, getAgreementStatus, confirmAgreementSigned } from '../../services/legal-agreement.js';
@@ -74,15 +79,13 @@ router.get('/:agent/line', async (req, res, next) => {
 });
 
 // POST /solana/credit/:agent/request — build unsigned request_credit tx
-router.post('/:agent/request', async (req, res, next) => {
+router.post('/:agent/request', validate(SolanaCreditRequestSchema), async (req, res, next) => {
   try {
-    const agentPk = parsePubkey(req.params.agent);
+    const agentPk = parsePubkey(req.params.agent as string);
     const { amount, rateBps, creditLevel, collateralValueUsdc } = req.body;
 
-    if (!amount) throw new AppError(400, 'amount (USDC base units) required');
-
     // Evaluate eligibility first
-    const eligibility = await evaluateCredit(req.params.agent);
+    const eligibility = await evaluateCredit(req.params.agent as string);
     if (!eligibility.eligible) {
       throw new AppError(400, `Credit not eligible: ${eligibility.reason}`);
     }
@@ -145,14 +148,10 @@ router.get('/:agent/score-breakdown', async (req, res, next) => {
 });
 
 // POST /solana/credit/:agent/repay — build unsigned repay tx
-router.post('/:agent/repay', async (req, res, next) => {
+router.post('/:agent/repay', validate(SolanaCreditRepaySchema), async (req, res, next) => {
   try {
-    const agentPk = parsePubkey(req.params.agent);
+    const agentPk = parsePubkey(req.params.agent as string);
     const { amount, callerPubkey } = req.body;
-
-    if (!amount || !callerPubkey) {
-      throw new AppError(400, 'amount and callerPubkey required');
-    }
 
     const callerPk = parsePubkey(callerPubkey);
     const callerUsdc = getAssociatedTokenAddressSync(USDC_MINT, callerPk);
@@ -226,26 +225,20 @@ router.get('/:agent/activity', async (req, res, next) => {
 });
 
 // POST /solana/credit/:agent/sign-agreement — initiate legal e-signing
-router.post('/:agent/sign-agreement', async (req, res, next) => {
+router.post('/:agent/sign-agreement', validate(SolanaSignAgreementSchema), async (req, res, next) => {
   try {
-    parsePubkey(req.params.agent);
+    parsePubkey(req.params.agent as string);
     const { creditLevel } = req.body;
-    if (!creditLevel || creditLevel < 3 || creditLevel > 4) {
-      throw new AppError(400, 'creditLevel must be 3 or 4');
-    }
 
-    const result = await initiateAgreement(req.params.agent, creditLevel);
+    const result = await initiateAgreement(req.params.agent as string, creditLevel);
     res.json(result);
   } catch (err) { next(err); }
 });
 
 // POST /solana/credit/:agent/confirm-agreement — confirm after on-chain tx
-router.post('/:agent/confirm-agreement', async (req, res, next) => {
+router.post('/:agent/confirm-agreement', validate(SolanaConfirmAgreementSchema), async (req, res, next) => {
   try {
     const { agreementId, txSignature, onChainHash } = req.body;
-    if (!agreementId || !txSignature || !onChainHash) {
-      throw new AppError(400, 'agreementId, txSignature, and onChainHash required');
-    }
     await confirmAgreementSigned(agreementId, txSignature, onChainHash);
     res.json({ success: true, message: 'Agreement confirmed' });
   } catch (err) { next(err); }

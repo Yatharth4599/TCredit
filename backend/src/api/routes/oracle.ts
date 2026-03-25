@@ -1,33 +1,21 @@
 import { Router } from 'express';
 import type { Address } from 'viem';
-import { z } from 'zod';
 import { processPayment, getOracleHealth } from '../../services/oracle.service.js';
-import { AppError } from '../middleware/errorHandler.js';
 import { requireApiKey } from '../middleware/apiKeyAuth.js';
+import { validate } from '../middleware/validate.js';
+import { OraclePaymentSchema } from '../schemas.js';
 import { prisma } from '../../config/prisma.js';
 
 const router = Router();
 
-const paymentSchema = z.object({
-  from: z.string().startsWith('0x').length(42),
-  to: z.string().startsWith('0x').length(42),
-  amount: z.string().regex(/^\d+$/),
-  paymentId: z.string().startsWith('0x').optional(),
-});
-
 // POST /api/v1/oracle/payment — webhook receiver (requires API key)
-router.post('/payment', requireApiKey, async (req, res, next) => {
+router.post('/payment', requireApiKey, validate(OraclePaymentSchema), async (req, res, next) => {
   try {
-    const parsed = paymentSchema.safeParse(req.body);
-    if (!parsed.success) {
-      throw new AppError(400, `Invalid request: ${parsed.error.issues.map((i) => i.message).join(', ')}`);
-    }
-
     const result = await processPayment({
-      from: parsed.data.from as Address,
-      to: parsed.data.to as Address,
-      amount: parsed.data.amount,
-      paymentId: parsed.data.paymentId,
+      from: req.body.from as Address,
+      to: req.body.to as Address,
+      amount: req.body.amount,
+      paymentId: req.body.paymentId,
     });
 
     res.status(result.status === 'confirmed' ? 200 : 202).json(result);

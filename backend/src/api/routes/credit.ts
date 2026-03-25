@@ -4,11 +4,13 @@ import { parseUnits, encodeFunctionData } from 'viem';
 import { publicClient } from '../../chain/client.js';
 import { addresses, VaultFactoryABI, MerchantVaultABI } from '../../config/contracts.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { validate } from '../middleware/validate.js';
+import { CreditAgentLineSchema, CreditVendorSchema } from '../schemas.js';
 
 const router = Router();
 
 // POST /api/v1/credit/agent-line — create platform credit line (wraps VaultFactory.createVault)
-router.post('/agent-line', async (req, res, next) => {
+router.post('/agent-line', validate(CreditAgentLineSchema), async (req, res, next) => {
   try {
     const {
       agent,
@@ -18,10 +20,6 @@ router.post('/agent-line', async (req, res, next) => {
       numTranches,
       repaymentRateBps,
     } = req.body;
-
-    if (!agent || !targetAmountUsdc) {
-      throw new AppError(400, 'agent and targetAmountUsdc required');
-    }
 
     const target = parseUnits(String(targetAmountUsdc), 6);
     const duration = BigInt((durationDays ?? 180) * 86400);
@@ -57,7 +55,7 @@ router.post('/agent-line', async (req, res, next) => {
 });
 
 // POST /api/v1/credit/vendor — create vendor credit between agents
-router.post('/vendor', async (req, res, next) => {
+router.post('/vendor', validate(CreditVendorSchema), async (req, res, next) => {
   try {
     const {
       vendorAgent,
@@ -66,10 +64,6 @@ router.post('/vendor', async (req, res, next) => {
       durationDays,
       repaymentRateBps,
     } = req.body;
-
-    if (!vendorAgent || !targetAmountUsdc) {
-      throw new AppError(400, 'vendorAgent and targetAmountUsdc required');
-    }
 
     const target = parseUnits(String(targetAmountUsdc), 6);
     const duration = BigInt((durationDays ?? 90) * 86400);

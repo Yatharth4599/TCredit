@@ -18,6 +18,11 @@ import {
 import { walletUsdcPda } from '../../chain/solana/programs.js';
 import { prisma } from '../../config/prisma.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { validate } from '../middleware/validate.js';
+import {
+  SolanaWalletCreateSchema, SolanaWalletProposeTransferSchema,
+  SolanaWalletAcceptTransferSchema, SolanaWalletCancelTransferSchema,
+} from '../schemas.js';
 
 const router = Router();
 
@@ -144,10 +149,9 @@ router.get('/:agent/trades', async (req, res, next) => {
 });
 
 // POST /solana/wallets/create  — returns unsigned transaction
-router.post('/create', async (req, res, next) => {
+router.post('/create', validate(SolanaWalletCreateSchema), async (req, res, next) => {
   try {
     const { agent, owner, dailySpendLimitUsdc } = req.body;
-    if (!agent || !owner) throw new AppError(400, 'agent and owner required');
 
     const agentPk = parsePubkey(agent);
     const ownerPk = parsePubkey(owner);
@@ -166,15 +170,13 @@ router.post('/create', async (req, res, next) => {
 
 // POST /solana/wallets/:agent/propose-transfer
 // Body: { owner, newOwner, newOwnerType }
-router.post('/:agent/propose-transfer', async (req, res, next) => {
+router.post('/:agent/propose-transfer', validate(SolanaWalletProposeTransferSchema), async (req, res, next) => {
   try {
-    const agentPk = parsePubkey(req.params.agent);
+    const agentPk = parsePubkey(req.params.agent as string);
     const { owner, newOwner, newOwnerType } = req.body;
-    if (!owner || !newOwner) throw new AppError(400, 'owner and newOwner required');
     const ownerPk = parsePubkey(owner);
     const newOwnerPk = parsePubkey(newOwner);
     const ownerTypeParsed = Number(newOwnerType ?? 0);
-    if (ownerTypeParsed < 0 || ownerTypeParsed > 1) throw new AppError(400, 'newOwnerType must be 0 or 1');
 
     const ixn = buildProposeOwnershipTransfer({
       agent: agentPk,
@@ -194,11 +196,10 @@ router.post('/:agent/propose-transfer', async (req, res, next) => {
 
 // POST /solana/wallets/:agent/accept-transfer
 // Body: { newOwner, rentReceiver? }
-router.post('/:agent/accept-transfer', async (req, res, next) => {
+router.post('/:agent/accept-transfer', validate(SolanaWalletAcceptTransferSchema), async (req, res, next) => {
   try {
-    const agentPk = parsePubkey(req.params.agent);
+    const agentPk = parsePubkey(req.params.agent as string);
     const { newOwner, rentReceiver } = req.body;
-    if (!newOwner) throw new AppError(400, 'newOwner required');
     const newOwnerPk = parsePubkey(newOwner);
     const rentReceiverPk = rentReceiver ? parsePubkey(rentReceiver) : newOwnerPk;
 
@@ -219,11 +220,10 @@ router.post('/:agent/accept-transfer', async (req, res, next) => {
 
 // POST /solana/wallets/:agent/cancel-transfer
 // Body: { owner }
-router.post('/:agent/cancel-transfer', async (req, res, next) => {
+router.post('/:agent/cancel-transfer', validate(SolanaWalletCancelTransferSchema), async (req, res, next) => {
   try {
-    const agentPk = parsePubkey(req.params.agent);
+    const agentPk = parsePubkey(req.params.agent as string);
     const { owner } = req.body;
-    if (!owner) throw new AppError(400, 'owner required');
     const ownerPk = parsePubkey(owner);
 
     const ixn = buildCancelOwnershipTransfer({ agent: agentPk, owner: ownerPk });

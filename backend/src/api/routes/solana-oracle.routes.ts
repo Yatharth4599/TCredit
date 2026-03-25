@@ -11,6 +11,8 @@ import { evaluateCredit } from '../../services/solana-oracle.js';
 import { buildRequestCredit } from '../../chain/solana/builder.js';
 import { readAgentWallet } from '../../chain/solana/reader.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { validate } from '../middleware/validate.js';
+import { SolanaOracleSignCreditSchema } from '../schemas.js';
 import { env } from '../../config/env.js';
 
 const router = Router();
@@ -44,13 +46,9 @@ function loadOracleKeypair(): Keypair {
  * Body: { agentPubkey, agentOrOwnerPubkey, amount, rateBps?, creditLevel?, collateralValueUsdc? }
  * Response: { transaction: string (base64), encoding: 'base64', feePayer: string, instructions: string }
  */
-router.post('/sign-credit', async (req, res, next) => {
+router.post('/sign-credit', validate(SolanaOracleSignCreditSchema), async (req, res, next) => {
   try {
     const { agentPubkey, agentOrOwnerPubkey, amount, rateBps, creditLevel, collateralValueUsdc } = req.body;
-
-    if (!agentPubkey || !agentOrOwnerPubkey || !amount) {
-      throw new AppError(400, 'agentPubkey, agentOrOwnerPubkey, and amount are required');
-    }
 
     const agentPk = parsePubkey(agentPubkey);
     const agentOrOwnerPk = parsePubkey(agentOrOwnerPubkey);

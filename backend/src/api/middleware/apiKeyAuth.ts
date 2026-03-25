@@ -53,8 +53,9 @@ export async function requireApiKey(req: AuthenticatedRequest, res: Response, ne
 
     req.apiKey = { id: apiKey.id, name: apiKey.name, rateLimit: apiKey.rateLimit, tier: apiKey.tier };
     next();
-  } catch {
-    res.status(500).json({ error: 'Auth service error' });
+  } catch (err) {
+    console.error('[requireApiKey] DB error during auth lookup:', err);
+    res.status(503).json({ error: 'Auth service temporarily unavailable' });
   }
 }
 
@@ -83,7 +84,8 @@ export async function requireAdmin(req: AuthenticatedRequest, res: Response, nex
 
     req.apiKey = { id: apiKey.id, name: apiKey.name, rateLimit: apiKey.rateLimit, tier: apiKey.tier };
     next();
-  } catch {
-    res.status(500).json({ error: 'Auth service error' });
+  } catch (err) {
+    console.error('[requireAdmin] DB error during auth lookup:', err);
+    res.status(503).json({ error: 'Auth service temporarily unavailable' });
   }
 }

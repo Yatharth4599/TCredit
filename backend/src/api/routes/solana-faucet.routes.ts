@@ -15,6 +15,8 @@ import {
 import bs58 from 'bs58';
 import { solanaConnection } from '../../chain/solana/connection.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { validate } from '../middleware/validate.js';
+import { SolanaFaucetMintSchema } from '../schemas.js';
 import { env } from '../../config/env.js';
 import { prisma } from '../../config/prisma.js';
 
@@ -99,10 +101,9 @@ function buildCreateAtaIx(mint: PublicKey, owner: PublicKey, payer: PublicKey, a
  * Body: { recipient: string, amountUsdc?: number }
  * Response: { signature, ata, amountUsdc }
  */
-router.post('/usdc', async (req, res, next) => {
+router.post('/usdc', validate(SolanaFaucetMintSchema), async (req, res, next) => {
   try {
-    const { recipient, amountUsdc = 10 } = req.body;
-    if (!recipient) throw new AppError(400, 'recipient pubkey required');
+    const { recipient, amountUsdc } = req.body;
 
     const recipientPk = parsePubkey(recipient);
 

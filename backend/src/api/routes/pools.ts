@@ -5,6 +5,8 @@ import { addresses } from '../../config/contracts.js';
 import { LiquidityPoolABI } from '../../config/abis.js';
 import { encodeFunctionData } from 'viem';
 import { AppError } from '../middleware/errorHandler.js';
+import { validate } from '../middleware/validate.js';
+import { PoolDepositSchema, PoolWithdrawSchema, PoolAllocateSchema } from '../schemas.js';
 
 const router = Router();
 
@@ -94,10 +96,9 @@ function parseAmount(raw: unknown): bigint {
 }
 
 // POST /api/v1/pools/deposit — build unsigned deposit tx
-router.post('/deposit', async (req, res, next) => {
+router.post('/deposit', validate(PoolDepositSchema), async (req, res, next) => {
   try {
     const { poolAddress, amount } = req.body;
-    if (!poolAddress) throw new AppError(400, 'poolAddress and amount required');
 
     const data = encodeFunctionData({
       abi: LiquidityPoolABI,
@@ -112,10 +113,9 @@ router.post('/deposit', async (req, res, next) => {
 });
 
 // POST /api/v1/pools/withdraw — build unsigned withdraw tx
-router.post('/withdraw', async (req, res, next) => {
+router.post('/withdraw', validate(PoolWithdrawSchema), async (req, res, next) => {
   try {
     const { poolAddress, amount } = req.body;
-    if (!poolAddress) throw new AppError(400, 'poolAddress and amount required');
 
     const data = encodeFunctionData({
       abi: LiquidityPoolABI,
@@ -130,12 +130,9 @@ router.post('/withdraw', async (req, res, next) => {
 });
 
 // POST /api/v1/pools/allocate — build unsigned allocateToVault tx (admin only)
-router.post('/allocate', async (req, res, next) => {
+router.post('/allocate', validate(PoolAllocateSchema), async (req, res, next) => {
   try {
     const { poolAddress, vaultAddress, amount } = req.body;
-    if (!poolAddress || !vaultAddress) {
-      throw new AppError(400, 'poolAddress, vaultAddress, and amount required');
-    }
 
     const data = encodeFunctionData({
       abi: LiquidityPoolABI,

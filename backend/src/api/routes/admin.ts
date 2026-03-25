@@ -2,11 +2,17 @@ import { Router } from 'express';
 import type { RequestHandler } from 'express';
 import { randomBytes } from 'crypto';
 import { requireAdmin } from '../middleware/apiKeyAuth.js';
-import { AppError } from '../middleware/errorHandler.js';
+import { ipAllowlist } from '../middleware/ipAllowlist.js';
+import { validate } from '../middleware/validate.js';
+import {
+  AdminCreateKeySchema, AdminUpdateKeySchema,
+  AdminCreateWebhookSchema, AdminUpdateWebhookSchema,
+} from '../schemas.js';
 import { prisma } from '../../config/prisma.js';
 const router = Router();
 
-// All admin routes require an admin-tier API key
+// All admin routes require an admin-tier API key + IP allowlist
+router.use(ipAllowlist as RequestHandler);
 router.use(requireAdmin as RequestHandler);
 
 // GET /api/v1/admin/keys -- list API keys (paginated, keys redacted)
@@ -40,10 +46,9 @@ router.get('/keys', async (req, res, next) => {
 });
 
 // POST /api/v1/admin/keys -- create a new API key
-router.post('/keys', async (req, res, next) => {
+router.post('/keys', validate(AdminCreateKeySchema), async (req, res, next) => {
   try {
     const { name, rateLimit: rl } = req.body;
-    if (!name) throw new AppError(400, 'name required');
 
     const key = `tck_${randomBytes(24).toString('hex')}`;
     const apiKey = await prisma.apiKey.create({
@@ -67,7 +72,7 @@ router.post('/keys', async (req, res, next) => {
 });
 
 // PATCH /api/v1/admin/keys/:id -- update key (name, rateLimit, active)
-router.patch('/keys/:id', async (req, res, next) => {
+router.patch('/keys/:id', validate(AdminUpdateKeySchema), async (req, res, next) => {
   try {
     const { name, rateLimit: rl, active } = req.body;
     const data: Record<string, unknown> = {};
@@ -75,10 +80,8 @@ router.patch('/keys/:id', async (req, res, next) => {
     if (rl !== undefined) data.rateLimit = Number(rl);
     if (active !== undefined) data.active = Boolean(active);
 
-    if (Object.keys(data).length === 0) throw new AppError(400, 'No fields to update');
-
     const apiKey = await prisma.apiKey.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data,
     });
 
@@ -145,13 +148,9 @@ router.get('/webhooks', async (req, res, next) => {
 });
 
 // POST /api/v1/admin/webhooks -- create webhook endpoint
-router.post('/webhooks', async (req, res, next) => {
+router.post('/webhooks', validate(AdminCreateWebhookSchema), async (req, res, next) => {
   try {
     const { url, events } = req.body;
-    if (!url) throw new AppError(400, 'url required');
-    if (!events || !Array.isArray(events) || events.length === 0) {
-      throw new AppError(400, 'events array required (e.g. ["VaultCreated", "RepaymentProcessed"])');
-    }
 
     const secret = `whsec_${randomBytes(32).toString('hex')}`;
     const endpoint = await prisma.webhookEndpoint.create({
@@ -173,7 +172,7 @@ router.post('/webhooks', async (req, res, next) => {
 });
 
 // PATCH /api/v1/admin/webhooks/:id -- update webhook endpoint
-router.patch('/webhooks/:id', async (req, res, next) => {
+router.patch('/webhooks/:id', validate(AdminUpdateWebhookSchema), async (req, res, next) => {
   try {
     const { url, events, active } = req.body;
     const data: Record<string, unknown> = {};
@@ -181,10 +180,8 @@ router.patch('/webhooks/:id', async (req, res, next) => {
     if (events !== undefined) data.events = events;
     if (active !== undefined) data.active = Boolean(active);
 
-    if (Object.keys(data).length === 0) throw new AppError(400, 'No fields to update');
-
     const endpoint = await prisma.webhookEndpoint.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data,
     });
 
