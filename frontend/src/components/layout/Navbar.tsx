@@ -1,10 +1,21 @@
 import { useNavigate } from 'react-router-dom'
 import FloatingDock, { DockItem } from '../ui/FloatingDock'
+import WalletButton from '../wallet/WalletButton'
 
 export default function Navbar() {
   const navigate = useNavigate()
 
   const items: DockItem[] = [
+    {
+      title: 'Onboard',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+      ),
+      href: '/app/onboard',
+      onClick: () => navigate('/app/onboard'),
+    },
     {
       title: 'Credit',
       icon: (
@@ -79,9 +90,12 @@ export default function Navbar() {
   ]
 
   return (
-    <nav style={{ position: 'fixed', top: '16px', left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 100, pointerEvents: 'none' }}>
+    <nav style={{ position: 'fixed', top: '16px', left: 0, right: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100, pointerEvents: 'none' }}>
       <div style={{ pointerEvents: 'all' }}>
         <FloatingDock items={items} />
+      </div>
+      <div style={{ position: 'fixed', top: 16, right: 20, pointerEvents: 'all' }}>
+        <WalletButton />
       </div>
     </nav>
   )

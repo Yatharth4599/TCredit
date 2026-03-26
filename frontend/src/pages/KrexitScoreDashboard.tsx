@@ -1,5 +1,10 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { useWallet } from '@solana/wallet-adapter-react'
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  RadarChart, PolarGrid, PolarAngleAxis, Radar,
+} from 'recharts'
 import { scoreApi } from '../api/solanaClient'
 import { BentoGrid, BentoCard } from '../components/ui/BentoGrid'
 import { GlassCard } from '../components/ui/GlassCard'
@@ -8,7 +13,7 @@ import { AnimatedNumber } from '../components/ui/AnimatedNumber'
 import { Skeleton } from '../components/ui/Skeleton'
 import DecryptedText from '../components/ui/DecryptedText'
 import SolanaLayout from '../components/layout/SolanaLayout'
-import { formatUsdc, formatBps } from '../utils/dashboardHelpers'
+import { formatUsdc, formatBps, scoreColor as sharedScoreColor } from '../utils/dashboardHelpers'
 import { containerVariants, cardVariants } from '../utils/motionVariants'
 import s from './KrexitScoreDashboard.module.css'
 
@@ -172,6 +177,149 @@ function ComponentRing({ value, color, size = 64 }: { value: number; color: stri
   )
 }
 
+// ── Score History Line Chart ──────────────────────────────────────────────
+
+function ScoreHistoryChart({ history }: { history: HistoryEntry[] }) {
+  const chartData = [...history].reverse().map((entry) => ({
+    date: formatTimestampShort(entry.timestamp),
+    score: entry.newScore,
+  }))
+
+  if (chartData.length < 2) return null
+
+  return (
+    <div className={s.chartWrap}>
+      <ResponsiveContainer width="100%" height={220}>
+        <LineChart data={chartData} margin={{ top: 8, right: 12, bottom: 0, left: -12 }}>
+          <XAxis
+            dataKey="date"
+            tick={{ fill: 'var(--text-dim)', fontSize: 10 }}
+            axisLine={{ stroke: 'rgba(255,255,255,0.04)' }}
+            tickLine={false}
+          />
+          <YAxis
+            domain={[200, 850]}
+            tick={{ fill: 'var(--text-dim)', fontSize: 10 }}
+            axisLine={{ stroke: 'rgba(255,255,255,0.04)' }}
+            tickLine={false}
+          />
+          <Tooltip
+            contentStyle={{
+              background: 'rgba(15,15,20,0.95)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 8,
+              fontSize: 12,
+              color: '#e2e8f0',
+            }}
+            labelStyle={{ color: 'var(--text-dim)' }}
+          />
+          <Line
+            type="monotone"
+            dataKey="score"
+            stroke="#3B82F6"
+            strokeWidth={2}
+            dot={{ fill: '#3B82F6', r: 3, strokeWidth: 0 }}
+            activeDot={{ r: 5, fill: '#3B82F6', stroke: '#1e293b', strokeWidth: 2 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+// ── Component Radar Chart ─────────────────────────────────────────────────
+
+function ComponentRadar({ data }: { data: KrexitData }) {
+  const radarData = COMPONENTS.map((comp) => ({
+    component: comp.name,
+    value: ((data[comp.key] ?? 0) / 10000) * 100,
+  }))
+
+  return (
+    <div className={s.radarWrap}>
+      <ResponsiveContainer width="100%" height={280}>
+        <RadarChart data={radarData} outerRadius="75%">
+          <PolarGrid stroke="rgba(255,255,255,0.04)" />
+          <PolarAngleAxis
+            dataKey="component"
+            tick={{ fill: 'var(--text-dim)', fontSize: 11 }}
+          />
+          <Radar
+            dataKey="value"
+            stroke="#3B82F6"
+            fill="#3B82F6"
+            fillOpacity={0.15}
+            strokeWidth={2}
+          />
+        </RadarChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+// ── Score Simulator ───────────────────────────────────────────────────────
+
+function ScoreSimulator() {
+  const [sliders, setSliders] = useState({ c1: 50, c2: 50, c3: 50, c4: 50, c5: 50 })
+
+  const projected = Math.round(
+    200 + 650 * (
+      0.30 * sliders.c1 / 100 +
+      0.25 * sliders.c2 / 100 +
+      0.20 * sliders.c3 / 100 +
+      0.15 * sliders.c4 / 100 +
+      0.10 * sliders.c5 / 100
+    )
+  )
+
+  const { color: projectedColor } = sharedScoreColor(projected)
+
+  const update = (key: keyof typeof sliders, val: number) =>
+    setSliders((prev) => ({ ...prev, [key]: val }))
+
+  const simComponents = [
+    { key: 'c1' as const, label: 'Repayment',    weight: '30%', color: '#3B82F6' },
+    { key: 'c2' as const, label: 'Profitability', weight: '25%', color: '#22C55E' },
+    { key: 'c3' as const, label: 'Behavioral',    weight: '20%', color: '#8B5CF6' },
+    { key: 'c4' as const, label: 'Usage',         weight: '15%', color: '#F59E0B' },
+    { key: 'c5' as const, label: 'Maturity',      weight: '10%', color: '#06B6D4' },
+  ]
+
+  return (
+    <div className={s.simulatorInner}>
+      <div className={s.simulatorSliders}>
+        {simComponents.map((comp) => (
+          <div key={comp.key} className={s.sliderRow}>
+            <div className={s.sliderLabel}>
+              <span style={{ color: comp.color }}>{comp.label}</span>
+              <span className={s.sliderWeight}>{comp.weight}</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={sliders[comp.key]}
+              onChange={(e) => update(comp.key, Number(e.target.value))}
+              className={s.rangeSlider}
+              style={{ '--slider-color': comp.color } as React.CSSProperties}
+            />
+            <span className={s.sliderValue} style={{ color: comp.color }}>
+              {sliders[comp.key]}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className={s.simulatorResult}>
+        <p className={s.simulatorResultLabel}>Projected Score</p>
+        <p className={s.simulatorResultValue} style={{ color: projectedColor }}>
+          {projected}
+        </p>
+        <p className={s.simulatorResultRange}>200 - 850</p>
+      </div>
+    </div>
+  )
+}
+
 // ── Main component ─────────────────────────────────────────────────────────
 
 function CardSkeleton({ rows = 4 }: { rows?: number }) {
@@ -185,11 +333,14 @@ function CardSkeleton({ rows = 4 }: { rows?: number }) {
 }
 
 export default function KrexitScoreDashboard() {
+  const { publicKey, connected } = useWallet()
   const [address, setAddress] = useState('')
   const [searched, setSearched] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<KrexitData | null>(null)
+  const [slowLoad, setSlowLoad] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const loadScore = useCallback(async (addr: string) => {
     if (!addr.trim()) return
@@ -197,15 +348,31 @@ export default function KrexitScoreDashboard() {
     setLoading(true)
     setError(null)
     setData(null)
+    setSlowLoad(false)
+    timerRef.current = setTimeout(() => setSlowLoad(true), 4000)
     try {
       const scoreRes = await scoreApi.getScore(addr)
       setData(scoreRes.data)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Agent not found or request failed')
     } finally {
+      clearTimeout(timerRef.current!)
+      setSlowLoad(false)
       setLoading(false)
     }
   }, [])
+
+  // Auto-load for connected wallet
+  useEffect(() => {
+    if (connected && publicKey && !searched) {
+      const addr = publicKey.toBase58()
+      setAddress(addr)
+      loadScore(addr)
+    }
+  }, [connected, publicKey, searched, loadScore])
+
+  // Cleanup timer
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -276,10 +443,17 @@ export default function KrexitScoreDashboard() {
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
               <p className={s.emptyText}>Look up any agent's Krexit Score</p>
-              <p className={s.emptyHint}>5-component behavioral credit score ranging 200–850</p>
+              <p className={s.emptyHint}>5-component behavioral credit score ranging 200 - 850</p>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Slow load message */}
+        {slowLoad && searched && (
+          <div style={{ textAlign: 'center', padding: 16 }}>
+            <p style={{ fontSize: 12, color: 'var(--text-dim)' }}>Waking up the server -- this can take up to 60s on first load...</p>
+          </div>
+        )}
 
         {/* Loading state */}
         {loading && (
@@ -366,7 +540,27 @@ export default function KrexitScoreDashboard() {
               </BentoGrid>
             </motion.div>
 
-            {/* ── Score History ── */}
+            {/* ── Component Radar Chart ── */}
+            <motion.div variants={cardVariants} style={{ marginBottom: 16 }}>
+              <GlassCard>
+                <p className={s.cardTitle}>Component Radar</p>
+                <ComponentRadar data={data} />
+              </GlassCard>
+            </motion.div>
+
+            {/* ── Score History Chart ── */}
+            <motion.div variants={cardVariants} style={{ marginBottom: 16 }}>
+              <GlassCard>
+                <p className={s.cardTitle}>Score Trend</p>
+                {orderedHistory.length >= 2 ? (
+                  <ScoreHistoryChart history={orderedHistory} />
+                ) : (
+                  <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>Not enough data points to render chart.</p>
+                )}
+              </GlassCard>
+            </motion.div>
+
+            {/* ── Score History List ── */}
             <motion.div variants={cardVariants} style={{ marginBottom: 16 }}>
               <GlassCard>
                 <p className={s.cardTitle}>Score History</p>
@@ -394,6 +588,15 @@ export default function KrexitScoreDashboard() {
                     })}
                   </div>
                 )}
+              </GlassCard>
+            </motion.div>
+
+            {/* ── Score Simulator ── */}
+            <motion.div variants={cardVariants} style={{ marginBottom: 16 }}>
+              <GlassCard>
+                <p className={s.cardTitle}>What-If Simulator</p>
+                <p className={s.simulatorHint}>Adjust each component to see how your projected score changes.</p>
+                <ScoreSimulator />
               </GlassCard>
             </motion.div>
 
@@ -523,7 +726,7 @@ export default function KrexitScoreDashboard() {
                 )}
                 {curLevel >= 4 && (
                   <div style={{ textAlign: 'center', padding: '12px 0', color: '#3B82F6', fontSize: 14, fontWeight: 700 }}>
-                    🏆 Maximum Level Achieved
+                    Maximum Level Achieved
                   </div>
                 )}
               </GlassCard>

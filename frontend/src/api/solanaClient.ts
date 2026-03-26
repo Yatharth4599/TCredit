@@ -21,6 +21,8 @@ export const agentApi = {
   getWallet:  (address: string) => solanaApi.get(`/solana/wallets/${address}`),
   getHealth:  (address: string) => solanaApi.get(`/solana/wallets/${address}/health`),
   getBalance: (address: string) => solanaApi.get(`/solana/wallets/${address}/balance`),
+  createWallet: (owner: string, agentType: number) =>
+    solanaApi.post('/solana/wallets/create', { owner, agentType }),
 }
 
 // === Credit  (mounted at /solana/credit) ===
@@ -29,6 +31,14 @@ export const creditApi = {
   getEligibility:(address: string) => solanaApi.get(`/solana/credit/${address}/eligibility`),
   getScoreBreakdown: (address: string) => solanaApi.get(`/solana/credit/${address}/score-breakdown`),
   getProtocolParams: ()             => solanaApi.get('/solana/credit/protocol-params'),
+  requestCredit: (agent: string, amount: number, creditLevel: number) =>
+    solanaApi.post(`/solana/credit/${agent}/request`, { amount, creditLevel }),
+  repay: (agent: string, amount: number) =>
+    solanaApi.post(`/solana/credit/${agent}/repay`, { amount }),
+  getActivity: (agent: string) => solanaApi.get(`/solana/credit/${agent}/activity`),
+  getRequests: (agent: string) => solanaApi.get(`/solana/credit/${agent}/requests`),
+  signAgreement: (agent: string, creditLevel: number) =>
+    solanaApi.post(`/solana/credit/${agent}/sign-agreement`, { creditLevel }),
 }
 
 // === Vault  (mounted at /solana/vault) ===
@@ -41,6 +51,25 @@ export const vaultApi = {
 // === Score  (mounted at /solana/score) ===
 export const scoreApi = {
   getScore: (address: string) => solanaApi.get(`/solana/score/${address}`),
+}
+
+// === KYA  (mounted at /solana/kya) ===
+export const kyaApi = {
+  basicVerify: (agent: string, ownerPubkey: string, signature: string) =>
+    solanaApi.post(`/solana/kya/${agent}/basic`, { ownerPubkey, signature }),
+  getStatus: (agent: string) => solanaApi.get(`/solana/kya/${agent}/status`),
+}
+
+// === Faucet  (mounted at /solana/faucet) ===
+export const faucetApi = {
+  mintUsdc: (recipient: string, amountUsdc: number) =>
+    solanaApi.post('/solana/faucet/usdc', { recipient, amountUsdc }),
+}
+
+// === Oracle  (mounted at /solana/oracle) ===
+export const oracleApi = {
+  signCredit: (transaction: string) =>
+    solanaApi.post('/solana/oracle/sign-credit', { transaction }),
 }
 
 // === Health ===

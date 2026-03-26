@@ -13,6 +13,7 @@ const SolanaLPDashboard = lazy(() => import('./pages/SolanaLPDashboard'))
 const KrexitScoreDashboard = lazy(() => import('./pages/KrexitScoreDashboard'))
 const WaitlistAdmin = lazy(() => import('./pages/WaitlistAdmin'))
 const DemoPage = lazy(() => import('./pages/DemoPage'))
+const Onboard = lazy(() => import('./pages/Onboard'))
 
 function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation()
@@ -65,6 +66,7 @@ function AppShell() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/app" element={<Navigate to="/app/solana/credit" replace />} />
+          <Route path="/app/onboard" element={<Onboard />} />
           <Route path="/app/solana/credit" element={<SolanaCreditDashboard />} />
           <Route path="/app/solana/vault" element={<SolanaVaultDashboard />} />
           <Route path="/app/solana/lp" element={<SolanaLPDashboard />} />
