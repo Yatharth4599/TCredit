@@ -1,75 +1,48 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'motion/react'
 import { lpApi } from '../api/solanaClient'
-
-function formatUsdc(raw: number | string): string {
-  const val = Number(raw) / 1e6
-  return val.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
-}
-
-function formatPct(bps: number): string {
-  return (bps / 100).toFixed(2) + '%'
-}
-
-const fadeIn = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.4 },
-}
-
-const stagger = {
-  animate: { transition: { staggerChildren: 0.08 } },
-}
-
-function LoadingSpinner() {
-  return (
-    <div className="flex items-center justify-center py-8">
-      <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-    </div>
-  )
-}
-
-function ErrorBanner({ message }: { message: string }) {
-  return (
-    <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
-      {message}
-    </div>
-  )
-}
-
-function StatItem({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div>
-      <p className="text-xs text-gray-400 uppercase tracking-wider">{label}</p>
-      <p className="text-2xl font-bold text-gray-100">{value}</p>
-      {sub && <p className="text-xs text-gray-500 mt-0.5">{sub}</p>}
-    </div>
-  )
-}
-
-const TRANCHES = ['senior', 'mezzanine', 'junior'] as const
-const TRANCHE_STYLES: Record<string, { border: string; badge: string }> = {
-  senior: { border: 'border-blue-500/40', badge: 'bg-blue-500/20 text-blue-400' },
-  mezzanine: { border: 'border-purple-500/40', badge: 'bg-purple-500/20 text-purple-400' },
-  junior: { border: 'border-orange-500/40', badge: 'bg-orange-500/20 text-orange-400' },
-}
+import { BentoGrid, BentoCard } from '../components/ui/BentoGrid'
+import { GlassCard } from '../components/ui/GlassCard'
+import { StatWidget } from '../components/ui/StatWidget'
+import { AnimatedNumber } from '../components/ui/AnimatedNumber'
+import { Skeleton } from '../components/ui/Skeleton'
+import SolanaLayout from '../components/layout/SolanaLayout'
+import { formatUsdc, formatUsdcRaw } from '../utils/dashboardHelpers'
+import { containerVariants, cardVariants } from '../utils/motionVariants'
+import s from './SolanaLPDashboard.module.css'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyData = any
 
+const TRANCHES = ['senior', 'mezzanine', 'junior'] as const
+
+const TRANCHE_CFG = {
+  senior:    { label: 'Senior',    rgb: '59, 130, 246',  color: '#3B82F6', accent: 'linear-gradient(90deg, #2563EB, #3B82F6)' },
+  mezzanine: { label: 'Mezzanine', rgb: '139, 92, 246',  color: '#8B5CF6', accent: 'linear-gradient(90deg, #7C3AED, #8B5CF6)' },
+  junior:    { label: 'Junior',    rgb: '249, 115, 22',  color: '#F97316', accent: 'linear-gradient(90deg, #EA580C, #F97316)' },
+}
+
+
+function CardSkeleton({ rows = 4 }: { rows?: number }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {Array.from({ length: rows }).map((_, i) => (
+        <Skeleton key={i} height={32} width={i % 2 === 0 ? '70%' : '50%'} />
+      ))}
+    </div>
+  )
+}
+
 export default function SolanaLPDashboard() {
   const [address, setAddress] = useState('')
   const [searched, setSearched] = useState(false)
-
   const [positions, setPositions] = useState<{ data: AnyData; loading: boolean; error: string | null }>({ data: null, loading: false, error: null })
 
-  // Deposit preview
-  const [depositTranche, setDepositTranche] = useState<string>('senior')
+  const [depositTranche, setDepositTranche] = useState<typeof TRANCHES[number]>('senior')
   const [depositAmount, setDepositAmount] = useState('')
   const [depositPreview, setDepositPreview] = useState<{ data: AnyData; loading: boolean; error: string | null }>({ data: null, loading: false, error: null })
 
-  // Withdraw preview
-  const [withdrawTranche, setWithdrawTranche] = useState<string>('senior')
+  const [withdrawTranche, setWithdrawTranche] = useState<typeof TRANCHES[number]>('senior')
   const [withdrawShares, setWithdrawShares] = useState('')
   const [withdrawPreview, setWithdrawPreview] = useState<{ data: AnyData; loading: boolean; error: string | null }>({ data: null, loading: false, error: null })
 
@@ -82,8 +55,7 @@ export default function SolanaLPDashboard() {
       const res = await lpApi.getPositions(address)
       setPositions({ data: res.data, loading: false, error: null })
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Request failed'
-      setPositions({ data: null, loading: false, error: message })
+      setPositions({ data: null, loading: false, error: err instanceof Error ? err.message : 'Request failed' })
     }
   }
 
@@ -95,8 +67,7 @@ export default function SolanaLPDashboard() {
       const res = await lpApi.previewDeposit(depositTranche, depositAmount)
       setDepositPreview({ data: res.data, loading: false, error: null })
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Request failed'
-      setDepositPreview({ data: null, loading: false, error: message })
+      setDepositPreview({ data: null, loading: false, error: err instanceof Error ? err.message : 'Request failed' })
     }
   }
 
@@ -108,201 +79,267 @@ export default function SolanaLPDashboard() {
       const res = await lpApi.previewWithdraw(withdrawTranche, withdrawShares)
       setWithdrawPreview({ data: res.data, loading: false, error: null })
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Request failed'
-      setWithdrawPreview({ data: null, loading: false, error: message })
+      setWithdrawPreview({ data: null, loading: false, error: err instanceof Error ? err.message : 'Request failed' })
     }
   }
 
-  // Compute summary stats from positions
-  const totalDeposited = positions.data?.positions
-    ? positions.data.positions.reduce((sum: number, p: AnyData) => sum + (p.deposits ?? 0), 0)
-    : 0
-  const totalYield = positions.data?.positions
-    ? positions.data.positions.reduce((sum: number, p: AnyData) => sum + (p.yieldEarned ?? 0), 0)
-    : 0
+  const totalDeposited = positions.data?.positions?.reduce((sum: number, p: AnyData) => sum + (p.deposits ?? 0), 0) ?? 0
+  const totalYield     = positions.data?.positions?.reduce((sum: number, p: AnyData) => sum + (p.yieldEarned ?? 0), 0) ?? 0
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Header */}
-        <motion.div {...fadeIn} className="mb-10">
-          <h1 className="text-3xl font-bold text-gray-100 mb-2">LP Dashboard</h1>
-          <p className="text-gray-400">View LP positions, preview deposits, and calculate withdrawals.</p>
-        </motion.div>
+    <SolanaLayout
+      title="LP Dashboard"
+      subtitle="View liquidity positions, preview deposits, and calculate withdrawals."
+      dataLoaded={!!positions.data}
+    >
+      <motion.div variants={containerVariants} initial="hidden" animate="visible">
 
         {/* Wallet Lookup */}
-        <motion.form {...fadeIn} onSubmit={handleLookup} className="mb-10 flex gap-3">
-          <input
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Enter LP wallet address..."
-            className="flex-1 bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500 font-mono text-sm"
-          />
-          <button
-            type="submit"
-            disabled={!address.trim()}
-            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium px-6 py-3 rounded-xl transition-colors"
-          >
-            Lookup Positions
-          </button>
-        </motion.form>
+        <motion.div variants={cardVariants} style={{ marginBottom: 16 }}>
+          <GlassCard variant="highlight">
+            <form onSubmit={handleLookup} className={s.searchInner}>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Enter LP wallet address..."
+                className={s.searchInput}
+                spellCheck={false}
+              />
+              <button
+                type="submit"
+                disabled={!address.trim()}
+                className="btn-primary"
+                style={{ borderRadius: 'var(--radius-lg)', padding: '14px 28px' }}
+              >
+                Lookup Positions
+              </button>
+            </form>
+          </GlassCard>
+        </motion.div>
 
-        <motion.div variants={stagger} initial="initial" animate="animate" className="space-y-6">
-          {/* Positions */}
-          {searched && (
-            <motion.div variants={fadeIn}>
-              <h2 className="text-lg font-semibold text-gray-100 mb-4">LP Positions</h2>
-              {positions.loading && <LoadingSpinner />}
-              {positions.error && <ErrorBanner message={positions.error} />}
-              {positions.data && (
-                <div className="space-y-6">
-                  {/* Summary */}
-                  <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
-                    <h3 className="text-sm font-medium text-gray-400 mb-4">Portfolio Summary</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      <StatItem label="Total Deposited" value={formatUsdc(totalDeposited)} />
-                      <StatItem label="Total Yield Earned" value={formatUsdc(totalYield)} />
-                      <StatItem label="Active Positions" value={String(positions.data.positions?.length ?? 0)} />
-                    </div>
+        {/* Empty state */}
+        <AnimatePresence>
+          {!searched && (
+            <motion.div
+              className={s.emptyState}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            >
+              <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="1.2">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+              </svg>
+              <p className={s.emptyText}>Enter a wallet address to view LP positions</p>
+              <p className={s.emptyHint}>Or use the previews below to simulate deposits and withdrawals</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Positions */}
+        {searched && (
+          <motion.div variants={cardVariants} style={{ marginBottom: 16 }}>
+            {positions.loading && (
+              <GlassCard><CardSkeleton rows={5} /></GlassCard>
+            )}
+            {positions.error && (
+              <GlassCard>
+                <p style={{ color: 'var(--color-error)', fontSize: 13 }}>{positions.error}</p>
+              </GlassCard>
+            )}
+            {positions.data && (
+              <>
+                {/* Portfolio summary */}
+                <BentoCard glowColor="6, 182, 212" style={{ display: 'block', marginBottom: 16 }}>
+                  <p className={s.cardTitle}>Portfolio Summary</p>
+                  <div className={s.stats3}>
+                    <StatWidget
+                      label="Total Deposited"
+                      value={<AnimatedNumber value={formatUsdcRaw(totalDeposited)} decimals={2} prefix="$" /> as unknown as string}
+                    />
+                    <StatWidget
+                      label="Total Yield Earned"
+                      value={<AnimatedNumber value={formatUsdcRaw(totalYield)} decimals={2} prefix="$" /> as unknown as string}
+                      trend="up"
+                    />
+                    <StatWidget
+                      label="Active Positions"
+                      value={<AnimatedNumber value={positions.data.positions?.length ?? 0} /> as unknown as string}
+                    />
                   </div>
+                </BentoCard>
 
-                  {/* Individual positions */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {positions.data.positions?.map((pos: AnyData) => {
-                      const tranche = (pos.tranche ?? '').toLowerCase()
-                      const style = TRANCHE_STYLES[tranche] ?? TRANCHE_STYLES.senior
+                {/* Individual position cards */}
+                {positions.data.positions?.length > 0 ? (
+                  <BentoGrid columns={3} gap={16}>
+                    {positions.data.positions.map((pos: AnyData) => {
+                      const tranche = (pos.tranche ?? 'senior').toLowerCase() as typeof TRANCHES[number]
+                      const cfg = TRANCHE_CFG[tranche] ?? TRANCHE_CFG.senior
                       return (
-                        <motion.div
-                          key={pos.tranche}
-                          variants={fadeIn}
-                          className={`bg-gray-800/50 border ${style.border} rounded-2xl p-6`}
-                        >
-                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${style.badge} mb-4`}>
-                            {pos.tranche}
-                          </span>
-                          <div className="grid grid-cols-2 gap-4">
-                            <StatItem label="Deposits" value={formatUsdc(pos.deposits ?? 0)} />
-                            <StatItem label="Shares" value={(Number(pos.shares ?? 0) / 1e6).toLocaleString()} />
-                            <StatItem label="Est. Value" value={formatUsdc(pos.estimatedValue ?? 0)} />
-                            <StatItem label="Yield Earned" value={formatUsdc(pos.yieldEarned ?? 0)} />
-                          </div>
+                        <motion.div key={pos.tranche} variants={cardVariants}>
+                          <BentoCard glowColor={cfg.rgb} style={{ position: 'relative', overflow: 'hidden' }}>
+                            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: cfg.accent }} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                              <span style={{
+                                padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700,
+                                background: `rgba(${cfg.rgb}, 0.12)`, color: cfg.color,
+                                border: `1px solid rgba(${cfg.rgb}, 0.2)`,
+                              }}>
+                                {pos.tranche}
+                              </span>
+                            </div>
+                            <div className={s.stats2}>
+                              <StatWidget label="Deposits" value={formatUsdc(pos.deposits ?? 0)} />
+                              <StatWidget label="Shares" value={<AnimatedNumber value={Number(pos.shares ?? 0) / 1e6} decimals={2} /> as unknown as string} />
+                              <StatWidget label="Est. Value" value={formatUsdc(pos.estimatedValue ?? 0)} />
+                              <StatWidget label="Yield Earned" value={formatUsdc(pos.yieldEarned ?? 0)} trend="up" />
+                            </div>
+                          </BentoCard>
                         </motion.div>
                       )
                     })}
-                    {(!positions.data.positions || positions.data.positions.length === 0) && (
-                      <div className="col-span-3 text-center py-8 text-gray-500">
-                        No LP positions found for this wallet.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          )}
+                  </BentoGrid>
+                ) : (
+                  <GlassCard>
+                    <p style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '32px 0', fontSize: 14 }}>
+                      No LP positions found for this wallet.
+                    </p>
+                  </GlassCard>
+                )}
+              </>
+            )}
+          </motion.div>
+        )}
 
-          {/* Deposit Preview */}
-          <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
-            <h2 className="text-lg font-semibold text-gray-100 mb-4">Deposit Preview</h2>
-            <form onSubmit={handleDepositPreview} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wider block mb-2">Tranche</label>
-                  <select
-                    value={depositTranche}
-                    onChange={(e) => setDepositTranche(e.target.value)}
-                    className="w-full bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 focus:outline-none focus:border-blue-500"
+        {/* Deposit Preview */}
+        <motion.div variants={cardVariants} style={{ marginBottom: 16 }}>
+          <GlassCard variant="interactive">
+            <p className={s.cardTitle}>Deposit Preview</p>
+            <form onSubmit={handleDepositPreview}>
+              {/* Tranche toggles */}
+              <div className={s.trancheToggle}>
+                {TRANCHES.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setDepositTranche(t)}
+                    className={`${s.toggleBtn} ${s[`toggle${t.charAt(0).toUpperCase() + t.slice(1)}` as keyof typeof s]} ${depositTranche === t ? s.active : ''}`}
                   >
-                    {TRANCHES.map((t) => (
-                      <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wider block mb-2">Amount (USDC)</label>
+                    {TRANCHE_CFG[t].label}
+                  </button>
+                ))}
+              </div>
+              <div className={s.formRow}>
+                <div className={s.formField}>
+                  <label className={s.formLabel}>Amount (USDC)</label>
                   <input
                     type="number"
                     step="0.01"
                     value={depositAmount}
                     onChange={(e) => setDepositAmount(e.target.value)}
                     placeholder="1000.00"
-                    className="w-full bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                    className={s.formInput}
                   />
                 </div>
-                <div className="flex items-end">
-                  <button
-                    type="submit"
-                    disabled={!depositAmount}
-                    className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium px-6 py-3 rounded-xl transition-colors"
-                  >
-                    Preview
-                  </button>
-                </div>
+                <div />
+                <button
+                  type="submit"
+                  disabled={!depositAmount}
+                  className="btn-primary"
+                  style={{ padding: '12px 24px' }}
+                >
+                  Preview
+                </button>
               </div>
             </form>
-            {depositPreview.loading && <LoadingSpinner />}
-            {depositPreview.error && <div className="mt-4"><ErrorBanner message={depositPreview.error} /></div>}
-            {depositPreview.data && (
-              <motion.div {...fadeIn} className="mt-4 bg-gray-900/50 rounded-xl p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-                <StatItem label="Shares Received" value={(Number(depositPreview.data.sharesReceived ?? 0) / 1e6).toLocaleString()} />
-                <StatItem label="Share Price" value={`$${(Number(depositPreview.data.sharePrice ?? 1e6) / 1e6).toFixed(4)}`} />
-                <StatItem label="Est. APY" value={formatPct(depositPreview.data.estimatedApyBps ?? 0)} />
-                <StatItem label="Daily Yield" value={formatUsdc(depositPreview.data.estimatedDailyYield ?? 0)} />
-              </motion.div>
+            {depositPreview.loading && (
+              <div style={{ marginTop: 16 }}><CardSkeleton rows={2} /></div>
             )}
-          </motion.div>
+            {depositPreview.error && (
+              <p style={{ color: 'var(--color-error)', fontSize: 13, marginTop: 12 }}>{depositPreview.error}</p>
+            )}
+            <AnimatePresence>
+              {depositPreview.data && (
+                <motion.div
+                  className={s.resultsGrid}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.35 }}
+                >
+                  <StatWidget label="Shares Received" value={<AnimatedNumber value={Number(depositPreview.data.sharesReceived ?? 0) / 1e6} decimals={2} /> as unknown as string} />
+                  <StatWidget label="Share Price" value={`$${(Number(depositPreview.data.sharePrice ?? 1e6) / 1e6).toFixed(4)}`} />
+                  <StatWidget label="Est. APY" value={<AnimatedNumber value={Number(depositPreview.data.estimatedApyBps ?? 0) / 100} decimals={2} suffix="%" /> as unknown as string} />
+                  <StatWidget label="Daily Yield" value={formatUsdc(depositPreview.data.estimatedDailyYield ?? 0)} trend="up" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </GlassCard>
+        </motion.div>
 
-          {/* Withdrawal Preview */}
-          <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
-            <h2 className="text-lg font-semibold text-gray-100 mb-4">Withdrawal Preview</h2>
-            <form onSubmit={handleWithdrawPreview} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wider block mb-2">Tranche</label>
-                  <select
-                    value={withdrawTranche}
-                    onChange={(e) => setWithdrawTranche(e.target.value)}
-                    className="w-full bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 focus:outline-none focus:border-blue-500"
+        {/* Withdrawal Preview */}
+        <motion.div variants={cardVariants}>
+          <GlassCard variant="interactive">
+            <p className={s.cardTitle}>Withdrawal Preview</p>
+            <form onSubmit={handleWithdrawPreview}>
+              <div className={s.trancheToggle}>
+                {TRANCHES.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setWithdrawTranche(t)}
+                    className={`${s.toggleBtn} ${s[`toggle${t.charAt(0).toUpperCase() + t.slice(1)}` as keyof typeof s]} ${withdrawTranche === t ? s.active : ''}`}
                   >
-                    {TRANCHES.map((t) => (
-                      <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wider block mb-2">Shares to Withdraw</label>
+                    {TRANCHE_CFG[t].label}
+                  </button>
+                ))}
+              </div>
+              <div className={s.formRow}>
+                <div className={s.formField}>
+                  <label className={s.formLabel}>Shares to Withdraw</label>
                   <input
                     type="number"
                     step="0.01"
                     value={withdrawShares}
                     onChange={(e) => setWithdrawShares(e.target.value)}
                     placeholder="500.00"
-                    className="w-full bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                    className={s.formInput}
                   />
                 </div>
-                <div className="flex items-end">
-                  <button
-                    type="submit"
-                    disabled={!withdrawShares}
-                    className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium px-6 py-3 rounded-xl transition-colors"
-                  >
-                    Preview
-                  </button>
-                </div>
+                <div />
+                <button
+                  type="submit"
+                  disabled={!withdrawShares}
+                  className="btn-primary"
+                  style={{ padding: '12px 24px' }}
+                >
+                  Preview
+                </button>
               </div>
             </form>
-            {withdrawPreview.loading && <LoadingSpinner />}
-            {withdrawPreview.error && <div className="mt-4"><ErrorBanner message={withdrawPreview.error} /></div>}
-            {withdrawPreview.data && (
-              <motion.div {...fadeIn} className="mt-4 bg-gray-900/50 rounded-xl p-4 grid grid-cols-2 md:grid-cols-3 gap-4">
-                <StatItem label="USDC Received" value={formatUsdc(withdrawPreview.data.usdcReceived ?? 0)} />
-                <StatItem label="Share Price" value={`$${(Number(withdrawPreview.data.sharePrice ?? 1e6) / 1e6).toFixed(4)}`} />
-                <StatItem label="Withdrawal Fee" value={formatUsdc(withdrawPreview.data.fee ?? 0)} />
-              </motion.div>
+            {withdrawPreview.loading && (
+              <div style={{ marginTop: 16 }}><CardSkeleton rows={2} /></div>
             )}
-          </motion.div>
+            {withdrawPreview.error && (
+              <p style={{ color: 'var(--color-error)', fontSize: 13, marginTop: 12 }}>{withdrawPreview.error}</p>
+            )}
+            <AnimatePresence>
+              {withdrawPreview.data && (
+                <motion.div
+                  className={s.resultsGrid3}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.35 }}
+                >
+                  <StatWidget label="USDC Received" value={<AnimatedNumber value={formatUsdcRaw(withdrawPreview.data.usdcReceived ?? 0)} decimals={2} prefix="$" /> as unknown as string} />
+                  <StatWidget label="Share Price" value={`$${(Number(withdrawPreview.data.sharePrice ?? 1e6) / 1e6).toFixed(4)}`} />
+                  <StatWidget label="Withdrawal Fee" value={formatUsdc(withdrawPreview.data.fee ?? 0)} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </GlassCard>
         </motion.div>
-      </div>
-    </div>
+
+      </motion.div>
+    </SolanaLayout>
   )
 }
