@@ -1,96 +1,50 @@
 import { useNavigate } from 'react-router-dom'
-import { useAccount, useDisconnect } from 'wagmi'
-import { useConnectModal } from '@rainbow-me/rainbowkit'
 import FloatingDock, { DockItem } from '../ui/FloatingDock'
-import { truncateAddress } from '../../lib/format'
 
 export default function Navbar() {
   const navigate = useNavigate()
-  const { address, isConnected } = useAccount()
-  const { disconnect } = useDisconnect()
-  const { openConnectModal } = useConnectModal()
 
   const items: DockItem[] = [
     {
-      title: 'Live Demo',
+      title: 'Credit',
       icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+          <rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" />
         </svg>
       ),
-      href: '/app/lifecycle',
-      onClick: () => navigate('/app/lifecycle'),
+      href: '/app/solana/credit',
+      onClick: () => navigate('/app/solana/credit'),
       accent: true,
     },
     {
-      title: 'Demo',
+      title: 'Score',
       icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <polygon points="5 3 19 12 5 21 5 3" />
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
         </svg>
       ),
-      href: '/app/demo',
-      onClick: () => navigate('/app/demo'),
+      href: '/app/solana/score',
+      onClick: () => navigate('/app/solana/score'),
     },
     {
-      title: 'Home',
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
-        </svg>
-      ),
-      href: '/app',
-      onClick: () => navigate('/app'),
-    },
-    {
-      title: 'Vaults',
+      title: 'Vault',
       icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
           <rect x="2" y="4" width="20" height="16" rx="2" /><circle cx="12" cy="12" r="3" /><line x1="12" y1="9" x2="12" y2="7" /><line x1="12" y1="17" x2="12" y2="15" /><line x1="9" y1="12" x2="7" y2="12" /><line x1="17" y1="12" x2="15" y2="12" /><rect x="18" y="8" width="2" height="3" rx="0.5" />
         </svg>
       ),
-      href: '/app/vaults',
-      onClick: () => navigate('/app/vaults'),
+      href: '/app/solana/vault',
+      onClick: () => navigate('/app/solana/vault'),
     },
     {
-      title: 'Pools',
+      title: 'LP',
       icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
           <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
         </svg>
       ),
-      href: '/app/pools',
-      onClick: () => navigate('/app/pools'),
-    },
-    {
-      title: 'Portfolio',
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M2 20h20M6 20V10M10 20V4M14 20V8M18 20V14" />
-        </svg>
-      ),
-      href: '/app/portfolio',
-      onClick: () => navigate('/app/portfolio'),
-    },
-    {
-      title: 'Merchant',
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 01-8 0" />
-        </svg>
-      ),
-      href: '/app/merchant',
-      onClick: () => navigate('/app/merchant'),
-    },
-    {
-      title: 'x402 Demo',
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-        </svg>
-      ),
-      href: '/app/x402',
-      onClick: () => navigate('/app/x402'),
+      href: '/app/solana/lp',
+      onClick: () => navigate('/app/solana/lp'),
     },
     {
       title: 'Twitter / X',
@@ -121,27 +75,6 @@ export default function Navbar() {
       ),
       href: 'https://t.me/tigerpayx',
       mobileHide: true,
-    },
-    {
-      title: isConnected ? truncateAddress(address!, 4) : 'Connect Wallet',
-      mono: isConnected,
-      icon: isConnected ? (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" strokeWidth="1.8">
-          <path d="M3 7V5a2 2 0 012-2h12a2 2 0 012 2v2" /><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M2 11h6a2 2 0 012 2v0a2 2 0 01-2 2H2" /><circle cx="7" cy="13" r="1" fill="var(--color-success)" />
-        </svg>
-      ) : (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M3 7V5a2 2 0 012-2h12a2 2 0 012 2v2" /><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M2 11h6a2 2 0 012 2v0a2 2 0 01-2 2H2" /><circle cx="7" cy="13" r="0.5" fill="currentColor" />
-        </svg>
-      ),
-      href: '#',
-      onClick: () => {
-        if (isConnected) {
-          disconnect()
-        } else {
-          openConnectModal?.()
-        }
-      },
     },
   ]
 
