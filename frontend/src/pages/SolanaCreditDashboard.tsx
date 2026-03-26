@@ -142,14 +142,14 @@ export default function SolanaCreditDashboard() {
     }
 
     await Promise.allSettled([
-      load(() => agentApi.getProfile(addr), setProfile),
-      load(() => agentApi.getWallet(addr), setWallet),
+      load(() => agentApi.getWallet(addr), setProfile),   // onChain + db wallet state
+      load(() => agentApi.getWallet(addr), setWallet),    // same call — used for different card
       load(() => agentApi.getHealth(addr), setHealth),
-      load(() => creditApi.getCreditLine(addr), setCreditLine),
-      load(() => agentApi.getTerms(addr), setTerms),
-      load(() => creditApi.getUpgradeCheck(addr), setUpgrade),
-      load(() => creditApi.getRepaymentEstimate(addr), setRepayment),
-      load(() => agentApi.getServicePlan(addr), setServicePlan),
+      load(() => creditApi.getLine(addr), setCreditLine),
+      load(() => creditApi.getEligibility(addr), setTerms),
+      load(() => creditApi.getEligibility(addr), setUpgrade),
+      load(() => creditApi.getLine(addr), setRepayment),  // totalOwed lives here
+      load(() => creditApi.getEligibility(addr), setServicePlan),
     ])
   }, [])
 

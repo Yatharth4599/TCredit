@@ -198,11 +198,8 @@ export default function KrexitScoreDashboard() {
     setError(null)
     setData(null)
     try {
-      const [scoreRes, profileRes] = await Promise.all([
-        scoreApi.getScore(addr),
-        scoreApi.getProfile(addr),
-      ])
-      setData({ ...profileRes.data, ...scoreRes.data })
+      const scoreRes = await scoreApi.getScore(addr)
+      setData(scoreRes.data)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Agent not found or request failed')
     } finally {
