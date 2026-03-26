@@ -1002,6 +1002,64 @@ pub mod krexa_credit_vault {
         }
         Ok(())
     }
+
+    // ── 12. migrate_config_v2 ─────────────────────────────────────────────
+    // Resize stale VaultConfig PDA from an older, smaller layout to the
+    // current VaultConfig::LEN.  New bytes are zero-filled, which is safe
+    // because all appended fields are u64 / Pubkey / i64 (default = 0).
+    //
+    // Only the admin can call this (validated via first 40 bytes of data).
+
+    pub fn migrate_config_v2(ctx: Context<MigrateConfigV2>) -> Result<()> {
+        let info = ctx.accounts.config.to_account_info();
+        let current_len = info.data_len();
+        let target_len = VaultConfig::LEN;
+        if current_len >= target_len {
+            msg!("Config already at target size ({} >= {})", current_len, target_len);
+            return Ok(());
+        }
+
+        // Verify caller is the admin stored in the account (offset 8, 32 bytes)
+        {
+            let data = info.try_borrow_data()?;
+            let stored_admin = Pubkey::try_from(&data[8..40])
+                .map_err(|_| error!(VaultError::NotAdmin))?;
+            require!(
+                stored_admin == ctx.accounts.admin.key(),
+                VaultError::NotAdmin
+            );
+        }
+
+        // Resize — transfer extra rent from admin
+        let rent = anchor_lang::prelude::Rent::get()?;
+        let new_min = rent.minimum_balance(target_len);
+        let current_lamports = info.lamports();
+        if new_min > current_lamports {
+            let diff = new_min - current_lamports;
+            anchor_lang::system_program::transfer(
+                CpiContext::new(
+                    ctx.accounts.system_program.to_account_info(),
+                    anchor_lang::system_program::Transfer {
+                        from: ctx.accounts.admin.to_account_info(),
+                        to: info.clone(),
+                    },
+                ),
+                diff,
+            )?;
+        }
+
+        info.realloc(target_len, false)?;
+
+        // Zero-fill only the newly appended bytes
+        {
+            let mut data = info.try_borrow_mut_data()?;
+            for byte in data[current_len..target_len].iter_mut() {
+                *byte = 0;
+            }
+        }
+        msg!("Migrated vault config: {} → {} bytes", current_len, target_len);
+        Ok(())
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1409,4 +1467,20 @@ pub struct UpdateVaultConfig<'info> {
     pub config: Account<'info, VaultConfig>,
 
     pub admin: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct MigrateConfigV2<'info> {
+    /// CHECK: Cannot deserialize old layout — validated manually via stored admin pubkey.
+    #[account(
+        mut,
+        seeds = [VaultConfig::SEED],
+        bump,
+    )]
+    pub config: UncheckedAccount<'info>,
+
+    #[account(mut)]
+    pub admin: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
 }
