@@ -36,6 +36,7 @@ interface DemoState {
 type WsEvent =
   | { event: 'step_active';   data: { step: number } }
   | { event: 'step_complete'; data: { step: number; tx: string } }
+  | { event: 'step_error';    data: { step: number; error: string } }
   | { event: 'wallet_state';  data: { balance: number; debt: number; score: number; level: number; collateral: number; creditUsed: number } }
   | { event: 'safety_check';  data: { check: string; passed: boolean } }
   | { event: 'payment_split'; data: { total: number; lp: number; fee: number; agent: number; callCount: number } }
@@ -775,8 +776,14 @@ export default function DemoPage() {
         setSt(p => ({ ...p, scoreboard: msg.data.scoreboard, runState: 'done' }))
         addLog(mkLog('Demo complete \u2014 loan fully repaid, Krexit Score increased', 'complete', 'Every step is a real on-chain Solana transaction'))
         break
+      case 'step_error': {
+        setSt(p => ({ ...p, runState: 'error' }))
+        addLog(mkLog(`Step ${msg.data.step} failed: ${msg.data.error}`, 'info'))
+        break
+      }
       case 'demo_status':
         if (msg.data.status === 'running') { _id = 0; setSt({ ...INITIAL, connected: true, runState: 'running' }) }
+        if (msg.data.status === 'error') { setSt(p => ({ ...p, runState: 'error' })); addLog(mkLog(`Demo error: ${msg.data.error ?? 'unknown'}`, 'info')) }
         break
     }
   }
@@ -832,12 +839,19 @@ export default function DemoPage() {
           </p>
 
           {!running && !finished && (
-            <button className={s.heroBtn} disabled={!st.connected} onClick={start}>
-              <svg className={s.heroBtnIcon} fill="currentColor" viewBox="0 0 20 20">
-                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-              </svg>
-              {st.connected ? 'Start the Live Demo' : 'Connecting\u2026'}
-            </button>
+            <>
+              {st.runState === 'error' && (
+                <div style={{ marginBottom: 12, padding: '10px 16px', borderRadius: 8, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#F87171', fontSize: 13 }}>
+                  Demo hit an error (devnet can be flaky). Tap below to retry.
+                </div>
+              )}
+              <button className={s.heroBtn} disabled={!st.connected} onClick={start}>
+                <svg className={s.heroBtnIcon} fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                </svg>
+                {st.runState === 'error' ? 'Retry Demo' : st.connected ? 'Start the Live Demo' : 'Connecting\u2026'}
+              </button>
+            </>
           )}
           {running && (
             <div className={s.heroRunning}>
