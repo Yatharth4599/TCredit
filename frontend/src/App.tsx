@@ -73,10 +73,11 @@ function AppShell() {
   const { pathname } = useLocation()
   const isLanding = pathname === '/'
   const isDemo = pathname === '/demo'
+  const isSolana = pathname.startsWith('/app/solana')
 
   return (
     <div className={styles.app}>
-      {!isLanding && !isDemo && <WrongNetworkBanner />}
+      {!isLanding && !isDemo && !isSolana && <WrongNetworkBanner />}
       {!isLanding && !isDemo && <Navbar />}
       <Toaster
         position="bottom-right"

@@ -13,16 +13,16 @@ The ecosystem has two sides: **Humans** (LPs who deposit capital, agent owners w
 ### Prerequisites
 - Solana wallet: [Phantom](https://phantom.app) or [Backpack](https://backpack.app)
 - Devnet SOL for transaction fees (use Solana faucet: `https://faucet.solana.com`)
-- Test USDC: connect wallet at `http://localhost:5173/dashboard` → click **"Get 10 Test USDC"**
+- Test USDC: connect wallet at `https://www.krexa.xyz/app` → click **"Get 10 Test USDC"**
 
 ### Base URLs
 | Resource | URL |
 |----------|-----|
-| App (protocol dashboard) | `http://localhost:5173` |
-| Backend API | `http://localhost:3001/api/v1` |
-| Swagger UI (API docs) | `http://localhost:3001/api/v1/docs` |
+| App (landing page) | `https://www.krexa.xyz` |
+| App Hub (main dashboard) | `https://www.krexa.xyz/app` |
+| Backend API | `https://tcredit-backend.onrender.com/api` |
 
-> All API examples below use the base path `http://localhost:3001/api/v1`. Authenticated routes require `X-API-Key: {your_key}` header.
+> All API examples below use the base path `https://tcredit-backend.onrender.com/api`. Authenticated routes require `X-API-Key: {your_key}` header.
 
 ---
 
@@ -34,13 +34,13 @@ The ecosystem has two sides: **Humans** (LPs who deposit capital, agent owners w
 
 | Step | URL | Action |
 |------|-----|--------|
-| 1 | `http://localhost:5173/` | Visit landing page — read protocol overview and vault stats |
-| 2 | `http://localhost:5173/vault` | View live vault stats: TVL, health factor, utilization rate |
-| 3 | `http://localhost:5173/dashboard/lp` | Connect wallet via Phantom/Backpack |
-| 4 | `http://localhost:5173/dashboard/lp` | Click **"Deposit"** → choose tranche: **Senior** (10% APR, lowest risk) or **Mezzanine** (12% APR, medium risk) |
-| 5 | `http://localhost:5173/dashboard/lp` | Enter USDC amount → sign transaction → receive vault shares |
-| 6 | `http://localhost:5173/dashboard/lp` | Monitor: shares balance, accrued yield, vault health |
-| 7 | `http://localhost:5173/dashboard/lp` | Click **"Withdraw"** → enter shares to burn → receive USDC + accumulated yield |
+| 1 | `https://www.krexa.xyz/` | Visit landing page — read protocol overview and vault stats |
+| 2 | `https://www.krexa.xyz/vaults` | View vault marketing page with tranche info |
+| 3 | `https://www.krexa.xyz/app/solana/lp` | Connect wallet via Phantom/Backpack |
+| 4 | `https://www.krexa.xyz/app/solana/lp` | Click **"Deposit"** → choose tranche: **Senior** (10% APR, lowest risk) or **Mezzanine** (12% APR, medium risk) |
+| 5 | `https://www.krexa.xyz/app/solana/lp` | Enter USDC amount → sign transaction → receive vault shares |
+| 6 | `https://www.krexa.xyz/app/solana/lp` | Monitor: shares balance, accrued yield, vault health |
+| 7 | `https://www.krexa.xyz/app/solana/lp` | Click **"Withdraw"** → enter shares to burn → receive USDC + accumulated yield |
 
 **Risk hierarchy** (losses absorbed from bottom up):
 ```
@@ -56,16 +56,16 @@ Junior tranche is protocol-reserved — not available for external LP deposits. 
 
 | Step | URL | Action |
 |------|-----|--------|
-| 1 | `http://localhost:5173/dashboard` | Connect wallet → click **"Register Agent"** |
-| 2 | `http://localhost:5173/dashboard` | Choose agent type: **Trader / Service / Hybrid** → enter agent name → sign tx |
-| 3 | `http://localhost:5173/dashboard` | **"Create Wallet"** step appears → set daily spending limit → sign tx (creates on-chain PDA wallet) |
-| 4 | `http://localhost:5173/dashboard` | KYA prompt: click **"Verify Basic"** → sign wallet message → Tier 1 unlocked instantly |
-| 5 | `http://localhost:5173/dashboard/credit` | View credit profile: Krexit Score, level (L0→L4), health factor |
-| 6 | `http://localhost:5173/dashboard/credit` | Click **"Request Credit"** → enter amount (max $500 at L1) → oracle co-signs → sign tx |
-| 7 | `http://localhost:5173/dashboard/credit` | Credit drawn — repayment schedule shown: principal + interest + daily accrual |
-| 8 | `http://localhost:5173/dashboard/credit` | Click **"Repay"** or **"Repay All"** → sign tx → debt cleared |
-| 9 | `http://localhost:5173/score/{agentPubkey}` | View public score card: 5 components, history, level badge |
-| 10 | `http://localhost:5173/dashboard` | Score improves → upgrade path to L2 shown → repeat cycle at higher credit |
+| 1 | `https://www.krexa.xyz/app/wallets` | Connect wallet → click **"Register Agent"** |
+| 2 | `https://www.krexa.xyz/app/wallets` | Choose agent type: **Trader / Service / Hybrid** → enter agent name → sign tx |
+| 3 | `https://www.krexa.xyz/app/wallets` | **"Create Wallet"** step appears → set daily spending limit → sign tx (creates on-chain PDA wallet) |
+| 4 | `https://www.krexa.xyz/app/identity` | KYA prompt: click **"Verify Basic"** → sign wallet message → Tier 1 unlocked instantly |
+| 5 | `https://www.krexa.xyz/app/solana/credit` | View credit profile: Krexit Score, level (L0→L4), health factor |
+| 6 | `https://www.krexa.xyz/app/solana/credit` | Click **"Request Credit"** → enter amount (max $500 at L1) → oracle co-signs → sign tx |
+| 7 | `https://www.krexa.xyz/app/solana/credit` | Credit drawn — repayment schedule shown: principal + interest + daily accrual |
+| 8 | `https://www.krexa.xyz/app/solana/credit` | Click **"Repay"** or **"Repay All"** → sign tx → debt cleared |
+| 9 | `https://www.krexa.xyz/app/solana/score` | View public score card: 5 components, history, level badge |
+| 10 | `https://www.krexa.xyz/app/solana/credit` | Score improves → upgrade path to L2 shown → repeat cycle at higher credit |
 
 **KYA Tiers:**
 
@@ -91,7 +91,7 @@ All admin routes require: `X-API-Key: {admin_key}`
 | View webhook deliveries | `GET /api/v1/admin/webhooks/:id/deliveries` |
 | Export waitlist | `GET /api/v1/admin/waitlist/export` (returns CSV) |
 | Platform health | `GET /api/v1/health` |
-| Swagger UI | `GET /api/v1/docs` |
+| Admin waitlist page | `https://www.krexa.xyz/admin/waitlist` |
 
 Available webhook events: `ScoreChanged`, `CreditRequested`, `CreditApproved`, `CreditRejected`, `RepaymentMade`, `LiquidationTriggered`
 
@@ -163,7 +163,7 @@ Agent API calls are made programmatically (from agent code or via curl/SDK). Rep
 
 | Step | Action | Score Component Affected |
 |------|--------|------------------------|
-| 1 | Register as **Hybrid** on `http://localhost:5173/dashboard` | — |
+| 1 | Register as **Hybrid** on `https://www.krexa.xyz/app/wallets` | — |
 | 2 | Register x402 resource via `POST /api/v1/x402/register-resource` | C3 Behavioral ↑ |
 | 3 | Execute trades on whitelisted venues (Trader flow) | C2 Profitability ↑, C4 Usage ↑ |
 | 4 | Earn revenue from both x402 calls + trading P&L | C3 Behavioral ↑↑ |
@@ -240,7 +240,7 @@ Krexit Score = 200 + 650 × (0.30×C1 + 0.25×C2 + 0.20×C3 + 0.15×C4 + 0.10×C
 
 ## Section 8 — Key API Endpoints Reference
 
-All paths are relative to `http://localhost:3001/api/v1`.
+All paths are relative to `https://tcredit-backend.onrender.com/api`.
 
 | Category | Method | Path | Description |
 |----------|--------|------|-------------|
@@ -264,7 +264,6 @@ All paths are relative to `http://localhost:3001/api/v1`.
 | Admin Webhooks | POST | `/admin/webhooks` | Register webhook endpoint |
 | Admin Webhooks | GET | `/admin/webhooks/:id/deliveries` | View webhook delivery history |
 | Admin Waitlist | GET | `/admin/waitlist/export` | Export waitlist as CSV |
-| Docs | GET | `/docs` | Swagger UI (interactive API explorer) |
 
 ---
 
