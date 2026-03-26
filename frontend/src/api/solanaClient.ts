@@ -4,7 +4,7 @@ const KREXA_API_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_KREXA
 
 export const solanaApi = axios.create({
   baseURL: KREXA_API_URL,
-  timeout: 15000,
+  timeout: 60000,
   headers: { 'Content-Type': 'application/json' },
 })
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'motion/react'
 import { vaultApi } from '../api/solanaClient'
 import { BentoCard } from '../components/ui/BentoGrid'
@@ -25,11 +25,23 @@ function CardSkeleton({ rows = 4 }: { rows?: number }) {
 
 export default function SolanaVaultDashboard() {
   const [stats, setStats] = useState<{ data: AnyData; loading: boolean; error: string | null }>({ data: null, loading: true, error: null })
+  const [slowLoad, setSlowLoad] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
+    timerRef.current = setTimeout(() => setSlowLoad(true), 4000)
     vaultApi.getStats()
-      .then((res) => setStats({ data: res.data, loading: false, error: null }))
-      .catch((err) => setStats({ data: null, loading: false, error: err.response?.data?.message ?? err.message }))
+      .then((res) => {
+        clearTimeout(timerRef.current!)
+        setSlowLoad(false)
+        setStats({ data: res.data, loading: false, error: null })
+      })
+      .catch((err) => {
+        clearTimeout(timerRef.current!)
+        setSlowLoad(false)
+        setStats({ data: null, loading: false, error: err.response?.data?.message ?? err.message })
+      })
+    return () => clearTimeout(timerRef.current!)
   }, [])
 
   const d = stats.data
@@ -47,7 +59,14 @@ export default function SolanaVaultDashboard() {
         {/* ── Loading / Error ── */}
         {stats.loading && (
           <motion.div variants={cardVariants} style={{ marginBottom: 16 }}>
-            <GlassCard><CardSkeleton rows={6} /></GlassCard>
+            <GlassCard>
+              <CardSkeleton rows={6} />
+              {slowLoad && (
+                <p style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 16, textAlign: 'center' }}>
+                  Waking up the server — this can take up to 60s on first load...
+                </p>
+              )}
+            </GlassCard>
           </motion.div>
         )}
         {stats.error && (
