@@ -12,18 +12,20 @@ const SolanaVaultDashboard = lazy(() => import('./pages/SolanaVaultDashboard'))
 const SolanaLPDashboard = lazy(() => import('./pages/SolanaLPDashboard'))
 const KrexitScoreDashboard = lazy(() => import('./pages/KrexitScoreDashboard'))
 const WaitlistAdmin = lazy(() => import('./pages/WaitlistAdmin'))
+const DemoPage = lazy(() => import('./pages/DemoPage'))
 
 function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation()
   const isLanding = pathname === '/'
+  const isDemo = pathname === '/demo'
 
   useEffect(() => {
-    if (isLanding) {
+    if (isLanding || isDemo) {
       document.documentElement.classList.remove('dark')
     } else {
       document.documentElement.classList.add('dark')
     }
-  }, [isLanding])
+  }, [isLanding, isDemo])
 
   return <>{children}</>
 }
@@ -39,10 +41,11 @@ function PageLoader() {
 function AppShell() {
   const { pathname } = useLocation()
   const isLanding = pathname === '/'
+  const isDemo = pathname === '/demo'
 
   return (
     <div className={styles.app}>
-      {!isLanding && <Navbar />}
+      {!isLanding && !isDemo && <Navbar />}
       <Toaster
         position="bottom-right"
         toastOptions={{
@@ -66,6 +69,7 @@ function AppShell() {
           <Route path="/app/solana/vault" element={<SolanaVaultDashboard />} />
           <Route path="/app/solana/lp" element={<SolanaLPDashboard />} />
           <Route path="/app/solana/score" element={<KrexitScoreDashboard />} />
+          <Route path="/demo" element={<DemoPage />} />
           <Route path="/admin/waitlist" element={<WaitlistAdmin />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
