@@ -83,16 +83,12 @@ const envSchema = z.object({
 export const env = envSchema.parse(process.env);
 export type Env = z.infer<typeof envSchema>;
 
-// Production guard: refuse to start if critical Solana keys are missing
+// Production guard: warn if critical Solana keys are missing (server still starts for demo)
 if (env.NODE_ENV === 'production') {
-  const required: Array<[string, string]> = [
-    ['SOLANA_RPC_URL', env.SOLANA_RPC_URL],
-    ['SOLANA_ORACLE_PRIVATE_KEY', env.SOLANA_ORACLE_PRIVATE_KEY],
-    ['SOLANA_KEEPER_PRIVATE_KEY', env.SOLANA_KEEPER_PRIVATE_KEY],
-  ];
-  for (const [name, val] of required) {
-    if (!val || val === 'https://api.devnet.solana.com') {
-      throw new Error(`[FATAL] ${name} must be explicitly set in production (got: "${val || ''}")`);
-    }
+  const missing: string[] = [];
+  if (!env.SOLANA_ORACLE_PRIVATE_KEY) missing.push('SOLANA_ORACLE_PRIVATE_KEY');
+  if (!env.SOLANA_KEEPER_PRIVATE_KEY) missing.push('SOLANA_KEEPER_PRIVATE_KEY');
+  if (missing.length > 0) {
+    console.warn(`[WARN] Missing Solana signing keys — oracle/keeper operations will be disabled: ${missing.join(', ')}`);
   }
 }
