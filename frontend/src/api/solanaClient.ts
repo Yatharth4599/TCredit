@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const KREXA_API_URL = import.meta.env.VITE_KREXA_API_URL || 'http://localhost:3001'
+const KREXA_API_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_KREXA_API_URL || 'http://localhost:3001'
 
 export const solanaApi = axios.create({
   baseURL: KREXA_API_URL,
