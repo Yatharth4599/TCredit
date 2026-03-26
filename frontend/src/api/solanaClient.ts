@@ -21,8 +21,8 @@ export const agentApi = {
   getWallet:  (address: string) => solanaApi.get(`/solana/wallets/${address}`),
   getHealth:  (address: string) => solanaApi.get(`/solana/wallets/${address}/health`),
   getBalance: (address: string) => solanaApi.get(`/solana/wallets/${address}/balance`),
-  createWallet: (owner: string, agentType: number) =>
-    solanaApi.post('/solana/wallets/create', { owner, agentType }),
+  createWallet: (agent: string, owner: string, dailySpendLimitUsdc?: number) =>
+    solanaApi.post('/solana/wallets/create', { agent, owner, dailySpendLimitUsdc }),
 }
 
 // === Credit  (mounted at /solana/credit) ===

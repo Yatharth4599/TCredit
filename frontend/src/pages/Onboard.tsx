@@ -85,7 +85,7 @@ export default function Onboard() {
     setRegisterStatus('loading')
     setRegisterError(null)
     try {
-      const res = await agentApi.createWallet(addr, selectedType)
+      const res = await agentApi.createWallet(addr, addr, 500)
       const data = res.data
       if (data.transaction) {
         const sig = await executeTx(data.transaction)
