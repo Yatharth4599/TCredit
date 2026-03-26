@@ -313,6 +313,22 @@ model SolanaIndexerState {
 // Credit Bureau (Phase 2)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Tracks credit request lifecycle (pending → approved → rejected/expired)
+model CreditRequest {
+  id              String   @id @default(uuid())
+  agentPubkey     String
+  amount          BigInt               // requested amount in USDC base units
+  creditLevel     Int
+  status          String   @default("pending") // "pending" | "approved" | "rejected" | "expired"
+  reason          String?              // rejection/expiry reason
+  txSignature     String?              // on-chain tx if approved
+  requestedAt     DateTime @default(now())
+  resolvedAt      DateTime?
+
+  @@index([agentPubkey, requestedAt])
+  @@index([status])
+}
+
 /// Logs every credit inquiry — who queried whose credit and when
 model CreditInquiry {
   id            String   @id @default(uuid())

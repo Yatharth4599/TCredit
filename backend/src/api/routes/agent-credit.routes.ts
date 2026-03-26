@@ -112,6 +112,18 @@ router.post('/:agent/request', validate(SolanaCreditRequestSchema), async (req, 
     if (wallet.isFrozen) throw new AppError(400, 'Wallet is frozen');
     if (wallet.creditDrawn > 0n) throw new AppError(400, 'Existing credit must be repaid first');
 
+    const resolvedLevel = creditLevel ?? eligibility.creditLevel ?? 1;
+
+    // Record credit request in DB
+    const creditRequest = await prisma.creditRequest.create({
+      data: {
+        agentPubkey: req.params.agent as string,
+        amount: BigInt(amount),
+        creditLevel: resolvedLevel,
+        status: 'pending',
+      },
+    });
+
     // Return unsigned transaction for the oracle to sign on-chain
     // Note: request_credit requires oracle as signer — frontend submits to
     // /oracle/sign endpoint which adds the oracle's signature server-side
@@ -120,15 +132,55 @@ router.post('/:agent/request', validate(SolanaCreditRequestSchema), async (req, 
       agentPubkey: req.params.agent,
       amount: BigInt(amount).toString(),
       rateBps: rateBps ?? 1000,         // 10% default
-      creditLevel: creditLevel ?? eligibility.creditLevel,
+      creditLevel: resolvedLevel,
       collateralValueUsdc: BigInt(collateralValueUsdc ?? 0).toString(),
       eligibility,
+      requestId: creditRequest.id,
     };
 
     res.json({
       ...txData,
       description: `Request ${(Number(amount) / 1_000_000).toFixed(2)} USDC credit at Level ${txData.creditLevel}`,
       note: 'Submit to POST /api/v1/solana/oracle/sign-credit to get oracle-signed transaction',
+    });
+  } catch (err) { next(err); }
+});
+
+// GET /solana/credit/:agent/requests — credit request history
+router.get('/:agent/requests', async (req, res, next) => {
+  try {
+    parsePubkey(req.params.agent);
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const skip = (page - 1) * limit;
+
+    const [requests, total] = await Promise.all([
+      prisma.creditRequest.findMany({
+        where: { agentPubkey: req.params.agent },
+        orderBy: { requestedAt: 'desc' },
+        take: limit,
+        skip,
+      }),
+      prisma.creditRequest.count({
+        where: { agentPubkey: req.params.agent },
+      }),
+    ]);
+
+    res.json({
+      agentPubkey: req.params.agent,
+      requests: requests.map(r => ({
+        id: r.id,
+        amount: r.amount.toString(),
+        creditLevel: r.creditLevel,
+        status: r.status,
+        reason: r.reason,
+        txSignature: r.txSignature,
+        requestedAt: r.requestedAt.toISOString(),
+        resolvedAt: r.resolvedAt?.toISOString() ?? null,
+      })),
+      total,
+      page,
+      limit,
     });
   } catch (err) { next(err); }
 });

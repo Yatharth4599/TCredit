@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { AnimatedNumber } from '../components/ui/AnimatedNumber'
 import { waitlistApi } from '../api/client'
 import styles from './LandingPage.module.css'
+
+const DEBOUNCE_MS = 2_000
 
 // ─── Animation variants ───────────────────────────────────────────────────────
 
@@ -23,10 +25,16 @@ function WaitlistForm({ dark = false }: { dark?: boolean }) {
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
+  const lastSubmitRef = useRef(0)
 
   const submit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.trim()) return
+
+    const now = Date.now()
+    if (now - lastSubmitRef.current < DEBOUNCE_MS) return
+    lastSubmitRef.current = now
+
     setLoading(true)
     setError('')
     try {

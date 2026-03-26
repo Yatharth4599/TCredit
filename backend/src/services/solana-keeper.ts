@@ -25,7 +25,7 @@ import { createLogger } from '../utils/logger.js';
 // Constants
 // ---------------------------------------------------------------------------
 
-const POLL_INTERVAL_MS = 2_000;          // 2 seconds — tight loop for keepers
+const POLL_INTERVAL_MS = env.KEEPER_POLL_INTERVAL_MS;  // configurable via env
 const HF_WARNING_BPS   = 13_000;         // 1.30x
 const HF_DANGER_BPS    = 12_000;         // 1.20x — deleverage
 const HF_LIQUIDATION_BPS = 10_500;       // 1.05x — liquidate

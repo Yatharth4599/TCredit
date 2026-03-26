@@ -297,7 +297,36 @@ function DashboardContent({ pubkey }: { pubkey: string }) {
   )
 }
 
+const COMPONENT_DETAILS: Record<string, { weight: string; description: string; tips: string[] }> = {
+  Repayment: {
+    weight: '30%',
+    description: 'Measures on-time repayment history and credit utilization patterns.',
+    tips: ['Repay credit on time', 'Avoid missed payments', 'Keep utilization below 50%'],
+  },
+  Profitability: {
+    weight: '25%',
+    description: 'Evaluates trading profitability and SOL/USDC balance health.',
+    tips: ['Maintain positive trading P&L', 'Keep sufficient wallet balance', 'Avoid large unrealized losses'],
+  },
+  Behavioral: {
+    weight: '20%',
+    description: 'Tracks behavioral patterns — transaction regularity, risk exposure, and anomalies.',
+    tips: ['Transact regularly', 'Avoid sudden large withdrawals', 'Maintain consistent trading patterns'],
+  },
+  Usage: {
+    weight: '15%',
+    description: 'Measures DeFi venue diversity and protocol engagement breadth.',
+    tips: ['Trade on multiple venues', 'Use different DeFi protocols', 'Diversify trading pairs'],
+  },
+  Maturity: {
+    weight: '10%',
+    description: 'Account age, total transaction count, and token account diversity.',
+    tips: ['Keep your account active over time', 'Transaction count grows naturally', 'This component improves with age'],
+  },
+}
+
 function ScoreSummaryCard({ pubkey }: { pubkey: string }) {
+  const [expandedComponent, setExpandedComponent] = useState<string | null>(null)
   const { data, isLoading } = useScoreLookup(pubkey)
 
   if (isLoading) {
@@ -358,18 +387,44 @@ function ScoreSummaryCard({ pubkey }: { pubkey: string }) {
           <p className="text-4xl font-bold text-gray-100">{score}</p>
           <p className="text-[10px] text-gray-500 mt-1">/ {maxScore}</p>
         </div>
-        {/* Component bars */}
+        {/* Component bars (clickable for drill-down) */}
         {componentLabels.length > 0 && (
-          <div className="flex-1 space-y-1.5">
-            {componentLabels.map(([label, color, val]) => (
-              <div key={label} className="flex items-center gap-2">
-                <span className="text-[10px] text-gray-500 w-20 text-right">{label}</span>
-                <div className="flex-1 h-1.5 bg-gray-900 rounded-full overflow-hidden">
-                  <div className={`h-full ${color} rounded-full`} style={{ width: `${Math.round(val / 100)}%` }} />
+          <div className="flex-1 space-y-1">
+            {componentLabels.map(([label, color, val]) => {
+              const details = COMPONENT_DETAILS[label]
+              const isExpanded = expandedComponent === label
+              return (
+                <div key={label}>
+                  <button
+                    onClick={() => setExpandedComponent(isExpanded ? null : label)}
+                    className="flex items-center gap-2 w-full hover:bg-gray-700/20 rounded px-1 py-0.5 transition-colors"
+                  >
+                    <span className="text-[10px] text-gray-500 w-20 text-right">{label}</span>
+                    <div className="flex-1 h-1.5 bg-gray-900 rounded-full overflow-hidden">
+                      <div className={`h-full ${color} rounded-full`} style={{ width: `${Math.round(val / 100)}%` }} />
+                    </div>
+                    <span className="text-[10px] text-gray-500 w-8">{(val / 100).toFixed(0)}%</span>
+                  </button>
+                  {isExpanded && details && (
+                    <div className="ml-[88px] mr-2 mt-1 mb-2 p-2.5 bg-gray-900/60 rounded-lg border border-gray-700/30">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className={`w-2 h-2 rounded-full ${color}`} />
+                        <span className="text-[11px] font-medium text-gray-300">{label}</span>
+                        <span className="text-[10px] text-gray-600">Weight: {details.weight}</span>
+                      </div>
+                      <p className="text-[10px] text-gray-400 mb-2">{details.description}</p>
+                      <div className="space-y-0.5">
+                        {details.tips.map((tip, i) => (
+                          <p key={i} className="text-[10px] text-gray-500 flex items-center gap-1">
+                            <span className="text-blue-400">+</span> {tip}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <span className="text-[10px] text-gray-500 w-8">{(val / 100).toFixed(0)}%</span>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

@@ -68,6 +68,11 @@ const envSchema = z.object({
   // If empty, IP filtering is disabled (dev mode). Set in production.
   ADMIN_IP_ALLOWLIST: z.string().optional().default(''),
 
+  // Service intervals (ms)
+  KEEPER_POLL_INTERVAL_MS: z.coerce.number().optional().default(2_000),
+  INDEXER_POLL_INTERVAL_MS: z.coerce.number().optional().default(15_000),
+  INDEXER_MAX_BLOCKS_PER_POLL: z.coerce.number().optional().default(2_000),
+
   // Structured logging level
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).optional().default('info'),
 

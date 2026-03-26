@@ -3,10 +3,15 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky",
+    "typecheck": "cd backend && npx prisma generate && npx tsc --noEmit && cd ../app && npx tsc --noEmit && cd ../frontend && npx tsc --noEmit"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "description": "",
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
 }

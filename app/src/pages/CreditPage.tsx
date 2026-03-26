@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { TrendingUp, AlertTriangle, ArrowUpCircle, History, ExternalLink } from 'lucide-react'
-import { useAgentProfile, useAgentHealth, useCreditLine, useAgentWallet, useCreditActivity } from '../hooks'
+import { TrendingUp, AlertTriangle, ArrowUpCircle, History, ExternalLink, FileText, Clock, CheckCircle, XCircle } from 'lucide-react'
+import { useAgentProfile, useAgentHealth, useCreditLine, useAgentWallet, useCreditActivity, useCreditRequests } from '../hooks'
 import { EmptyState } from '../components/shared'
 import { RequestCreditModal } from '../components/credit/RequestCreditModal'
 import { RepayModal } from '../components/credit/RepayModal'
@@ -115,6 +115,7 @@ export default function CreditPage() {
   const { data: creditLine, isLoading: creditLoading, error: creditError } = useCreditLine()
   const { data: wallet, isLoading: walletLoading, error: walletError } = useAgentWallet()
   const { data: activity } = useCreditActivity()
+  const { data: creditRequests } = useCreditRequests()
 
   if (!connected) {
     return (
@@ -430,6 +431,61 @@ export default function CreditPage() {
         </motion.div>
 
       </motion.div>
+
+      {/* Credit Request History */}
+      {creditRequests && creditRequests.requests.length > 0 && (
+        <motion.div {...fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <FileText size={16} className="text-gray-400" />
+            <h2 className="text-lg font-semibold text-gray-100">Credit Requests</h2>
+            <span className="text-xs text-gray-500 ml-auto">{creditRequests.total} total</span>
+          </div>
+          <div className="space-y-2">
+            {creditRequests.requests.map((req) => {
+              const statusConfig: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
+                pending:  { icon: <Clock size={14} />, color: 'text-yellow-400', bg: 'bg-yellow-500/20' },
+                approved: { icon: <CheckCircle size={14} />, color: 'text-green-400', bg: 'bg-green-500/20' },
+                rejected: { icon: <XCircle size={14} />, color: 'text-red-400', bg: 'bg-red-500/20' },
+                expired:  { icon: <Clock size={14} />, color: 'text-gray-400', bg: 'bg-gray-500/20' },
+              }
+              const sc = statusConfig[req.status] ?? statusConfig.pending
+              return (
+                <div key={req.id} className="flex items-center justify-between py-2.5 border-b border-gray-800 last:border-0">
+                  <div className="flex items-center gap-3">
+                    <span className={`${sc.bg} ${sc.color} p-1.5 rounded-lg`}>{sc.icon}</span>
+                    <div>
+                      <p className="text-sm text-gray-100 font-medium">
+                        {formatUsdc(req.amount)} at L{req.creditLevel}
+                      </p>
+                      {req.reason && (
+                        <p className="text-xs text-gray-500">{req.reason}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-medium ${sc.bg} ${sc.color}`}>
+                      {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {new Date(req.requestedAt).toLocaleDateString()}
+                    </span>
+                    {req.txSignature && (
+                      <a
+                        href={`https://explorer.solana.com/tx/${req.txSignature}${config.cluster !== 'mainnet-beta' ? `?cluster=${config.cluster}` : ''}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-gray-600 hover:text-gray-400"
+                      >
+                        <ExternalLink size={12} />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </motion.div>
+      )}
 
       {/* Credit Activity History */}
       {activity && (activity.scoreHistory.length > 0 || activity.recentTrades.length > 0) && (

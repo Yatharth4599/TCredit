@@ -17,6 +17,19 @@ import { env } from '../../config/env.js';
 
 const router = Router();
 
+// In-memory idempotency cache (TTL: 5 minutes)
+const idempotencyCache = new Map<string, { response: unknown; expiresAt: number }>();
+const IDEMPOTENCY_TTL_MS = 5 * 60 * 1_000;
+
+// Prune expired entries every 60s
+const pruneTimer = setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of idempotencyCache) {
+    if (entry.expiresAt < now) idempotencyCache.delete(key);
+  }
+}, 60_000);
+pruneTimer.unref();
+
 function parsePubkey(raw: string): PublicKey {
   try { return new PublicKey(raw); }
   catch { throw new AppError(400, `Invalid Solana public key: ${raw}`); }
@@ -48,6 +61,16 @@ function loadOracleKeypair(): Keypair {
  */
 router.post('/sign-credit', validate(SolanaOracleSignCreditSchema), async (req, res, next) => {
   try {
+    // Idempotency-Key support: return cached response if already processed
+    const idempotencyKey = req.headers['idempotency-key'] as string | undefined;
+    if (idempotencyKey) {
+      const cached = idempotencyCache.get(idempotencyKey);
+      if (cached && cached.expiresAt > Date.now()) {
+        res.json(cached.response);
+        return;
+      }
+    }
+
     const { agentPubkey, agentOrOwnerPubkey, amount, rateBps, creditLevel, collateralValueUsdc } = req.body;
 
     const agentPk = parsePubkey(agentPubkey);
@@ -90,13 +113,23 @@ router.post('/sign-credit', validate(SolanaOracleSignCreditSchema), async (req, 
 
     const serialized = tx.serialize({ requireAllSignatures: false, verifySignatures: false }).toString('base64');
 
-    res.json({
+    const responseBody = {
       transaction: serialized,
       encoding: 'base64',
       feePayer: oracleKeypair.publicKey.toBase58(),
       description: `Oracle-signed request_credit for ${agentPubkey}: ${(Number(amount) / 1_000_000).toFixed(2)} USDC at level ${creditLevel ?? eligibility.creditLevel ?? 1}`,
       instructions: 'Submit transaction to browser wallet to add agent_or_owner signature, then send to devnet',
-    });
+    };
+
+    // Cache idempotent response
+    if (idempotencyKey) {
+      idempotencyCache.set(idempotencyKey, {
+        response: responseBody,
+        expiresAt: Date.now() + IDEMPOTENCY_TTL_MS,
+      });
+    }
+
+    res.json(responseBody);
   } catch (err) {
     next(err);
   }

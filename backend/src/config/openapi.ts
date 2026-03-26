@@ -672,7 +672,10 @@ export const openApiSpec = {
       post: {
         tags: ['Oracle (Solana)'],
         summary: 'Build oracle-signed credit request transaction',
-        description: 'The oracle validates the credit request and co-signs the Solana transaction. Returns a partially-signed transaction for the user to complete.',
+        description: 'The oracle validates the credit request and co-signs the Solana transaction. Returns a partially-signed transaction for the user to complete. Supports `Idempotency-Key` header (cached for 5 minutes) to prevent duplicate oracle signatures.',
+        parameters: [
+          { name: 'Idempotency-Key', in: 'header', required: false, schema: { type: 'string' }, description: 'Unique key for idempotent requests. If provided, repeated calls with the same key return the cached response.' },
+        ],
         requestBody: {
           required: true,
           content: { 'application/json': { schema: { type: 'object', required: ['agentPubkey', 'ownerPubkey', 'amount'], properties: { agentPubkey: { type: 'string' }, ownerPubkey: { type: 'string' }, amount: { type: 'string', description: 'USDC base units' } } } } },
@@ -867,6 +870,20 @@ export const openApiSpec = {
         tags: ['Admin'], summary: 'List deliveries for webhook endpoint', security: [{ ApiKeyAuth: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
         responses: { 200: { description: 'Delivery history', content: { 'application/json': { schema: { type: 'object', properties: { deliveries: { type: 'array', items: { $ref: '#/components/schemas/WebhookDelivery' } }, total: { type: 'integer' } } } } } } },
+      },
+    },
+    '/admin/webhooks/event-types': {
+      get: {
+        tags: ['Admin'],
+        summary: 'List available webhook event types and payload schemas',
+        description: 'Returns all event types that can be subscribed to, with example payload schemas for each. Use these event names in the `events` array when creating webhook endpoints.',
+        security: [{ ApiKeyAuth: [] }],
+        responses: {
+          200: {
+            description: 'Event type catalog',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/WebhookEventTypes' } } },
+          },
+        },
       },
     },
   },
@@ -1381,6 +1398,90 @@ export const openApiSpec = {
           lastError: { type: 'string', nullable: true },
           createdAt: { type: 'string', format: 'date-time' },
           deliveredAt: { type: 'string', format: 'date-time', nullable: true },
+        },
+      },
+      WebhookEventTypes: {
+        type: 'object',
+        description: 'Available webhook event types and their payload schemas. Each delivery is signed with HMAC-SHA256 (X-Krexa-Signature header).',
+        properties: {
+          events: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                event: { type: 'string' },
+                description: { type: 'string' },
+                payload: { type: 'object' },
+              },
+            },
+            example: [
+              {
+                event: 'VaultCreated',
+                description: 'Fired when a new credit vault is deployed',
+                payload: { vault: '0x...', agent: '0x...', targetAmount: '1000000000', interestRateBps: 1200, durationSeconds: 15552000 },
+              },
+              {
+                event: 'Invested',
+                description: 'Fired when an investor deposits into a vault',
+                payload: { investor: '0x...', amount: '500000000', totalRaised: '1500000000' },
+              },
+              {
+                event: 'RepaymentProcessed',
+                description: 'Fired when a repayment is processed through the waterfall',
+                payload: { amount: '100000000', seniorPay: '50000000', poolPay: '30000000' },
+              },
+              {
+                event: 'TrancheReleased',
+                description: 'Fired when a vault tranche milestone is released',
+                payload: { trancheIndex: 0 },
+              },
+              {
+                event: 'VaultStateChanged',
+                description: 'Fired when a vault transitions state (fundraising → active → repaying → completed)',
+                payload: { newState: 1, newStateStr: 'active' },
+              },
+              {
+                event: 'VaultDefaulted',
+                description: 'Fired when a vault enters default state',
+                payload: { totalDebt: '2000000000', totalRepaid: '500000000' },
+              },
+              {
+                event: 'CreditScoreUpdated',
+                description: 'Fired when an agent\'s on-chain credit score changes',
+                payload: { wallet: '0x...', score: 720, tier: 2 },
+              },
+              {
+                event: 'MilestoneSubmitted',
+                description: 'Fired when a borrower submits milestone evidence',
+                payload: { vault: '0x...', trancheIndex: 1, evidenceHash: '0x...' },
+              },
+              {
+                event: 'MilestoneApproved',
+                description: 'Fired when an auditor approves a milestone',
+                payload: { vault: '0x...', trancheIndex: 1 },
+              },
+              {
+                event: 'PoolAllocated',
+                description: 'Fired when a liquidity pool allocates capital to a vault',
+                payload: { vault: '0x...', pool: '0x...', amount: '1000000000', isSenior: true },
+              },
+              {
+                event: 'WaterfallDistributed',
+                description: 'Fired when waterfall payment distribution is executed',
+                payload: { seniorAmount: '50000000', poolAmount: '30000000', communityAmount: '20000000' },
+              },
+              {
+                event: 'ScoreChanged',
+                description: 'Fired when a Solana agent\'s Krexit Score changes (computed by credit-score service)',
+                payload: { agentPubkey: 'So1ana...', previousScore: 580, newScore: 620, previousLevel: 2, newLevel: 2, components: { repayment: 7200, profitability: 5500, behavioral: 6000, usage: 4800, maturity: 5000 } },
+              },
+              {
+                event: 'CreditRequested',
+                description: 'Fired when an agent submits a credit request',
+                payload: { agentPubkey: 'So1ana...', amount: '500000000', creditLevel: 2, requestId: 'uuid' },
+              },
+            ],
+          },
         },
       },
     },

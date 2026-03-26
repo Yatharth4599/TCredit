@@ -1,18 +1,25 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import TigerCanvas from '../components/ui/TigerCanvas'
 import { waitlistApi } from '../api/client'
 import styles from './Waitlist.module.css'
+
+const DEBOUNCE_MS = 2_000
 
 export default function Waitlist() {
     const [email, setEmail] = useState('')
     const [submitted, setSubmitted] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+    const lastSubmitRef = useRef(0)
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!email.trim()) return
+
+        const now = Date.now()
+        if (now - lastSubmitRef.current < DEBOUNCE_MS) return
+        lastSubmitRef.current = now
 
         setLoading(true)
         setError('')
