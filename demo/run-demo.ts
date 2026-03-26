@@ -158,7 +158,9 @@ export async function runDemo(broadcast: BroadcastFn): Promise<void> {
     paymentRouter:  new PublicKey(env('ROUTER_PROGRAM_ID')),
   };
 
-  const agent    = loadKeypair(env('AGENT_KEYPAIR_PATH'));
+  // Generate a fresh agent keypair each run so we always start with a clean
+  // profile PDA — avoids AccountDidNotDeserialize errors from stale data.
+  const agent    = Keypair.generate();
   const owner    = loadKeypair(env('OWNER_KEYPAIR_PATH'));
   const oracle   = loadKeypair(env('ORACLE_KEYPAIR_PATH'));
   const customer = loadKeypair(env('CUSTOMER_KEYPAIR_PATH'));
@@ -361,6 +363,8 @@ export async function runDemo(broadcast: BroadcastFn): Promise<void> {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes('already in use') || msg.includes('custom program error: 0x0')) {
       spinner1.warn(chalk.yellow('Agent already registered — skipping'));
+      broadcast('step_complete', { step: 1, tx: '' });
+      broadcast('wallet_state', { balance: 0, debt: 0, score: 0, level: 0, collateral: 0, creditUsed: 0 });
     } else {
       spinner1.fail(chalk.red(`Registration failed: ${msg}`));
       throw err;
