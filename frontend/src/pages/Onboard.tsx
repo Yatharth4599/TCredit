@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useWalletModal } from '@solana/wallet-adapter-react-ui'
@@ -7,7 +7,7 @@ import toast from 'react-hot-toast'
 import SolanaLayout from '../components/layout/SolanaLayout'
 import { GlassCard } from '../components/ui/GlassCard'
 import Stepper, { Step } from '../components/ui/Stepper'
-import { agentApi, kyaApi, faucetApi } from '../api/solanaClient'
+import { agentApi, kyaApi, faucetApi, healthApi } from '../api/solanaClient'
 import { useSolanaTx } from '../hooks/useSolanaTx'
 import { txUrl } from '../config/solana'
 import { containerVariants, cardVariants } from '../utils/motionVariants'
@@ -79,6 +79,21 @@ export default function Onboard() {
   const addr = publicKey?.toBase58() ?? ''
   const shortAddr = addr ? `${addr.slice(0, 4)}...${addr.slice(-4)}` : ''
 
+  // ── Cold-start: warm backend on mount ──
+  const [serverReady, setServerReady] = useState(false)
+  const [serverWaking, setServerWaking] = useState(false)
+  const warmedRef = useRef(false)
+  useEffect(() => {
+    if (warmedRef.current) return
+    warmedRef.current = true
+    const timer = setTimeout(() => { if (!serverReady) setServerWaking(true) }, 4000)
+    healthApi.check()
+      .then(() => { setServerReady(true); setServerWaking(false) })
+      .catch(() => { setServerReady(true); setServerWaking(false) })
+      .finally(() => clearTimeout(timer))
+    return () => clearTimeout(timer)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Step 2: Register Agent ──
   const handleRegister = useCallback(async () => {
     if (!publicKey || selectedType === null) return
@@ -96,9 +111,11 @@ export default function Onboard() {
       }
       setRegisterStatus('done')
       toast.success('Agent registered on Solana devnet!')
-    } catch (err) {
+    } catch (err: unknown) {
       setRegisterStatus('error')
-      const msg = err instanceof Error ? err.message : 'Registration failed'
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const raw = err instanceof Error ? err.message : 'Registration failed'
+      const msg = raw.includes('timeout') ? 'Server is waking up — please wait a moment and try again.' : raw
       setRegisterError(msg)
       toast.error(msg)
     }
@@ -151,6 +168,15 @@ export default function Onboard() {
       dataLoaded={connected}
     >
       <motion.div variants={containerVariants} initial="hidden" animate="visible">
+        {serverWaking && (
+          <motion.div
+            variants={cardVariants}
+            style={{ marginBottom: 16, padding: '14px 20px', borderRadius: 12, background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'rgba(245,245,247,0.7)' }}
+          >
+            <div style={{ width: 14, height: 14, border: '2px solid rgba(59,130,246,0.3)', borderTopColor: '#3B82F6', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            Waking up server (free tier cold start)... this can take up to 90 seconds.
+          </motion.div>
+        )}
         <motion.div variants={cardVariants}>
           <GlassCard>
             <Stepper
