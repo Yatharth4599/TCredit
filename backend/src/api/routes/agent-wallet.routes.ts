@@ -10,9 +10,9 @@
 
 import { Router } from 'express';
 import { PublicKey } from '@solana/web3.js';
-import { readAgentWallet, readTokenBalance } from '../../chain/solana/reader.js';
+import { readAgentWallet, readAgentProfile, readTokenBalance } from '../../chain/solana/reader.js';
 import {
-  buildCreateWallet, instructionToUnsignedTx,
+  buildCreateWallet, buildRegisterAgent, instructionToUnsignedTx,
   buildProposeOwnershipTransfer, buildAcceptOwnershipTransfer, buildCancelOwnershipTransfer,
 } from '../../chain/solana/builder.js';
 import { walletUsdcPda } from '../../chain/solana/programs.js';
@@ -149,6 +149,8 @@ router.get('/:agent/trades', async (req, res, next) => {
 });
 
 // POST /solana/wallets/create  — returns unsigned transaction
+// Bundles register_agent + create_wallet into one atomic transaction.
+// The user's wallet signs as both agent AND owner (same key for self-custody).
 router.post('/create', validate(SolanaWalletCreateSchema), async (req, res, next) => {
   try {
     const { agent, owner, dailySpendLimitUsdc } = req.body;
@@ -157,13 +159,33 @@ router.post('/create', validate(SolanaWalletCreateSchema), async (req, res, next
     const ownerPk = parsePubkey(owner);
     const dailySpendLimit = BigInt(Math.round((dailySpendLimitUsdc ?? 500) * 1_000_000));
 
-    const ixn = buildCreateWallet({ agent: agentPk, owner: ownerPk, dailySpendLimit });
-    const tx = await instructionToUnsignedTx(ixn, ownerPk);
+    // Check if agent is already registered (profile PDA exists)
+    const existingProfile = await readAgentProfile(agentPk).catch(() => null);
+
+    const createIx = buildCreateWallet({ agent: agentPk, owner: ownerPk, dailySpendLimit });
+
+    const { solanaConnection } = await import('../../chain/solana/connection.js');
+    const { Transaction } = await import('@solana/web3.js');
+    const { blockhash } = await solanaConnection.getLatestBlockhash('confirmed');
+    const tx = new Transaction({ recentBlockhash: blockhash, feePayer: ownerPk });
+
+    if (!existingProfile) {
+      // Agent not registered yet — prepend register_agent instruction
+      const registerIx = buildRegisterAgent({
+        agent: agentPk,
+        owner: ownerPk,
+        name: 'krexa-agent',
+      });
+      tx.add(registerIx);
+    }
+
+    tx.add(createIx);
+    const serialized = tx.serialize({ requireAllSignatures: false, verifySignatures: false }).toString('base64');
 
     res.json({
-      transaction: tx,
+      transaction: serialized,
       encoding: 'base64',
-      description: `Create krexa agent wallet for ${agent}`,
+      description: `Register and create krexa agent wallet for ${agent}`,
     });
   } catch (err) { next(err); }
 });
