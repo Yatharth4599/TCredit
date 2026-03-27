@@ -240,19 +240,41 @@ function decodeAgentProfile(data: Buffer): AgentProfile {
   let liquidationCount: number; [liquidationCount, o] = readU8(data, o);
   let walletPda: PublicKey;   [walletPda, o] = readPubkey(data, o);
   let hasWallet: boolean;     [hasWallet, o] = readBool(data, o);
-  // Phase 1 fields
-  const legalAgreementHash = data.subarray(o, o + 32); o += 32;
-  let legalAgreementSignedAt: bigint; [legalAgreementSignedAt, o] = readI64(data, o);
-  const scoreAttestationHash = data.subarray(o, o + 32); o += 32;
-  // Status
-  let isActive: boolean;      [isActive, o] = readBool(data, o);
-  let registeredAt: bigint;   [registeredAt, o] = readI64(data, o);
-  let bump: number;           [bump, o] = readU8(data, o);
-  // owner_type added in Phase 2 — old accounts (272 bytes) default to EOA = 0
+
+  // Remaining bytes determine struct version:
+  //   Old (≤210 bytes): isActive + registeredAt + bump (no Phase 1 fields)
+  //   New (≥272 bytes): Phase 1 fields + isActive + registeredAt + bump + ownerType
+  const remaining = data.length - o;
+
+  let legalAgreementHash: Buffer = Buffer.alloc(32) as Buffer;
+  let legalAgreementSignedAt = 0n;
+  let scoreAttestationHash: Buffer = Buffer.alloc(32) as Buffer;
+  let isActive = true;
+  let registeredAt = 0n;
+  let bump = 0;
   let ownerType = 0;
-  if (o < data.length) {
-    [ownerType, o] = readU8(data, o);
+
+  if (remaining >= 72 + 10) {
+    // New layout: Phase 1 fields present
+    legalAgreementHash = data.subarray(o, o + 32); o += 32;
+    [legalAgreementSignedAt, o] = readI64(data, o);
+    scoreAttestationHash = data.subarray(o, o + 32); o += 32;
+    [isActive, o] = readBool(data, o);
+    [registeredAt, o] = readI64(data, o);
+    [bump, o] = readU8(data, o);
+    if (o < data.length) {
+      [ownerType, o] = readU8(data, o);
+    }
+  } else if (remaining >= 10) {
+    // Old layout: isActive + registeredAt + bump directly after hasWallet
+    [isActive, o] = readBool(data, o);
+    [registeredAt, o] = readI64(data, o);
+    [bump, o] = readU8(data, o);
+    if (o < data.length) {
+      [ownerType, o] = readU8(data, o);
+    }
   }
+
   return {
     agent, owner, name, creditScore, creditLevel, kyaTier, kyaVerifiedAt,
     scoreUpdatedAt, totalVolumeUsd, totalTrades, totalRepaid, totalBorrowed,

@@ -49,14 +49,17 @@ export async function evaluateCredit(agentPubkeyStr: string): Promise<CreditEval
   }
 
   const [profile, vault] = await Promise.all([
-    readAgentProfile(agentPubkey),
+    readAgentProfile(agentPubkey).catch((err) => {
+      console.error(`[evaluateCredit] readAgentProfile failed for ${agentPubkeyStr}:`, err.message ?? err);
+      return null;
+    }),
     readVaultConfig().catch(() => null),
   ]);
 
   if (!profile) {
     return {
       eligible: false, creditLevel: 0, maxCreditUsdc: 0,
-      reason: 'Agent profile not found on-chain',
+      reason: 'Agent profile not found or could not be read on-chain',
       agentPubkey: agentPubkeyStr, creditScore: 0, kyaTier: 0,
     };
   }
