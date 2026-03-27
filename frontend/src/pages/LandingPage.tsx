@@ -453,7 +453,7 @@ export default function LandingPage() {
                 <div className={styles.footerLinks}>
                   <a href="https://github.com/Yatharth4599/TCredit" target="_blank" rel="noopener noreferrer" className={styles.footerLink}>Documentation</a>
                   <a href="https://x.com/krexa_xyz" target="_blank" rel="noopener noreferrer" className={styles.footerLink}>Blog</a>
-                  <a href="https://t.me/tigerpayx" target="_blank" rel="noopener noreferrer" className={styles.footerLink}>Support</a>
+                  <a href="https://t.me/krexa_xyz" target="_blank" rel="noopener noreferrer" className={styles.footerLink}>Support</a>
                 </div>
               </div>
               <div>
