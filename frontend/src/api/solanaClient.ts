@@ -33,8 +33,8 @@ export const creditApi = {
   getProtocolParams: ()             => solanaApi.get('/solana/credit/protocol-params'),
   requestCredit: (agent: string, amount: number, creditLevel: number) =>
     solanaApi.post(`/solana/credit/${agent}/request`, { amount, creditLevel }),
-  repay: (agent: string, amount: number) =>
-    solanaApi.post(`/solana/credit/${agent}/repay`, { amount }),
+  repay: (agent: string, amount: number, callerPubkey: string) =>
+    solanaApi.post(`/solana/credit/${agent}/repay`, { amount, callerPubkey }),
   getActivity: (agent: string) => solanaApi.get(`/solana/credit/${agent}/activity`),
   getRequests: (agent: string) => solanaApi.get(`/solana/credit/${agent}/requests`),
   signAgreement: (agent: string, creditLevel: number) =>
@@ -68,8 +68,14 @@ export const faucetApi = {
 
 // === Oracle  (mounted at /solana/oracle) ===
 export const oracleApi = {
-  signCredit: (transaction: string) =>
-    solanaApi.post('/solana/oracle/sign-credit', { transaction }),
+  signCredit: (params: {
+    agentPubkey: string
+    agentOrOwnerPubkey: string
+    amount: number | string
+    rateBps?: number
+    creditLevel?: number
+    collateralValueUsdc?: number | string
+  }) => solanaApi.post('/solana/oracle/sign-credit', params),
 }
 
 // === Health ===

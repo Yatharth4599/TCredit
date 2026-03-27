@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { useWallet } from '@solana/wallet-adapter-react'
 import { creditApi } from '../../api/solanaClient'
 import { useSolanaTx } from '../../hooks/useSolanaTx'
 import { txUrl } from '../../config/solana'
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export default function RepayCard({ agentPubkey, principal, accruedInterest, totalOwed, onSuccess }: Props) {
+  const { publicKey } = useWallet()
   const [amount, setAmount] = useState('')
   const [status, setStatus] = useState<'idle' | 'loading' | 'signing' | 'done' | 'error'>('idle')
   const [error, setError] = useState<string | null>(null)
@@ -21,15 +23,16 @@ export default function RepayCard({ agentPubkey, principal, accruedInterest, tot
   const { execute: executeTx } = useSolanaTx()
 
   const amountNum = Number(amount) || 0
-  const isValid = amountNum > 0 && amountNum <= totalOwed
+  const amountBaseUnits = Math.round(amountNum * 1_000_000)
+  const isValid = amountNum > 0 && amountNum <= totalOwed && !!publicKey
 
   const handleRepay = useCallback(async () => {
-    if (!isValid) return
+    if (!isValid || !publicKey) return
     setStatus('loading')
     setError(null)
 
     try {
-      const res = await creditApi.repay(agentPubkey, amountNum)
+      const res = await creditApi.repay(agentPubkey, amountBaseUnits, publicKey.toBase58())
       const data = res.data
 
       if (data.transaction) {
@@ -49,7 +52,7 @@ export default function RepayCard({ agentPubkey, principal, accruedInterest, tot
       setError(msg)
       toast.error(msg)
     }
-  }, [agentPubkey, amountNum, isValid, executeTx, onSuccess])
+  }, [agentPubkey, amountBaseUnits, isValid, publicKey, executeTx, onSuccess])
 
   if (totalOwed <= 0) {
     return (

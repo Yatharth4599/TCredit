@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
-import { creditApi, oracleApi } from '../../api/solanaClient'
+import { useWallet } from '@solana/wallet-adapter-react'
+import { oracleApi } from '../../api/solanaClient'
 import { useSolanaTx } from '../../hooks/useSolanaTx'
 import { txUrl } from '../../config/solana'
 import toast from 'react-hot-toast'
@@ -14,52 +15,49 @@ interface Props {
 }
 
 export default function RequestCreditCard({ agentPubkey, maxAmount, creditLevel, interestRateBps, onSuccess }: Props) {
+  const { publicKey } = useWallet()
   const [amount, setAmount] = useState('')
-  const [status, setStatus] = useState<'idle' | 'requesting' | 'signing' | 'cosigning' | 'done' | 'error'>('idle')
+  const [status, setStatus] = useState<'idle' | 'building' | 'signing' | 'done' | 'error'>('idle')
   const [error, setError] = useState<string | null>(null)
   const [sig, setSig] = useState<string | null>(null)
   const { execute: executeTx } = useSolanaTx()
 
   const amountNum = Number(amount) || 0
+  const amountBaseUnits = Math.round(amountNum * 1_000_000)
   const dailyRate = (interestRateBps / 10000 / 365) * amountNum
-  const isValid = amountNum > 0 && amountNum <= maxAmount
+  const isValid = amountNum > 0 && amountNum <= maxAmount && !!publicKey
 
   const handleRequest = useCallback(async () => {
-    if (!isValid) return
-    setStatus('requesting')
+    if (!isValid || !publicKey) return
+    setStatus('building')
     setError(null)
 
     try {
-      // Step 1: Request unsigned tx from backend
-      const res = await creditApi.requestCredit(agentPubkey, amountNum, creditLevel)
-      const data = res.data
+      // Step 1: Oracle builds + signs the transaction (includes auto collateral init)
+      const res = await oracleApi.signCredit({
+        agentPubkey,
+        agentOrOwnerPubkey: publicKey.toBase58(),
+        amount: amountBaseUnits,
+        creditLevel,
+        rateBps: interestRateBps,
+      })
 
-      if (data.transaction) {
-        // Step 2: Sign with wallet
-        setStatus('signing')
-        const userSigned = await executeTx(data.transaction)
-
-        // Step 3: Oracle co-sign (if needed)
-        if (data.requiresOracleCosign) {
-          setStatus('cosigning')
-          await oracleApi.signCredit(userSigned)
-        }
-
-        setSig(userSigned)
-      } else {
-        setSig(data.txSignature ?? null)
-      }
+      // Step 2: User signs the oracle-signed transaction
+      setStatus('signing')
+      const txSig = await executeTx(res.data.transaction)
+      setSig(txSig)
 
       setStatus('done')
       toast.success('Credit requested successfully!')
       onSuccess?.()
     } catch (err) {
       setStatus('error')
-      const msg = err instanceof Error ? err.message : 'Request failed'
+      const msg = err instanceof Error ? err.message :
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Request failed'
       setError(msg)
       toast.error(msg)
     }
-  }, [agentPubkey, amountNum, creditLevel, isValid, executeTx, onSuccess])
+  }, [agentPubkey, amountBaseUnits, creditLevel, interestRateBps, isValid, publicKey, executeTx, onSuccess])
 
   if (status === 'done') {
     return (
@@ -75,6 +73,13 @@ export default function RequestCreditCard({ agentPubkey, maxAmount, creditLevel,
             </a>
           )}
         </div>
+        <button
+          className={s.submitBtn}
+          style={{ marginTop: 12 }}
+          onClick={() => { setStatus('idle'); setSig(null); setAmount(''); }}
+        >
+          Request More Credit
+        </button>
       </div>
     )
   }
@@ -91,9 +96,9 @@ export default function RequestCreditCard({ agentPubkey, maxAmount, creditLevel,
           min={0}
           max={maxAmount}
           step={0.01}
-          disabled={status !== 'idle'}
+          disabled={status !== 'idle' && status !== 'error'}
         />
-        <button className={s.maxBtn} onClick={() => setAmount(String(maxAmount))} disabled={status !== 'idle'}>
+        <button className={s.maxBtn} onClick={() => setAmount(String(maxAmount))} disabled={status !== 'idle' && status !== 'error'}>
           MAX
         </button>
       </div>
@@ -117,16 +122,18 @@ export default function RequestCreditCard({ agentPubkey, maxAmount, creditLevel,
         </div>
       </div>
 
+      <p style={{ fontSize: 11, color: 'rgba(245,245,247,0.35)', margin: '8px 0 0', lineHeight: 1.5 }}>
+        Zero-collateral L1 credit. Oracle co-signs the transaction for you.
+      </p>
+
       <button
         className={s.submitBtn}
-        disabled={!isValid || status !== 'idle'}
+        disabled={!isValid || (status !== 'idle' && status !== 'error')}
         onClick={handleRequest}
       >
-        {status === 'requesting' && <><div className={s.spinner} /> Building transaction...</>}
+        {status === 'building' && <><div className={s.spinner} /> Building transaction...</>}
         {status === 'signing' && <><div className={s.spinner} /> Sign in wallet...</>}
-        {status === 'cosigning' && <><div className={s.spinner} /> Oracle co-signing...</>}
-        {status === 'idle' && `Request $${amountNum.toLocaleString()} Credit`}
-        {status === 'error' && 'Retry Request'}
+        {(status === 'idle' || status === 'error') && `Request $${amountNum > 0 ? amountNum.toLocaleString() : '0.00'} Credit`}
       </button>
 
       {error && <p className={s.error}>{error}</p>}

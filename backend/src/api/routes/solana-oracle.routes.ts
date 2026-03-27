@@ -6,10 +6,11 @@
 
 import { Router } from 'express';
 import { Keypair, PublicKey, Transaction } from '@solana/web3.js';
+import { getAssociatedTokenAddressSync } from '@solana/spl-token';
 import bs58 from 'bs58';
 import { evaluateCredit } from '../../services/solana-oracle.js';
-import { buildRequestCredit } from '../../chain/solana/builder.js';
-import { readAgentWallet } from '../../chain/solana/reader.js';
+import { buildRequestCredit, buildDepositCollateral } from '../../chain/solana/builder.js';
+import { readAgentWallet, readCollateralPosition } from '../../chain/solana/reader.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { validate } from '../middleware/validate.js';
 import { SolanaOracleSignCreditSchema } from '../schemas.js';
@@ -91,7 +92,29 @@ router.post('/sign-credit', validate(SolanaOracleSignCreditSchema), async (req, 
     if (wallet.isFrozen) throw new AppError(400, 'Wallet is frozen');
     if (wallet.creditDrawn > 0n) throw new AppError(400, 'Existing credit must be repaid first');
 
-    // Build the instruction
+    const { solanaConnection } = await import('../../chain/solana/connection.js');
+    const USDC_MINT = new PublicKey(env.SOLANA_USDC_MINT);
+
+    // Check if collateral position exists — if not, auto-init with $0.01 deposit
+    const collateral = await readCollateralPosition(agentPk).catch(() => null);
+    const needsCollateralInit = !collateral;
+
+    // Build transaction with oracle as fee payer
+    const { blockhash } = await solanaConnection.getLatestBlockhash('confirmed');
+    const tx = new Transaction({ recentBlockhash: blockhash, feePayer: oracleKeypair.publicKey });
+
+    // Prepend deposit_collateral if collateral PDA doesn't exist yet (L1 = zero-collateral)
+    if (needsCollateralInit) {
+      const ownerUsdc = getAssociatedTokenAddressSync(USDC_MINT, agentOrOwnerPk);
+      tx.add(buildDepositCollateral({
+        agent: agentPk,
+        owner: agentOrOwnerPk,
+        ownerUsdc,
+        amount: 10_000n, // $0.01 USDC — minimum to init the PDA
+      }));
+    }
+
+    // Build the request_credit instruction
     const ixn = buildRequestCredit({
       agent: agentPk,
       oracle: oracleKeypair.publicKey,
@@ -101,11 +124,6 @@ router.post('/sign-credit', validate(SolanaOracleSignCreditSchema), async (req, 
       creditLevel: creditLevel ?? eligibility.creditLevel ?? 1,
       collateralValueUsdc: BigInt(collateralValueUsdc ?? 0),
     });
-
-    // Build transaction with oracle as fee payer
-    const { solanaConnection } = await import('../../chain/solana/connection.js');
-    const { blockhash } = await solanaConnection.getLatestBlockhash('confirmed');
-    const tx = new Transaction({ recentBlockhash: blockhash, feePayer: oracleKeypair.publicKey });
     tx.add(ixn);
 
     // Oracle partially signs (adds its signature)

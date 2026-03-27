@@ -550,6 +550,40 @@ export function buildRequestCredit(params: RequestCreditParams): TransactionInst
 }
 
 // ---------------------------------------------------------------------------
+// Credit Vault: deposit_collateral (init collateral position PDA)
+// ---------------------------------------------------------------------------
+
+export interface DepositCollateralParams {
+  agent: PublicKey;
+  owner: PublicKey;          // signer + payer for init_if_needed
+  ownerUsdc: PublicKey;      // owner's USDC ATA
+  amount: bigint;            // USDC base units (minimum 10_000 = $0.01)
+}
+
+export function buildDepositCollateral(params: DepositCollateralParams): TransactionInstruction {
+  const { agent, owner, ownerUsdc, amount } = params;
+  const vaultConfig = vaultConfigPda();
+  const vaultToken  = vaultUsdcPda();
+  const collateral  = collateralPositionPda(agent);
+
+  const data = Buffer.concat([
+    DISCRIMINATORS.depositCollateral,
+    encodePubkey(agent),
+    encodeU64(amount),
+  ]);
+
+  return ix(PROGRAM_IDS.creditVault, [
+    { pubkey: vaultConfig,  isSigner: false, isWritable: true  },
+    { pubkey: vaultToken,   isSigner: false, isWritable: true  },
+    { pubkey: collateral,   isSigner: false, isWritable: true  },
+    { pubkey: ownerUsdc,    isSigner: false, isWritable: true  },
+    { pubkey: owner,        isSigner: true,  isWritable: true  },
+    { pubkey: TOKEN_PROGRAM_ID,        isSigner: false, isWritable: false },
+    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+  ], data);
+}
+
+// ---------------------------------------------------------------------------
 // Helpers: wrap an instruction into a base64 serialised unsigned Transaction
 // ---------------------------------------------------------------------------
 
