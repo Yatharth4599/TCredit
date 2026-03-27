@@ -55,8 +55,8 @@ export const scoreApi = {
 
 // === KYA  (mounted at /solana/kya) ===
 export const kyaApi = {
-  basicVerify: (agent: string, ownerPubkey: string, signature: string) =>
-    solanaApi.post(`/solana/kya/${agent}/basic`, { ownerPubkey, signature }),
+  basicVerify: (agent: string, ownerPubkey: string, ownerSignature: string) =>
+    solanaApi.post(`/solana/kya/${agent}/basic`, { ownerPubkey, ownerSignature }),
   getStatus: (agent: string) => solanaApi.get(`/solana/kya/${agent}/status`),
 }
 
