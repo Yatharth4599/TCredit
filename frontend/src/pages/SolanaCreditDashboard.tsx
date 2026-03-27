@@ -334,10 +334,10 @@ export default function SolanaCreditDashboard() {
                 {clData && (
                   <>
                     <div className={s.statsGrid}>
-                      <StatWidget label="Credit Limit" value={formatUsdc(clData.creditLimit)} />
-                      <StatWidget label="Amount Drawn" value={formatUsdc(clData.creditDrawn)} />
-                      <StatWidget label="Accrued Interest" value={formatUsdc(clData.accruedInterest)} />
-                      <StatWidget label="Interest Rate" value={formatBps(clData.interestRateBps)} sub="Annual" />
+                      <StatWidget label="Credit Limit" value={formatUsdc(clData.creditLimit ?? '0')} />
+                      <StatWidget label="Amount Drawn" value={formatUsdc(clData.creditDrawn ?? '0')} />
+                      <StatWidget label="Accrued Interest" value={clData.exists ? formatUsdc(clData.accruedInterest ?? '0') : '$0.00'} />
+                      <StatWidget label="Interest Rate" value={clData.exists && clData.interestRateBps ? formatBps(clData.interestRateBps) : 'N/A'} sub={clData.exists ? 'Annual' : ''} />
                     </div>
                     {Number(clData.creditLimit) > 0 && (
                       <div style={{ marginTop: 16 }}>

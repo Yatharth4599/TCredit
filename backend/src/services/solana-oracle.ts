@@ -50,7 +50,7 @@ export async function evaluateCredit(agentPubkeyStr: string): Promise<CreditEval
 
   const [profile, vault] = await Promise.all([
     readAgentProfile(agentPubkey),
-    readVaultConfig(),
+    readVaultConfig().catch(() => null),
   ]);
 
   if (!profile) {
