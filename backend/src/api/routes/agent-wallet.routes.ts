@@ -12,7 +12,7 @@ import { Router } from 'express';
 import { PublicKey } from '@solana/web3.js';
 import { readAgentWallet, readAgentProfile, readTokenBalance } from '../../chain/solana/reader.js';
 import {
-  buildCreateWallet, buildRegisterAgent, instructionToUnsignedTx,
+  buildCreateWallet, buildRegisterAgent, buildUpdateKya, instructionToUnsignedTx,
   buildProposeOwnershipTransfer, buildAcceptOwnershipTransfer, buildCancelOwnershipTransfer,
 } from '../../chain/solana/builder.js';
 import { walletUsdcPda } from '../../chain/solana/programs.js';
@@ -148,9 +148,9 @@ router.get('/:agent/trades', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// POST /solana/wallets/create  — returns unsigned transaction
-// Bundles register_agent + create_wallet into one atomic transaction.
-// The user's wallet signs as both agent AND owner (same key for self-custody).
+// POST /solana/wallets/create  — returns partially-signed transaction
+// Bundles register_agent + update_kya + create_wallet in one atomic tx.
+// Oracle signs update_kya server-side; user's wallet signs the rest.
 router.post('/create', validate(SolanaWalletCreateSchema), async (req, res, next) => {
   try {
     const { agent, owner, dailySpendLimitUsdc } = req.body;
@@ -159,27 +159,35 @@ router.post('/create', validate(SolanaWalletCreateSchema), async (req, res, next
     const ownerPk = parsePubkey(owner);
     const dailySpendLimit = BigInt(Math.round((dailySpendLimitUsdc ?? 500) * 1_000_000));
 
-    // Check if agent is already registered (profile PDA exists)
-    const existingProfile = await readAgentProfile(agentPk).catch(() => null);
-
-    const createIx = buildCreateWallet({ agent: agentPk, owner: ownerPk, dailySpendLimit });
-
-    const { solanaConnection } = await import('../../chain/solana/connection.js');
+    const { solanaConnection, oracleSolanaKeypair } = await import('../../chain/solana/connection.js');
     const { Transaction } = await import('@solana/web3.js');
+
+    // Check existing on-chain state
+    const existingProfile = await readAgentProfile(agentPk).catch(() => null);
+    const needsRegister = !existingProfile;
+    const needsKya = !existingProfile || existingProfile.creditLevel < 1;
+
     const { blockhash } = await solanaConnection.getLatestBlockhash('confirmed');
     const tx = new Transaction({ recentBlockhash: blockhash, feePayer: ownerPk });
 
-    if (!existingProfile) {
-      // Agent not registered yet — prepend register_agent instruction
-      const registerIx = buildRegisterAgent({
-        agent: agentPk,
-        owner: ownerPk,
-        name: 'krexa-agent',
-      });
-      tx.add(registerIx);
+    // 1. Register agent if needed (user signs as agent + owner)
+    if (needsRegister) {
+      tx.add(buildRegisterAgent({ agent: agentPk, owner: ownerPk, name: 'krexa-agent' }));
     }
 
-    tx.add(createIx);
+    // 2. Update KYA to tier 1 if needed (oracle signs — sets credit_level to 1)
+    if (needsKya && oracleSolanaKeypair) {
+      tx.add(buildUpdateKya({ oracle: oracleSolanaKeypair.publicKey, agent: agentPk, newTier: 1 }));
+    }
+
+    // 3. Create wallet (user signs as agent + owner, requires credit_level >= 1)
+    tx.add(buildCreateWallet({ agent: agentPk, owner: ownerPk, dailySpendLimit }));
+
+    // Partially sign with oracle if KYA instruction was added
+    if (needsKya && oracleSolanaKeypair) {
+      tx.partialSign(oracleSolanaKeypair);
+    }
+
     const serialized = tx.serialize({ requireAllSignatures: false, verifySignatures: false }).toString('base64');
 
     res.json({
