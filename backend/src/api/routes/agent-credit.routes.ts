@@ -224,7 +224,6 @@ router.post('/:agent/repay', validate(SolanaCreditRepaySchema), async (req, res,
     const { amount, callerPubkey } = req.body;
 
     const callerPk = parsePubkey(callerPubkey);
-    const callerUsdc = getAssociatedTokenAddressSync(USDC_MINT, callerPk);
 
     const { solanaConnection } = await import('../../chain/solana/connection.js');
     const { Transaction } = await import('@solana/web3.js');
@@ -245,7 +244,6 @@ router.post('/:agent/repay', validate(SolanaCreditRepaySchema), async (req, res,
     tx.add(buildRepay({
       agent: agentPk,
       caller: callerPk,
-      callerUsdc,
       amount: BigInt(amount),
     }));
 

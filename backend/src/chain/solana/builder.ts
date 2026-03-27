@@ -291,7 +291,6 @@ export function buildLiquidate(params: LiquidateParams): TransactionInstruction 
 export interface RepayParams {
   agent: PublicKey;
   caller: PublicKey;
-  callerUsdc: PublicKey;  // caller's USDC ATA
   amount: bigint;
   vaultToken?: PublicKey;
   insuranceToken?: PublicKey;
@@ -299,7 +298,7 @@ export interface RepayParams {
 }
 
 export function buildRepay(params: RepayParams): TransactionInstruction {
-  const { agent, caller, callerUsdc, amount } = params;
+  const { agent, caller, amount } = params;
   const config = walletConfigPda();
   const wallet = agentWalletPda(agent);
   const walletUsdc = walletUsdcPda(agent);
@@ -315,6 +314,7 @@ export function buildRepay(params: RepayParams): TransactionInstruction {
     encodeU64(amount),
   ]);
 
+  // Account order must match on-chain Repay struct exactly (13 accounts)
   return ix(PROGRAM_IDS.agentWallet, [
     { pubkey: config,         isSigner: false, isWritable: false },
     { pubkey: wallet,         isSigner: false, isWritable: true  },
@@ -325,7 +325,6 @@ export function buildRepay(params: RepayParams): TransactionInstruction {
     { pubkey: creditLine,     isSigner: false, isWritable: true  },
     { pubkey: registryConfig, isSigner: false, isWritable: false },
     { pubkey: agentProfile,   isSigner: false, isWritable: true  },
-    { pubkey: callerUsdc,     isSigner: false, isWritable: true  },
     { pubkey: caller,         isSigner: true,  isWritable: false },
     { pubkey: PROGRAM_IDS.creditVault,    isSigner: false, isWritable: false },
     { pubkey: PROGRAM_IDS.agentRegistry,  isSigner: false, isWritable: false },
