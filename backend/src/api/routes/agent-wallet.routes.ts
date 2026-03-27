@@ -11,6 +11,7 @@
 import { Router } from 'express';
 import { PublicKey } from '@solana/web3.js';
 import { readAgentWallet, readAgentProfile, readTokenBalance } from '../../chain/solana/reader.js';
+import { agentProfilePda, agentWalletPda } from '../../chain/solana/programs.js';
 import {
   buildCreateWallet, buildRegisterAgent, buildUpdateKya, instructionToUnsignedTx,
   buildProposeOwnershipTransfer, buildAcceptOwnershipTransfer, buildCancelOwnershipTransfer,
@@ -162,10 +163,25 @@ router.post('/create', validate(SolanaWalletCreateSchema), async (req, res, next
     const { solanaConnection, oracleSolanaKeypair } = await import('../../chain/solana/connection.js');
     const { Transaction } = await import('@solana/web3.js');
 
-    // Check existing on-chain state
-    const existingProfile = await readAgentProfile(agentPk).catch(() => null);
-    const needsRegister = !existingProfile;
-    const needsKya = !existingProfile || existingProfile.creditLevel < 1;
+    // Raw existence checks (no deserialization — avoids stale struct issues)
+    const [profileAcct, walletAcct] = await Promise.all([
+      solanaConnection.getAccountInfo(agentProfilePda(agentPk)),
+      solanaConnection.getAccountInfo(agentWalletPda(agentPk)),
+    ]);
+
+    // If wallet already exists, nothing to do
+    if (walletAcct) {
+      res.json({ transaction: null, description: 'Agent wallet already exists', agentPubkey: agent });
+      return;
+    }
+
+    const needsRegister = !profileAcct;
+    // If profile exists, try to read credit_level; default to needing KYA if read fails
+    let needsKya = true;
+    if (profileAcct) {
+      const profile = await readAgentProfile(agentPk).catch(() => null);
+      needsKya = !profile || profile.creditLevel < 1;
+    }
 
     const { blockhash } = await solanaConnection.getLatestBlockhash('confirmed');
     const tx = new Transaction({ recentBlockhash: blockhash, feePayer: ownerPk });
