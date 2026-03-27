@@ -156,6 +156,7 @@ export const DISCRIMINATORS = {
   acceptProfileTransfer:  disc('accept_profile_transfer'),
   cancelProfileTransfer:  disc('cancel_profile_transfer'),
   migrateProfileV2:       disc('migrate_profile_v2'),
+  migrateProfileV3:       disc('migrate_profile_v3'),
 
   // krexa-payment-router
   activateSettlement:    disc('activate_settlement'),

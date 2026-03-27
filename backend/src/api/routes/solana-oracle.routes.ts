@@ -9,8 +9,9 @@ import { Keypair, PublicKey, Transaction } from '@solana/web3.js';
 import { getAssociatedTokenAddressSync } from '@solana/spl-token';
 import bs58 from 'bs58';
 import { evaluateCredit } from '../../services/solana-oracle.js';
-import { buildRequestCredit, buildDepositCollateral } from '../../chain/solana/builder.js';
+import { buildRequestCredit, buildDepositCollateral, buildMigrateProfile } from '../../chain/solana/builder.js';
 import { readAgentWallet, readCollateralPosition } from '../../chain/solana/reader.js';
+import { agentProfilePda } from '../../chain/solana/programs.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { validate } from '../middleware/validate.js';
 import { SolanaOracleSignCreditSchema } from '../schemas.js';
@@ -99,9 +100,20 @@ router.post('/sign-credit', validate(SolanaOracleSignCreditSchema), async (req, 
     const collateral = await readCollateralPosition(agentPk).catch(() => null);
     const needsCollateralInit = !collateral;
 
+    // Check if AgentProfile needs migration (old accounts crash on-chain)
+    const profilePda = agentProfilePda(agentPk);
+    const profileAcct = await solanaConnection.getAccountInfo(profilePda, 'confirmed');
+    const EXPECTED_PROFILE_LEN = 201; // AgentProfile::LEN in krexa-agent-registry
+    const needsProfileMigration = profileAcct && profileAcct.data.length < EXPECTED_PROFILE_LEN;
+
     // Build transaction with oracle as fee payer
     const { blockhash } = await solanaConnection.getLatestBlockhash('confirmed');
     const tx = new Transaction({ recentBlockhash: blockhash, feePayer: oracleKeypair.publicKey });
+
+    // Prepend profile migration if account is undersized
+    if (needsProfileMigration) {
+      tx.add(buildMigrateProfile({ agent: agentPk, payer: agentOrOwnerPk }));
+    }
 
     // Prepend deposit_collateral if collateral PDA doesn't exist yet (L1 = zero-collateral)
     if (needsCollateralInit) {

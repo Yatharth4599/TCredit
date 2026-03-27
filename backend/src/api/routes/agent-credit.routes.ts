@@ -11,7 +11,8 @@ import { Router } from 'express';
 import { PublicKey } from '@solana/web3.js';
 import { evaluateCredit } from '../../services/solana-oracle.js';
 import { readCreditLine, readAgentWallet, readAgentProfile } from '../../chain/solana/reader.js';
-import { buildRepay, instructionToUnsignedTx } from '../../chain/solana/builder.js';
+import { buildRepay, buildMigrateProfile, instructionToUnsignedTx } from '../../chain/solana/builder.js';
+import { agentProfilePda } from '../../chain/solana/programs.js';
 import { getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { AppError } from '../middleware/errorHandler.js';
 import { validate } from '../middleware/validate.js';
@@ -225,17 +226,33 @@ router.post('/:agent/repay', validate(SolanaCreditRepaySchema), async (req, res,
     const callerPk = parsePubkey(callerPubkey);
     const callerUsdc = getAssociatedTokenAddressSync(USDC_MINT, callerPk);
 
-    const ixn = buildRepay({
+    const { solanaConnection } = await import('../../chain/solana/connection.js');
+    const { Transaction } = await import('@solana/web3.js');
+
+    // Check if AgentProfile needs migration (old accounts crash on-chain repay)
+    const profilePda = agentProfilePda(agentPk);
+    const profileAcct = await solanaConnection.getAccountInfo(profilePda, 'confirmed');
+    const EXPECTED_PROFILE_LEN = 201; // AgentProfile::LEN in krexa-agent-registry
+
+    const { blockhash } = await solanaConnection.getLatestBlockhash('confirmed');
+    const tx = new Transaction({ recentBlockhash: blockhash, feePayer: callerPk });
+
+    // Prepend profile migration if account is undersized
+    if (profileAcct && profileAcct.data.length < EXPECTED_PROFILE_LEN) {
+      tx.add(buildMigrateProfile({ agent: agentPk, payer: callerPk }));
+    }
+
+    tx.add(buildRepay({
       agent: agentPk,
       caller: callerPk,
       callerUsdc,
       amount: BigInt(amount),
-    });
+    }));
 
-    const tx = await instructionToUnsignedTx(ixn, callerPk);
+    const serialized = tx.serialize({ requireAllSignatures: false, verifySignatures: false }).toString('base64');
 
     res.json({
-      transaction: tx,
+      transaction: serialized,
       encoding: 'base64',
       description: `Repay ${(Number(amount) / 1_000_000).toFixed(2)} USDC for agent ${req.params.agent}`,
     });

@@ -334,6 +334,27 @@ export function buildRepay(params: RepayParams): TransactionInstruction {
 }
 
 // ---------------------------------------------------------------------------
+// Registry: migrate_profile_v3 (realloc old profile to current size)
+// ---------------------------------------------------------------------------
+
+export interface MigrateProfileParams {
+  agent: PublicKey;
+  payer: PublicKey; // also signs — can be same as agent
+}
+
+export function buildMigrateProfile(params: MigrateProfileParams): TransactionInstruction {
+  const { agent, payer } = params;
+  const profile = agentProfilePda(agent);
+
+  return ix(PROGRAM_IDS.agentRegistry, [
+    { pubkey: profile,                  isSigner: false, isWritable: true  },
+    { pubkey: agent,                    isSigner: true,  isWritable: false },
+    { pubkey: payer,                    isSigner: true,  isWritable: true  },
+    { pubkey: SystemProgram.programId,  isSigner: false, isWritable: false },
+  ], Buffer.from(DISCRIMINATORS.migrateProfileV3));
+}
+
+// ---------------------------------------------------------------------------
 // Router: activate_settlement
 // ---------------------------------------------------------------------------
 
