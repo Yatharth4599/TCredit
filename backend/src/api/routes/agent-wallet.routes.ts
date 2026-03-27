@@ -154,7 +154,7 @@ router.get('/:agent/trades', async (req, res, next) => {
 // Oracle signs update_kya server-side; user's wallet signs the rest.
 router.post('/create', validate(SolanaWalletCreateSchema), async (req, res, next) => {
   try {
-    const { agent, owner, dailySpendLimitUsdc } = req.body;
+    const { agent, owner, dailySpendLimitUsdc, agentType } = req.body;
 
     const agentPk = parsePubkey(agent);
     const ownerPk = parsePubkey(owner);
@@ -206,9 +206,19 @@ router.post('/create', validate(SolanaWalletCreateSchema), async (req, res, next
 
     const serialized = tx.serialize({ requireAllSignatures: false, verifySignatures: false }).toString('base64');
 
+    // Upsert DB record with agentType if provided
+    if (agentType !== undefined) {
+      await prisma.solanaAgentWallet.upsert({
+        where: { agentPubkey: agent },
+        update: { agentType },
+        create: { agentPubkey: agent, ownerPubkey: owner, agentType },
+      });
+    }
+
     res.json({
       transaction: serialized,
       encoding: 'base64',
+      agentPubkey: agent,
       description: `Register and create krexa agent wallet for ${agent}`,
     });
   } catch (err) { next(err); }
@@ -297,6 +307,7 @@ router.get('/', async (req, res, next) => {
         agentPubkey: w.agentPubkey,
         ownerPubkey: w.ownerPubkey,
         ownerType: w.ownerType,
+        agentType: w.agentType,
         pendingOwner: w.pendingOwner ?? null,
         creditLevel: w.creditLevel,
         healthFactorBps: w.healthFactorBps,

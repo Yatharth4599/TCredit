@@ -37,7 +37,7 @@ export default function RequestCreditCard({ agentPubkey, maxAmount, creditLevel,
       const res = await oracleApi.signCredit({
         agentPubkey,
         agentOrOwnerPubkey: publicKey.toBase58(),
-        amount: amountBaseUnits,
+        amount: String(amountBaseUnits),
         creditLevel,
         rateBps: interestRateBps,
       })

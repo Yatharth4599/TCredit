@@ -21,8 +21,8 @@ export const agentApi = {
   getWallet:  (address: string) => solanaApi.get(`/solana/wallets/${address}`),
   getHealth:  (address: string) => solanaApi.get(`/solana/wallets/${address}/health`),
   getBalance: (address: string) => solanaApi.get(`/solana/wallets/${address}/balance`),
-  createWallet: (agent: string, owner: string, dailySpendLimitUsdc?: number) =>
-    solanaApi.post('/solana/wallets/create', { agent, owner, dailySpendLimitUsdc }),
+  createWallet: (agent: string, owner: string, dailySpendLimitUsdc?: number, agentType?: number) =>
+    solanaApi.post('/solana/wallets/create', { agent, owner, dailySpendLimitUsdc, agentType }),
 }
 
 // === Credit  (mounted at /solana/credit) ===
@@ -33,8 +33,8 @@ export const creditApi = {
   getProtocolParams: ()             => solanaApi.get('/solana/credit/protocol-params'),
   requestCredit: (agent: string, amount: number, creditLevel: number) =>
     solanaApi.post(`/solana/credit/${agent}/request`, { amount, creditLevel }),
-  repay: (agent: string, amount: number, callerPubkey: string) =>
-    solanaApi.post(`/solana/credit/${agent}/repay`, { amount, callerPubkey }),
+  repay: (agent: string, amount: number | string, callerPubkey: string) =>
+    solanaApi.post(`/solana/credit/${agent}/repay`, { amount: String(amount), callerPubkey }),
   getActivity: (agent: string) => solanaApi.get(`/solana/credit/${agent}/activity`),
   getRequests: (agent: string) => solanaApi.get(`/solana/credit/${agent}/requests`),
   signAgreement: (agent: string, creditLevel: number) =>

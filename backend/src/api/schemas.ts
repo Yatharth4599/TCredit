@@ -351,6 +351,7 @@ export const SolanaWalletCreateSchema = z.object({
   agent: solanaPubkey,
   owner: solanaPubkey,
   dailySpendLimitUsdc: usdcAmount.optional(),
+  agentType: z.number().int().min(0).max(2).optional(),
 });
 
 export const SolanaWalletProposeTransferSchema = z.object({

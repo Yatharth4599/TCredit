@@ -43,6 +43,32 @@ const sdk = new KrexaSDK({
 
 const TOOLS: Tool[] = [
   {
+    name: 'krexa_register_agent',
+    description:
+      'Register a new Krexa agent wallet on-chain. ' +
+      'Choose agent type: 0 = Trader (DeFi bots), 1 = Service (API providers), 2 = Hybrid (both). ' +
+      'Returns an unsigned transaction for the owner to sign.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        ownerAddress: {
+          type: 'string',
+          description: 'The Solana public key of the agent owner.',
+        },
+        agentType: {
+          type: 'number',
+          description: 'Agent type: 0 = Trader, 1 = Service, 2 = Hybrid. Defaults to 0.',
+        },
+        dailySpendLimitUsdc: {
+          type: 'number',
+          description: 'Daily spend limit in USDC (default: 500).',
+        },
+      },
+      required: ['ownerAddress'],
+    },
+  },
+
+  {
     name: 'krexa_check_balance',
     description:
       'Check the USDC balance and overall status of the Krexa agent wallet. ' +
@@ -179,6 +205,13 @@ const TOOLS: Tool[] = [
 
 type Args = Record<string, unknown>;
 
+async function handleRegisterAgent(args: Args) {
+  const ownerAddress = args.ownerAddress as string;
+  const agentType = (args.agentType as number | undefined) ?? 0;
+  const dailySpendLimitUsdc = args.dailySpendLimitUsdc as number | undefined;
+  return sdk.agent.createWallet({ ownerAddress, agentType, dailySpendLimitUsdc });
+}
+
 async function handleCheckBalance(args: Args) {
   const detailed = args.detailed === true;
   if (detailed) {
@@ -252,6 +285,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     let result: unknown;
 
     switch (name) {
+      case 'krexa_register_agent': result = await handleRegisterAgent(args); break;
       case 'krexa_check_balance': result = await handleCheckBalance(args); break;
       case 'krexa_pay':           result = await handlePay(args);          break;
       case 'krexa_trade':         result = await handleTrade(args);        break;

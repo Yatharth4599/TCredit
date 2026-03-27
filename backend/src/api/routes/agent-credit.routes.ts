@@ -37,8 +37,8 @@ router.get('/protocol-params', (_req, res) => {
     levels: {
       1: { name: 'Starter',     maxUsdc: 500,     maxDisplay: '$500',     rateBps: 3650, rateDisplay: '36.5%', minScore: 400, minKyaTier: 1 },
       2: { name: 'Established', maxUsdc: 20_000,  maxDisplay: '$20,000',  rateBps: 2920, rateDisplay: '29.2%', minScore: 500, minKyaTier: 2 },
-      3: { name: 'Trusted',     maxUsdc: 50_000,  maxDisplay: '$50,000',  rateBps: 2190, rateDisplay: '21.9%', minScore: 650, minKyaTier: 2 },
-      4: { name: 'Elite',       maxUsdc: 500_000, maxDisplay: '$500,000', rateBps: 1825, rateDisplay: '18.25%', minScore: 750, minKyaTier: 3 },
+      3: { name: 'Trusted',     maxUsdc: 50_000,  maxDisplay: '$50,000',  rateBps: 2555, rateDisplay: '25.55%', minScore: 650, minKyaTier: 2 },
+      4: { name: 'Elite',       maxUsdc: 500_000, maxDisplay: '$500,000', rateBps: 2190, rateDisplay: '21.9%', minScore: 750, minKyaTier: 3 },
     },
     tranches: {
       senior:    { aprBps: 1000, aprDisplay: '10%', risk: 'low',    description: 'Lowest risk — first priority on yields and repayments', protocolOnly: false },

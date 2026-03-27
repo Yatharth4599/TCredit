@@ -32,7 +32,7 @@ export default function RepayCard({ agentPubkey, principal, accruedInterest, tot
     setError(null)
 
     try {
-      const res = await creditApi.repay(agentPubkey, amountBaseUnits, publicKey.toBase58())
+      const res = await creditApi.repay(agentPubkey, String(amountBaseUnits), publicKey.toBase58())
       const data = res.data
 
       if (data.transaction) {

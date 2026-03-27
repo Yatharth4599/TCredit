@@ -89,6 +89,7 @@ export function createAgentNamespace(
     async createWallet(params: {
       ownerAddress: string;
       dailySpendLimitUsdc?: number;
+      agentType?: number;
       chain?: Chain;
     }): Promise<OperationResult> {
       const c = params.chain ?? chain;
@@ -97,6 +98,7 @@ export function createAgentNamespace(
           agent: params.ownerAddress,  // agent = owner in simple case
           owner: params.ownerAddress,
           dailySpendLimitUsdc: params.dailySpendLimitUsdc ?? 500,
+          agentType: params.agentType,
         });
       }
       return post<OperationResult>(b, '/wallets/create', apiKey, {

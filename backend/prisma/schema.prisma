@@ -178,6 +178,7 @@ model SolanaAgentWallet {
   ownerPubkey      String
   ownerType        String   @default("eoa") // "eoa" | "multisig"
   pendingOwner     String?
+  agentType        Int      @default(0)     // 0 = Trader, 1 = Service, 2 = Hybrid
   creditLevel      Int      @default(0)
   creditDrawn      BigInt   @default(0)
   creditLimit      BigInt   @default(0)
