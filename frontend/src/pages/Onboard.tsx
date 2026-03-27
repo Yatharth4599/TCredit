@@ -127,6 +127,15 @@ export default function Onboard() {
     setKyaStatus('loading')
     setKyaError(null)
     try {
+      // Check if KYA was already set during registration (bundled update_kya)
+      const statusRes = await kyaApi.getStatus(agentPubkey)
+      if (statusRes.data.onChainTier >= 1) {
+        setKyaStatus('done')
+        toast.success('KYA Tier 1 already verified!')
+        return
+      }
+
+      // Fall back to wallet signature verification
       const message = new TextEncoder().encode(`Krexa KYA Verification: ${agentPubkey}`)
       const signature = await signMessage(message)
       const sigBase64 = Buffer.from(signature).toString('base64')
