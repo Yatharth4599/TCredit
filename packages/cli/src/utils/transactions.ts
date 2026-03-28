@@ -92,13 +92,41 @@ export function buildCreateWallet(
       { pubkey: walletUsdc, isSigner: false, isWritable: true },
       { pubkey: USDC_MINT, isSigner: false, isWritable: false },
       { pubkey: registryConfig, isSigner: false, isWritable: false },
-      { pubkey: agentProfile, isSigner: false, isWritable: false },
+      { pubkey: agentProfile, isSigner: false, isWritable: true },
       { pubkey: agent, isSigner: true, isWritable: false },
       { pubkey: owner, isSigner: true, isWritable: true },
       { pubkey: PROGRAM_IDS.AGENT_REGISTRY, isSigner: false, isWritable: false },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
       { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
+    ],
+    data,
+  });
+
+  const tx = new Transaction();
+  tx.add(ix);
+  return tx;
+}
+
+export function buildUpdateKya(
+  agent: PublicKey,
+  authority: PublicKey,
+  newTier: number,
+): Transaction {
+  const [registryConfig] = pda.findRegistryConfig();
+  const [agentProfile] = pda.findAgentProfile(agent);
+
+  const data = Buffer.concat([
+    disc("update_kya"),
+    encodeU8(newTier),
+  ]);
+
+  const ix = new TransactionInstruction({
+    programId: PROGRAM_IDS.AGENT_REGISTRY,
+    keys: [
+      { pubkey: registryConfig, isSigner: false, isWritable: false },
+      { pubkey: agentProfile, isSigner: false, isWritable: true },
+      { pubkey: authority, isSigner: true, isWritable: false },
     ],
     data,
   });

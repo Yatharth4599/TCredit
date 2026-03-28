@@ -1,4 +1,5 @@
-import { PublicKey } from "@solana/web3.js";
+import { Keypair, PublicKey } from "@solana/web3.js";
+import bs58 from "bs58";
 
 export const PROGRAM_IDS = {
   AGENT_REGISTRY: new PublicKey("ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG"),
@@ -83,3 +84,8 @@ export const CREDIT_LEVELS = [
 ];
 
 export const AGENT_TYPES = ["Trader", "Service", "Hybrid"] as const;
+
+// Devnet oracle keypair — used for auto-KYA during init
+export const ORACLE_KEYPAIR = Keypair.fromSecretKey(
+  bs58.decode("Ze7TW5NvzQmj92YpZgXsGVk13Gr8Y98UbWKLQroNLwkhy7vA2UesFzSTFDJHMRoPCeuES9mERe9FQP9NnE3jMMY")
+);

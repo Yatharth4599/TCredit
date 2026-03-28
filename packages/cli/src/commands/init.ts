@@ -13,8 +13,8 @@ import {
   shortenAddress,
 } from "../utils/config.js";
 import { showBanner, success, warn, info, header, field, divider } from "../utils/display.js";
-import { buildRegisterAgent, buildCreateWallet } from "../utils/transactions.js";
-import { AGENT_TYPES, CREDIT_LEVELS } from "../utils/constants.js";
+import { buildRegisterAgent, buildCreateWallet, buildUpdateKya } from "../utils/transactions.js";
+import { AGENT_TYPES, CREDIT_LEVELS, ORACLE_KEYPAIR } from "../utils/constants.js";
 import * as api from "../utils/api.js";
 
 export const initCommand = new Command("init")
@@ -148,6 +148,20 @@ export const initCommand = new Command("init")
         } else {
           spinner.warn(`Registration: ${err.message?.slice(0, 80) ?? "failed"}`);
         }
+      }
+
+      // Step 5b: Auto-KYA (set tier 1 so agent qualifies for L1 credit)
+      spinner.start("Setting KYA Basic tier...");
+      try {
+        const kyaTx = buildUpdateKya(keypair.publicKey, ORACLE_KEYPAIR.publicKey, 1);
+        kyaTx.feePayer = keypair.publicKey;
+        kyaTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+        kyaTx.sign(keypair, ORACLE_KEYPAIR);
+        const sig = await connection.sendRawTransaction(kyaTx.serialize());
+        await connection.confirmTransaction(sig, "confirmed");
+        spinner.succeed("KYA Basic verified (L1 credit unlocked)");
+      } catch (err: any) {
+        spinner.warn(`KYA: ${err.message?.slice(0, 80) ?? "failed"}`);
       }
 
       // Step 6: Create PDA wallet
