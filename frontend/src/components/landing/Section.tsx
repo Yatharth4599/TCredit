@@ -13,7 +13,7 @@ export function Section({ children, className = '', id, background = 'primary', 
   const { ref, isVisible } = useScrollAnimation(0.1);
 
   const bgColor = background === 'secondary' ? '#0a0a0c' : '#050505';
-  const py = padding === 'large' ? '160px' : '120px';
+  const py = padding === 'large' ? '160px' : '140px';
   const pyMobile = padding === 'large' ? '80px' : '64px';
 
   return (

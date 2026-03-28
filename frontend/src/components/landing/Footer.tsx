@@ -21,7 +21,7 @@ export function Footer() {
 
   return (
     <footer style={{ background: '#0a0a0c', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '80px 24px 48px' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '64px 24px 32px' }}>
         {/* Top: logo + columns */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-8">
           {/* Brand */}

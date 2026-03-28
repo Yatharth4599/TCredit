@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import '../styles/landing.css';
 import { Navbar } from '../components/landing/Navbar';
 import { TerminalAnimation } from '../components/landing/TerminalAnimation';
@@ -11,9 +11,18 @@ import { AgentTypes } from '../components/landing/AgentTypes';
 import { ScoreVisualization } from '../components/landing/ScoreVisualization';
 import { Footer } from '../components/landing/Footer';
 import { Section, SectionTitle } from '../components/landing/Section';
+import { useScrollAnimation } from '../hooks/useScrollAnimation';
 
 export default function LandingPage() {
   const [copied, setCopied] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  const ctaScroll = useScrollAnimation(0.15);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoaded(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const copyCommand = () => {
     navigator.clipboard.writeText('npx krexa init');
@@ -23,6 +32,18 @@ export default function LandingPage() {
 
   const font = "'Geist', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
   const mono = "'Geist Mono', 'JetBrains Mono', monospace";
+
+  const fadeIn = (delay: number): React.CSSProperties => ({
+    opacity: loaded ? 1 : 0,
+    transform: loaded ? 'translateY(0)' : 'translateY(20px)',
+    transition: `opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms`,
+  });
+
+  const ctaFadeIn = (delay: number): React.CSSProperties => ({
+    opacity: ctaScroll.isVisible ? 1 : 0,
+    transform: ctaScroll.isVisible ? 'translateY(0)' : 'translateY(20px)',
+    transition: `opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms`,
+  });
 
   return (
     <div className="landing-root" style={{ minHeight: '100vh' }}>
@@ -37,7 +58,7 @@ export default function LandingPage() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '120px 24px 80px',
+          padding: '140px 24px 80px',
           position: 'relative',
         }}
       >
@@ -46,7 +67,13 @@ export default function LandingPage() {
           className="hero-glow"
           style={{
             position: 'absolute',
-            inset: 0,
+            width: '600px',
+            height: '400px',
+            borderRadius: '50%',
+            background: 'radial-gradient(ellipse, rgba(34, 211, 238, 0.06), transparent 70%)',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -30%)',
             pointerEvents: 'none',
           }}
         />
@@ -62,6 +89,7 @@ export default function LandingPage() {
               lineHeight: 1.1,
               margin: '0 0 24px',
               fontFamily: font,
+              ...fadeIn(0),
             }}
           >
             Credit infrastructure{' '}
@@ -79,6 +107,7 @@ export default function LandingPage() {
               maxWidth: '500px',
               margin: '0 auto 40px',
               fontFamily: font,
+              ...fadeIn(150),
             }}
           >
             Your agent borrows. Operates. Earns.
@@ -87,7 +116,7 @@ export default function LandingPage() {
           </p>
 
           {/* CTAs */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '64px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '64px', ...fadeIn(300) }}>
             <a
               href="https://krexa.mintlify.app/docs/quickstart"
               target="_blank"
@@ -98,7 +127,7 @@ export default function LandingPage() {
                 color: '#050505',
                 fontSize: '15px',
                 fontWeight: 600,
-                borderRadius: '9999px',
+                borderRadius: '8px',
                 textDecoration: 'none',
                 fontFamily: font,
                 transition: 'opacity 0.2s',
@@ -119,7 +148,7 @@ export default function LandingPage() {
                 color: '#a0a0a8',
                 fontSize: '15px',
                 fontWeight: 500,
-                borderRadius: '9999px',
+                borderRadius: '8px',
                 textDecoration: 'none',
                 fontFamily: font,
                 transition: 'border-color 0.2s, color 0.2s',
@@ -138,7 +167,9 @@ export default function LandingPage() {
           </div>
 
           {/* Terminal */}
-          <TerminalAnimation />
+          <div style={fadeIn(500)}>
+            <TerminalAnimation />
+          </div>
         </div>
       </section>
 
@@ -183,6 +214,7 @@ export default function LandingPage() {
 
       {/* FINAL CTA */}
       <section
+        ref={ctaScroll.ref}
         style={{
           background: '#050505',
           padding: 'clamp(80px, 12vw, 200px) 24px clamp(80px, 10vw, 160px)',
@@ -213,33 +245,36 @@ export default function LandingPage() {
               lineHeight: 1.2,
               margin: '0 0 32px',
               fontFamily: font,
+              ...ctaFadeIn(0),
             }}
           >
             Ready to give your agent credit?
           </h2>
 
           {/* Copy command */}
-          <button
-            onClick={copyCommand}
-            style={{
-              background: '#111114',
-              border: '1px solid rgba(255, 255, 255, 0.10)',
-              borderRadius: '8px',
-              padding: '12px 24px',
-              fontFamily: mono,
-              fontSize: '16px',
-              color: '#a0a0a8',
-              cursor: 'pointer',
-              marginBottom: '32px',
-              transition: 'border-color 0.2s',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.20)')}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.10)')}
-          >
-            {copied ? '✓ Copied!' : '$ npx krexa init'}
-          </button>
+          <div style={ctaFadeIn(150)}>
+            <button
+              onClick={copyCommand}
+              style={{
+                background: '#111114',
+                border: '1px solid rgba(255, 255, 255, 0.10)',
+                borderRadius: '8px',
+                padding: '12px 24px',
+                fontFamily: mono,
+                fontSize: '16px',
+                color: '#a0a0a8',
+                cursor: 'pointer',
+                marginBottom: '32px',
+                transition: 'border-color 0.2s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.20)')}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.10)')}
+            >
+              {copied ? '✓ Copied!' : '$ npx krexa init'}
+            </button>
+          </div>
 
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap', ...ctaFadeIn(300) }}>
             <a
               href="https://krexa.mintlify.app/docs/quickstart"
               target="_blank"
@@ -250,7 +285,7 @@ export default function LandingPage() {
                 color: '#050505',
                 fontSize: '15px',
                 fontWeight: 600,
-                borderRadius: '9999px',
+                borderRadius: '8px',
                 textDecoration: 'none',
                 fontFamily: font,
                 transition: 'opacity 0.2s',
@@ -271,7 +306,7 @@ export default function LandingPage() {
                 color: '#a0a0a8',
                 fontSize: '15px',
                 fontWeight: 500,
-                borderRadius: '9999px',
+                borderRadius: '8px',
                 textDecoration: 'none',
                 fontFamily: font,
                 transition: 'border-color 0.2s, color 0.2s',

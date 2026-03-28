@@ -36,18 +36,13 @@ export function TrancheCards() {
       {tranches.map((t, i) => (
         <div
           key={t.name}
+          className="tranche-card"
           style={{
-            background: '#0a0a0c',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
-            borderRadius: '16px',
-            padding: '32px',
             opacity: isVisible ? 1 : 0,
             transform: isVisible ? 'translateY(0)' : 'translateY(20px)',
-            transition: 'opacity 0.4s, transform 0.4s, border-color 0.2s',
+            transition: 'opacity 0.4s, transform 0.4s',
             transitionDelay: `${i * 100}ms`,
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.10)')}
-          onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)')}
         >
           <div
             style={{

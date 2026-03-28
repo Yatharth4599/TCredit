@@ -31,24 +31,12 @@ export function ThreeWays() {
         {ways.map((way, i) => (
           <div
             key={way.title}
+            className="feature-card"
             style={{
-              background: '#0a0a0c',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
-              borderRadius: '16px',
-              padding: '32px',
-              transition: 'border-color 0.2s, transform 0.2s',
               cursor: 'default',
               opacity: isVisible ? 1 : 0,
               transform: isVisible ? 'translateY(0)' : 'translateY(20px)',
               transitionDelay: `${i * 100}ms`,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.10)';
-              e.currentTarget.style.transform = 'translateY(-4px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)';
-              e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
             <div style={{ fontSize: '24px', marginBottom: '16px' }}>{way.icon}</div>

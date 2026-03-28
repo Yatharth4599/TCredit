@@ -134,7 +134,7 @@ export function TerminalAnimation() {
     if (line.type === 'command') {
       return (
         <div key={i} style={{ fontFamily: mono }} className="text-sm leading-6">
-          <span style={{ color: '#3a3a42' }}>$ </span>
+          <span style={{ color: '#5a5a65' }}>$ </span>
           <span style={{ color: '#f0f0f0' }}>{line.text.replace('$ ', '')}</span>
         </div>
       );
@@ -201,7 +201,7 @@ export function TerminalAnimation() {
       <div
         style={{
           background: '#0c0c0e',
-          border: '1px solid rgba(255, 255, 255, 0.06)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
           borderRadius: '12px',
           boxShadow: '0 0 80px rgba(34, 211, 238, 0.08), 0 25px 50px rgba(0, 0, 0, 0.5)',
           overflow: 'hidden',
@@ -264,7 +264,7 @@ export function TerminalAnimation() {
           {/* Current typing line */}
           {!spinnerText && (
             <div style={{ fontFamily: mono }} className="text-sm leading-6">
-              <span style={{ color: '#3a3a42' }}>$ </span>
+              <span style={{ color: '#5a5a65' }}>$ </span>
               <span style={{ color: '#f0f0f0' }}>{currentText}</span>
               {showCursor && (
                 <span
