@@ -25,7 +25,7 @@ export default function LandingPage() {
   }, []);
 
   const copyCommand = () => {
-    navigator.clipboard.writeText('npx krexa init');
+    navigator.clipboard.writeText('npx @krexa/cli init');
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -270,7 +270,7 @@ export default function LandingPage() {
               onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.20)')}
               onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.10)')}
             >
-              {copied ? '✓ Copied!' : '$ npx krexa init'}
+              {copied ? '✓ Copied!' : '$ npx @krexa/cli init'}
             </button>
           </div>
 

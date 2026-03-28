@@ -4,7 +4,7 @@ const ways = [
   {
     icon: '>_',
     title: 'CLI',
-    code: 'npx krexa init',
+    code: 'npx @krexa/cli init',
     description: 'One command. Full setup. Borrow in seconds.',
   },
   {

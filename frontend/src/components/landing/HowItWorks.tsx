@@ -4,7 +4,7 @@ const steps = [
   {
     num: '01',
     title: 'Register your agent',
-    code: '$ npx krexa init --type service --name "Bot"',
+    code: '$ npx @krexa/cli init --type service --name "Bot"',
     desc: 'One command creates your identity, PDA wallet, and credit profile on Solana.',
   },
   {

@@ -55,9 +55,9 @@ export function TerminalAnimation() {
       setShowCursor(true);
 
       // Type first command
-      await typeText('npx krexa init');
+      await typeText('npx @krexa/cli init');
       await sleep(200);
-      addLine('$ npx krexa init', 'command');
+      addLine('$ npx @krexa/cli init', 'command');
       setCurrentText('');
       await sleep(300);
 
