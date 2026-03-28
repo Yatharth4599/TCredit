@@ -1,70 +1,132 @@
 ---
-title: "Improving Your Krexit Score"
-description: "Tips and strategies to improve your agent's Krexit Score and unlock higher credit levels."
+title: "Improving Your Score"
+description: "Strategies to increase your Krexit Score and unlock higher credit levels."
+icon: "trending-up"
 ---
 
-# Improving Your Krexit Score
+## Score components
 
-Your Krexit Score determines your credit level, maximum borrowing capacity, and interest rate. Here is how the score is calculated and what you can do to improve it.
+Your Krexit Score (200–850) is calculated from five weighted components:
 
-## Score Components
+<Steps>
+  <Step title="Repayment History — 30%" icon="clock">
+    **The single most impactful factor.** Pay on time, every time. The Revenue Router helps by automating debt service from your revenue stream.
 
-| Component | Weight | Description |
-|-----------|--------|-------------|
-| Repayment History | 30% | On-time and early repayments |
-| Profitability | 25% | Net revenue vs. expenses |
-| Behavioral | 20% | Consistent, non-suspicious activity patterns |
-| Usage Patterns | 15% | Regular protocol usage and engagement |
-| Account Maturity | 10% | Age of your agent profile |
+    - On-time payments: +positive
+    - Early repayment: +bonus
+    - Late payments: -significant penalty
+    - Missed payments: -major penalty
+  </Step>
 
-## Tips to Improve Each Component
+  <Step title="Profitability — 25%" icon="trending-up">
+    Revenue relative to borrowed amount. Profitable agents are lower risk.
 
-### Repayment History (30%)
+    - Revenue > borrowed: +strong positive
+    - Revenue = borrowed: neutral
+    - Revenue < borrowed: -negative signal
+  </Step>
 
-This is the most impactful component.
+  <Step title="Behavioral — 20%" icon="shield">
+    How responsibly you manage your credit line.
 
-- **Always repay on time.** Late payments are the fastest way to damage your score.
-- **Enable Revenue Router auto-repay** to ensure payments are never missed.
-- **Repay early** when possible — early repayment provides a score bonus.
-- **Start small.** Borrow a small amount at L1, repay it, and repeat to build history.
+    - Maintain green health zone: +positive
+    - Consistent usage patterns: +positive
+    - Approaching liquidation: -negative
+    - Erratic behavior: -negative
+  </Step>
 
-### Profitability (25%)
+  <Step title="Usage Patterns — 15%" icon="bar-chart-3">
+    Diversity and frequency of on-chain activity.
 
-- Ensure your agent generates more revenue than it spends.
-- Trading agents: maintain positive PnL on DEX trades.
-- Service agents: price your APIs to cover costs and generate margin.
+    - Use 3+ DEXs or venues: +positive
+    - Regular transaction frequency: +positive
+    - Single-venue concentration: -slight negative
+  </Step>
 
-### Behavioral (20%)
+  <Step title="Account Maturity — 10%" icon="calendar">
+    Time since registration. This grows passively.
 
-- Maintain consistent activity patterns — avoid long periods of inactivity followed by sudden large borrows.
-- Interact with whitelisted venues (DEXes and protocols on the Venue Whitelist).
-- Avoid patterns that look like wash trading or circular transactions.
+    - 30+ days: +small bonus
+    - 90+ days: +moderate bonus
+    - 180+ days: +significant bonus
+  </Step>
+</Steps>
 
-### Usage Patterns (15%)
+---
 
-- Use the protocol regularly rather than in sporadic bursts.
-- Borrow, repay, and borrow again in a healthy cycle.
-- Engage with multiple protocol features (borrowing, repaying, service plans).
+## Level thresholds
 
-### Account Maturity (10%)
+| From | To | Score Needed | Key Strategy |
+|------|-----|-------------|-------------|
+| **L1 to L2** | Micro to Standard | 500 | Repay 3-5 loans on time |
+| **L2 to L3** | Standard to Growth | 650 | Maintain profitability + diversify venues |
+| **L3 to L4** | Growth to Prime | 750 | Long track record + perfect repayment |
 
-- This component simply rewards longevity. The longer your agent profile exists, the higher this score.
-- There is no shortcut — register early and stay active.
+<Accordion title="How long does it take to reach each level?">
+  Timelines vary based on activity, but as a rough guide:
 
-## Checking Your Score
+  - **L1 to L2:** 2-4 weeks with consistent small borrow/repay cycles
+  - **L2 to L3:** 1-3 months with profitable operations and diversified venue usage
+  - **L3 to L4:** 3-6 months with a spotless repayment record and strong profitability
+
+  Account maturity (10% weight) means there is a minimum time floor — you cannot reach L4 in a week no matter how active you are.
+</Accordion>
+
+---
+
+## Quick wins
+
+<CardGroup cols={2}>
+  <Card title="Use Revenue Router" icon="zap">
+    Automatic repayment counts as on-time. Set up revenue flow and let the protocol handle debt service.
+  </Card>
+  <Card title="Diversify venues" icon="shuffle">
+    Trade on 3+ DEXs. Usage diversity improves your behavioral and usage scores.
+  </Card>
+  <Card title="Don't max out" icon="gauge">
+    Keep utilization under 80%. Lower utilization = healthier credit line = higher behavioral score.
+  </Card>
+  <Card title="Be patient" icon="hourglass">
+    Account maturity is 10% of your score. Time in the system compounds with good behavior.
+  </Card>
+</CardGroup>
+
+<Tip>
+  **Fastest path to L2:** Borrow small ($100-200), repay quickly, repeat 3-5 times. Each successful cycle boosts your repayment history significantly.
+</Tip>
+
+---
+
+## Strategies by agent type
+
+<Tabs>
+  <Tab title="Trader Agents (Type A)">
+    - Focus on **profitable trades** — profitability is 25% of your score
+    - Use multiple DEXs to boost your usage diversity score
+    - Avoid long periods of inactivity followed by sudden large borrows
+    - Let trading profits flow through the Revenue Router for automatic repayment
+  </Tab>
+
+  <Tab title="Service Agents (Type B)">
+    - **Revenue consistency** is weighted higher (25% vs. 15%) for service agents
+    - Price your APIs to cover costs and generate margin
+    - Set up x402 payment flows early so revenue begins accruing
+    - The Revenue Router is your best friend — consistent revenue = consistent repayment
+  </Tab>
+</Tabs>
+
+---
+
+## Check your progress
 
 ```bash
-# View your current Krexit Score and breakdown
-npx krexa score
+# Detailed score breakdown
+krexa score
+
+# Overall status with level progress
+krexa status
 ```
 
-## Credit Level Thresholds
-
-| Score | Credit Level | Max Credit |
-|-------|-------------|-----------|
-| 0–499 | L1 Micro | $500 |
-| 500–649 | L2 Standard | $20,000 |
-| 650–749 | L3 Growth | $50,000 |
-| 750+ | L4 Prime | $500,000 |
-
-Focus on Repayment History and Profitability first — together they account for 55% of your score.
+<Note>
+  Your score updates after every on-chain event (borrow, repay, trade, revenue). Run `krexa score` anytime to see your latest breakdown.
+</Note>

@@ -1,69 +1,62 @@
 ---
 title: "Vault API"
-description: "API endpoint for querying Credit Vault statistics."
+sidebarTitle: "Vault"
+description: "Query vault statistics — TVL, utilization, and tranche details."
+icon: "landmark"
 ---
 
-# Vault API
-
-Retrieve statistics about the Krexa Credit Vault, including total value locked, tranche balances, and utilization rates.
-
-## Get Vault Statistics
+## Get vault stats
 
 ```
 GET /solana/vault/stats
 ```
 
-### Example Request
+Returns current vault statistics including TVL, total borrowed, utilization rate, and per-tranche details.
+
+### Response
+
+```json
+{
+  "tvl": 1500000,
+  "totalBorrowed": 750000,
+  "utilizationRate": 0.50,
+  "tranches": {
+    "senior": {
+      "deposits": 800000,
+      "apr": 10.00,
+      "utilization": 0.45
+    },
+    "mezzanine": {
+      "deposits": 400000,
+      "apr": 12.00,
+      "utilization": 0.55
+    },
+    "junior": {
+      "deposits": 300000,
+      "apr": 20.00,
+      "utilization": 0.65
+    }
+  }
+}
+```
+
+### Example
 
 ```bash
 curl https://tcredit-backend.onrender.com/api/v1/solana/vault/stats
 ```
 
-### Example Response
+<Info>
+  This is a public endpoint. No authentication required. Values are in USDC (6 decimals).
+</Info>
 
-```json
-{
-  "success": true,
-  "data": {
-    "totalValueLocked": 1250000,
-    "totalBorrowed": 875000,
-    "utilizationRate": 0.70,
-    "tranches": {
-      "senior": {
-        "balance": 600000,
-        "targetApr": 10.0,
-        "depositors": 45
-      },
-      "mezzanine": {
-        "balance": 350000,
-        "targetApr": 12.0,
-        "depositors": 28
-      },
-      "junior": {
-        "balance": 300000,
-        "targetApr": 20.0,
-        "depositors": 15
-      }
-    },
-    "activeLoans": 120,
-    "defaultRate": 0.02
-  }
-}
-```
+---
 
-### Response Fields
+## Response fields
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `totalValueLocked` | number | Total USDC deposited across all tranches |
-| `totalBorrowed` | number | Total USDC currently lent to agents |
-| `utilizationRate` | number | Ratio of borrowed to deposited (0-1) |
-| `tranches` | object | Per-tranche balance, APR, and depositor count |
-| `activeLoans` | number | Number of agents with outstanding balances |
-| `defaultRate` | number | Historical default rate |
-
-### Notes
-
-- This endpoint is public and requires no authentication.
-- Statistics are updated in near real-time based on on-chain data.
-- Use `npx krexa lp stats` for a formatted CLI view of the same data.
+| `tvl` | number | Total value locked in USDC |
+| `totalBorrowed` | number | Total USDC currently lent out |
+| `utilizationRate` | number | Ratio of borrowed to TVL (0-1) |
+| `tranches` | object | Per-tranche deposit, APR, and utilization data |

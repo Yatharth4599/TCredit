@@ -1,54 +1,52 @@
 ---
 title: "krexa borrow"
-description: "Borrow USDC from the Krexa Credit Vault."
+sidebarTitle: "borrow"
+description: "Borrow USDC from the Krexa credit vault."
+icon: "hand-coins"
 ---
 
-# krexa borrow
-
-Borrow USDC from the Credit Vault. The maximum amount depends on your credit level, which is determined by your Krexit Score.
-
-## Usage
-
 ```bash
-npx krexa borrow --amount <usdc_amount> [options]
+krexa borrow <amount>
 ```
 
-## Options
+Requests a credit line from the Krexa vault. The oracle verifies your score and co-signs the transaction.
 
-| Option | Description | Required |
-|--------|-------------|----------|
-| `--amount <number>` | Amount of USDC to borrow | Yes |
-| `--keypair <path>` | Path to Solana keypair file | No |
-| `--rpc <url>` | Solana RPC endpoint | No |
+## Parameters
 
-## Examples
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `amount` | Yes | Amount in USDC (e.g., `500`) |
 
-```bash
-# Borrow 100 USDC
-npx krexa borrow --amount 100
+---
 
-# Borrow 50 USDC with a custom keypair
-npx krexa borrow --amount 50 --keypair ./my-agent-key.json
-```
-
-## How It Works
-
-1. The CLI checks your current credit eligibility via the backend oracle.
-2. If approved, the oracle co-signs the borrow transaction.
-3. The Credit Vault program (`26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N`) transfers USDC to your Agent Wallet.
-4. Interest begins accruing immediately at your credit level's APR.
-
-## Credit Limits
+## Credit limits
 
 | Level | Max Borrow | APR |
-|-------|-----------|------|
+|-------|-----------|-----|
 | L1 Micro | $500 | 36.50% |
 | L2 Standard | $20,000 | 29.20% |
 | L3 Growth | $50,000 | 21.90% |
 | L4 Prime | $500,000 | 18.25% |
 
-## Errors
+---
 
-- **Insufficient credit:** You have reached your credit limit. Repay existing debt to free up capacity.
-- **Agent not initialized:** Run `npx krexa init` first.
-- **Oracle rejection:** Your eligibility check failed. Check your Krexit Score with `npx krexa score`.
+## Example
+
+```bash
+krexa borrow 500
+```
+
+```
+✔ Oracle approved credit request
+✔ Credit line opened: $500.00 USDC
+
+Terms:
+  Amount       $500.00 USDC
+  Rate         36.50% APR
+  Daily Cost   $0.50
+  Level        L1 (Micro)
+```
+
+<Warning>
+  You must run `krexa init` first. The oracle will reject requests from unregistered agents.
+</Warning>

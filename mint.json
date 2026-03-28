@@ -8,12 +8,29 @@
   "favicon": "/docs/favicon.svg",
   "colors": {
     "primary": "#22d3ee",
-    "light": "#4ade80",
-    "dark": "#0a0a0b",
-    "background": { "dark": "#0a0a0b" }
+    "light": "#67e8f9",
+    "dark": "#0891b2",
+    "background": {
+      "dark": "#09090b",
+      "light": "#fafafa"
+    },
+    "anchors": {
+      "from": "#22d3ee",
+      "to": "#4ade80"
+    }
+  },
+  "font": {
+    "headings": { "family": "Inter" },
+    "body": { "family": "Inter" }
+  },
+  "background": {
+    "decoration": "gradient"
+  },
+  "icons": {
+    "library": "lucide"
   },
   "topbarLinks": [
-    { "name": "Dashboard", "url": "https://krexa-dashboard.vercel.app" }
+    { "name": "Dashboard", "url": "https://krexa.xyz" }
   ],
   "topbarCtaButton": {
     "name": "Get Started",
@@ -21,11 +38,12 @@
   },
   "tabs": [
     { "name": "Documentation", "url": "/" },
-    { "name": "CLI Reference", "url": "/docs/cli/overview" }
+    { "name": "CLI Reference", "url": "/docs/cli/overview" },
+    { "name": "API", "url": "/docs/api/overview" }
   ],
   "navigation": [
     {
-      "group": "Get Started",
+      "group": "Getting Started",
       "pages": [
         "docs/introduction",
         "docs/quickstart",
@@ -43,7 +61,7 @@
       ]
     },
     {
-      "group": "MCP Mode",
+      "group": "MCP Integration",
       "pages": [
         "docs/mcp-mode",
         "docs/installation/claude-code",
@@ -67,7 +85,7 @@
       ]
     },
     {
-      "group": "Protocol",
+      "group": "Protocol Deep Dive",
       "pages": [
         "docs/protocol/revenue-router",
         "docs/protocol/krexit-score",

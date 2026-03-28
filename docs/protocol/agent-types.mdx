@@ -1,69 +1,57 @@
 ---
 title: "Agent Types"
-description: "Trader, Service, and Hybrid agent types in the Krexa protocol."
+description: "Trader, Service, and Hybrid agents — purpose-built scoring for different business models."
+icon: "users"
 ---
 
-# Agent Types
+## Three agent types
 
-Krexa supports three agent types, each designed for different use cases. Your agent type is set during initialization and determines how the protocol evaluates your activity.
+<CardGroup cols={3}>
+  <Card title="Trader (Type A)" icon="chart-candlestick" color="#22d3ee">
+    DEX trading, arbitrage, market making. Scored on trading profitability and venue diversity.
+  </Card>
+  <Card title="Service (Type B)" icon="server" color="#4ade80">
+    APIs, SaaS, compute providers. Scored on revenue consistency and service uptime.
+  </Card>
+  <Card title="Hybrid (Type C)" icon="shuffle" color="#a78bfa">
+    Both trading and service revenue. Balanced scoring across all dimensions.
+  </Card>
+</CardGroup>
 
-## Types
+---
 
-### Trader (Type A)
+## How type affects scoring
 
-Trader agents operate on decentralized exchanges (DEXes). They borrow USDC to execute trading strategies such as arbitrage, market making, or trend following.
+Each agent type has slightly different scoring weights to reflect what matters most for their business model:
 
-- Revenue source: DEX trading profits
-- Activity tracked: Trades on whitelisted venues
-- Score evaluation: Profitability based on PnL
+| Component | Trader | Service | Hybrid |
+|-----------|--------|---------|--------|
+| Repayment History | 30% | 30% | 30% |
+| Profitability | **30%** | 20% | 25% |
+| Behavioral | 15% | 15% | 20% |
+| Usage / Revenue | 15% | **25%** | 15% |
+| Account Maturity | 10% | 10% | 10% |
+
+<Info>
+  **Traders** are weighted more on profitability — can they actually make money trading? **Service agents** are weighted more on revenue consistency — do they have reliable income?
+</Info>
+
+---
+
+## Choosing your type
+
+Choose your type during `krexa init`:
 
 ```bash
-npx krexa init --type trader
+# Interactive
+krexa init
+
+# Or specify directly
+krexa init --type trader
+krexa init --type service
+krexa init --type hybrid
 ```
 
-### Service (Type B)
-
-Service agents provide APIs, tools, or AI services. They receive payments through the x402 payment protocol and can define service plans with milestone-based billing.
-
-- Revenue source: x402 API payments
-- Activity tracked: Service delivery, milestone completion
-- Score evaluation: Revenue generation and service reliability
-
-```bash
-npx krexa init --type service
-```
-
-### Hybrid
-
-Hybrid agents combine trading and service operations. The protocol tracks both revenue streams and evaluates both activity types.
-
-- Revenue source: DEX profits + x402 payments
-- Activity tracked: Both trading and service activity
-- Score evaluation: Combined metrics
-
-```bash
-npx krexa init --type hybrid
-```
-
-## How Agent Type Affects Scoring
-
-The Krexit Score's **Profitability** and **Behavioral** components evaluate agents differently based on type:
-
-| Component | Trader | Service |
-|-----------|--------|---------|
-| Profitability | Trading PnL | Service revenue margin |
-| Behavioral | Trading patterns, venue usage | Service uptime, delivery consistency |
-
-Hybrid agents are evaluated on both dimensions.
-
-## Changing Agent Type
-
-Agent type is set at initialization. To change your agent type, you would need to re-register with a new agent profile. Contact the Krexa team if you need to migrate an existing profile.
-
-## On-Chain Program
-
-Agent types are stored in the Agent Registry program:
-
-```
-Program ID: ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG
-```
+<Note>
+  Agent type is set during registration and stored on-chain. Changing type requires re-registration.
+</Note>

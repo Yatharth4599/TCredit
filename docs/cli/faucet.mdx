@@ -1,47 +1,38 @@
 ---
 title: "krexa faucet"
-description: "Request devnet USDC from the Krexa faucet for testing."
+sidebarTitle: "faucet"
+description: "Get test USDC on Solana devnet."
+icon: "coins"
 ---
 
-# krexa faucet
-
-Request devnet USDC tokens for testing on Solana devnet. The faucet mints test USDC (`H2SYsnzdRXrXpHpcDkedARksoxiQLGXjtAvkJg158ETP`) to your wallet.
-
-## Usage
-
 ```bash
-npx krexa faucet [options]
+krexa faucet [options]
 ```
+
+Requests test USDC from the Krexa faucet. Devnet only.
 
 ## Options
 
-| Option | Description |
-|--------|-------------|
-| `--amount <number>` | Amount of USDC to request |
-| `--keypair <path>` | Path to Solana keypair file |
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--amount <usdc>` | Amount to request | 100 |
+
+---
 
 ## Example
 
 ```bash
-# Request devnet USDC
-npx krexa faucet
-
-# Request a specific amount
-npx krexa faucet --amount 1000
+krexa faucet
 ```
 
-## API Alternative
-
-You can also call the faucet API directly:
-
-```bash
-curl -X POST https://tcredit-backend.onrender.com/api/v1/solana/faucet/usdc \
-  -H "Content-Type: application/json" \
-  -d '{"wallet": "<your-wallet-address>"}'
+```
+✔ Faucet sent 100.00 USDC to 9QP9...72Uy
 ```
 
-## Notes
+<Note>
+  **Rate limit:** 1 request per 24 hours per address. Maximum 100 USDC per request.
+</Note>
 
-- The faucet is only available on **devnet**. It will not work on mainnet.
-- Faucet USDC uses a devnet mint address and has no real value.
-- Use faucet USDC to test borrowing, repaying, and LP operations before deploying to mainnet.
+<Info>
+  Faucet USDC goes to your **owner ATA** (Associated Token Account), not the PDA wallet. Both balances show in `krexa status`.
+</Info>

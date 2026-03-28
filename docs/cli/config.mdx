@@ -1,58 +1,49 @@
 ---
 title: "krexa config"
-description: "View and update Krexa CLI configuration."
+sidebarTitle: "config"
+description: "View and update CLI configuration."
+icon: "settings"
 ---
 
-# krexa config
+```bash
+krexa config [key] [value]
+```
 
-View and update the Krexa CLI configuration settings.
+View or modify CLI settings stored at `~/.krexa/config.json`.
 
 ## Usage
 
 ```bash
-npx krexa config [options]
+# Show all config
+krexa config
+
+# Get a specific value
+krexa config network
+
+# Set a value
+krexa config network devnet
+krexa config rpcUrl https://my-rpc.example.com
 ```
 
-## Subcommands
+---
 
-### View current config
+## Configuration keys
 
-```bash
-npx krexa config
+| Key | Default | Description |
+|-----|---------|-------------|
+| `network` | `devnet` | Solana network (`devnet` or `mainnet-beta`) |
+| `rpcUrl` | — | Custom RPC endpoint (overrides network default) |
+| `agentName` | — | Your agent's registered name |
+| `agentType` | `0` | Agent type (0=Trader, 1=Service, 2=Hybrid) |
+
+---
+
+## Config file location
+
+```
+~/.krexa/config.json
 ```
 
-Displays the current configuration including keypair path, RPC endpoint, and network.
-
-### Set a config value
-
-```bash
-npx krexa config set <key> <value>
-```
-
-## Configuration Keys
-
-| Key | Description | Default |
-|-----|-------------|---------|
-| `keypair` | Path to Solana keypair file | `~/.config/solana/id.json` |
-| `rpc` | Solana RPC endpoint URL | Devnet default |
-| `network` | Solana network (`devnet` or `mainnet`) | `devnet` |
-
-## Examples
-
-```bash
-# View current config
-npx krexa config
-
-# Set a custom keypair path
-npx krexa config set keypair ./my-agent-key.json
-
-# Set a custom RPC endpoint
-npx krexa config set rpc https://my-rpc-provider.com
-
-# Switch network
-npx krexa config set network devnet
-```
-
-## Config File Location
-
-Configuration is stored at `~/.krexa/config.json`. You can also edit this file directly.
+<Tip>
+  Your keypair is stored separately at `~/.krexa/keypair.json`. Never share this file.
+</Tip>

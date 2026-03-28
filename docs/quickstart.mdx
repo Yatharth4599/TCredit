@@ -1,64 +1,171 @@
 ---
-title: Quickstart
-description: Get Krexa running in under two minutes
+title: "Quickstart"
+description: "Go from zero to borrowing USDC in under 2 minutes."
+icon: "rocket"
 ---
 
-# Quickstart
+<Check>
+  **Prerequisites:** Node.js 18+ and a terminal. That's it.
+</Check>
 
-## 1. Install and initialize
+<Steps>
+  <Step title="Initialize your agent" icon="terminal">
+    This creates your keypair, registers on Solana, and sets up your PDA wallet.
+
+    ```bash
+    npx @krexa/cli init
+    ```
+
+    You'll be prompted to choose an agent type and name:
+
+    ```
+    ? Agent type: Trader — DEX trading, arbitrage, market making
+    ? Agent name: Agent-9QP9JD
+    ✔ Keypair created: 9QP9...72Uy
+    ✔ Airdropped 2 SOL
+    ✔ Agent registered: Agent-9QP9JD (Trader)
+    ✔ PDA wallet created
+    ✔ Krexit Score: 350
+    ```
+
+    <Tip>
+      Already have a Solana keypair? Pass it with `--keypair ~/.config/solana/id.json` to skip generation.
+    </Tip>
+
+    <Accordion title="What happens under the hood?">
+      1. A new Ed25519 keypair is generated and saved to `~/.krexa/keypair.json`
+      2. A `register_agent` transaction is sent to the Agent Registry program
+      3. A PDA wallet is derived and initialized with a USDC token account
+      4. Your Krexit Score account is created with an initial score of **350**
+      5. On devnet, 2 SOL is airdropped automatically for transaction fees
+    </Accordion>
+  </Step>
+
+  <Step title="Get test USDC" icon="coins">
+    Request devnet USDC from the faucet (100 USDC per 24h).
+
+    ```bash
+    npx @krexa/cli faucet
+    ```
+
+    ```
+    ✔ Faucet sent 100.00 USDC to 9QP9...72Uy
+    ```
+
+    <Warning>
+      The faucet is rate-limited to **100 USDC per 24 hours** per agent. This is devnet only.
+    </Warning>
+  </Step>
+
+  <Step title="Borrow USDC" icon="hand-holding-dollar">
+    Draw from the credit vault. The oracle co-signs your transaction on-chain.
+
+    ```bash
+    npx @krexa/cli borrow 500
+    ```
+
+    ```
+    ✔ Oracle approved credit request
+    ✔ Credit line opened: $500.00 USDC
+
+    Terms:
+      Amount       $500.00 USDC
+      Rate         36.50% APR
+      Daily Cost   $0.50
+      Level        L1 (Micro)
+    ```
+
+    <Note>
+      New agents start at **L1 Micro** with a $500 max credit line. Repay consistently to unlock L2 Standard ($20,000 limit) and beyond.
+    </Note>
+  </Step>
+
+  <Step title="Check your status" icon="chart-simple">
+    See your score, balance, credit line, and health factor.
+
+    ```bash
+    npx @krexa/cli status
+    ```
+
+    ```
+    Krexit Score    350 (L1 Micro)
+    ██████████░░░░░░░░░░  50% to L2
+
+    Credit Line:
+      Borrowed      $500.00 USDC
+      Total Owed    $500.00 USDC
+
+    Wallet:
+      USDC          $600.00
+
+    Health          Green
+    ```
+  </Step>
+
+  <Step title="Repay debt" icon="circle-check">
+    Repay manually, or let the Revenue Router handle it automatically.
+
+    <Tabs>
+      <Tab title="Partial repayment">
+        ```bash
+        npx @krexa/cli repay 50
+        ```
+        ```
+        ✔ Repaid $50.00 USDC
+          Remaining: $450.00
+        ```
+      </Tab>
+      <Tab title="Full repayment">
+        ```bash
+        npx @krexa/cli repay all
+        ```
+        ```
+        ✔ Repaid $500.00 USDC
+          Remaining: $0.00
+          Credit line closed.
+        ```
+      </Tab>
+      <Tab title="Automatic (Revenue Router)">
+        In production, every dollar of revenue flows through the Revenue Router. Debt service is extracted automatically before funds reach your wallet.
+
+        ```
+        Incoming Payment: $100.00
+          → Platform Fee:   $1.00
+          → Debt Service:  $25.00
+          → Agent Wallet:  $74.00
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+</Steps>
+
+---
+
+## All 5 commands at a glance
 
 ```bash
-npx krexa init
+npx @krexa/cli init          # Register agent + create PDA wallet
+npx @krexa/cli faucet        # Get 100 devnet USDC
+npx @krexa/cli borrow 500    # Borrow USDC from the credit vault
+npx @krexa/cli status        # View score, balance, health
+npx @krexa/cli repay 50      # Repay outstanding debt
 ```
 
-This creates your keypair, registers your agent on Solana, sets up your PDA wallet,
-and fetches your initial Krexit Score. All in one command.
-
-You'll be prompted for:
-- **Agent type**: Trader, Service, or Hybrid
-- **Agent name**: A human-readable name (up to 32 chars)
-
-On devnet, Krexa auto-airdrops SOL so you can start immediately.
-
-## 2. Get test USDC (devnet)
-
-```bash
-npx krexa faucet
-```
-
-Mints up to 100 test USDC to your wallet. Rate limited to once per 24 hours.
-
-## 3. Borrow
-
-```bash
-npx krexa borrow 500
-```
-
-Your agent now has $500 USDC to operate with. The oracle co-signs the credit request
-and funds are deposited into your PDA wallet.
-
-## 4. Check status
-
-```bash
-krexa status
-```
-
-Shows your score, credit line, wallet balance, and health factor at a glance.
-
-## 5. Repay
-
-```bash
-krexa repay 50
-# or repay everything:
-krexa repay all
-```
-
-In production, repayment is automatic via the Revenue Router — every dollar of revenue
-flows through Krexa first.
+---
 
 ## What's next?
 
-- [Borrowing guide](/guides/borrowing) — understand credit levels and terms
-- [Improving your score](/guides/improving-score) — tips to unlock better rates
-- [MCP mode](/mcp-mode) — use Krexa as a tool in Claude Code or Cursor
-- [CLI reference](/cli/overview) — full command documentation
+<CardGroup cols={2}>
+  <Card title="Borrowing Guide" icon="book-open" href="/docs/guides/borrowing">
+    Understand credit levels, limits, and the oracle co-signing flow.
+  </Card>
+  <Card title="Improve Your Score" icon="arrow-trend-up" href="/docs/guides/improving-score">
+    Learn the 5 scoring components and how to level up faster.
+  </Card>
+  <Card title="MCP Mode" icon="robot" href="/docs/mcp-mode">
+    Give Claude Code or Cursor native access to Krexa tools.
+  </Card>
+  <Card title="LP Guide" icon="landmark" href="/docs/guides/lp-guide">
+    Deposit into the vault and earn yield from agent interest payments.
+  </Card>
+</CardGroup>

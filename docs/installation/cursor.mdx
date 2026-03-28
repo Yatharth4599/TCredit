@@ -1,66 +1,102 @@
 ---
-title: "Cursor MCP Setup"
-description: "Set up the Krexa MCP server with Cursor for AI agent credit operations."
+title: "Cursor"
+sidebarTitle: "Cursor"
+description: "Configure Krexa as an MCP server in Cursor."
+icon: "mouse-pointer"
 ---
 
-# Cursor MCP Setup
+## Getting Started
 
-Integrate Krexa with Cursor using the Model Context Protocol (MCP) server.
+Connect Krexa to Cursor so you can borrow, repay, and manage your agent wallet directly from the editor.
 
-## Prerequisites
+<Steps>
+  <Step title="Create the config file">
+    Add a `.cursor/mcp.json` file in your **project root** with the following content:
 
-- [Cursor](https://cursor.sh) installed
-- Node.js 18+
-- A Solana keypair
+    ```json .cursor/mcp.json
+    {
+      "mcpServers": {
+        "krexa": {
+          "command": "npx",
+          "args": ["-y", "@krexa/cli", "mcp"],
+          "env": {
+            "KREXA_NETWORK": "devnet"
+          }
+        }
+      }
+    }
+    ```
 
-## Installation
+    <Note>
+      The file must be at `.cursor/mcp.json` inside your project root, **not** in your home directory.
+    </Note>
+  </Step>
 
-### 1. Initialize Krexa
+  <Step title="Restart Cursor">
+    Restart Cursor completely (or reload the window) so the MCP server is detected.
+  </Step>
 
-```bash
-npx krexa init
-```
+  <Step title="Verify the connection">
+    Open the Cursor chat and ask:
 
-### 2. Add MCP Server to Cursor
+    ```text
+    "What's my Krexa wallet balance?"
+    ```
 
-Open Cursor Settings and navigate to the MCP section, or add the following to your `.cursor/mcp.json` file:
+    Cursor should detect and call the Krexa `check_balance` tool.
 
-```json
+    <Check>
+      If you see a USDC balance returned, the integration is working.
+    </Check>
+  </Step>
+</Steps>
+
+<Warning>
+  Make sure you've run `npx @krexa/cli init` first to create your agent keypair and register on Solana.
+</Warning>
+
+---
+
+## Customizing the Configuration
+
+You can pass additional environment variables to control network and keypair settings:
+
+```json .cursor/mcp.json
 {
   "mcpServers": {
     "krexa": {
       "command": "npx",
-      "args": ["krexa", "mcp"],
+      "args": ["-y", "@krexa/cli", "mcp"],
       "env": {
-        "SOLANA_KEYPAIR_PATH": "~/.config/solana/id.json"
+        "KREXA_NETWORK": "devnet",
+        "KREXA_KEYPAIR": "~/.krexa/keypair.json",
+        "KREXA_RPC_URL": "https://your-rpc-provider.com"
       }
     }
   }
 }
 ```
 
-### 3. Restart Cursor
-
-Restart Cursor for the MCP server to be detected.
-
-## Verifying the Connection
-
-After restarting, you should see the Krexa MCP tools available in Cursor's tool list. Test the connection:
-
-> "Check my Krexa agent status"
-
-If Cursor responds with your agent profile information, the setup is complete.
-
-## Available MCP Tools
-
-- **krexa_status** — Check agent profile, balance, and credit status
-- **krexa_borrow** — Borrow USDC from the Credit Vault
-- **krexa_repay** — Repay outstanding credit
-- **krexa_score** — Check Krexit Score
-- **krexa_wallet** — View wallet balance and transactions
+---
 
 ## Troubleshooting
 
-- **Tools not showing:** Make sure the MCP configuration file is saved and Cursor has been fully restarted.
-- **Keypair errors:** Run `solana-keygen pubkey ~/.config/solana/id.json` to verify your keypair is valid.
-- **Timeout errors:** The first `npx krexa mcp` invocation may take a moment to download the package. Subsequent runs will be faster.
+<AccordionGroup>
+  <Accordion title="MCP server not detected" icon="circle-exclamation">
+    - Confirm `.cursor/mcp.json` is in your **project root** (not your home directory)
+    - Restart Cursor completely (not just a window reload)
+    - Verify the server works standalone: run `npx @krexa/cli mcp` in your terminal
+  </Accordion>
+
+  <Accordion title="Tools not showing up" icon="eye-slash">
+    - Run `npx @krexa/cli init` to set up your agent first
+    - Check that `~/.krexa/keypair.json` exists
+    - Try setting `KREXA_KEYPAIR` explicitly in the `env` config
+  </Accordion>
+
+  <Accordion title="Connection timeouts" icon="clock">
+    - Devnet RPC can be slow during peak hours
+    - Set a custom `KREXA_RPC_URL` pointing to a dedicated RPC provider for better reliability
+    - Check your network connection and firewall rules
+  </Accordion>
+</AccordionGroup>

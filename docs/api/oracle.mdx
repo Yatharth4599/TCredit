@@ -1,105 +1,76 @@
 ---
 title: "Oracle API"
-description: "API endpoints for oracle credit co-signing and eligibility checks."
+sidebarTitle: "Oracle"
+description: "Oracle endpoints for credit eligibility checks and transaction co-signing."
+icon: "shield-check"
 ---
 
-# Oracle API
-
-The oracle API handles credit eligibility checks and transaction co-signing. The oracle is the off-chain component that enables undercollateralized lending by verifying agent creditworthiness before co-signing borrow transactions.
-
-## Check Credit Eligibility
+## Check eligibility
 
 ```
 GET /solana/credit/:agent/eligibility
 ```
 
-### Parameters
+Check if an agent is eligible for credit and their current limits.
 
-| Parameter | Type | Location | Description |
-|-----------|------|----------|-------------|
-| `agent` | string | Path | Agent's Solana public key |
-
-### Example Request
-
-```bash
-curl https://tcredit-backend.onrender.com/api/v1/solana/credit/7xKpR9...3mN2/eligibility
-```
-
-### Example Response
+### Response
 
 ```json
 {
-  "success": true,
-  "data": {
-    "agent": "7xKpR9...3mN2",
-    "eligible": true,
-    "creditLevel": "L2",
-    "maxCredit": 20000,
-    "availableCredit": 19500,
-    "currentDebt": 500,
-    "apr": 29.20
-  }
+  "eligible": true,
+  "creditLevel": 2,
+  "maxCredit": 20000,
+  "currentDebt": 500,
+  "availableCredit": 19500,
+  "rateBps": 2920
 }
 ```
 
-### Response Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `eligible` | boolean | Whether the agent can borrow |
-| `creditLevel` | string | Current credit level |
-| `maxCredit` | number | Maximum credit limit in USDC |
-| `availableCredit` | number | Remaining borrowing capacity |
-| `currentDebt` | number | Outstanding balance |
-| `apr` | number | Annual percentage rate |
-
 ---
 
-## Oracle Co-Sign Credit
+## Co-sign credit transaction
 
 ```
 POST /solana/oracle/sign-credit
 ```
 
-This endpoint is called by the CLI during the borrow flow. It verifies the agent's eligibility and returns a co-signature that the on-chain Credit Vault program requires to release funds.
+The oracle verifies the agent's score, checks vault liquidity, and returns a partially-signed Solana transaction.
 
-### Request Body
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `agent` | string | Yes | Agent's Solana public key |
-| `amount` | number | Yes | USDC amount to borrow |
-| `signature` | string | Yes | Agent's signature proving keypair ownership |
-
-### Example Request
-
-```bash
-curl -X POST https://tcredit-backend.onrender.com/api/v1/solana/oracle/sign-credit \
-  -H "Content-Type: application/json" \
-  -d '{
-    "agent": "7xKpR9...3mN2",
-    "amount": 100,
-    "signature": "3kF9...base58..."
-  }'
-```
-
-### Example Response
+### Request body
 
 ```json
 {
-  "success": true,
-  "data": {
-    "oracleSignature": "4xP2...base58...",
-    "expiresAt": 1711612800,
-    "amount": 100
-  }
+  "agentPubkey": "9QP9JDV8EbruUKwgL8SfMRv7ZWKjE9ckBB4bLgZt72Uy",
+  "agentOrOwnerPubkey": "9QP9JDV8EbruUKwgL8SfMRv7ZWKjE9ckBB4bLgZt72Uy",
+  "amount": "500000000",
+  "rateBps": 3650,
+  "creditLevel": 1,
+  "collateralValueUsdc": "0"
 }
 ```
 
-### Errors
+| Field | Type | Description |
+|-------|------|-------------|
+| `agentPubkey` | string | Agent's public key |
+| `agentOrOwnerPubkey` | string | Signer's public key |
+| `amount` | string | Amount in USDC lamports (string of digits) |
+| `rateBps` | number | Interest rate in basis points |
+| `creditLevel` | number | Agent's credit level (1-4) |
+| `collateralValueUsdc` | string | Collateral value (usually "0") |
 
-| Status | Description |
-|--------|-------------|
-| 400 | Invalid request parameters |
-| 403 | Agent not eligible for requested amount |
-| 404 | Agent not found |
+<Warning>
+  The `amount` field must be a **string of digits** (e.g., `"500000000"` for 500 USDC). Sending a number will fail validation.
+</Warning>
+
+### Response
+
+```json
+{
+  "transaction": "base64-encoded-partially-signed-transaction",
+  "message": "Credit approved"
+}
+```
+
+<Info>
+  The returned transaction is **partially signed** by the oracle. The agent must add their signature before submitting to Solana.
+</Info>

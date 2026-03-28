@@ -1,57 +1,92 @@
 ---
-title: "Repaying Credit"
-description: "Learn how to repay borrowed USDC, including manual repayment and automatic Revenue Router repayment."
+title: "Repaying Debt"
+description: "Manual repayment, Revenue Router auto-repay, and strategies for faster payoff."
+icon: "rotate-ccw"
 ---
 
-# Repaying Credit
+## Two ways to repay
 
-Timely repayment is the single most important factor in building your agent's Krexit Score. Krexa supports both manual and automatic repayment methods.
+<Tabs>
+  <Tab title="Manual Repayment">
+    Use the CLI to repay a specific amount or your full balance:
 
-## Manual Repayment
+    ```bash
+    # Repay a specific amount
+    krexa repay 50
 
-Use the CLI to repay part or all of your outstanding balance:
+    # Repay everything
+    krexa repay all
+    ```
+
+    <Info>
+      Repayment priority: **interest first**, then principal. If you owe $10 in interest and repay $50, $10 goes to interest and $40 reduces your principal.
+    </Info>
+  </Tab>
+
+  <Tab title="Revenue Router (Automatic)">
+    The Revenue Router intercepts all incoming revenue and extracts debt service automatically:
+
+    <Steps>
+      <Step title="Revenue arrives">
+        Funds land in your PDA Wallet from trading profits or service payments.
+      </Step>
+      <Step title="Router triggers">
+        The Payment Router program intercepts the incoming transaction.
+      </Step>
+      <Step title="Fees extracted">
+        Platform fee (1%) is separated from the revenue.
+      </Step>
+      <Step title="Debt serviced">
+        Outstanding debt service is sent directly to the Credit Vault.
+      </Step>
+      <Step title="Remainder deposited">
+        Whatever is left stays in your Agent Wallet for you to use.
+      </Step>
+    </Steps>
+
+    <Check>
+      You don't need to do anything — repayment happens at the protocol level. Just keep generating revenue.
+    </Check>
+  </Tab>
+</Tabs>
+
+---
+
+## Repayment impact on score
+
+Timely repayment is the **single most important factor** in your Krexit Score (30% weight):
+
+| Behavior | Score Impact |
+|----------|-------------|
+| Repay on time or early | Strong positive |
+| Repay within grace period | Neutral |
+| Late repayment | Negative |
+| Revenue Router auto-repay | Positive (consistent) |
+
+<Tip>
+  The Revenue Router counts as on-time repayment. Agents that generate consistent revenue automatically build strong repayment history.
+</Tip>
+
+---
+
+## Checking your balance
 
 ```bash
-# Repay a specific amount
-npx krexa repay --amount 50
+# See total owed, interest, and health
+krexa status
 
-# Repay entire outstanding balance
-npx krexa repay --all
+# Detailed credit line info
+krexa score
 ```
 
-The repay command sends USDC from your Agent Wallet back to the Credit Vault via the Payment Router program.
+<Accordion title="What do the health zones mean?">
+  Your health factor reflects how close you are to your credit limit:
 
-## Revenue Router Auto-Repay
+  - **Green (90%+):** Healthy. Plenty of headroom.
+  - **Yellow (50–90%):** Caution. Consider repaying to improve your buffer.
+  - **Red (below 50%):** Danger. Prioritize repayment immediately to avoid liquidation.
+</Accordion>
 
-The Revenue Router is an on-chain mechanism that automatically routes a percentage of your agent's incoming revenue toward debt repayment.
-
-### How It Works
-
-1. Revenue flows into your Agent Wallet from trading profits or service payments.
-2. The Payment Router program intercepts a configurable portion of incoming funds.
-3. That portion is automatically applied to your outstanding balance.
-4. The remainder stays in your Agent Wallet for the agent to use.
-
-Auto-repay ensures your agent never misses a payment, which directly improves your Krexit Score over time.
-
-## Repayment Priority
-
-When a repayment is processed:
-
-1. **Accrued interest** is paid first.
-2. **Principal** is reduced with the remaining amount.
-
-## Impact on Krexit Score
-
-- **On-time repayments** boost your Repayment History component (30% of your score).
-- **Early repayments** provide an additional score bonus.
-- **Late or missed repayments** significantly reduce your score and may trigger a credit level downgrade.
-
-## Checking Your Balance
-
-```bash
-# View outstanding balance and repayment status
-npx krexa status
-```
-
-The status command shows your current principal, accrued interest, and total amount due.
+<Warning>
+  If your health factor drops below 90% (yellow zone), prioritize repayment. Below 50% (red zone) risks liquidation.
+</Warning>

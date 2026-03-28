@@ -1,60 +1,47 @@
 ---
 title: "krexa status"
-description: "View your agent's profile, credit status, and balance."
+sidebarTitle: "status"
+description: "Show agent status — score, credit, wallet, and health factor."
+icon: "activity"
 ---
 
-# krexa status
-
-Display your agent's profile information, current credit status, outstanding balance, and wallet details.
-
-## Usage
-
 ```bash
-npx krexa status [options]
+krexa status
 ```
 
-## Options
-
-| Option | Description |
-|--------|-------------|
-| `--keypair <path>` | Path to Solana keypair file |
-| `--rpc <url>` | Solana RPC endpoint |
-
-## Example
-
-```bash
-npx krexa status
-```
+Displays a comprehensive overview of your agent's current state.
 
 ## Output
 
-The status command displays:
-
-- **Agent Profile** — Agent type (Trader/Service/Hybrid), registration date
-- **Credit Level** — Current level (L1-L4), max credit, APR
-- **Outstanding Balance** — Principal, accrued interest, total due
-- **Wallet Balance** — USDC balance in your Agent Wallet
-- **Krexit Score** — Current score summary
-
-## Example Output
-
 ```
-Agent Profile
-  Type:        Trader
-  Registered:  2025-12-15
+KREXA · Agent Status
+────────────────────────────────────────
+Agent           MyBot (Trader)
+Address         9QP9JD...Zt72Uy
+Network         devnet
 
-Credit Level
-  Level:       L2 Standard
-  Max Credit:  $20,000
-  APR:         29.20%
+Krexit Score    520 (L2 Standard)
+██████████████░░░░░░  67% to L3
 
-Outstanding Balance
-  Principal:   $500.00
-  Interest:    $12.50
-  Total Due:   $512.50
+Credit Line:
+  Borrowed      $500.00 USDC
+  Interest      $2.50 accrued
+  Total Owed    $502.50 USDC
+  Daily Cost    $0.50
+  Rate          36.50% APR
 
-Wallet Balance
-  USDC:        $1,200.00
+Wallet:
+  USDC          $600.00
 
-Krexit Score:  542
+Health          🟢 Green
 ```
+
+## What's shown
+
+| Section | Details |
+|---------|---------|
+| **Agent** | Name, type, address, network |
+| **Krexit Score** | Current score, level, progress to next level |
+| **Credit Line** | Borrowed amount, interest, total owed, daily cost |
+| **Wallet** | USDC balance (PDA + owner ATA combined) |
+| **Health** | Health factor badge (Green / Yellow / Red) |

@@ -1,50 +1,59 @@
 ---
 title: "krexa init"
-description: "Initialize an agent profile and wallet on the Krexa protocol."
+sidebarTitle: "init"
+description: "Initialize your agent — keypair, registration, wallet, and score."
+icon: "user-plus"
 ---
 
-# krexa init
-
-Creates an on-chain Agent Profile and Agent Wallet for your Solana keypair. This is the first command you run when setting up a new agent.
-
-## Usage
-
 ```bash
-npx krexa init [options]
+krexa init [options]
 ```
+
+## What it does
+
+<Steps>
+  <Step title="Creates or loads keypair">
+    Generates a new Solana keypair and saves it to `~/.krexa/keypair.json`. If one exists, it's reused.
+  </Step>
+  <Step title="Prompts for agent type">
+    Choose Trader, Service, or Hybrid — this affects how your score is calculated.
+  </Step>
+  <Step title="Registers on Solana">
+    Creates your Agent Profile on-chain via the Agent Registry program.
+  </Step>
+  <Step title="Creates PDA wallet">
+    Sets up your program-controlled USDC wallet.
+  </Step>
+  <Step title="Fetches initial score">
+    Retrieves your Krexit Score from the oracle (starts at 350).
+  </Step>
+</Steps>
+
+---
 
 ## Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--type <type>` | Agent type: `trader`, `service`, or `hybrid` | `trader` |
-| `--keypair <path>` | Path to Solana keypair file | `~/.config/solana/id.json` |
-| `--rpc <url>` | Solana RPC endpoint | Devnet |
+| Flag | Description | Example |
+|------|-------------|---------|
+| `--type <type>` | Agent type: `trader`, `service`, `hybrid` | `--type trader` |
+| `--name <name>` | Agent name (1-32 chars) | `--name MyBot` |
+| `--keypair <path>` | Path to existing keypair file | `--keypair ~/key.json` |
+
+---
 
 ## Examples
 
 ```bash
-# Initialize a Trader agent (default)
-npx krexa init
+# Interactive setup
+krexa init
 
-# Initialize a Service agent
-npx krexa init --type service
+# Non-interactive (for automation)
+krexa init --type trader --name "ArbitrageBot"
 
-# Initialize a Hybrid agent
-npx krexa init --type hybrid
-
-# Use a custom keypair
-npx krexa init --keypair ./my-agent-key.json
+# Use existing keypair
+krexa init --keypair ~/.config/solana/id.json
 ```
 
-## What It Does
-
-1. **Creates an Agent Profile** on the Agent Registry program (`ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG`). This stores your agent type and metadata.
-2. **Creates an Agent Wallet** via the Agent Wallet program (`35t8yWLsUZNTLT71ej7DF59P81HrtZTx2uZeMhwuhhf6`). This is a PDA that holds your USDC.
-3. **Initializes your Krexit Score** on the Krexit Score program (`2GwtAXnjY5LehfZfT77ZH3XSshwbni8LP9zXeA84WUqh`).
-
-## Notes
-
-- You only need to run `init` once per keypair.
-- Running `init` again with an existing profile will return your current profile information.
-- Your agent starts at **L1 Micro** credit level ($500 max, 36.50% APR).
+<Info>
+  On devnet, `init` automatically requests a SOL airdrop for transaction fees. If the faucet is rate-limited, fund your wallet manually at [faucet.solana.com](https://faucet.solana.com).
+</Info>

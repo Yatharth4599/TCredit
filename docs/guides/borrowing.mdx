@@ -1,49 +1,101 @@
 ---
-title: "How Borrowing Works"
-description: "Understand how AI agents borrow USDC through the Krexa credit protocol on Solana."
+title: "Borrowing USDC"
+description: "How to draw credit from the Krexa vault — limits, oracle flow, and best practices."
+icon: "hand-coins"
 ---
 
-# How Borrowing Works
+## Credit limits by level
 
-Krexa provides undercollateralized credit lines to AI agents on Solana. Agents borrow USDC from the Credit Vault based on their Krexit Score and credit level.
+Your borrowing capacity depends on your Krexit Score and credit level:
 
-## Credit Levels
+| Level | Score Range | Max Credit | APR | Daily Cost per $1K |
+|-------|------------|------------|-----|-------------------|
+| **L1 Micro** | 200–499 | $500 | 36.50% | $1.00 |
+| **L2 Standard** | 500–649 | $20,000 | 29.20% | $0.80 |
+| **L3 Growth** | 650–749 | $50,000 | 21.90% | $0.60 |
+| **L4 Prime** | 750–850 | $500,000 | 18.25% | $0.50 |
 
-| Level | Name | Max Credit | APR | Requirement |
-|-------|------|-----------|------|-------------|
-| L1 | Micro | $500 | 36.50% | New agents (default) |
-| L2 | Standard | $20,000 | 29.20% | Krexit Score >= 500 |
-| L3 | Growth | $50,000 | 21.90% | Krexit Score >= 650 |
-| L4 | Prime | $500,000 | 18.25% | Krexit Score >= 750 |
+<Tip>
+  Interest accrues daily. The earlier you repay, the less you pay in total interest.
+</Tip>
 
-All new agents start at L1 Micro. As your agent builds a track record of repayments and productive on-chain activity, its Krexit Score increases, unlocking higher credit levels with better rates.
+---
 
-## The Borrowing Flow
+## How borrowing works
 
-1. **Register your agent** — Run `npx krexa init` to create an on-chain Agent Profile and Agent Wallet.
-2. **Check eligibility** — The protocol evaluates your agent's Krexit Score and determines the maximum credit available.
-3. **Request credit** — Submit a borrow request specifying the amount (up to your credit limit).
-4. **Oracle co-signing** — The Krexa oracle verifies your eligibility off-chain and co-signs the transaction. This is what enables undercollateralized lending without requiring the agent to post collateral.
-5. **Funds disbursed** — USDC is transferred from the Credit Vault to your Agent Wallet.
+<Steps>
+  <Step title="Check eligibility" icon="search">
+    The CLI checks your on-chain Agent Profile for your current credit level and available capacity.
 
-## Oracle Co-Signing
+    ```bash
+    krexa status  # Shows your credit level and max borrowing capacity
+    ```
+  </Step>
 
-Unlike traditional DeFi lending, Krexa does not require overcollateralization. Instead, the protocol uses an oracle co-signing mechanism:
+  <Step title="Request credit" icon="send">
+    When you run `krexa borrow`, the CLI sends a request to the Krexa oracle with your amount and agent details.
 
-- The backend oracle at `tcredit-backend.onrender.com/api/v1` evaluates the agent's credit eligibility in real time.
-- If approved, the oracle returns a co-signature that the on-chain program requires to release funds.
-- This architecture allows the protocol to extend credit based on reputation rather than locked capital.
+    ```bash
+    krexa borrow 500
+    ```
+  </Step>
 
-```bash
-# Check your credit eligibility
-npx krexa status
+  <Step title="Oracle co-signs" icon="shield-check">
+    The oracle verifies your score, checks vault liquidity, and **co-signs** the Solana transaction. This is what enables undercollateralized lending — the oracle acts as a trusted gatekeeper.
+  </Step>
 
-# Borrow USDC
-npx krexa borrow --amount 100
+  <Step title="USDC delivered" icon="check-circle">
+    The co-signed transaction executes on Solana. USDC moves from the Credit Vault into your PDA Wallet. Your credit line is now open.
+  </Step>
+</Steps>
+
+<Warning>
+  You cannot borrow more than your credit level allows. Attempting to borrow above your limit will be rejected by the oracle.
+</Warning>
+
+---
+
+## Oracle co-signing
+
+Krexa uses an **oracle co-signing pattern** for undercollateralized lending:
+
+```mermaid
+sequenceDiagram
+    participant Agent
+    participant Oracle
+    participant Solana
+
+    Agent->>Oracle: Request credit (amount, pubkey)
+    Oracle->>Oracle: Verify score, check vault
+    Oracle->>Agent: Partially-signed transaction
+    Agent->>Agent: Add agent signature
+    Agent->>Solana: Submit fully-signed tx
+    Solana->>Agent: USDC in PDA Wallet
 ```
 
-## Important Notes
+<Accordion title="Why does the oracle need to co-sign?">
+  Traditional DeFi lending requires overcollateralization — you lock up more than you borrow. Krexa enables **undercollateralized** lending by having the oracle verify creditworthiness off-chain. The oracle's signature proves the credit request was approved. Without both signatures (oracle + agent), the on-chain program rejects the transaction.
+</Accordion>
 
-- Borrowed USDC is deposited into your Agent Wallet, which is a program-derived address (PDA) controlled by the Agent Wallet program.
-- Interest accrues continuously from the moment funds are disbursed.
-- Failing to repay on time will negatively impact your Krexit Score and may reduce your credit level.
+---
+
+## Best practices
+
+<CardGroup cols={2}>
+  <Card title="Borrow what you need" icon="target">
+    Don't max out your limit. Lower utilization keeps your health factor green and your score trending up.
+  </Card>
+  <Card title="Monitor daily cost" icon="calculator">
+    Run `krexa status` regularly. Interest accrues daily — small debts add up.
+  </Card>
+  <Card title="Repay early" icon="clock">
+    Early repayment saves interest and boosts your Repayment History score component (30% weight).
+  </Card>
+  <Card title="Level up first" icon="trending-up">
+    If you need more than $500, focus on improving your score to L2 before borrowing larger amounts.
+  </Card>
+</CardGroup>
+
+<Note>
+  Need help choosing the right borrowing amount? Check the [Improving Your Score](/guides/improving-score) guide for strategies to level up quickly.
+</Note>

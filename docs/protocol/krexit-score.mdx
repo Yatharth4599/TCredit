@@ -1,65 +1,82 @@
 ---
 title: "Krexit Score"
-description: "How the Krexit Score algorithm works, including component weights and credit level thresholds."
+description: "The on-chain credit scoring algorithm — components, weights, and calculation."
+icon: "chart-line"
 ---
 
-# Krexit Score
+## Overview
 
-The Krexit Score is an on-chain credit score for AI agents. It determines credit level, maximum borrowing capacity, and interest rate. The score is managed by the Krexit Score program (`2GwtAXnjY5LehfZfT77ZH3XSshwbni8LP9zXeA84WUqh`).
+The Krexit Score is a **200–850** reputation score stored on-chain in the Krexit Score Solana program. It determines an agent's credit level, maximum borrowing capacity, and interest rate.
 
-## Score Range
-
-Scores range from **0 to 1000**. Higher is better.
+---
 
 ## Components
 
-| Component | Weight | Description |
-|-----------|--------|-------------|
-| Repayment History | 30% | Tracks on-time repayments, early repayments, late payments, and defaults |
-| Profitability | 25% | Measures net revenue vs. expenses — profitable agents are more creditworthy |
-| Behavioral | 20% | Evaluates activity patterns for consistency and absence of suspicious behavior |
-| Usage Patterns | 15% | Rewards regular, sustained protocol engagement over sporadic usage |
-| Account Maturity | 10% | Rewards longevity — older agent profiles score higher |
+| Component | Weight | What It Measures |
+|-----------|--------|-----------------|
+| Repayment History | **30%** | On-time payments, missed payments, average repayment speed |
+| Profitability | **25%** | Revenue relative to borrowed amount |
+| Behavioral | **20%** | Health factor maintenance, consistent patterns |
+| Usage Patterns | **15%** | Venue diversity, transaction frequency |
+| Account Maturity | **10%** | Time since registration |
 
-## Credit Level Thresholds
+---
 
-| Score Range | Credit Level | Max Credit | APR |
-|-------------|-------------|-----------|------|
-| 0 – 499 | L1 Micro | $500 | 36.50% |
-| 500 – 649 | L2 Standard | $20,000 | 29.20% |
-| 650 – 749 | L3 Growth | $50,000 | 21.90% |
-| 750 – 1000 | L4 Prime | $500,000 | 18.25% |
+## Credit levels
 
-## How the Score Updates
+| Level | Name | Score Range | Max Credit | APR |
+|-------|------|-------------|------------|-----|
+| L1 | Micro | 200–499 | $500 | 36.50% |
+| L2 | Standard | 500–649 | $20,000 | 29.20% |
+| L3 | Growth | 650–749 | $50,000 | 21.90% |
+| L4 | Prime | 750–850 | $500,000 | 18.25% |
 
-The Krexit Score updates when:
+<Info>
+  All agents start at **350** (L1 Micro). Score updates happen after each on-chain transaction involving the agent.
+</Info>
 
-- A **repayment** is processed (impacts Repayment History).
-- A **borrow** is initiated (impacts Usage Patterns).
-- The **oracle** evaluates on-chain activity (impacts Profitability and Behavioral).
-- Time passes (impacts Account Maturity).
+---
 
-## Querying the Score
+## Score updates
 
-### CLI
+The score is recalculated by the oracle after relevant on-chain events:
 
-```bash
-npx krexa score
-```
+- Credit line opened or closed
+- Repayment processed
+- Revenue received through Payment Router
+- Health factor changes
+- Time-based maturity updates (daily)
 
-### API
+---
 
-```bash
-curl https://tcredit-backend.onrender.com/api/v1/solana/score/<agent-pubkey>
-```
+## Querying the score
 
-### On-Chain
+<Tabs>
+  <Tab title="CLI">
+    ```bash
+    krexa score           # Your score
+    krexa score <pubkey>  # Another agent's score
+    ```
+  </Tab>
 
-The score is stored in a PDA derived from the agent's public key under the Krexit Score program. Any program can read it using a cross-program invocation (CPI).
+  <Tab title="API">
+    ```bash
+    curl https://tcredit-backend.onrender.com/api/v1/solana/score/<agent-pubkey>
+    ```
 
-## Design Principles
-
-- **On-chain verifiability.** The score is stored on Solana and can be read by any program.
-- **Multi-dimensional.** Five components prevent gaming through a single vector.
-- **Progressive.** New agents start low and build up — there are no shortcuts.
-- **Protocol-agnostic.** While Krexa uses the score for credit, other protocols can also read and use it.
+    ```json
+    {
+      "score": 520,
+      "components": {
+        "repayment": 78,
+        "profitability": 65,
+        "behavioral": 60,
+        "usage": 45,
+        "maturity": 30
+      },
+      "level": 2,
+      "levelName": "Standard"
+    }
+    ```
+  </Tab>
+</Tabs>

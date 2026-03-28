@@ -1,59 +1,50 @@
 ---
 title: "Faucet API"
-description: "API endpoint for requesting devnet USDC from the Krexa faucet."
+sidebarTitle: "Faucet"
+description: "Request devnet USDC for testing."
+icon: "coins"
 ---
 
-# Faucet API
-
-Request devnet USDC tokens for testing. The faucet mints USDC using the devnet mint (`H2SYsnzdRXrXpHpcDkedARksoxiQLGXjtAvkJg158ETP`).
-
-## Request Devnet USDC
+## Request test USDC
 
 ```
 POST /solana/faucet/usdc
 ```
 
-### Request Body
+Sends devnet USDC to the specified recipient address.
+
+### Request body
+
+```json
+{
+  "recipient": "9QP9JDV8EbruUKwgL8SfMRv7ZWKjE9ckBB4bLgZt72Uy",
+  "amountUsdc": 100
+}
+```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `wallet` | string | Yes | Solana wallet address to receive USDC |
-| `amount` | number | No | Amount of USDC to mint (default varies) |
+| `recipient` | string | Yes | Solana public key (base58) |
+| `amountUsdc` | number | No | Amount in USDC (default: 100, max: 100) |
 
-### Example Request
+### Response
+
+```json
+{
+  "signature": "5XGm...",
+  "amount": 100,
+  "recipient": "9QP9JDV8EbruUKwgL8SfMRv7ZWKjE9ckBB4bLgZt72Uy"
+}
+```
+
+### Example
 
 ```bash
 curl -X POST https://tcredit-backend.onrender.com/api/v1/solana/faucet/usdc \
   -H "Content-Type: application/json" \
-  -d '{
-    "wallet": "7xKpR9...3mN2",
-    "amount": 1000
-  }'
+  -d '{"recipient": "9QP9JDV8EbruUKwgL8SfMRv7ZWKjE9ckBB4bLgZt72Uy"}'
 ```
 
-### Example Response
-
-```json
-{
-  "success": true,
-  "data": {
-    "signature": "5UfD...xK9p",
-    "amount": 1000,
-    "wallet": "7xKpR9...3mN2",
-    "mint": "H2SYsnzdRXrXpHpcDkedARksoxiQLGXjtAvkJg158ETP"
-  }
-}
-```
-
-### Errors
-
-| Status | Description |
-|--------|-------------|
-| 400 | Invalid wallet address |
-| 429 | Rate limit exceeded — wait before requesting again |
-
-### Notes
-
-- This endpoint only works on **devnet**. It is not available on mainnet.
-- There is a per-wallet rate limit to prevent abuse.
-- The minted USDC has no real value.
+<Warning>
+  **Rate limit:** 1 request per 24 hours per address. Devnet only.
+</Warning>

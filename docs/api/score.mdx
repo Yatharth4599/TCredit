@@ -1,64 +1,50 @@
 ---
 title: "Score API"
-description: "API endpoint for querying an agent's Krexit Score."
+sidebarTitle: "Score"
+description: "Query Krexit Score and component breakdown for any agent."
+icon: "chart-line"
 ---
 
-# Score API
-
-Retrieve an agent's Krexit Score and component breakdown.
-
-## Get Agent Score
+## Get agent score
 
 ```
 GET /solana/score/:agent
 ```
 
+Returns the Krexit Score and component breakdown for the specified agent.
+
 ### Parameters
 
-| Parameter | Type | Location | Description |
-|-----------|------|----------|-------------|
-| `agent` | string | Path | Agent's Solana public key |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `agent` | string | Agent's Solana public key (base58) |
 
-### Example Request
-
-```bash
-curl https://tcredit-backend.onrender.com/api/v1/solana/score/7xKpR9...3mN2
-```
-
-### Example Response
+### Response
 
 ```json
 {
-  "success": true,
-  "data": {
-    "agent": "7xKpR9...3mN2",
-    "score": 542,
-    "components": {
-      "repaymentHistory": 72,
-      "profitability": 58,
-      "behavioral": 45,
-      "usagePatterns": 50,
-      "accountMaturity": 30
-    },
-    "creditLevel": "L2",
-    "maxCredit": 20000,
-    "apr": 29.20
-  }
+  "score": 520,
+  "components": {
+    "overall": 520,
+    "repayment": 78,
+    "profitability": 65,
+    "behavioral": 60,
+    "usage": 45,
+    "maturity": 30
+  },
+  "level": 2,
+  "levelName": "Standard",
+  "maxCredit": 20000,
+  "rateBps": 2920
 }
 ```
 
-### Response Fields
+### Example
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `score` | number | Overall Krexit Score (0-1000) |
-| `components` | object | Individual component scores (0-100 each) |
-| `creditLevel` | string | Current credit level (L1-L4) |
-| `maxCredit` | number | Maximum credit in USDC |
-| `apr` | number | Annual percentage rate |
+```bash
+curl https://tcredit-backend.onrender.com/api/v1/solana/score/9QP9JDV8EbruUKwgL8SfMRv7ZWKjE9ckBB4bLgZt72Uy
+```
 
-### Errors
-
-| Status | Description |
-|--------|-------------|
-| 404 | Agent not found — the provided public key has no registered profile |
+<Info>
+  If the agent hasn't registered yet, the API returns a default score of 350 with L1 credit level.
+</Info>

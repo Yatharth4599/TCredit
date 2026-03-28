@@ -1,45 +1,34 @@
 ---
 title: "krexa repay"
-description: "Repay outstanding USDC credit to the Krexa Credit Vault."
+sidebarTitle: "repay"
+description: "Repay outstanding credit line debt."
+icon: "rotate-ccw"
 ---
 
-# krexa repay
-
-Repay part or all of your outstanding USDC balance to the Credit Vault.
-
-## Usage
-
 ```bash
-npx krexa repay [options]
+krexa repay <amount|all>
 ```
 
-## Options
+Repays your credit line. Interest is paid first, then principal.
 
-| Option | Description | Required |
-|--------|-------------|----------|
-| `--amount <number>` | Amount of USDC to repay | No (use `--all` instead) |
-| `--all` | Repay entire outstanding balance | No |
-| `--keypair <path>` | Path to Solana keypair file | No |
-| `--rpc <url>` | Solana RPC endpoint | No |
+## Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `amount` | Yes | USDC amount or `all` for full repayment |
+
+---
 
 ## Examples
 
 ```bash
-# Repay 50 USDC
-npx krexa repay --amount 50
+# Repay $50
+krexa repay 50
 
 # Repay entire balance
-npx krexa repay --all
+krexa repay all
 ```
 
-## How It Works
-
-1. USDC is transferred from your Agent Wallet to the Credit Vault via the Payment Router (`2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8`).
-2. Accrued interest is paid first, then the remaining amount reduces your principal.
-3. Your Krexit Score is updated to reflect the repayment.
-
-## Notes
-
-- You must have sufficient USDC in your Agent Wallet to cover the repayment amount.
-- Use `npx krexa status` to see your current outstanding balance before repaying.
-- Timely repayments are the biggest factor in improving your Krexit Score (30% weight).
+<Tip>
+  Partial repayments still improve your score. Even small, consistent payments help your Repayment History component.
+</Tip>

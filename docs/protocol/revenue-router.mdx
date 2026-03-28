@@ -1,53 +1,75 @@
 ---
 title: "Revenue Router"
-description: "How the Revenue Router automatically routes agent revenue toward debt repayment."
+description: "How the Payment Router program extracts debt service from agent revenue automatically."
+icon: "split"
 ---
 
-# Revenue Router
+## Overview
 
-The Revenue Router is an on-chain mechanism within the Payment Router program that automatically applies a portion of incoming agent revenue toward outstanding debt repayment.
+The Revenue Router is the core mechanism that makes undercollateralized lending work. It's implemented in the **Payment Router** Solana program and intercepts all agent revenue at the protocol level.
 
-## How It Works
-
-```
-Revenue Source (DEX profit / x402 payment)
-    │
-    ▼
-Payment Router (2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8)
-    │
-    ├──▶ Debt Repayment → Credit Vault
-    │
-    └──▶ Remaining Funds → Agent Wallet
+```mermaid
+graph LR
+    R[Revenue] --> PR[Payment Router]
+    PR -->|1%| PF[Platform Fee]
+    PR -->|Interest + Principal| CV[Credit Vault]
+    PR -->|Remainder| AW[Agent Wallet]
 ```
 
-1. Revenue enters the system through the Payment Router program.
-2. The router checks if the agent has an outstanding balance.
-3. If debt exists, a configured percentage of the incoming funds is routed to the Credit Vault as repayment.
-4. The remainder is deposited into the Agent Wallet for the agent to use.
+---
 
-## Benefits
+## How it works
 
-- **No missed payments.** Auto-repay ensures agents service their debt without manual intervention.
-- **Score improvement.** Consistent, automatic repayments boost the Repayment History component of the Krexit Score.
-- **Hands-off operation.** AI agents can focus on trading or serving requests without managing repayment schedules.
+<Steps>
+  <Step title="Revenue arrives" icon="arrow-down">
+    When an agent earns revenue (trading profit, API payment, service fee), the funds are routed through the Payment Router program.
+  </Step>
 
-## Repayment Ordering
+  <Step title="Platform fee" icon="percent">
+    1% platform fee is extracted first. This funds protocol development and oracle operations.
+  </Step>
 
-When the Revenue Router processes a repayment:
+  <Step title="Debt service" icon="landmark">
+    If the agent has an active credit line, accrued interest and principal repayment are sent to the Credit Vault. The amount depends on the repayment schedule.
+  </Step>
 
-1. Accrued interest is paid first.
-2. Any remaining amount reduces the outstanding principal.
+  <Step title="Agent receives remainder" icon="wallet">
+    Everything left after fees and debt service lands in the agent's PDA Wallet. This is the agent's profit.
+  </Step>
+</Steps>
 
-## Integration with Agent Types
+<Info>
+  Agents **cannot bypass** the Revenue Router. It's enforced at the Solana program level — the PDA wallet is controlled by the protocol, not the agent's private key.
+</Info>
 
-- **Trader agents** — Revenue from DEX trading profits flows through the router.
-- **Service agents** — x402 API payments are routed through the Payment Router, enabling automatic debt servicing from service revenue.
-- **Hybrid agents** — Both revenue streams are handled.
+---
 
-## On-Chain Programs Involved
+## For traders vs. service agents
 
-| Program | Role |
-|---------|------|
-| Payment Router | Routes funds between vault, wallet, and revenue sources |
-| Agent Wallet | Receives the agent's share after debt routing |
-| Credit Vault | Receives repayment funds |
+<Tabs>
+  <Tab title="Traders">
+    Revenue = trading profits (sell price - buy price). The Revenue Router captures profit when trades settle through whitelisted venues.
+
+    - DEX swap profits routed automatically
+    - Arbitrage gains captured at settlement
+    - Revenue measured per-trade
+  </Tab>
+
+  <Tab title="Service Agents">
+    Revenue = x402 payments and API fees. The Revenue Router captures payments when they arrive at the agent's wallet.
+
+    - API call payments routed through protocol
+    - Subscription payments captured monthly
+    - Revenue measured per-payment
+  </Tab>
+</Tabs>
+
+---
+
+## Why this matters for LPs
+
+The Revenue Router gives LPs **protocol-level guarantees** that debt service is extracted before agents receive funds. This is fundamentally different from traditional lending where borrowers manually repay.
+
+<Tip>
+  Think of it as payroll deduction for debt — the money never passes through the borrower's hands.
+</Tip>

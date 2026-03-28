@@ -1,64 +1,119 @@
 ---
 title: "Liquidity Provider Guide"
-description: "How to deposit USDC into the Credit Vault, choose tranches, and earn yield from AI agent credit activity."
+description: "Deposit USDC into the Krexa vault and earn yield from agent interest payments."
+icon: "landmark"
 ---
 
-# Liquidity Provider Guide
+## How LP deposits work
 
-Liquidity providers (LPs) deposit USDC into the Krexa Credit Vault. These funds are lent to AI agents, and LPs earn yield from interest payments. Different tranches offer different risk/reward profiles.
+When you deposit USDC into the Krexa vault, your funds are lent to AI agents. You earn yield from the interest they pay on their credit lines.
 
-## Tranches
+<Info>
+  LP deposits are made through the CLI. You choose a tranche that matches your risk appetite.
+</Info>
 
-| Tranche | Target APR | Risk Level | Description |
-|---------|-----------|------------|-------------|
-| Senior | 10% | Lowest | Last to absorb losses, first priority on repayments |
-| Mezzanine | 12% | Medium | Absorbs losses after Junior is depleted |
-| Junior | 20% | Highest | First-loss tranche, absorbs defaults first |
+---
 
-### How Tranches Work
+## Three tranches
 
-The tranche system determines the order in which defaults are absorbed:
+<CardGroup cols={3}>
+  <Card title="Senior" icon="shield" color="#22d3ee">
+    **10% APR** — Lowest risk. Last to absorb losses. Protected by Mezzanine and Junior tranches below.
+  </Card>
+  <Card title="Mezzanine" icon="layers" color="#a78bfa">
+    **12% APR** — Medium risk. Absorbs losses after Junior is depleted.
+  </Card>
+  <Card title="Junior" icon="flame" color="#f97316">
+    **20% APR** — Highest risk, highest reward. First to absorb any defaults.
+  </Card>
+</CardGroup>
 
-1. **Junior** tranche takes the first loss. If an agent defaults, Junior LP deposits are reduced first.
-2. **Mezzanine** tranche is next. It only takes losses after the Junior tranche is fully depleted.
-3. **Senior** tranche is the safest. It only takes losses if both Junior and Mezzanine are wiped out.
+### Loss waterfall
 
-Higher risk tranches earn higher yields to compensate for the additional default exposure.
+```mermaid
+graph TD
+    D[Default Event] --> J[Junior Tranche]
+    J -->|If depleted| M[Mezzanine Tranche]
+    M -->|If depleted| S[Senior Tranche]
 
-## Depositing
-
-```bash
-# Deposit USDC into the Senior tranche
-npx krexa lp deposit --amount 1000 --tranche senior
-
-# Deposit into the Junior tranche for higher yield
-npx krexa lp deposit --amount 500 --tranche junior
+    style J fill:#f97316,color:#fff
+    style M fill:#a78bfa,color:#fff
+    style S fill:#22d3ee,color:#000
 ```
 
-## Withdrawing
+<Accordion title="How does the loss waterfall protect Senior LPs?">
+  When an agent defaults, losses are absorbed in order: Junior first, then Mezzanine, then Senior. The Senior tranche only takes a loss if both Junior and Mezzanine tranches are completely wiped out. This layered structure means Senior LPs are significantly protected — but in exchange, they earn a lower yield (10% vs. 20% for Junior).
+</Accordion>
 
-```bash
-# Withdraw from a tranche
-npx krexa lp withdraw --amount 500 --tranche senior
-```
+<Tip>
+  Senior tranche has never taken a loss in testing. Junior tranche offers 2x the yield but absorbs defaults first.
+</Tip>
 
-Withdrawals are subject to available liquidity. If all funds are currently lent out, you may need to wait for repayments before withdrawing.
+---
 
-## Checking Vault Stats
+## Deposit and withdraw
 
-```bash
-# View vault statistics
-npx krexa lp stats
-```
+<Tabs>
+  <Tab title="Deposit">
+    ```bash
+    # Deposit $1,000 USDC into Senior tranche
+    krexa lp deposit 1000 --tranche senior
 
-You can also query the API directly:
+    # Deposit into Junior for higher yield
+    krexa lp deposit 500 --tranche junior
+    ```
+  </Tab>
 
-```bash
-curl https://tcredit-backend.onrender.com/api/v1/solana/vault/stats
-```
+  <Tab title="Withdraw">
+    ```bash
+    # Withdraw from Senior tranche
+    krexa lp withdraw 500 --tranche senior
 
-## Risk Considerations
+    # Withdraw everything
+    krexa lp withdraw all --tranche senior
+    ```
 
-- Agent defaults reduce tranche balances starting from Junior.
-- Krexa mitigates risk through Krexit Score requirements, credit limits, and the Revenue Router auto-repay mechanism.
-- Diversifying across tranches can balance your risk/reward profile.
+    <Warning>
+      Withdrawals are subject to available liquidity. If all funds are currently lent out, you may need to wait for repayments before withdrawing.
+    </Warning>
+  </Tab>
+
+  <Tab title="Check Status">
+    ```bash
+    # View your LP position across all tranches
+    krexa lp status
+    ```
+
+    ```
+    LP Position:
+      Senior      $1,000.00  (10.00% APR)
+      Mezzanine   $0.00
+      Junior      $500.00    (20.00% APR)
+      Total       $1,500.00
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Choosing a tranche
+
+| Factor | Senior | Mezzanine | Junior |
+|--------|--------|-----------|--------|
+| APR | 10% | 12% | 20% |
+| Risk | Low | Medium | High |
+| Loss Priority | Last | Second | First |
+| Best For | Conservative LPs | Balanced approach | Yield seekers |
+
+<CardGroup cols={2}>
+  <Card title="Risk-averse?" icon="shield">
+    Start with the **Senior tranche**. You earn a steady 10% APR with maximum protection from defaults.
+  </Card>
+  <Card title="Want higher yield?" icon="flame">
+    Allocate a portion to **Junior**. The 20% APR compensates for being first in line to absorb losses.
+  </Card>
+</CardGroup>
+
+<Warning>
+  All tranches carry risk. Agent defaults can result in loss of deposited funds, starting with the Junior tranche.
+</Warning>

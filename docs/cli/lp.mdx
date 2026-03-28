@@ -1,66 +1,54 @@
 ---
 title: "krexa lp"
-description: "Liquidity provider commands for depositing, withdrawing, and checking vault stats."
+sidebarTitle: "lp"
+description: "LP operations — deposit, withdraw, and check status across tranches."
+icon: "landmark"
 ---
 
-# krexa lp
+```bash
+krexa lp <command>
+```
 
-Manage liquidity provider operations: deposit USDC into the Credit Vault, withdraw funds, and view vault statistics.
+Manage liquidity provider positions across the three-tranche vault.
 
 ## Subcommands
 
-### deposit
-
-Deposit USDC into a vault tranche.
+### Deposit
 
 ```bash
-npx krexa lp deposit --amount <number> --tranche <senior|mezzanine|junior>
+krexa lp deposit <amount> --tranche <senior|mezzanine|junior>
 ```
 
-| Option | Description | Required |
-|--------|-------------|----------|
-| `--amount <number>` | Amount of USDC to deposit | Yes |
-| `--tranche <name>` | Tranche: `senior`, `mezzanine`, or `junior` | Yes |
+### Withdraw
 
 ```bash
-# Deposit 1000 USDC into the Senior tranche
-npx krexa lp deposit --amount 1000 --tranche senior
+krexa lp withdraw <amount|all> --tranche <senior|mezzanine|junior>
 ```
 
-### withdraw
-
-Withdraw USDC from a vault tranche.
+### Status
 
 ```bash
-npx krexa lp withdraw --amount <number> --tranche <senior|mezzanine|junior>
+krexa lp status
 ```
 
-| Option | Description | Required |
-|--------|-------------|----------|
-| `--amount <number>` | Amount of USDC to withdraw | Yes |
-| `--tranche <name>` | Tranche: `senior`, `mezzanine`, or `junior` | Yes |
-
-```bash
-# Withdraw 500 USDC from the Senior tranche
-npx krexa lp withdraw --amount 500 --tranche senior
+```
+LP Position:
+  Senior      $1,000.00  (10.00% APR)
+  Mezzanine   $0.00      (12.00% APR)
+  Junior      $500.00    (20.00% APR)
+  Total       $1,500.00
 ```
 
-### stats
+---
 
-View vault statistics.
+## Tranches
 
-```bash
-npx krexa lp stats
-```
+| Tranche | APR | Risk | Loss Priority |
+|---------|-----|------|--------------|
+| Senior | 10% | Low | Last |
+| Mezzanine | 12% | Medium | Second |
+| Junior | 20% | High | First |
 
-Displays total vault TVL, per-tranche balances, utilization rate, and current yields.
-
-## Tranche Overview
-
-| Tranche | Target APR | Risk |
-|---------|-----------|------|
-| Senior | 10% | Lowest |
-| Mezzanine | 12% | Medium |
-| Junior | 20% | Highest (first-loss) |
-
-See the [LP Guide](/guides/lp-guide) for detailed information on tranche mechanics and risk considerations.
+<Warning>
+  LP deposits carry risk. Agent defaults are absorbed by Junior first, then Mezzanine, then Senior.
+</Warning>
