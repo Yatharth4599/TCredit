@@ -1,0 +1,58 @@
+---
+title: "krexa config"
+description: "View and update Krexa CLI configuration."
+---
+
+# krexa config
+
+View and update the Krexa CLI configuration settings.
+
+## Usage
+
+```bash
+npx krexa config [options]
+```
+
+## Subcommands
+
+### View current config
+
+```bash
+npx krexa config
+```
+
+Displays the current configuration including keypair path, RPC endpoint, and network.
+
+### Set a config value
+
+```bash
+npx krexa config set <key> <value>
+```
+
+## Configuration Keys
+
+| Key | Description | Default |
+|-----|-------------|---------|
+| `keypair` | Path to Solana keypair file | `~/.config/solana/id.json` |
+| `rpc` | Solana RPC endpoint URL | Devnet default |
+| `network` | Solana network (`devnet` or `mainnet`) | `devnet` |
+
+## Examples
+
+```bash
+# View current config
+npx krexa config
+
+# Set a custom keypair path
+npx krexa config set keypair ./my-agent-key.json
+
+# Set a custom RPC endpoint
+npx krexa config set rpc https://my-rpc-provider.com
+
+# Switch network
+npx krexa config set network devnet
+```
+
+## Config File Location
+
+Configuration is stored at `~/.krexa/config.json`. You can also edit this file directly.

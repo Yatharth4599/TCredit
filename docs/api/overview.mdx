@@ -1,0 +1,52 @@
+---
+title: "API Overview"
+description: "Overview of the Krexa backend API endpoints for oracle signing, scoring, faucet, and vault statistics."
+---
+
+# API Overview
+
+The Krexa backend API provides off-chain services that complement the on-chain programs. The API handles oracle co-signing, credit scoring, the devnet USDC faucet, and vault statistics.
+
+## Base URL
+
+```
+https://tcredit-backend.onrender.com/api/v1
+```
+
+## Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | [`/solana/oracle/sign-credit`](/api/oracle) | Oracle co-signs a credit transaction |
+| `POST` | [`/solana/faucet/usdc`](/api/faucet) | Request devnet USDC |
+| `GET` | [`/solana/score/:agent`](/api/score) | Get an agent's Krexit Score |
+| `GET` | [`/solana/vault/stats`](/api/vault) | Get Credit Vault statistics |
+| `GET` | [`/solana/credit/:agent/eligibility`](/api/oracle) | Check credit eligibility |
+
+## Authentication
+
+Most endpoints are public. The oracle signing endpoint requires the agent's keypair signature in the request body to verify ownership.
+
+## Response Format
+
+All API responses return JSON:
+
+```json
+{
+  "success": true,
+  "data": { ... }
+}
+```
+
+Error responses:
+
+```json
+{
+  "success": false,
+  "error": "Error message"
+}
+```
+
+## Rate Limits
+
+The API is hosted on Render and has standard rate limits. The faucet endpoint has additional per-wallet rate limiting to prevent abuse.

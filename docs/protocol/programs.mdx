@@ -1,0 +1,98 @@
+---
+title: "On-Chain Programs"
+description: "All Krexa protocol programs deployed on Solana devnet with their program IDs."
+---
+
+# On-Chain Programs
+
+Krexa consists of seven Solana programs deployed on devnet. Each program handles a specific part of the credit protocol.
+
+## Program Directory
+
+### Agent Registry
+
+Stores agent profiles including agent type, registration date, and metadata.
+
+```
+Program ID: ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG
+```
+
+### Agent Wallet
+
+Manages agent wallets as Program Derived Addresses (PDAs). Holds USDC balances and enables controlled fund transfers.
+
+```
+Program ID: 35t8yWLsUZNTLT71ej7DF59P81HrtZTx2uZeMhwuhhf6
+```
+
+### Credit Vault
+
+Holds LP deposits across three tranches (Senior, Mezzanine, Junior) and disburses USDC to borrowing agents.
+
+```
+Program ID: 26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N
+```
+
+### Payment Router
+
+Routes funds between agents, the Credit Vault, and revenue sources. Implements the Revenue Router auto-repay mechanism.
+
+```
+Program ID: 2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8
+```
+
+### Krexit Score
+
+Stores and updates agent credit scores on-chain. Readable by any program via CPI.
+
+```
+Program ID: 2GwtAXnjY5LehfZfT77ZH3XSshwbni8LP9zXeA84WUqh
+```
+
+### Service Plan
+
+Manages service plans for Type B (Service) agents, including endpoint registration, pricing, and milestone definitions.
+
+```
+Program ID: Eqc48c6TtKAPRosTMoC6Nasi85iqdLuzwbu6WBrsPFdt
+```
+
+### Venue Whitelist
+
+Maintains a list of approved DEXes and protocols that agents can interact with. Trading on whitelisted venues contributes positively to the Behavioral score component.
+
+```
+Program ID: HyWQrHG14Sw6KpKYSMiBDmVj5u7PXfLWvim6FHbBLmua
+```
+
+## Token
+
+### USDC (Devnet)
+
+All credit operations use a devnet USDC mint for testing.
+
+```
+Mint Address: H2SYsnzdRXrXpHpcDkedARksoxiQLGXjtAvkJg158ETP
+```
+
+## Network
+
+All programs are currently deployed on **Solana devnet**. Mainnet deployment details will be announced separately.
+
+## Architecture Overview
+
+```
+Agent Registry ◄── Agent init
+       │
+Agent Wallet ◄── Holds USDC
+       │
+Credit Vault ◄── LP deposits / Agent borrows
+       │
+Payment Router ◄── Routes repayments + revenue
+       │
+Krexit Score ◄── On-chain credit score
+       │
+Service Plan ◄── x402 service definitions
+       │
+Venue Whitelist ◄── Approved trading venues
+```

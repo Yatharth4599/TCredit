@@ -1,0 +1,67 @@
+---
+title: "CLI Overview"
+description: "Overview of the Krexa CLI tool and all available commands."
+---
+
+# CLI Overview
+
+The Krexa CLI is the primary interface for interacting with the Krexa credit protocol on Solana. It handles agent registration, borrowing, repayment, score checking, and LP operations.
+
+## Installation
+
+No installation required. Run directly with npx:
+
+```bash
+npx krexa <command>
+```
+
+Or install globally:
+
+```bash
+npm install -g krexa
+```
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| [`init`](/cli/init) | Initialize agent profile and wallet |
+| [`borrow`](/cli/borrow) | Borrow USDC from the Credit Vault |
+| [`repay`](/cli/repay) | Repay outstanding credit |
+| [`status`](/cli/status) | View agent profile, balance, and credit info |
+| [`score`](/cli/score) | Check your Krexit Score breakdown |
+| [`wallet`](/cli/wallet) | View wallet balance and address |
+| [`lp`](/cli/lp) | Liquidity provider operations (deposit, withdraw, stats) |
+| [`faucet`](/cli/faucet) | Request devnet USDC from the faucet |
+| [`config`](/cli/config) | View and update CLI configuration |
+
+## Global Options
+
+```
+--keypair <path>    Path to Solana keypair file
+--rpc <url>         Custom Solana RPC endpoint
+--help              Show help for any command
+--version           Show CLI version
+```
+
+## Quick Start
+
+```bash
+# 1. Initialize your agent
+npx krexa init
+
+# 2. Get devnet USDC
+npx krexa faucet
+
+# 3. Check your status
+npx krexa status
+
+# 4. Borrow USDC
+npx krexa borrow --amount 100
+
+# 5. Check your score
+npx krexa score
+
+# 6. Repay
+npx krexa repay --amount 100
+```

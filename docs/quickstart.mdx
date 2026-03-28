@@ -1,0 +1,64 @@
+---
+title: Quickstart
+description: Get Krexa running in under two minutes
+---
+
+# Quickstart
+
+## 1. Install and initialize
+
+```bash
+npx krexa init
+```
+
+This creates your keypair, registers your agent on Solana, sets up your PDA wallet,
+and fetches your initial Krexit Score. All in one command.
+
+You'll be prompted for:
+- **Agent type**: Trader, Service, or Hybrid
+- **Agent name**: A human-readable name (up to 32 chars)
+
+On devnet, Krexa auto-airdrops SOL so you can start immediately.
+
+## 2. Get test USDC (devnet)
+
+```bash
+npx krexa faucet
+```
+
+Mints up to 100 test USDC to your wallet. Rate limited to once per 24 hours.
+
+## 3. Borrow
+
+```bash
+npx krexa borrow 500
+```
+
+Your agent now has $500 USDC to operate with. The oracle co-signs the credit request
+and funds are deposited into your PDA wallet.
+
+## 4. Check status
+
+```bash
+krexa status
+```
+
+Shows your score, credit line, wallet balance, and health factor at a glance.
+
+## 5. Repay
+
+```bash
+krexa repay 50
+# or repay everything:
+krexa repay all
+```
+
+In production, repayment is automatic via the Revenue Router — every dollar of revenue
+flows through Krexa first.
+
+## What's next?
+
+- [Borrowing guide](/guides/borrowing) — understand credit levels and terms
+- [Improving your score](/guides/improving-score) — tips to unlock better rates
+- [MCP mode](/mcp-mode) — use Krexa as a tool in Claude Code or Cursor
+- [CLI reference](/cli/overview) — full command documentation

@@ -1,0 +1,66 @@
+---
+title: "krexa lp"
+description: "Liquidity provider commands for depositing, withdrawing, and checking vault stats."
+---
+
+# krexa lp
+
+Manage liquidity provider operations: deposit USDC into the Credit Vault, withdraw funds, and view vault statistics.
+
+## Subcommands
+
+### deposit
+
+Deposit USDC into a vault tranche.
+
+```bash
+npx krexa lp deposit --amount <number> --tranche <senior|mezzanine|junior>
+```
+
+| Option | Description | Required |
+|--------|-------------|----------|
+| `--amount <number>` | Amount of USDC to deposit | Yes |
+| `--tranche <name>` | Tranche: `senior`, `mezzanine`, or `junior` | Yes |
+
+```bash
+# Deposit 1000 USDC into the Senior tranche
+npx krexa lp deposit --amount 1000 --tranche senior
+```
+
+### withdraw
+
+Withdraw USDC from a vault tranche.
+
+```bash
+npx krexa lp withdraw --amount <number> --tranche <senior|mezzanine|junior>
+```
+
+| Option | Description | Required |
+|--------|-------------|----------|
+| `--amount <number>` | Amount of USDC to withdraw | Yes |
+| `--tranche <name>` | Tranche: `senior`, `mezzanine`, or `junior` | Yes |
+
+```bash
+# Withdraw 500 USDC from the Senior tranche
+npx krexa lp withdraw --amount 500 --tranche senior
+```
+
+### stats
+
+View vault statistics.
+
+```bash
+npx krexa lp stats
+```
+
+Displays total vault TVL, per-tranche balances, utilization rate, and current yields.
+
+## Tranche Overview
+
+| Tranche | Target APR | Risk |
+|---------|-----------|------|
+| Senior | 10% | Lowest |
+| Mezzanine | 12% | Medium |
+| Junior | 20% | Highest (first-loss) |
+
+See the [LP Guide](/guides/lp-guide) for detailed information on tranche mechanics and risk considerations.

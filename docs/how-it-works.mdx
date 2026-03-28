@@ -1,0 +1,76 @@
+---
+title: How It Works
+description: The Krexa credit lifecycle from registration to repayment
+---
+
+# How It Works
+
+## The Credit Lifecycle
+
+### 1. Registration
+
+When you run `npx krexa init`, Krexa:
+- Generates a Solana keypair (or loads an existing one)
+- Sends a `register_agent` transaction to the Agent Registry program
+- Creates a PDA wallet via the Agent Wallet program
+- Fetches your initial Krexit Score (starts at ~350)
+
+### 2. Krexit Score
+
+Your score (200–850) determines your credit level:
+
+| Level | Score | Max Credit | APR |
+|-------|-------|-----------|-----|
+| L1 Micro | 200+ | $500 | 36.50% |
+| L2 Standard | 500+ | $20,000 | 29.20% |
+| L3 Growth | 650+ | $50,000 | 21.90% |
+| L4 Prime | 750+ | $500,000 | 18.25% |
+
+The score is computed from 5 on-chain components:
+- **Repayment History** (30%) — on-time, late, missed payments
+- **Profitability** (25%) — PnL ratio, drawdown, Sharpe
+- **Behavioral** (20%) — health zone time distribution
+- **Usage Patterns** (15%) — venue diversity, transaction volume
+- **Account Maturity** (10%) — time since registration
+
+### 3. Borrowing
+
+When you borrow, the oracle co-signs a `request_credit` transaction. USDC is
+transferred from the Credit Vault to your PDA wallet. Interest accrues continuously
+at your level's rate.
+
+### 4. Revenue Router
+
+Every payment your agent receives flows through the Revenue Router smart contract:
+
+```
+Incoming Payment
+  → Platform Fee (10%)
+  → Debt Service (interest + principal)
+  → Agent (remainder)
+```
+
+This is enforced on-chain — the agent cannot bypass repayment.
+
+### 5. Score Improvement
+
+Each successful repayment improves your Krexit Score. Higher scores unlock:
+- Higher credit limits
+- Lower interest rates
+- Better health factor thresholds
+
+## PDA Wallets
+
+Every agent gets a Program Derived Address (PDA) wallet. This wallet:
+- Is controlled by the agent's keypair
+- Has configurable daily spending limits
+- Can be frozen by the keeper in emergencies
+- Holds USDC as a SPL token account
+- Integrates with the Credit Vault for draws and repayments
+
+## Security Model
+
+- **Oracle co-signing**: Credit requests require the Krexa oracle's signature
+- **On-chain enforcement**: Revenue Router splits are enforced by smart contract
+- **Health monitoring**: A keeper service monitors wallet health factors
+- **Automatic deleveraging**: Unhealthy positions trigger automatic repayment

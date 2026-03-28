@@ -1,0 +1,65 @@
+---
+title: "Krexit Score"
+description: "How the Krexit Score algorithm works, including component weights and credit level thresholds."
+---
+
+# Krexit Score
+
+The Krexit Score is an on-chain credit score for AI agents. It determines credit level, maximum borrowing capacity, and interest rate. The score is managed by the Krexit Score program (`2GwtAXnjY5LehfZfT77ZH3XSshwbni8LP9zXeA84WUqh`).
+
+## Score Range
+
+Scores range from **0 to 1000**. Higher is better.
+
+## Components
+
+| Component | Weight | Description |
+|-----------|--------|-------------|
+| Repayment History | 30% | Tracks on-time repayments, early repayments, late payments, and defaults |
+| Profitability | 25% | Measures net revenue vs. expenses — profitable agents are more creditworthy |
+| Behavioral | 20% | Evaluates activity patterns for consistency and absence of suspicious behavior |
+| Usage Patterns | 15% | Rewards regular, sustained protocol engagement over sporadic usage |
+| Account Maturity | 10% | Rewards longevity — older agent profiles score higher |
+
+## Credit Level Thresholds
+
+| Score Range | Credit Level | Max Credit | APR |
+|-------------|-------------|-----------|------|
+| 0 – 499 | L1 Micro | $500 | 36.50% |
+| 500 – 649 | L2 Standard | $20,000 | 29.20% |
+| 650 – 749 | L3 Growth | $50,000 | 21.90% |
+| 750 – 1000 | L4 Prime | $500,000 | 18.25% |
+
+## How the Score Updates
+
+The Krexit Score updates when:
+
+- A **repayment** is processed (impacts Repayment History).
+- A **borrow** is initiated (impacts Usage Patterns).
+- The **oracle** evaluates on-chain activity (impacts Profitability and Behavioral).
+- Time passes (impacts Account Maturity).
+
+## Querying the Score
+
+### CLI
+
+```bash
+npx krexa score
+```
+
+### API
+
+```bash
+curl https://tcredit-backend.onrender.com/api/v1/solana/score/<agent-pubkey>
+```
+
+### On-Chain
+
+The score is stored in a PDA derived from the agent's public key under the Krexit Score program. Any program can read it using a cross-program invocation (CPI).
+
+## Design Principles
+
+- **On-chain verifiability.** The score is stored on Solana and can be read by any program.
+- **Multi-dimensional.** Five components prevent gaming through a single vector.
+- **Progressive.** New agents start low and build up — there are no shortcuts.
+- **Protocol-agnostic.** While Krexa uses the score for credit, other protocols can also read and use it.

@@ -1,0 +1,72 @@
+---
+title: "Claude Code MCP Setup"
+description: "Set up the Krexa MCP server with Claude Code for AI agent credit operations."
+---
+
+# Claude Code MCP Setup
+
+Integrate Krexa with Claude Code using the Model Context Protocol (MCP) server. This allows Claude to manage your agent's credit operations directly.
+
+## Prerequisites
+
+- [Claude Code](https://claude.ai/code) installed
+- Node.js 18+
+- A Solana keypair
+
+## Installation
+
+### 1. Initialize Krexa
+
+```bash
+npx krexa init
+```
+
+This creates your agent profile and wallet on Solana devnet.
+
+### 2. Add MCP Server to Claude Code
+
+Add the following to your Claude Code MCP configuration (`.claude/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "krexa": {
+      "command": "npx",
+      "args": ["krexa", "mcp"],
+      "env": {
+        "SOLANA_KEYPAIR_PATH": "~/.config/solana/id.json"
+      }
+    }
+  }
+}
+```
+
+### 3. Restart Claude Code
+
+After updating the configuration, restart Claude Code for the MCP server to be detected.
+
+## Available MCP Tools
+
+Once connected, Claude Code will have access to the following Krexa tools:
+
+- **krexa_status** — Check agent profile, balance, and credit status
+- **krexa_borrow** — Borrow USDC from the Credit Vault
+- **krexa_repay** — Repay outstanding credit
+- **krexa_score** — Check Krexit Score
+- **krexa_wallet** — View wallet balance and transactions
+
+## Usage
+
+Once configured, you can ask Claude to perform credit operations naturally:
+
+> "Check my agent's credit status"
+> "Borrow 100 USDC"
+> "Repay my outstanding balance"
+
+Claude will use the MCP tools to execute these operations on-chain.
+
+## Troubleshooting
+
+- **MCP server not detected:** Ensure the `mcp.json` file is in the `.claude/` directory of your project.
+- **Keypair not found:** Verify `SOLANA_KEYPAIR_PATH` points to a valid Solana keypair file.
+- **Network errors:** The CLI defaults to Solana devnet. Ensure you have a network connection.

@@ -1,0 +1,63 @@
+---
+title: "krexa score"
+description: "Check your agent's Krexit Score and component breakdown."
+---
+
+# krexa score
+
+Display your agent's Krexit Score along with a breakdown of each scoring component.
+
+## Usage
+
+```bash
+npx krexa score [options]
+```
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--keypair <path>` | Path to Solana keypair file |
+| `--rpc <url>` | Solana RPC endpoint |
+
+## Example
+
+```bash
+npx krexa score
+```
+
+## Output
+
+```
+Krexit Score: 542
+
+Component Breakdown:
+  Repayment History (30%):  72/100
+  Profitability (25%):      58/100
+  Behavioral (20%):         45/100
+  Usage Patterns (15%):     50/100
+  Account Maturity (10%):   30/100
+
+Credit Level: L2 Standard
+  Next Level (L3 Growth): 650 — 108 points needed
+```
+
+## Score Components
+
+| Component | Weight | What It Measures |
+|-----------|--------|-----------------|
+| Repayment History | 30% | On-time and early repayments |
+| Profitability | 25% | Net revenue vs. expenses |
+| Behavioral | 20% | Consistent, non-suspicious activity |
+| Usage Patterns | 15% | Regular protocol engagement |
+| Account Maturity | 10% | Age of agent profile |
+
+## API Alternative
+
+You can also query your score via the API:
+
+```bash
+curl https://tcredit-backend.onrender.com/api/v1/solana/score/<agent-pubkey>
+```
+
+See the [Improving Your Score](/guides/improving-score) guide for tips on raising your Krexit Score.

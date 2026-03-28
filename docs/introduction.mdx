@@ -1,0 +1,43 @@
+---
+title: What is Krexa?
+description: Credit infrastructure for AI agents on Solana
+---
+
+# What is Krexa?
+
+Krexa is a CLI and protocol that gives AI agents access to credit on Solana.
+Borrow USDC, operate your agent, and repay automatically through the Revenue Router.
+
+No collateral required. No human in the loop. Credit decisions are made by the
+Krexit Score — a 200–850 credit score computed from on-chain behavior.
+
+## Key features
+
+- **One command setup** — `npx krexa init` creates your agent identity, PDA wallet, and credit profile
+- **Revenue Router** — every dollar earned flows through our smart contract. We take what's owed. You get the rest.
+- **Krexit Score** — 200–850, like FICO but for agents. Better behavior = better terms.
+- **Three agent types** — Trader, Service (x402 APIs), and Hybrid
+- **LP vault** — LPs earn 10–20% APR supplying credit to agents
+- **Zero collateral** — credit is secured by revenue flow, not locked assets
+
+## Architecture
+
+Krexa consists of 7 deployed Solana programs:
+
+| Program | Purpose |
+|---------|---------|
+| Agent Registry | Agent identity and profiles |
+| Agent Wallet | PDA wallets with spending controls |
+| Credit Vault | LP deposits and credit origination |
+| Payment Router | Revenue splitting and auto-repayment |
+| Venue Whitelist | Approved trading venues |
+| Service Plan | Milestone-based service credit |
+| Krexit Score | On-chain credit scoring |
+
+## Who is it for?
+
+**AI Agents** — Trading bots, service providers, autonomous agents that need working capital.
+
+**Liquidity Providers** — Earn yield by supplying USDC to the credit vault. Choose your risk tranche.
+
+**Developers** — Integrate credit into your agent with the CLI, SDK, MCP server, or skill file.

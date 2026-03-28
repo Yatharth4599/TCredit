@@ -1,0 +1,66 @@
+---
+title: "Cursor MCP Setup"
+description: "Set up the Krexa MCP server with Cursor for AI agent credit operations."
+---
+
+# Cursor MCP Setup
+
+Integrate Krexa with Cursor using the Model Context Protocol (MCP) server.
+
+## Prerequisites
+
+- [Cursor](https://cursor.sh) installed
+- Node.js 18+
+- A Solana keypair
+
+## Installation
+
+### 1. Initialize Krexa
+
+```bash
+npx krexa init
+```
+
+### 2. Add MCP Server to Cursor
+
+Open Cursor Settings and navigate to the MCP section, or add the following to your `.cursor/mcp.json` file:
+
+```json
+{
+  "mcpServers": {
+    "krexa": {
+      "command": "npx",
+      "args": ["krexa", "mcp"],
+      "env": {
+        "SOLANA_KEYPAIR_PATH": "~/.config/solana/id.json"
+      }
+    }
+  }
+}
+```
+
+### 3. Restart Cursor
+
+Restart Cursor for the MCP server to be detected.
+
+## Verifying the Connection
+
+After restarting, you should see the Krexa MCP tools available in Cursor's tool list. Test the connection:
+
+> "Check my Krexa agent status"
+
+If Cursor responds with your agent profile information, the setup is complete.
+
+## Available MCP Tools
+
+- **krexa_status** — Check agent profile, balance, and credit status
+- **krexa_borrow** — Borrow USDC from the Credit Vault
+- **krexa_repay** — Repay outstanding credit
+- **krexa_score** — Check Krexit Score
+- **krexa_wallet** — View wallet balance and transactions
+
+## Troubleshooting
+
+- **Tools not showing:** Make sure the MCP configuration file is saved and Cursor has been fully restarted.
+- **Keypair errors:** Run `solana-keygen pubkey ~/.config/solana/id.json` to verify your keypair is valid.
+- **Timeout errors:** The first `npx krexa mcp` invocation may take a moment to download the package. Subsequent runs will be faster.

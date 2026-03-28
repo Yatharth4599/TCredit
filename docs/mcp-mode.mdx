@@ -1,0 +1,65 @@
+---
+title: MCP Mode
+description: Use Krexa as an MCP server with Claude Code, Cursor, and other clients
+---
+
+# MCP Mode
+
+Krexa includes a Model Context Protocol (MCP) server that exposes credit operations
+as tools. This lets AI assistants like Claude Code and Cursor interact with Krexa directly.
+
+## Installation
+
+### Claude Code
+
+```bash
+claude mcp add krexa --scope user -- npx -y @krexa/cli mcp
+```
+
+### Cursor
+
+Add to your `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "krexa": {
+      "command": "npx",
+      "args": ["-y", "@krexa/cli", "mcp"],
+      "env": {
+        "KREXA_CHAIN": "solana"
+      }
+    }
+  }
+}
+```
+
+### Other Clients
+
+Any MCP-compatible client can use Krexa. The server communicates via stdio transport.
+
+```bash
+npx @krexa/cli mcp
+```
+
+## Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `krexa_register_agent` | Register a new agent on Solana |
+| `krexa_check_balance` | Get wallet balance and credit status |
+| `krexa_pay` | Send an x402 payment |
+| `krexa_trade` | Execute a token swap |
+| `krexa_draw_credit` | Request a credit draw |
+| `krexa_repay` | Repay outstanding credit |
+| `krexa_get_score` | Get Krexit Score and eligibility |
+
+## Configuration
+
+The MCP server uses the same keypair and config as the CLI (`~/.krexa/`).
+Run `krexa init` first to set up your agent.
+
+Environment variables:
+- `KREXA_AGENT_ADDRESS` — override agent public key
+- `KREXA_BASE_URL` — override API endpoint
+- `KREXA_CHAIN` — chain selector (default: `solana`)

@@ -1,0 +1,98 @@
+---
+title: "Other MCP Clients"
+description: "Set up the Krexa MCP server with any MCP-compatible client."
+---
+
+# Other MCP Clients
+
+Krexa's MCP server works with any client that supports the Model Context Protocol. This guide covers the general setup pattern.
+
+## Prerequisites
+
+- Node.js 18+
+- A Solana keypair
+- An MCP-compatible client
+
+## General Configuration
+
+The Krexa MCP server is started with:
+
+```bash
+npx krexa mcp
+```
+
+Most MCP clients accept a JSON configuration. The standard format is:
+
+```json
+{
+  "mcpServers": {
+    "krexa": {
+      "command": "npx",
+      "args": ["krexa", "mcp"],
+      "env": {
+        "SOLANA_KEYPAIR_PATH": "~/.config/solana/id.json"
+      }
+    }
+  }
+}
+```
+
+## Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SOLANA_KEYPAIR_PATH` | Path to your Solana keypair JSON file | `~/.config/solana/id.json` |
+| `SOLANA_RPC_URL` | Custom Solana RPC endpoint | Devnet default |
+
+## Available Tools
+
+The MCP server exposes the following tools to any connected client:
+
+| Tool | Description |
+|------|-------------|
+| `krexa_status` | Check agent profile and credit status |
+| `krexa_borrow` | Borrow USDC from the Credit Vault |
+| `krexa_repay` | Repay outstanding credit |
+| `krexa_score` | Check Krexit Score breakdown |
+| `krexa_wallet` | View wallet balance |
+
+## Example: Windsurf
+
+Add to your Windsurf MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "krexa": {
+      "command": "npx",
+      "args": ["krexa", "mcp"],
+      "env": {
+        "SOLANA_KEYPAIR_PATH": "~/.config/solana/id.json"
+      }
+    }
+  }
+}
+```
+
+## Example: Custom Client
+
+If you are building your own MCP client, spawn the server process:
+
+```bash
+npx krexa mcp
+```
+
+The server communicates over stdio using the MCP protocol. See the [MCP specification](https://modelcontextprotocol.io) for details on the transport layer.
+
+## First Steps After Setup
+
+```bash
+# Initialize your agent profile (run once)
+npx krexa init
+
+# Get devnet USDC for testing
+npx krexa faucet
+
+# Verify everything works
+npx krexa status
+```

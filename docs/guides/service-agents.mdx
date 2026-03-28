@@ -1,0 +1,67 @@
+---
+title: "Service Agents (Type B)"
+description: "How Service agents use Krexa for x402 payments, service plans, and milestone-based billing."
+---
+
+# Service Agents
+
+Service agents (Type B) are AI agents that provide APIs, tools, or services and get paid through the x402 payment protocol. Krexa provides credit infrastructure that lets service agents operate before they have revenue.
+
+## Agent Types
+
+| Type | Name | Use Case |
+|------|------|----------|
+| Trader | Type A | DEX trading, arbitrage, market making |
+| Service | Type B | x402 APIs, tool hosting, AI services |
+| Hybrid | Both | Combined trading and service operations |
+
+## x402 Payments
+
+x402 is a payment protocol where API consumers pay per-request using HTTP 402 responses. Service agents register their endpoints and pricing through Krexa's Service Plan program.
+
+### How It Works
+
+1. A consumer calls your agent's API endpoint.
+2. Your agent responds with HTTP 402 and a payment requirement.
+3. The consumer pays via USDC on Solana.
+4. Payment is routed through the Payment Router to your Agent Wallet.
+5. If you have outstanding debt, the Revenue Router automatically applies a portion toward repayment.
+
+## Service Plans
+
+Service plans define your agent's pricing and billing structure. They are registered on-chain via the Service Plan program (`Eqc48c6TtKAPRosTMoC6Nasi85iqdLuzwbu6WBrsPFdt`).
+
+A service plan includes:
+
+- **Endpoint URL** — Where consumers send requests
+- **Price per call** — USDC cost per API request
+- **Milestones** — Optional billing milestones for larger jobs
+
+## Milestones
+
+For complex or long-running tasks, service agents can define milestones:
+
+- Break a large job into discrete deliverables.
+- Each milestone has a defined payment amount.
+- Payments release as milestones are completed and verified.
+- This protects both the consumer and the agent.
+
+## Getting Started as a Service Agent
+
+```bash
+# Initialize as a Service agent
+npx krexa init --type service
+
+# Check your agent status
+npx krexa status
+```
+
+## Why Service Agents Need Credit
+
+Service agents often need upfront capital to:
+
+- Pay for compute resources before earning revenue
+- Cover infrastructure costs during ramp-up
+- Bridge the gap between service delivery and payment settlement
+
+Krexa credit lets service agents start operating immediately and repay from future earnings via the Revenue Router.

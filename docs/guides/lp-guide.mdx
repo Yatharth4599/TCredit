@@ -1,0 +1,64 @@
+---
+title: "Liquidity Provider Guide"
+description: "How to deposit USDC into the Credit Vault, choose tranches, and earn yield from AI agent credit activity."
+---
+
+# Liquidity Provider Guide
+
+Liquidity providers (LPs) deposit USDC into the Krexa Credit Vault. These funds are lent to AI agents, and LPs earn yield from interest payments. Different tranches offer different risk/reward profiles.
+
+## Tranches
+
+| Tranche | Target APR | Risk Level | Description |
+|---------|-----------|------------|-------------|
+| Senior | 10% | Lowest | Last to absorb losses, first priority on repayments |
+| Mezzanine | 12% | Medium | Absorbs losses after Junior is depleted |
+| Junior | 20% | Highest | First-loss tranche, absorbs defaults first |
+
+### How Tranches Work
+
+The tranche system determines the order in which defaults are absorbed:
+
+1. **Junior** tranche takes the first loss. If an agent defaults, Junior LP deposits are reduced first.
+2. **Mezzanine** tranche is next. It only takes losses after the Junior tranche is fully depleted.
+3. **Senior** tranche is the safest. It only takes losses if both Junior and Mezzanine are wiped out.
+
+Higher risk tranches earn higher yields to compensate for the additional default exposure.
+
+## Depositing
+
+```bash
+# Deposit USDC into the Senior tranche
+npx krexa lp deposit --amount 1000 --tranche senior
+
+# Deposit into the Junior tranche for higher yield
+npx krexa lp deposit --amount 500 --tranche junior
+```
+
+## Withdrawing
+
+```bash
+# Withdraw from a tranche
+npx krexa lp withdraw --amount 500 --tranche senior
+```
+
+Withdrawals are subject to available liquidity. If all funds are currently lent out, you may need to wait for repayments before withdrawing.
+
+## Checking Vault Stats
+
+```bash
+# View vault statistics
+npx krexa lp stats
+```
+
+You can also query the API directly:
+
+```bash
+curl https://tcredit-backend.onrender.com/api/v1/solana/vault/stats
+```
+
+## Risk Considerations
+
+- Agent defaults reduce tranche balances starting from Junior.
+- Krexa mitigates risk through Krexit Score requirements, credit limits, and the Revenue Router auto-repay mechanism.
+- Diversifying across tranches can balance your risk/reward profile.

@@ -1,0 +1,57 @@
+---
+title: "Repaying Credit"
+description: "Learn how to repay borrowed USDC, including manual repayment and automatic Revenue Router repayment."
+---
+
+# Repaying Credit
+
+Timely repayment is the single most important factor in building your agent's Krexit Score. Krexa supports both manual and automatic repayment methods.
+
+## Manual Repayment
+
+Use the CLI to repay part or all of your outstanding balance:
+
+```bash
+# Repay a specific amount
+npx krexa repay --amount 50
+
+# Repay entire outstanding balance
+npx krexa repay --all
+```
+
+The repay command sends USDC from your Agent Wallet back to the Credit Vault via the Payment Router program.
+
+## Revenue Router Auto-Repay
+
+The Revenue Router is an on-chain mechanism that automatically routes a percentage of your agent's incoming revenue toward debt repayment.
+
+### How It Works
+
+1. Revenue flows into your Agent Wallet from trading profits or service payments.
+2. The Payment Router program intercepts a configurable portion of incoming funds.
+3. That portion is automatically applied to your outstanding balance.
+4. The remainder stays in your Agent Wallet for the agent to use.
+
+Auto-repay ensures your agent never misses a payment, which directly improves your Krexit Score over time.
+
+## Repayment Priority
+
+When a repayment is processed:
+
+1. **Accrued interest** is paid first.
+2. **Principal** is reduced with the remaining amount.
+
+## Impact on Krexit Score
+
+- **On-time repayments** boost your Repayment History component (30% of your score).
+- **Early repayments** provide an additional score bonus.
+- **Late or missed repayments** significantly reduce your score and may trigger a credit level downgrade.
+
+## Checking Your Balance
+
+```bash
+# View outstanding balance and repayment status
+npx krexa status
+```
+
+The status command shows your current principal, accrued interest, and total amount due.

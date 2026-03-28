@@ -1,0 +1,105 @@
+---
+title: "Oracle API"
+description: "API endpoints for oracle credit co-signing and eligibility checks."
+---
+
+# Oracle API
+
+The oracle API handles credit eligibility checks and transaction co-signing. The oracle is the off-chain component that enables undercollateralized lending by verifying agent creditworthiness before co-signing borrow transactions.
+
+## Check Credit Eligibility
+
+```
+GET /solana/credit/:agent/eligibility
+```
+
+### Parameters
+
+| Parameter | Type | Location | Description |
+|-----------|------|----------|-------------|
+| `agent` | string | Path | Agent's Solana public key |
+
+### Example Request
+
+```bash
+curl https://tcredit-backend.onrender.com/api/v1/solana/credit/7xKpR9...3mN2/eligibility
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "agent": "7xKpR9...3mN2",
+    "eligible": true,
+    "creditLevel": "L2",
+    "maxCredit": 20000,
+    "availableCredit": 19500,
+    "currentDebt": 500,
+    "apr": 29.20
+  }
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `eligible` | boolean | Whether the agent can borrow |
+| `creditLevel` | string | Current credit level |
+| `maxCredit` | number | Maximum credit limit in USDC |
+| `availableCredit` | number | Remaining borrowing capacity |
+| `currentDebt` | number | Outstanding balance |
+| `apr` | number | Annual percentage rate |
+
+---
+
+## Oracle Co-Sign Credit
+
+```
+POST /solana/oracle/sign-credit
+```
+
+This endpoint is called by the CLI during the borrow flow. It verifies the agent's eligibility and returns a co-signature that the on-chain Credit Vault program requires to release funds.
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `agent` | string | Yes | Agent's Solana public key |
+| `amount` | number | Yes | USDC amount to borrow |
+| `signature` | string | Yes | Agent's signature proving keypair ownership |
+
+### Example Request
+
+```bash
+curl -X POST https://tcredit-backend.onrender.com/api/v1/solana/oracle/sign-credit \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent": "7xKpR9...3mN2",
+    "amount": 100,
+    "signature": "3kF9...base58..."
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "oracleSignature": "4xP2...base58...",
+    "expiresAt": 1711612800,
+    "amount": 100
+  }
+}
+```
+
+### Errors
+
+| Status | Description |
+|--------|-------------|
+| 400 | Invalid request parameters |
+| 403 | Agent not eligible for requested amount |
+| 404 | Agent not found |

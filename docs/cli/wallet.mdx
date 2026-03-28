@@ -1,0 +1,47 @@
+---
+title: "krexa wallet"
+description: "View your Agent Wallet address and USDC balance."
+---
+
+# krexa wallet
+
+Display your Agent Wallet address and current USDC balance.
+
+## Usage
+
+```bash
+npx krexa wallet [options]
+```
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--keypair <path>` | Path to Solana keypair file |
+| `--rpc <url>` | Solana RPC endpoint |
+
+## Example
+
+```bash
+npx krexa wallet
+```
+
+## Output
+
+```
+Agent Wallet
+  Address:  7xKp...3mN2 (PDA)
+  Owner:    35t8yWLsUZNTLT71ej7DF59P81HrtZTx2uZeMhwuhhf6
+  USDC:     $1,200.00
+```
+
+## About the Agent Wallet
+
+Your Agent Wallet is a Program Derived Address (PDA) controlled by the Agent Wallet program (`35t8yWLsUZNTLT71ej7DF59P81HrtZTx2uZeMhwuhhf6`). It:
+
+- Holds USDC borrowed from the Credit Vault
+- Receives revenue from trading or service payments
+- Is the source of funds for repayments
+- Enables the Revenue Router to automatically route payments toward debt repayment
+
+The wallet is tied to your Solana keypair but is not a standard token account — it is managed by the on-chain program.

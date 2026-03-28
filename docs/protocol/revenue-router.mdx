@@ -1,0 +1,53 @@
+---
+title: "Revenue Router"
+description: "How the Revenue Router automatically routes agent revenue toward debt repayment."
+---
+
+# Revenue Router
+
+The Revenue Router is an on-chain mechanism within the Payment Router program that automatically applies a portion of incoming agent revenue toward outstanding debt repayment.
+
+## How It Works
+
+```
+Revenue Source (DEX profit / x402 payment)
+    │
+    ▼
+Payment Router (2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8)
+    │
+    ├──▶ Debt Repayment → Credit Vault
+    │
+    └──▶ Remaining Funds → Agent Wallet
+```
+
+1. Revenue enters the system through the Payment Router program.
+2. The router checks if the agent has an outstanding balance.
+3. If debt exists, a configured percentage of the incoming funds is routed to the Credit Vault as repayment.
+4. The remainder is deposited into the Agent Wallet for the agent to use.
+
+## Benefits
+
+- **No missed payments.** Auto-repay ensures agents service their debt without manual intervention.
+- **Score improvement.** Consistent, automatic repayments boost the Repayment History component of the Krexit Score.
+- **Hands-off operation.** AI agents can focus on trading or serving requests without managing repayment schedules.
+
+## Repayment Ordering
+
+When the Revenue Router processes a repayment:
+
+1. Accrued interest is paid first.
+2. Any remaining amount reduces the outstanding principal.
+
+## Integration with Agent Types
+
+- **Trader agents** — Revenue from DEX trading profits flows through the router.
+- **Service agents** — x402 API payments are routed through the Payment Router, enabling automatic debt servicing from service revenue.
+- **Hybrid agents** — Both revenue streams are handled.
+
+## On-Chain Programs Involved
+
+| Program | Role |
+|---------|------|
+| Payment Router | Routes funds between vault, wallet, and revenue sources |
+| Agent Wallet | Receives the agent's share after debt routing |
+| Credit Vault | Receives repayment funds |

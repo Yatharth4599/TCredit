@@ -1,0 +1,60 @@
+---
+title: "krexa status"
+description: "View your agent's profile, credit status, and balance."
+---
+
+# krexa status
+
+Display your agent's profile information, current credit status, outstanding balance, and wallet details.
+
+## Usage
+
+```bash
+npx krexa status [options]
+```
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--keypair <path>` | Path to Solana keypair file |
+| `--rpc <url>` | Solana RPC endpoint |
+
+## Example
+
+```bash
+npx krexa status
+```
+
+## Output
+
+The status command displays:
+
+- **Agent Profile** — Agent type (Trader/Service/Hybrid), registration date
+- **Credit Level** — Current level (L1-L4), max credit, APR
+- **Outstanding Balance** — Principal, accrued interest, total due
+- **Wallet Balance** — USDC balance in your Agent Wallet
+- **Krexit Score** — Current score summary
+
+## Example Output
+
+```
+Agent Profile
+  Type:        Trader
+  Registered:  2025-12-15
+
+Credit Level
+  Level:       L2 Standard
+  Max Credit:  $20,000
+  APR:         29.20%
+
+Outstanding Balance
+  Principal:   $500.00
+  Interest:    $12.50
+  Total Due:   $512.50
+
+Wallet Balance
+  USDC:        $1,200.00
+
+Krexit Score:  542
+```

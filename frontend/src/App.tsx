@@ -16,17 +16,9 @@ const DemoPage = lazy(() => import('./pages/DemoPage'))
 const Onboard = lazy(() => import('./pages/Onboard'))
 
 function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const { pathname } = useLocation()
-  const isLanding = pathname === '/'
-  const isDemo = pathname === '/demo'
-
   useEffect(() => {
-    if (isLanding || isDemo) {
-      document.documentElement.classList.remove('dark')
-    } else {
-      document.documentElement.classList.add('dark')
-    }
-  }, [isLanding, isDemo])
+    document.documentElement.classList.add('dark')
+  }, [])
 
   return <>{children}</>
 }

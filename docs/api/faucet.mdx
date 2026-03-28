@@ -1,0 +1,59 @@
+---
+title: "Faucet API"
+description: "API endpoint for requesting devnet USDC from the Krexa faucet."
+---
+
+# Faucet API
+
+Request devnet USDC tokens for testing. The faucet mints USDC using the devnet mint (`H2SYsnzdRXrXpHpcDkedARksoxiQLGXjtAvkJg158ETP`).
+
+## Request Devnet USDC
+
+```
+POST /solana/faucet/usdc
+```
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `wallet` | string | Yes | Solana wallet address to receive USDC |
+| `amount` | number | No | Amount of USDC to mint (default varies) |
+
+### Example Request
+
+```bash
+curl -X POST https://tcredit-backend.onrender.com/api/v1/solana/faucet/usdc \
+  -H "Content-Type: application/json" \
+  -d '{
+    "wallet": "7xKpR9...3mN2",
+    "amount": 1000
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "signature": "5UfD...xK9p",
+    "amount": 1000,
+    "wallet": "7xKpR9...3mN2",
+    "mint": "H2SYsnzdRXrXpHpcDkedARksoxiQLGXjtAvkJg158ETP"
+  }
+}
+```
+
+### Errors
+
+| Status | Description |
+|--------|-------------|
+| 400 | Invalid wallet address |
+| 429 | Rate limit exceeded — wait before requesting again |
+
+### Notes
+
+- This endpoint only works on **devnet**. It is not available on mainnet.
+- There is a per-wallet rate limit to prevent abuse.
+- The minted USDC has no real value.

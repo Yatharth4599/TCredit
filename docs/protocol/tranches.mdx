@@ -1,0 +1,66 @@
+---
+title: "Tranche System"
+description: "How the senior, mezzanine, and junior tranche system works in the Krexa Credit Vault."
+---
+
+# Tranche System
+
+The Krexa Credit Vault uses a three-tranche structure to allow liquidity providers to choose their preferred risk/reward profile. Tranches determine the order in which defaults are absorbed.
+
+## Tranches
+
+| Tranche | Target APR | Risk Level | Loss Priority |
+|---------|-----------|------------|---------------|
+| Senior | 10% | Lowest | Last to absorb losses |
+| Mezzanine | 12% | Medium | Second to absorb losses |
+| Junior | 20% | Highest | First to absorb losses |
+
+## Loss Waterfall
+
+When an agent defaults on their credit, losses are absorbed in order:
+
+```
+Default occurs
+    │
+    ▼
+1. Junior tranche absorbs losses first
+    │ (if Junior is depleted)
+    ▼
+2. Mezzanine tranche absorbs remaining losses
+    │ (if Mezzanine is depleted)
+    ▼
+3. Senior tranche absorbs remaining losses
+```
+
+This structure means:
+
+- **Junior LPs** take on the most risk but earn the highest yield (20% APR).
+- **Senior LPs** are the most protected and earn a lower but safer yield (10% APR).
+- **Mezzanine LPs** sit in between at 12% APR.
+
+## How Yield Is Generated
+
+Yield comes from interest payments made by borrowing agents:
+
+- L1 agents pay 36.50% APR
+- L2 agents pay 29.20% APR
+- L3 agents pay 21.90% APR
+- L4 agents pay 18.25% APR
+
+Interest payments are distributed across tranches, with Junior receiving the highest share proportional to the risk taken.
+
+## Credit Vault Program
+
+The tranche system is implemented in the Credit Vault program:
+
+```
+Program ID: 26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N
+```
+
+## Choosing a Tranche
+
+- **Conservative LPs** should choose Senior. You earn less but are protected from all but the most extreme default scenarios.
+- **Balanced LPs** should choose Mezzanine. Moderate yield with moderate protection.
+- **Risk-tolerant LPs** should choose Junior. Highest yield, but your capital is the first to be reduced in a default event.
+
+See the [LP Guide](/guides/lp-guide) for deposit and withdrawal instructions.
