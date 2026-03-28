@@ -1,19 +1,15 @@
 ---
-title: "Vault API"
-sidebarTitle: "Vault"
-description: "Query vault statistics — TVL, utilization, and tranche details."
-icon: "landmark"
+title: Vault API
+description: Query vault TVL, utilization, and tranche stats.
 ---
 
-## Get vault stats
+## GET /solana/vault/stats
 
+Returns vault statistics.
+
+```bash
+curl https://tcredit-backend.onrender.com/api/v1/solana/vault/stats
 ```
-GET /solana/vault/stats
-```
-
-Returns current vault statistics including TVL, total borrowed, utilization rate, and per-tranche details.
-
-### Response
 
 ```json
 {
@@ -21,42 +17,20 @@ Returns current vault statistics including TVL, total borrowed, utilization rate
   "totalBorrowed": 750000,
   "utilizationRate": 0.50,
   "tranches": {
-    "senior": {
-      "deposits": 800000,
-      "apr": 10.00,
-      "utilization": 0.45
-    },
-    "mezzanine": {
-      "deposits": 400000,
-      "apr": 12.00,
-      "utilization": 0.55
-    },
-    "junior": {
-      "deposits": 300000,
-      "apr": 20.00,
-      "utilization": 0.65
-    }
+    "senior": { "deposits": 800000, "apr": 10.00, "utilization": 0.45 },
+    "mezzanine": { "deposits": 400000, "apr": 12.00, "utilization": 0.55 },
+    "junior": { "deposits": 300000, "apr": 20.00, "utilization": 0.65 }
   }
 }
 ```
 
-### Example
-
-```bash
-curl https://tcredit-backend.onrender.com/api/v1/solana/vault/stats
-```
-
-<Info>
-  This is a public endpoint. No authentication required. Values are in USDC (6 decimals).
-</Info>
-
----
-
 ## Response fields
 
 | Field | Type | Description |
-|-------|------|-------------|
-| `tvl` | number | Total value locked in USDC |
-| `totalBorrowed` | number | Total USDC currently lent out |
+|-------|------|------------|
+| `tvl` | number | Total value locked (USDC, 6 decimals) |
+| `totalBorrowed` | number | USDC currently lent out |
 | `utilizationRate` | number | Ratio of borrowed to TVL (0-1) |
-| `tranches` | object | Per-tranche deposit, APR, and utilization data |
+| `tranches` | object | Per-tranche deposits, APR, utilization |
+
+Public endpoint. No authentication.

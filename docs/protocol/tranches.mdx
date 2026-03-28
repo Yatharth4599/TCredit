@@ -1,73 +1,39 @@
 ---
-title: "Tranches"
-description: "The three-tranche LP vault — risk levels, yields, and the loss waterfall."
-icon: "layers"
+title: Tranches
+description: Three-tranche LP vault — risk, yield, and loss waterfall.
 ---
 
-## Three-tranche architecture
+The Krexa vault uses three tranches to let LPs choose their risk profile.
 
-The Krexa vault uses a **three-tranche system** to let LPs choose their risk/reward profile:
+## Overview
 
-<CardGroup cols={3}>
-  <Card title="Senior" icon="shield" color="#22d3ee">
-    **10% APR** — Protected by both lower tranches. Lowest risk, lowest yield.
-  </Card>
-  <Card title="Mezzanine" icon="layers" color="#a78bfa">
-    **12% APR** — Protected by Junior tranche. Medium risk and reward.
-  </Card>
-  <Card title="Junior" icon="flame" color="#f97316">
-    **20% APR** — First-loss position. Highest risk, highest yield.
-  </Card>
-</CardGroup>
-
----
+| Tranche | APR | Risk | Loss order |
+|---------|-----|------|-----------|
+| Senior | 10% | Low | Last |
+| Mezzanine | 12% | Medium | Second |
+| Junior | 20% | High | First |
 
 ## Loss waterfall
 
-When an agent defaults, losses are absorbed in order:
-
-```mermaid
-graph TD
-    D[Agent Default] -->|First| J[Junior Tranche]
-    J -->|If depleted| M[Mezzanine Tranche]
-    M -->|If depleted| S[Senior Tranche]
-
-    style J fill:#f97316,color:#fff
-    style M fill:#a78bfa,color:#fff
-    style S fill:#22d3ee,color:#000
-```
-
+When an agent defaults:
 1. **Junior** absorbs losses first (up to total Junior deposits)
 2. **Mezzanine** absorbs losses only if Junior is fully depleted
 3. **Senior** absorbs losses only if both Junior and Mezzanine are depleted
 
-<Tip>
-  In practice, Senior tranche losses are extremely unlikely — they require total defaults exceeding the combined Junior + Mezzanine deposits.
-</Tip>
+Senior tranche losses require total defaults exceeding combined Junior + Mezzanine deposits.
 
----
+## Yield source
 
-## Yield generation
+All three tranches earn yield from agent interest payments. Interest flows: Agent -> Credit Vault -> LP Vault -> distributed proportionally within each tranche.
 
-All three tranches earn yield from the same source: **interest payments from agent credit lines**.
+## Deposit and withdraw
 
-| Source | Flow |
-|--------|------|
-| Agent interest payments | Credit Vault → LP Vault |
-| Revenue Router debt service | Payment Router → Credit Vault → LP Vault |
-
-Yield is distributed proportionally within each tranche based on deposit size.
-
----
-
-## Choosing a tranche
-
-| If you want... | Choose |
-|----------------|--------|
-| Capital preservation | **Senior** (10% APR) |
-| Balanced risk/reward | **Mezzanine** (12% APR) |
-| Maximum yield | **Junior** (20% APR) |
+```bash
+krexa lp deposit 1000 --tranche senior
+krexa lp withdraw 500 --tranche senior
+krexa lp status
+```
 
 <Warning>
-  All tranches carry risk. Deposited funds may be lost if agent defaults exceed the capacity of lower tranches. Only deposit what you can afford to lose.
+All tranches carry risk. Deposited funds may be lost if agent defaults exceed lower tranche capacity.
 </Warning>

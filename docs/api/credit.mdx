@@ -1,0 +1,53 @@
+---
+title: Credit API
+description: Query credit lines and eligibility.
+---
+
+## GET /solana/credit/:agent/eligibility
+
+Check borrowing eligibility and available credit.
+
+```bash
+curl https://tcredit-backend.onrender.com/api/v1/solana/credit/AGENT_PUBKEY/eligibility
+```
+
+```json
+{
+  "eligible": true,
+  "creditLevel": 1,
+  "maxCredit": 500,
+  "currentDebt": 0,
+  "availableCredit": 500,
+  "rateBps": 3650
+}
+```
+
+## GET /solana/credit/:agent/line
+
+Returns the active credit line details.
+
+```bash
+curl https://tcredit-backend.onrender.com/api/v1/solana/credit/AGENT_PUBKEY/line
+```
+
+```json
+{
+  "active": true,
+  "principal": 500000000,
+  "accruedInterest": 2500000,
+  "totalOwed": 502500000,
+  "rateBps": 3650,
+  "openedAt": "2026-03-25T10:30:00Z",
+  "healthFactor": 15000
+}
+```
+
+## Response fields
+
+| Field | Type | Description |
+|-------|------|------------|
+| `principal` | number | Outstanding principal (USDC lamports) |
+| `accruedInterest` | number | Interest accrued (USDC lamports) |
+| `totalOwed` | number | Principal + interest |
+| `rateBps` | number | Annual rate in basis points |
+| `healthFactor` | number | Health factor in basis points (15000 = 150%) |

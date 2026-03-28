@@ -1,89 +1,46 @@
 ---
-title: "CLI Overview"
-sidebarTitle: "Overview"
-description: "Complete reference for the @krexa/cli command-line tool."
-icon: "terminal"
+title: CLI Overview
+description: All Krexa CLI commands at a glance.
 ---
-
-## Installation
-
-<Tabs>
-  <Tab title="npx (no install)">
-    ```bash
-    npx @krexa/cli init
-    npx @krexa/cli status
-    ```
-  </Tab>
-
-  <Tab title="Global install">
-    ```bash
-    npm install -g @krexa/cli
-    krexa init
-    krexa status
-    ```
-  </Tab>
-</Tabs>
-
----
-
-## All commands
-
-<CardGroup cols={2}>
-  <Card title="init" icon="user-plus" href="/docs/cli/init">
-    Register your agent, create keypair and PDA wallet
-  </Card>
-  <Card title="borrow" icon="hand-coins" href="/docs/cli/borrow">
-    Borrow USDC from the credit vault
-  </Card>
-  <Card title="repay" icon="rotate-ccw" href="/docs/cli/repay">
-    Repay credit line debt
-  </Card>
-  <Card title="status" icon="activity" href="/docs/cli/status">
-    Agent status — score, credit, wallet, health
-  </Card>
-  <Card title="score" icon="chart-line" href="/docs/cli/score">
-    Krexit Score breakdown by component
-  </Card>
-  <Card title="wallet" icon="wallet" href="/docs/cli/wallet">
-    PDA wallet balance and details
-  </Card>
-  <Card title="faucet" icon="coins" href="/docs/cli/faucet">
-    Get test USDC on devnet
-  </Card>
-  <Card title="lp" icon="landmark" href="/docs/cli/lp">
-    LP operations — deposit, withdraw, status
-  </Card>
-  <Card title="config" icon="settings" href="/docs/cli/config">
-    View or update CLI configuration
-  </Card>
-  <Card title="mcp" icon="bot" href="/docs/mcp-mode">
-    Start MCP server for AI assistants
-  </Card>
-</CardGroup>
-
----
-
-## Quick workflow
 
 ```bash
-krexa init            # One-time setup
-krexa faucet          # Get test USDC (devnet)
-krexa borrow 500      # Borrow $500
-krexa status          # Check everything
-krexa score           # Score breakdown
-krexa repay 50        # Repay $50
+npx @krexa/cli <command>
 ```
 
----
-
-## Global options
-
-| Flag | Description |
-|------|-------------|
-| `--version` | Show CLI version |
-| `--help` | Show help for any command |
+Or install globally:
 
 ```bash
-krexa --help
-krexa borrow --help
+npm install -g @krexa/cli
+krexa <command>
+```
+
+## Commands
+
+| Command | Description |
+|---------|------------|
+| `init` | Register agent, create PDA wallet, get initial score |
+| `status` | Agent profile, score, debt, wallet, health |
+| `score [wallet]` | Krexit Score breakdown |
+| `borrow <amount>` | Borrow USDC from the vault |
+| `repay <amount\|all>` | Repay outstanding debt |
+| `wallet` | PDA wallet balance |
+| `faucet` | Get 100 test USDC (devnet) |
+| `lp <deposit\|withdraw\|status>` | LP tranche operations |
+| `config [key] [value]` | View or update config |
+| `mcp` | Start MCP server mode |
+| `docs` | Open docs in browser |
+
+## Configuration
+
+```
+~/.krexa/
+  keypair.json    # Agent keypair (Ed25519)
+  config.json     # Network, RPC URL, API URL
+```
+
+Default network: Solana devnet.
+
+```bash
+krexa config set network mainnet
+krexa config set rpcUrl https://your-rpc.com
 ```

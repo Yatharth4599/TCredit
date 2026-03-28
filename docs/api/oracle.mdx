@@ -1,19 +1,15 @@
 ---
-title: "Oracle API"
-sidebarTitle: "Oracle"
-description: "Oracle endpoints for credit eligibility checks and transaction co-signing."
-icon: "shield-check"
+title: Oracle API
+description: Credit eligibility and transaction co-signing.
 ---
 
-## Check eligibility
+## GET /solana/credit/:agent/eligibility
 
+Check if an agent qualifies for credit.
+
+```bash
+curl https://tcredit-backend.onrender.com/api/v1/solana/credit/AGENT_PUBKEY/eligibility
 ```
-GET /solana/credit/:agent/eligibility
-```
-
-Check if an agent is eligible for credit and their current limits.
-
-### Response
 
 ```json
 {
@@ -26,51 +22,41 @@ Check if an agent is eligible for credit and their current limits.
 }
 ```
 
----
+## POST /solana/oracle/sign-credit
 
-## Co-sign credit transaction
+Oracle verifies the agent's score and co-signs a borrow transaction.
 
+```bash
+curl -X POST https://tcredit-backend.onrender.com/api/v1/solana/oracle/sign-credit \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agentPubkey": "AGENT_PUBKEY",
+    "agentOrOwnerPubkey": "AGENT_PUBKEY",
+    "amount": "500000000",
+    "rateBps": 3650,
+    "creditLevel": 1,
+    "collateralValueUsdc": "0"
+  }'
 ```
-POST /solana/oracle/sign-credit
-```
-
-The oracle verifies the agent's score, checks vault liquidity, and returns a partially-signed Solana transaction.
-
-### Request body
 
 ```json
 {
-  "agentPubkey": "9QP9JDV8EbruUKwgL8SfMRv7ZWKjE9ckBB4bLgZt72Uy",
-  "agentOrOwnerPubkey": "9QP9JDV8EbruUKwgL8SfMRv7ZWKjE9ckBB4bLgZt72Uy",
-  "amount": "500000000",
-  "rateBps": 3650,
-  "creditLevel": 1,
-  "collateralValueUsdc": "0"
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `agentPubkey` | string | Agent's public key |
-| `agentOrOwnerPubkey` | string | Signer's public key |
-| `amount` | string | Amount in USDC lamports (string of digits) |
-| `rateBps` | number | Interest rate in basis points |
-| `creditLevel` | number | Agent's credit level (1-4) |
-| `collateralValueUsdc` | string | Collateral value (usually "0") |
-
-<Warning>
-  The `amount` field must be a **string of digits** (e.g., `"500000000"` for 500 USDC). Sending a number will fail validation.
-</Warning>
-
-### Response
-
-```json
-{
-  "transaction": "base64-encoded-partially-signed-transaction",
+  "transaction": "base64-encoded-partially-signed-tx",
   "message": "Credit approved"
 }
 ```
 
-<Info>
-  The returned transaction is **partially signed** by the oracle. The agent must add their signature before submitting to Solana.
-</Info>
+## Request body
+
+| Field | Type | Required | Description |
+|-------|------|----------|------------|
+| `agentPubkey` | string | Yes | Agent's public key |
+| `agentOrOwnerPubkey` | string | Yes | Signer's public key |
+| `amount` | string | Yes | USDC lamports as string (e.g., `"500000000"` = $500) |
+| `rateBps` | number | No | Interest rate in basis points |
+| `creditLevel` | number | No | Credit level (1-4) |
+| `collateralValueUsdc` | string | No | Usually `"0"` |
+
+<Warning>
+`amount` must be a **string of digits**, not a number. Sending `500000000` (number) instead of `"500000000"` (string) will fail validation.
+</Warning>

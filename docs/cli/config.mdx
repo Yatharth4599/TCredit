@@ -1,49 +1,37 @@
 ---
-title: "krexa config"
-sidebarTitle: "config"
-description: "View and update CLI configuration."
-icon: "settings"
+title: krexa config
+description: View and update CLI configuration.
 ---
-
-```bash
-krexa config [key] [value]
-```
-
-View or modify CLI settings stored at `~/.krexa/config.json`.
 
 ## Usage
 
 ```bash
-# Show all config
-krexa config
-
-# Get a specific value
-krexa config network
-
-# Set a value
-krexa config network devnet
-krexa config rpcUrl https://my-rpc.example.com
+krexa config              # Show all config
+krexa config <key>        # Get a value
+krexa config <key> <val>  # Set a value
 ```
 
----
-
-## Configuration keys
+## Keys
 
 | Key | Default | Description |
-|-----|---------|-------------|
-| `network` | `devnet` | Solana network (`devnet` or `mainnet-beta`) |
-| `rpcUrl` | — | Custom RPC endpoint (overrides network default) |
-| `agentName` | — | Your agent's registered name |
-| `agentType` | `0` | Agent type (0=Trader, 1=Service, 2=Hybrid) |
+|-----|---------|------------|
+| `network` | `devnet` | `devnet` or `mainnet-beta` |
+| `rpcUrl` | — | Custom RPC endpoint |
+| `agentName` | — | Registered agent name |
+| `agentType` | `0` | 0=Trader, 1=Service, 2=Hybrid |
 
----
+## Example
 
-## Config file location
-
-```
-~/.krexa/config.json
+```bash
+krexa config network
 ```
 
-<Tip>
-  Your keypair is stored separately at `~/.krexa/keypair.json`. Never share this file.
-</Tip>
+```
+devnet
+```
+
+```bash
+krexa config set rpcUrl https://my-rpc.example.com
+```
+
+Config stored at `~/.krexa/config.json`. Keypair at `~/.krexa/keypair.json`.

@@ -1,116 +1,58 @@
 ---
-title: "Service Agents"
-description: "Build API services and earn revenue through x402 payments — with credit to bootstrap."
-icon: "server"
+title: Service agents
+description: Build paid APIs and earn revenue through x402.
 ---
 
-## What are service agents?
+Service agents (Type B) provide APIs, compute, or data services and charge per-request via x402. Krexa credit bootstraps infrastructure before revenue kicks in.
 
-Service agents (Type B) provide APIs, SaaS tools, or compute services and charge per-request using the **x402 payment protocol**. Krexa credit lets them bootstrap infrastructure before revenue kicks in.
-
-<CardGroup cols={3}>
-  <Card title="API Providers" icon="globe">
-    Serve data, ML inference, or analytics via paid API endpoints.
-  </Card>
-  <Card title="Compute Services" icon="cpu">
-    Offer GPU compute, training jobs, or batch processing.
-  </Card>
-  <Card title="SaaS Tools" icon="layout-dashboard">
-    Build agent-to-agent tools — monitoring, alerts, orchestration.
-  </Card>
-</CardGroup>
-
----
-
-## Why service agents need credit
-
-<Steps>
-  <Step title="Bootstrap" icon="rocket">
-    Spin up infrastructure, provision APIs, set up monitoring — all before your first customer pays.
-  </Step>
-
-  <Step title="Scale" icon="trending-up">
-    Credit lets you scale capacity ahead of demand. Don't miss revenue because you couldn't handle traffic.
-  </Step>
-
-  <Step title="Bridge" icon="bridge">
-    Cover the gap between incurring costs and collecting payment. x402 payments may be delayed or batched.
-  </Step>
-</Steps>
-
----
-
-## How x402 payments work
-
-<Accordion title="x402 payment flow — step by step">
-  1. A consumer calls your agent's API endpoint.
-  2. Your agent responds with **HTTP 402** and a payment requirement.
-  3. The consumer pays via USDC on Solana.
-  4. Payment is routed through the **Payment Router** to your Agent Wallet.
-  5. If you have outstanding debt, the **Revenue Router** automatically applies a portion toward repayment.
-</Accordion>
-
-<Info>
-  x402 payments flow through Krexa's on-chain Payment Router. If you have outstanding debt, the Revenue Router automatically deducts debt service before crediting your wallet.
-</Info>
-
----
-
-## Service agent scoring
-
-Service agents are scored differently from traders:
-
-| Component | Trader Weight | Service Weight |
-|-----------|--------------|---------------|
-| Repayment History | 30% | 30% |
-| Profitability | 25% | 20% |
-| Behavioral | 20% | 15% |
-| Usage / Revenue | 15% | 25% |
-| Account Maturity | 10% | 10% |
-
-<Tip>
-  Service agents get a higher weight on **Usage / Revenue consistency** because recurring revenue is the strongest signal of ability to repay.
-</Tip>
-
----
-
-## Service plans and milestones
-
-<Tabs>
-  <Tab title="Service Plans">
-    Service plans define your agent's pricing and billing structure. They are registered on-chain via the Service Plan program.
-
-    A service plan includes:
-    - **Endpoint URL** — Where consumers send requests
-    - **Price per call** — USDC cost per API request
-    - **Milestones** — Optional billing milestones for larger jobs
-  </Tab>
-
-  <Tab title="Milestones">
-    For complex or long-running tasks, service agents can define milestones:
-
-    - Break a large job into discrete deliverables
-    - Each milestone has a defined payment amount
-    - Payments release as milestones are completed and verified
-    - This protects both the consumer and the agent
-  </Tab>
-</Tabs>
-
----
-
-## Getting started
+## Register as a service agent
 
 ```bash
-# Register as a service agent
-npx @krexa/cli init --type service --name "MyAPI-Agent"
-
-# Borrow to bootstrap
-krexa borrow 500
-
-# Check status
-krexa status
+npx @krexa/cli init --type service --name "DataAPI"
 ```
 
-<Note>
-  Once your service is live and generating revenue, the Revenue Router handles debt repayment automatically. Focus on building a great product.
-</Note>
+```
+✓ Agent registered: DataAPI (Service)
+✓ PDA wallet created
+✓ Krexit Score: 350
+```
+
+## Borrow working capital
+
+```bash
+krexa borrow 500
+```
+
+Use the $500 for compute costs, API hosting, data licensing — whatever your service needs.
+
+## How service scoring differs
+
+Service agents are weighted differently from traders:
+
+| Component | Trader | Service |
+|-----------|--------|---------|
+| Repayment History | 30% | 30% |
+| Profitability | 30% | 20% |
+| Behavioral Health | 15% | 15% |
+| Usage / Revenue | 15% | **25%** |
+| Account Maturity | 10% | 10% |
+
+Revenue consistency matters more for service agents. Regular x402 income is the strongest signal of ability to repay.
+
+## Wind-down (instead of liquidation)
+
+Traders get liquidated when NAV drops. Service agents get a wind-down:
+
+1. 14+ days of zero revenue triggers monitoring
+2. 48-hour grace period with notifications
+3. Remaining USDC reclaimed, credit line closed
+4. -40 point score penalty
+
+<CardGroup cols={2}>
+  <Card title="Publishing x402 services" icon="server" href="/docs/builders/publishing-x402-service">
+    Build a paid API with Revenue Router integration.
+  </Card>
+  <Card title="Agent types" icon="users" href="/docs/protocol/agent-types">
+    Trader, Service, and Hybrid enforcement models.
+  </Card>
+</CardGroup>

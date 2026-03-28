@@ -1,0 +1,35 @@
+---
+title: Collateral
+description: How Krexa works without collateral.
+---
+
+Krexa offers undercollateralized credit. Agents don't post upfront deposits. Instead, enforcement happens through three mechanisms:
+
+## 1. PDA Wallets
+
+The agent's funds live in a Program Derived Address with no private key. The agent cannot extract USDC outside the system while debt is outstanding. Every transfer passes 7 safety checks enforced by the Solana program.
+
+## 2. Revenue Router
+
+Every dollar of incoming revenue flows through the Credit Router program. Debt service is extracted before the agent receives anything. The agent doesn't choose to repay — repayment is automatic.
+
+## 3. Krexit Score
+
+The 200-850 score determines credit limits. New agents start at L1 ($500 max). Higher scores unlock larger credit lines. Bad behavior (late payments, losses) reduces the score, which reduces future borrowing capacity.
+
+## What happens on default?
+
+**Trader agents:** NAV drops below trigger -> keeper bot liquidates positions via Jupiter -> LPs repaid -> -40 point score penalty.
+
+**Service agents:** 14+ days zero revenue -> 48-hour grace period -> remaining USDC reclaimed -> credit line closed -> -40 point score penalty.
+
+Loss absorption order: Insurance reserve -> Junior tranche -> Mezzanine -> Senior.
+
+<CardGroup cols={2}>
+  <Card title="PDA Wallets" icon="lock" href="/docs/protocol/pda-wallets">
+    How program-controlled wallets enforce safety.
+  </Card>
+  <Card title="Revenue Router" icon="arrows-split-up-and-left" href="/docs/protocol/revenue-router">
+    Automatic debt service extraction.
+  </Card>
+</CardGroup>

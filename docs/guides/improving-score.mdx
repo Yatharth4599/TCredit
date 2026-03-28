@@ -1,132 +1,64 @@
 ---
-title: "Improving Your Score"
-description: "Strategies to increase your Krexit Score and unlock higher credit levels."
-icon: "trending-up"
+title: Improving your score
+description: Level up your Krexit Score to unlock higher credit.
 ---
 
-## Score components
+Your Krexit Score (200-850) determines your credit level. Higher score = bigger limit, lower rate.
 
-Your Krexit Score (200–850) is calculated from five weighted components:
+```bash
+krexa score
+```
 
-<Steps>
-  <Step title="Repayment History — 30%" icon="clock">
-    **The single most impactful factor.** Pay on time, every time. The Revenue Router helps by automating debt service from your revenue stream.
+```
+  KREXIT SCORE: 520 / 850
 
-    - On-time payments: +positive
-    - Early repayment: +bonus
-    - Late payments: -significant penalty
-    - Missed payments: -major penalty
-  </Step>
+  Repayment History      (30%) ████████████░░░ 78%
+  Profitability          (25%) ██████████░░░░░ 65%
+  Behavioral             (20%) █████████░░░░░░ 60%
+  Usage Patterns         (15%) ███████░░░░░░░░ 45%
+  Account Maturity       (10%) ████░░░░░░░░░░░ 30%
 
-  <Step title="Profitability — 25%" icon="trending-up">
-    Revenue relative to borrowed amount. Profitable agents are lower risk.
+  Level: L2 (Standard)
+  Next:  Need 650 for L3 (Growth)
+```
 
-    - Revenue > borrowed: +strong positive
-    - Revenue = borrowed: neutral
-    - Revenue < borrowed: -negative signal
-  </Step>
+## Components
 
-  <Step title="Behavioral — 20%" icon="shield">
-    How responsibly you manage your credit line.
+**Repayment History (30%)** — the biggest factor. Pay on time, every time. The Revenue Router helps by automating debt service. Early repayment gives a bonus.
 
-    - Maintain green health zone: +positive
-    - Consistent usage patterns: +positive
-    - Approaching liquidation: -negative
-    - Erratic behavior: -negative
-  </Step>
+**Profitability (25%)** — revenue relative to borrowed amount. Profitable agents are lower risk.
 
-  <Step title="Usage Patterns — 15%" icon="bar-chart-3">
-    Diversity and frequency of on-chain activity.
+**Behavioral Health (20%)** — maintain a green health zone. Avoid approaching liquidation thresholds.
 
-    - Use 3+ DEXs or venues: +positive
-    - Regular transaction frequency: +positive
-    - Single-venue concentration: -slight negative
-  </Step>
+**Usage Patterns (15%)** — diversify across 3+ venues. Regular transaction frequency. Avoid single-venue concentration.
 
-  <Step title="Account Maturity — 10%" icon="calendar">
-    Time since registration. This grows passively.
-
-    - 30+ days: +small bonus
-    - 90+ days: +moderate bonus
-    - 180+ days: +significant bonus
-  </Step>
-</Steps>
-
----
+**Account Maturity (10%)** — time since registration. Grows passively. 90+ days gives a moderate bonus.
 
 ## Level thresholds
 
-| From | To | Score Needed | Key Strategy |
-|------|-----|-------------|-------------|
-| **L1 to L2** | Micro to Standard | 500 | Repay 3-5 loans on time |
-| **L2 to L3** | Standard to Growth | 650 | Maintain profitability + diversify venues |
-| **L3 to L4** | Growth to Prime | 750 | Long track record + perfect repayment |
+| From | To | Points needed | Strategy |
+|------|-----|--------------|----------|
+| L1 -> L2 | Micro -> Standard | 500 | Repay 3-5 loans on time |
+| L2 -> L3 | Standard -> Growth | 650 | Maintain profitability + diversify |
+| L3 -> L4 | Growth -> Prime | 750 | Long track record + perfect repayment |
 
-<Accordion title="How long does it take to reach each level?">
-  Timelines vary based on activity, but as a rough guide:
+## Fastest path to L2
 
-  - **L1 to L2:** 2-4 weeks with consistent small borrow/repay cycles
-  - **L2 to L3:** 1-3 months with profitable operations and diversified venue usage
-  - **L3 to L4:** 3-6 months with a spotless repayment record and strong profitability
-
-  Account maturity (10% weight) means there is a minimum time floor — you cannot reach L4 in a week no matter how active you are.
-</Accordion>
-
----
-
-## Quick wins
-
-<CardGroup cols={2}>
-  <Card title="Use Revenue Router" icon="zap">
-    Automatic repayment counts as on-time. Set up revenue flow and let the protocol handle debt service.
-  </Card>
-  <Card title="Diversify venues" icon="shuffle">
-    Trade on 3+ DEXs. Usage diversity improves your behavioral and usage scores.
-  </Card>
-  <Card title="Don't max out" icon="gauge">
-    Keep utilization under 80%. Lower utilization = healthier credit line = higher behavioral score.
-  </Card>
-  <Card title="Be patient" icon="hourglass">
-    Account maturity is 10% of your score. Time in the system compounds with good behavior.
-  </Card>
-</CardGroup>
-
-<Tip>
-  **Fastest path to L2:** Borrow small ($100-200), repay quickly, repeat 3-5 times. Each successful cycle boosts your repayment history significantly.
-</Tip>
-
----
-
-## Strategies by agent type
-
-<Tabs>
-  <Tab title="Trader Agents (Type A)">
-    - Focus on **profitable trades** — profitability is 25% of your score
-    - Use multiple DEXs to boost your usage diversity score
-    - Avoid long periods of inactivity followed by sudden large borrows
-    - Let trading profits flow through the Revenue Router for automatic repayment
-  </Tab>
-
-  <Tab title="Service Agents (Type B)">
-    - **Revenue consistency** is weighted higher (25% vs. 15%) for service agents
-    - Price your APIs to cover costs and generate margin
-    - Set up x402 payment flows early so revenue begins accruing
-    - The Revenue Router is your best friend — consistent revenue = consistent repayment
-  </Tab>
-</Tabs>
-
----
-
-## Check your progress
+Borrow small ($100-200), repay quickly, repeat 3-5 times. Each successful cycle boosts repayment history significantly.
 
 ```bash
-# Detailed score breakdown
-krexa score
-
-# Overall status with level progress
-krexa status
+krexa borrow 100
+# ... operate for a few days ...
+krexa repay all
+# Repeat 3-5 times
+krexa score  # Check progress
 ```
 
-<Note>
-  Your score updates after every on-chain event (borrow, repay, trade, revenue). Run `krexa score` anytime to see your latest breakdown.
-</Note>
+<CardGroup cols={2}>
+  <Card title="Krexit Score algorithm" icon="chart-line" href="/docs/protocol/krexit-score">
+    Full scoring formulas and weight calculations.
+  </Card>
+  <Card title="Borrowing" icon="hand-coins" href="/docs/guides/borrowing">
+    Credit limits at each level.
+  </Card>
+</CardGroup>

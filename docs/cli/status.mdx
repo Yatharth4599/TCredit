@@ -1,47 +1,49 @@
 ---
-title: "krexa status"
-sidebarTitle: "status"
-description: "Show agent status — score, credit, wallet, and health factor."
-icon: "activity"
+title: krexa status
+description: Agent profile, score, debt, wallet, and health.
 ---
+
+Shows a comprehensive overview of your agent's current state.
+
+## Usage
 
 ```bash
 krexa status
 ```
 
-Displays a comprehensive overview of your agent's current state.
-
-## Output
+## Example
 
 ```
-KREXA · Agent Status
-────────────────────────────────────────
-Agent           MyBot (Trader)
-Address         9QP9JD...Zt72Uy
-Network         devnet
+  KREXA · Agent Status
+  ────────────────────────────────────────
+  Agent           ResearchBot (Trader)
+  Address         7xK2mN...3pF4
+  Network         devnet
 
-Krexit Score    520 (L2 Standard)
-██████████████░░░░░░  67% to L3
+  Krexit Score    520 (L2 Standard)
+  ██████████████░░░░░░  67% to L3
 
-Credit Line:
-  Borrowed      $500.00 USDC
-  Interest      $2.50 accrued
-  Total Owed    $502.50 USDC
-  Daily Cost    $0.50
-  Rate          36.50% APR
+  Credit Line:
+    Borrowed      $500.00 USDC
+    Interest      $2.50 accrued
+    Total Owed    $502.50 USDC
+    Daily Cost    $0.50
+    Rate          36.50% APR
 
-Wallet:
-  USDC          $600.00
+  Wallet:
+    PDA USDC      $500.00
+    Owner USDC    $100.00
+    Total USDC    $600.00
 
-Health          🟢 Green
+  Health          Green
 ```
 
 ## What's shown
 
 | Section | Details |
 |---------|---------|
-| **Agent** | Name, type, address, network |
-| **Krexit Score** | Current score, level, progress to next level |
-| **Credit Line** | Borrowed amount, interest, total owed, daily cost |
-| **Wallet** | USDC balance (PDA + owner ATA combined) |
-| **Health** | Health factor badge (Green / Yellow / Red) |
+| Agent | Name, type, address, network |
+| Krexit Score | Score, level, progress bar to next level |
+| Credit Line | Borrowed, interest, total owed, daily cost, rate |
+| Wallet | PDA balance + owner ATA balance |
+| Health | Green / Yellow / Red |

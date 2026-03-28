@@ -1,54 +1,53 @@
 ---
-title: "krexa lp"
-sidebarTitle: "lp"
-description: "LP operations — deposit, withdraw, and check status across tranches."
-icon: "landmark"
+title: krexa lp
+description: LP operations — deposit, withdraw, status.
 ---
 
-```bash
-krexa lp <command>
-```
+Manage liquidity provider positions across three tranches.
 
-Manage liquidity provider positions across the three-tranche vault.
-
-## Subcommands
-
-### Deposit
+## Usage
 
 ```bash
 krexa lp deposit <amount> --tranche <senior|mezzanine|junior>
+krexa lp withdraw <amount|all> --tranche <senior|mezzanine|junior>
+krexa lp status
 ```
 
-### Withdraw
+## Examples
 
 ```bash
-krexa lp withdraw <amount|all> --tranche <senior|mezzanine|junior>
+krexa lp deposit 1000 --tranche senior
 ```
 
-### Status
+```
+✓ Deposited $1,000.00 into Senior tranche
+  APR: 10.00%
+```
 
 ```bash
 krexa lp status
 ```
 
 ```
-LP Position:
-  Senior      $1,000.00  (10.00% APR)
-  Mezzanine   $0.00      (12.00% APR)
-  Junior      $500.00    (20.00% APR)
-  Total       $1,500.00
+  LP Position:
+    Senior      $1,000.00  (10.00% APR)
+    Mezzanine   $0.00      (12.00% APR)
+    Junior      $0.00      (20.00% APR)
+    Total       $1,000.00
 ```
 
----
+```bash
+krexa lp withdraw 500 --tranche senior
+```
+
+```
+✓ Withdrew $500.00 from Senior tranche
+```
 
 ## Tranches
 
-| Tranche | APR | Risk | Loss Priority |
+| Tranche | APR | Risk | Loss priority |
 |---------|-----|------|--------------|
 | Senior | 10% | Low | Last |
 | Mezzanine | 12% | Medium | Second |
 | Junior | 20% | High | First |
-
-<Warning>
-  LP deposits carry risk. Agent defaults are absorbed by Junior first, then Mezzanine, then Senior.
-</Warning>

@@ -1,57 +1,36 @@
 ---
-title: "Agent Types"
-description: "Trader, Service, and Hybrid agents — purpose-built scoring for different business models."
-icon: "users"
+title: Agent types
+description: Trader, Service, and Hybrid — different enforcement models.
 ---
 
-## Three agent types
+Three agent types with different scoring weights and enforcement mechanisms.
 
-<CardGroup cols={3}>
-  <Card title="Trader (Type A)" icon="chart-candlestick" color="#22d3ee">
-    DEX trading, arbitrage, market making. Scored on trading profitability and venue diversity.
-  </Card>
-  <Card title="Service (Type B)" icon="server" color="#4ade80">
-    APIs, SaaS, compute providers. Scored on revenue consistency and service uptime.
-  </Card>
-  <Card title="Hybrid (Type C)" icon="shuffle" color="#a78bfa">
-    Both trading and service revenue. Balanced scoring across all dimensions.
-  </Card>
-</CardGroup>
+## Types
 
----
+| Type | Registration | Revenue model | Enforcement |
+|------|-------------|---------------|-------------|
+| **A: Trader** | `--type trader` | Trading profits | NAV monitoring + liquidation |
+| **B: Service** | `--type service` | x402 payments | Revenue velocity + wind-down |
+| **C: Hybrid** | `--type hybrid` | Both | Dual enforcement |
 
-## How type affects scoring
-
-Each agent type has slightly different scoring weights to reflect what matters most for their business model:
+## Scoring weights
 
 | Component | Trader | Service | Hybrid |
 |-----------|--------|---------|--------|
 | Repayment History | 30% | 30% | 30% |
 | Profitability | **30%** | 20% | 25% |
-| Behavioral | 15% | 15% | 20% |
+| Behavioral Health | 15% | 15% | 20% |
 | Usage / Revenue | 15% | **25%** | 15% |
 | Account Maturity | 10% | 10% | 10% |
 
-<Info>
-  **Traders** are weighted more on profitability — can they actually make money trading? **Service agents** are weighted more on revenue consistency — do they have reliable income?
-</Info>
-
----
+Traders are weighted on profitability. Service agents are weighted on revenue consistency.
 
 ## Choosing your type
 
-Choose your type during `krexa init`:
-
 ```bash
-# Interactive
-krexa init
-
-# Or specify directly
-krexa init --type trader
-krexa init --type service
-krexa init --type hybrid
+krexa init --type trader    # DEX trading, arbitrage
+krexa init --type service   # APIs, compute, data
+krexa init --type hybrid    # Both
 ```
 
-<Note>
-  Agent type is set during registration and stored on-chain. Changing type requires re-registration.
-</Note>
+Agent type is set during registration and stored on-chain.

@@ -1,92 +1,68 @@
 ---
-title: "Repaying Debt"
-description: "Manual repayment, Revenue Router auto-repay, and strategies for faster payoff."
-icon: "rotate-ccw"
+title: Repaying debt
+description: Manual repayment and Revenue Router auto-repay.
 ---
 
-## Two ways to repay
+Two ways to repay: manually via CLI, or automatically via the Revenue Router.
 
-<Tabs>
-  <Tab title="Manual Repayment">
-    Use the CLI to repay a specific amount or your full balance:
-
-    ```bash
-    # Repay a specific amount
-    krexa repay 50
-
-    # Repay everything
-    krexa repay all
-    ```
-
-    <Info>
-      Repayment priority: **interest first**, then principal. If you owe $10 in interest and repay $50, $10 goes to interest and $40 reduces your principal.
-    </Info>
-  </Tab>
-
-  <Tab title="Revenue Router (Automatic)">
-    The Revenue Router intercepts all incoming revenue and extracts debt service automatically:
-
-    <Steps>
-      <Step title="Revenue arrives">
-        Funds land in your PDA Wallet from trading profits or service payments.
-      </Step>
-      <Step title="Router triggers">
-        The Payment Router program intercepts the incoming transaction.
-      </Step>
-      <Step title="Fees extracted">
-        Platform fee (1%) is separated from the revenue.
-      </Step>
-      <Step title="Debt serviced">
-        Outstanding debt service is sent directly to the Credit Vault.
-      </Step>
-      <Step title="Remainder deposited">
-        Whatever is left stays in your Agent Wallet for you to use.
-      </Step>
-    </Steps>
-
-    <Check>
-      You don't need to do anything — repayment happens at the protocol level. Just keep generating revenue.
-    </Check>
-  </Tab>
-</Tabs>
-
----
-
-## Repayment impact on score
-
-Timely repayment is the **single most important factor** in your Krexit Score (30% weight):
-
-| Behavior | Score Impact |
-|----------|-------------|
-| Repay on time or early | Strong positive |
-| Repay within grace period | Neutral |
-| Late repayment | Negative |
-| Revenue Router auto-repay | Positive (consistent) |
-
-<Tip>
-  The Revenue Router counts as on-time repayment. Agents that generate consistent revenue automatically build strong repayment history.
-</Tip>
-
----
-
-## Checking your balance
+## Manual repayment
 
 ```bash
-# See total owed, interest, and health
-krexa status
-
-# Detailed credit line info
-krexa score
+krexa repay 50
 ```
 
-<Accordion title="What do the health zones mean?">
-  Your health factor reflects how close you are to your credit limit:
+```
+✓ Repaid $50.00 USDC
+  Remaining: $450.00
+```
 
-  - **Green (90%+):** Healthy. Plenty of headroom.
-  - **Yellow (50–90%):** Caution. Consider repaying to improve your buffer.
-  - **Red (below 50%):** Danger. Prioritize repayment immediately to avoid liquidation.
-</Accordion>
+Repay everything:
+
+```bash
+krexa repay all
+```
+
+```
+✓ Repaid $502.50 USDC (including $2.50 accrued interest)
+  Remaining: $0.00
+  Credit line closed.
+```
+
+Interest is paid first, then principal. If you owe $10 in interest and repay $50, $10 goes to interest and $40 reduces principal.
+
+## Revenue Router (automatic)
+
+If your agent generates revenue (trading profits, x402 payments), the Revenue Router extracts debt service before funds reach your wallet.
+
+```
+Revenue: $1.00 incoming
+  Protocol fee:  $0.10 -> Treasury
+  Debt service:  $0.32 -> Credit Vault
+  You receive:   $0.58 -> PDA Wallet
+```
+
+You don't call anything. It happens at the protocol level on every inbound payment.
+
+## Impact on score
+
+Repayment History is 30% of your Krexit Score — the single largest component.
+
+| Behavior | Score impact |
+|----------|-------------|
+| Repay on time / early | Strong positive |
+| Revenue Router auto-repay | Positive (consistent) |
+| Late repayment | Negative |
+| Missed payment | Major negative |
 
 <Warning>
-  If your health factor drops below 90% (yellow zone), prioritize repayment. Below 50% (red zone) risks liquidation.
+If your health factor drops below 50% (red zone), prioritize repayment. Liquidation triggers below the NAV threshold.
 </Warning>
+
+<CardGroup cols={2}>
+  <Card title="Borrowing" icon="hand-coins" href="/docs/guides/borrowing">
+    Credit levels and the oracle co-signing flow.
+  </Card>
+  <Card title="Revenue Router" icon="arrows-split-up-and-left" href="/docs/protocol/revenue-router">
+    Full waterfall mechanics.
+  </Card>
+</CardGroup>

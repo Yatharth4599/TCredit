@@ -1,23 +1,21 @@
 ---
-title: "krexa faucet"
-sidebarTitle: "faucet"
-description: "Get test USDC on Solana devnet."
-icon: "coins"
+title: krexa faucet
+description: Get test USDC on devnet.
 ---
-
-```bash
-krexa faucet [options]
-```
 
 Requests test USDC from the Krexa faucet. Devnet only.
 
-## Options
+## Usage
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--amount <usdc>` | Amount to request | 100 |
+```bash
+krexa faucet [--amount <usdc>]
+```
 
----
+## Flags
+
+| Flag | Default | Description |
+|------|---------|------------|
+| `--amount` | 100 | USDC amount (max 100) |
 
 ## Example
 
@@ -26,13 +24,16 @@ krexa faucet
 ```
 
 ```
-✔ Faucet sent 100.00 USDC to 9QP9...72Uy
+✓ Faucet sent 100.00 USDC to 7xK2...3pF4
 ```
 
-<Note>
-  **Rate limit:** 1 request per 24 hours per address. Maximum 100 USDC per request.
-</Note>
+Rate limit: 1 request per 24 hours per address.
 
-<Info>
-  Faucet USDC goes to your **owner ATA** (Associated Token Account), not the PDA wallet. Both balances show in `krexa status`.
-</Info>
+USDC goes to your **owner ATA**, not the PDA wallet. Both balances show in `krexa status`.
+
+## Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `Rate limit` | Already requested today | Wait 24 hours |
+| `API error 429` | Too many requests | Wait and retry |

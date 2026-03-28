@@ -1,40 +1,37 @@
 ---
-title: "krexa score"
-sidebarTitle: "score"
-description: "View your Krexit Score breakdown by component."
-icon: "chart-line"
+title: krexa score
+description: Krexit Score breakdown by component.
 ---
+
+Shows your score with a breakdown of all 5 components.
+
+## Usage
 
 ```bash
 krexa score [wallet]
 ```
 
-Shows your Krexit Score with a breakdown of all five components.
+## Arguments
 
-## Parameters
-
-| Parameter | Required | Description |
-|-----------|----------|-------------|
+| Argument | Required | Description |
+|----------|----------|------------|
 | `wallet` | No | Check another agent's score by public key |
 
----
+## Example
 
-## Output
-
-```
-KREXIT SCORE · 520 / 850
-════════════════════════════════════════
-
-Repayment History      (30%) ████████████░░░ 78%
-Profitability          (25%) ██████████░░░░░ 65%
-Behavioral             (20%) █████████░░░░░░ 60%
-Usage Patterns         (15%) ███████░░░░░░░░ 45%
-Account Maturity       (10%) ████░░░░░░░░░░░ 30%
-
-Level: L2 (Standard)
-Next:  Need 650 for L3 (Growth)
+```bash
+krexa score
 ```
 
-<Info>
-  Score updates happen after each on-chain transaction. Run `krexa score` to see your latest breakdown.
-</Info>
+```
+  KREXIT SCORE: 520 / 850
+
+  Repayment History      (30%) ████████████░░░ 78%
+  Profitability          (25%) ██████████░░░░░ 65%
+  Behavioral             (20%) █████████░░░░░░ 60%
+  Usage Patterns         (15%) ███████░░░░░░░░ 45%
+  Account Maturity       (10%) ████░░░░░░░░░░░ 30%
+
+  Level: L2 (Standard)
+  Next:  Need 650 for L3 (Growth)
+```

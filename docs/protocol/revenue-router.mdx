@@ -1,75 +1,48 @@
 ---
-title: "Revenue Router"
-description: "How the Payment Router program extracts debt service from agent revenue automatically."
-icon: "split"
+title: Revenue Router
+description: How the Payment Router extracts debt service automatically.
 ---
 
-## Overview
+The Revenue Router is implemented in the Credit Router Solana program. It intercepts all agent revenue and extracts debt service before funds reach the agent.
 
-The Revenue Router is the core mechanism that makes undercollateralized lending work. It's implemented in the **Payment Router** Solana program and intercepts all agent revenue at the protocol level.
+## Waterfall
 
-```mermaid
-graph LR
-    R[Revenue] --> PR[Payment Router]
-    PR -->|1%| PF[Platform Fee]
-    PR -->|Interest + Principal| CV[Credit Vault]
-    PR -->|Remainder| AW[Agent Wallet]
+```
+Incoming payment: $1.00
+
+1. Protocol fee (10%):     $0.10  -> Treasury
+2. Senior yield:           $0.04  -> Senior tranche LPs
+3. Mezzanine yield:        $0.02  -> Mezzanine tranche LPs
+4. Junior yield:           $0.02  -> Junior tranche
+5. Debt service:           $0.32  -> Reduces outstanding balance
+6. Agent receives:         $0.50  -> Agent's PDA wallet
 ```
 
----
+The agent never touches steps 1-5. Funds are split at the Solana program level.
 
-## How it works
+## Why it works
 
-<Steps>
-  <Step title="Revenue arrives" icon="arrow-down">
-    When an agent earns revenue (trading profit, API payment, service fee), the funds are routed through the Payment Router program.
-  </Step>
+PDA wallets have no private key. The agent cannot bypass the Revenue Router. Every inbound transfer is processed by the Credit Router program, which enforces the waterfall before crediting the agent's balance.
 
-  <Step title="Platform fee" icon="percent">
-    1% platform fee is extracted first. This funds protocol development and oracle operations.
-  </Step>
+## For traders
 
-  <Step title="Debt service" icon="landmark">
-    If the agent has an active credit line, accrued interest and principal repayment are sent to the Credit Vault. The amount depends on the repayment schedule.
-  </Step>
+Revenue = trading profits. When trades settle through whitelisted venues, profit is captured and routed.
 
-  <Step title="Agent receives remainder" icon="wallet">
-    Everything left after fees and debt service lands in the agent's PDA Wallet. This is the agent's profit.
-  </Step>
-</Steps>
+## For service agents
 
-<Info>
-  Agents **cannot bypass** the Revenue Router. It's enforced at the Solana program level — the PDA wallet is controlled by the protocol, not the agent's private key.
-</Info>
+Revenue = x402 payments. When customers pay the agent's endpoint, the payment lands in the PDA wallet and triggers the Revenue Router.
 
----
+## Surplus distribution
 
-## For traders vs. service agents
+When an agent has no outstanding debt, the waterfall simplifies:
+1. Protocol fee (10%) -> Treasury
+2. Remainder -> Agent's PDA wallet
 
-<Tabs>
-  <Tab title="Traders">
-    Revenue = trading profits (sell price - buy price). The Revenue Router captures profit when trades settle through whitelisted venues.
-
-    - DEX swap profits routed automatically
-    - Arbitrage gains captured at settlement
-    - Revenue measured per-trade
-  </Tab>
-
-  <Tab title="Service Agents">
-    Revenue = x402 payments and API fees. The Revenue Router captures payments when they arrive at the agent's wallet.
-
-    - API call payments routed through protocol
-    - Subscription payments captured monthly
-    - Revenue measured per-payment
-  </Tab>
-</Tabs>
-
----
-
-## Why this matters for LPs
-
-The Revenue Router gives LPs **protocol-level guarantees** that debt service is extracted before agents receive funds. This is fundamentally different from traditional lending where borrowers manually repay.
-
-<Tip>
-  Think of it as payroll deduction for debt — the money never passes through the borrower's hands.
-</Tip>
+<CardGroup cols={2}>
+  <Card title="PDA Wallets" icon="lock" href="/docs/protocol/pda-wallets">
+    How program-controlled wallets enforce safety.
+  </Card>
+  <Card title="Tranches" icon="layers" href="/docs/protocol/tranches">
+    How LP yield is distributed across tranches.
+  </Card>
+</CardGroup>

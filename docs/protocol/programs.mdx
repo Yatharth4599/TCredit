@@ -1,86 +1,37 @@
 ---
-title: "On-Chain Programs"
-description: "The seven Solana programs that power the Krexa protocol."
-icon: "blocks"
+title: On-chain programs
+description: The 7 Solana programs powering Krexa.
 ---
 
-## Deployed programs
+## Programs
 
-Krexa consists of **7 Solana programs** deployed on devnet:
-
-| Program | Program ID | Purpose |
-|---------|-----------|---------|
-| **Agent Registry** | `AgRg...` | Agent profiles, types, credit levels |
-| **Agent Wallet** | `AWlt...` | PDA wallets, USDC token accounts |
-| **Credit Vault** | `CVlt...` | Credit lines, borrowing, interest accrual |
-| **Payment Router** | `PRtr...` | Revenue routing, debt service extraction |
-| **Krexit Score** | `KScr...` | On-chain credit scores, component tracking |
-| **Service Plan** | `SPln...` | Service agent plans, pricing, milestones |
-| **Venue Whitelist** | `VWht...` | Approved DEXs and trading venues |
-
-<Info>
-  All programs are deployed on **Solana devnet**. Mainnet deployment is planned after audit completion.
-</Info>
-
----
+| Program | ID | Purpose |
+|---------|-----|---------|
+| Agent Registry | `ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG` | Agent profiles and metadata |
+| Agent Wallet | `35t8yWLsUZNTLT71ej7DF59P81HrtZTx2uZeMhwuhhf6` | PDA wallets and token accounts |
+| Credit Vault | `26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N` | Credit lines and interest |
+| Credit Router | `2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8` | Revenue routing and debt service |
+| Krexit Score | `2GwtAXnjY5LehfZfT77ZH3XSshwbni8LP9zXeA84WUqh` | On-chain credit scores |
+| Service Plan | `Eqc48c6TtKAPRosTMoC6Nasi85iqdLuzwbu6WBrsPFdt` | Service agent plans |
+| Venue | `HyWQrHG14Sw6KpKYSMiBDmVj5u7PXfLWvim6FHbBLmua` | Whitelisted trading venues |
 
 ## Token
 
-| Token | Mint Address |
-|-------|-------------|
+| Token | Mint |
+|-------|------|
 | USDC (devnet) | `Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr` |
 
----
+Network: **Solana devnet**. Mainnet deployment after audit.
 
-## Account structure
+## PDA derivation
 
-Each agent has multiple on-chain accounts:
+All agent accounts are PDAs derived from the owner's public key:
 
-```mermaid
-graph TD
-    A[Agent Keypair] --> AP[Agent Profile PDA]
-    A --> AW[Agent Wallet PDA]
-    AW --> TA[USDC Token Account]
-    A --> CL[Credit Line PDA]
-    A --> KS[Krexit Score PDA]
+```
+Agent Profile:  ["agent_profile", owner_pubkey]
+Agent Wallet:   ["agent_wallet", agent_profile_pubkey]
+Credit Line:    ["credit_line", agent_profile_pubkey]
+Krexit Score:   ["krexit_score", agent_profile_pubkey]
 ```
 
-All PDAs are derived from the agent's public key using deterministic seeds, so they can be computed off-chain without any RPC calls.
-
----
-
-## Interacting with programs
-
-<Tabs>
-  <Tab title="CLI">
-    The CLI handles all program interactions automatically:
-    ```bash
-    krexa init      # Agent Registry + Agent Wallet
-    krexa borrow    # Credit Vault (via oracle)
-    krexa repay     # Credit Vault + Payment Router
-    krexa score     # Krexit Score
-    ```
-  </Tab>
-
-  <Tab title="API">
-    The backend API provides read access and oracle co-signing:
-    ```bash
-    # Read score
-    GET /solana/score/:agent
-
-    # Oracle co-sign
-    POST /solana/oracle/sign-credit
-    ```
-  </Tab>
-
-  <Tab title="SDK">
-    For direct program interaction, use the TypeScript SDK:
-    ```typescript
-    import { KrexaClient } from "@krexa/sdk";
-
-    const client = new KrexaClient(connection);
-    const profile = await client.getAgentProfile(agentPubkey);
-    const score = await client.getKrexitScore(agentPubkey);
-    ```
-  </Tab>
-</Tabs>
+PDAs are deterministic — compute them off-chain without RPC calls.

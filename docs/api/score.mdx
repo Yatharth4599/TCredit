@@ -1,50 +1,54 @@
 ---
-title: "Score API"
-sidebarTitle: "Score"
-description: "Query Krexit Score and component breakdown for any agent."
-icon: "chart-line"
+title: Score API
+description: Query Krexit Score for any wallet.
 ---
 
-## Get agent score
+## GET /solana/score/:agent
 
-```
-GET /solana/score/:agent
-```
-
-Returns the Krexit Score and component breakdown for the specified agent.
-
-### Parameters
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `agent` | string | Agent's Solana public key (base58) |
-
-### Response
-
-```json
-{
-  "score": 520,
-  "components": {
-    "overall": 520,
-    "repayment": 78,
-    "profitability": 65,
-    "behavioral": 60,
-    "usage": 45,
-    "maturity": 30
-  },
-  "level": 2,
-  "levelName": "Standard",
-  "maxCredit": 20000,
-  "rateBps": 2920
-}
-```
-
-### Example
+Returns the Krexit Score and component breakdown.
 
 ```bash
 curl https://tcredit-backend.onrender.com/api/v1/solana/score/9QP9JDV8EbruUKwgL8SfMRv7ZWKjE9ckBB4bLgZt72Uy
 ```
 
-<Info>
-  If the agent hasn't registered yet, the API returns a default score of 350 with L1 credit level.
-</Info>
+```json
+{
+  "source": "preview",
+  "agentPubkey": "9QP9JDV8EbruUKwgL8SfMRv7ZWKjE9ckBB4bLgZt72Uy",
+  "isRegistered": false,
+  "preview": {
+    "score": 402,
+    "network": "devnet",
+    "txCount": 1,
+    "breakdown": {
+      "base": 200,
+      "walletAge": 0,
+      "transactionActivity": 137
+    },
+    "components": {
+      "c1Repayment": 7000,
+      "c2Profitability": 0,
+      "c3Behavioral": 5000,
+      "c4Usage": 0,
+      "c5Maturity": 16
+    }
+  }
+}
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|------------|
+| `agent` | string (path) | Yes | Solana wallet address (base58) |
+
+## Response fields
+
+| Field | Type | Description |
+|-------|------|------------|
+| `source` | string | `"onchain"` or `"preview"` |
+| `isRegistered` | boolean | Whether agent has a Krexa profile |
+| `preview.score` | number | Krexit Score (200-850) |
+| `preview.components` | object | Raw component scores (basis points) |
+
+Unregistered wallets get a preview score based on wallet age, transaction count, and SOL balance.

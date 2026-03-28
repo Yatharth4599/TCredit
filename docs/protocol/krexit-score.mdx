@@ -1,82 +1,52 @@
 ---
-title: "Krexit Score"
-description: "The on-chain credit scoring algorithm — components, weights, and calculation."
-icon: "chart-line"
+title: Krexit Score
+description: The 200-850 on-chain credit score algorithm.
 ---
 
-## Overview
+The Krexit Score is a 200-850 composite score stored on-chain as a PDA.
 
-The Krexit Score is a **200–850** reputation score stored on-chain in the Krexit Score Solana program. It determines an agent's credit level, maximum borrowing capacity, and interest rate.
-
----
+```
+Seeds: ["krexit_score", agent_profile_pubkey]
+Program: 2GwtAXnj...WUqh
+```
 
 ## Components
 
-| Component | Weight | What It Measures |
-|-----------|--------|-----------------|
-| Repayment History | **30%** | On-time payments, missed payments, average repayment speed |
-| Profitability | **25%** | Revenue relative to borrowed amount |
-| Behavioral | **20%** | Health factor maintenance, consistent patterns |
-| Usage Patterns | **15%** | Venue diversity, transaction frequency |
-| Account Maturity | **10%** | Time since registration |
-
----
+| Component | Weight | Signals |
+|-----------|--------|---------|
+| Repayment History | 30% | On-time rate, average days to repay, missed payments |
+| Profitability | 25% | P&L ratio, Sharpe ratio, max drawdown |
+| Behavioral Health | 20% | % time in Green/Yellow/Orange/Red zones |
+| Usage Patterns | 15% | Venue diversity (Shannon entropy), volume consistency |
+| Account Maturity | 10% | Age, lifetime volume, completed credit cycles |
 
 ## Credit levels
 
-| Level | Name | Score Range | Max Credit | APR |
-|-------|------|-------------|------------|-----|
-| L1 | Micro | 200–499 | $500 | 36.50% |
-| L2 | Standard | 500–649 | $20,000 | 29.20% |
-| L3 | Growth | 650–749 | $50,000 | 21.90% |
-| L4 | Prime | 750–850 | $500,000 | 18.25% |
+| Level | Score | Max Credit | APR |
+|-------|-------|-----------|-----|
+| L1 Micro | 200-499 | $500 | 36.50% |
+| L2 Standard | 500-649 | $20,000 | 29.20% |
+| L3 Growth | 650-749 | $50,000 | 21.90% |
+| L4 Prime | 750-850 | $500,000 | 18.25% |
 
-<Info>
-  All agents start at **350** (L1 Micro). Score updates happen after each on-chain transaction involving the agent.
-</Info>
+## Recency weighting
 
----
+| Period | Weight |
+|--------|--------|
+| Last 30 days | 2.0x |
+| 30-90 days | 1.5x |
+| 90-180 days | 1.0x |
+| 180+ days | 0.5x |
 
-## Score updates
+## Querying
 
-The score is recalculated by the oracle after relevant on-chain events:
+```bash
+krexa score                    # CLI
+krexa score AGENT_PUBKEY       # Another agent
+```
 
-- Credit line opened or closed
-- Repayment processed
-- Revenue received through Payment Router
-- Health factor changes
-- Time-based maturity updates (daily)
+```bash
+curl https://tcredit-backend.onrender.com/api/v1/solana/score/AGENT_PUBKEY
+```
 
----
-
-## Querying the score
-
-<Tabs>
-  <Tab title="CLI">
-    ```bash
-    krexa score           # Your score
-    krexa score <pubkey>  # Another agent's score
-    ```
-  </Tab>
-
-  <Tab title="API">
-    ```bash
-    curl https://tcredit-backend.onrender.com/api/v1/solana/score/<agent-pubkey>
-    ```
-
-    ```json
-    {
-      "score": 520,
-      "components": {
-        "repayment": 78,
-        "profitability": 65,
-        "behavioral": 60,
-        "usage": 45,
-        "maturity": 30
-      },
-      "level": 2,
-      "levelName": "Standard"
-    }
-    ```
-  </Tab>
-</Tabs>
+The score PDA is readable by any Solana program via CPI without an oracle call.

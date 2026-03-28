@@ -1,0 +1,32 @@
+---
+title: krexa mcp
+description: Start MCP server mode for AI assistants.
+---
+
+Starts Krexa as a Model Context Protocol server. AI assistants (Claude Code, Cursor) can call Krexa tools directly.
+
+## Usage
+
+```bash
+krexa mcp
+```
+
+This is typically not run directly. Instead, register it with your AI client:
+
+```bash
+claude mcp add krexa --scope user -- npx -y @krexa/cli mcp
+```
+
+## Available tools
+
+| Tool | Description |
+|------|------------|
+| `register_agent` | Register on Solana |
+| `check_balance` | Get USDC balance |
+| `draw_credit` | Borrow USDC |
+| `repay` | Repay debt |
+| `get_score` | Krexit Score breakdown |
+| `pay` | Send USDC |
+| `trade` | Execute DEX trade |
+
+See [MCP Integration](/docs/mcp-mode) for setup guides.

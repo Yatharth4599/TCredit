@@ -1,0 +1,45 @@
+---
+title: Webhook events
+description: Subscribe to credit events via webhooks.
+---
+
+<Note>
+Webhooks are not yet available in the current devnet release. This page documents the planned webhook system.
+</Note>
+
+## Planned events
+
+| Event | Trigger |
+|-------|---------|
+| `credit.opened` | New credit line opened |
+| `credit.repaid` | Partial or full repayment |
+| `credit.closed` | Credit line fully repaid and closed |
+| `score.updated` | Krexit Score changed |
+| `health.warning` | Health factor dropped to Yellow |
+| `health.critical` | Health factor dropped to Red |
+| `liquidation.triggered` | Keeper initiated liquidation |
+
+## Planned payload format
+
+```json
+{
+  "event": "credit.opened",
+  "timestamp": "2026-03-28T10:30:00Z",
+  "agent": "AGENT_PUBKEY",
+  "data": {
+    "amount": 500000000,
+    "rateBps": 3650,
+    "creditLevel": 1
+  }
+}
+```
+
+## Registration (planned)
+
+```bash
+curl -X POST https://tcredit-backend.onrender.com/api/v1/webhooks \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://your-server.com/webhook", "events": ["credit.opened", "score.updated"]}'
+```
+
+Watch the [GitHub repo](https://github.com/Yatharth4599/Krexa) for webhook release announcements.

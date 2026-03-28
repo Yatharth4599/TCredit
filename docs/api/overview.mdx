@@ -1,55 +1,30 @@
 ---
-title: "API Overview"
-sidebarTitle: "Overview"
-description: "REST API for querying scores, credit lines, and vault stats."
-icon: "code"
+title: API Overview
+description: REST API for scores, credit, faucet, and vault stats.
 ---
 
-## Base URL
+Base URL:
 
 ```
 https://tcredit-backend.onrender.com/api/v1
 ```
 
----
-
 ## Endpoints
 
-<CardGroup cols={2}>
-  <Card title="Score" icon="chart-line" href="/docs/api/score">
-    `GET /solana/score/:agent` — Krexit Score and component breakdown
-  </Card>
-  <Card title="Faucet" icon="coins" href="/docs/api/faucet">
-    `POST /solana/faucet/usdc` — Request devnet test USDC
-  </Card>
-  <Card title="Oracle" icon="shield-check" href="/docs/api/oracle">
-    `POST /solana/oracle/sign-credit` — Co-sign credit transactions
-  </Card>
-  <Card title="Vault" icon="landmark" href="/docs/api/vault">
-    `GET /solana/vault/stats` — Vault TVL, utilization, and tranche data
-  </Card>
-</CardGroup>
-
----
+| Method | Path | Description |
+|--------|------|------------|
+| GET | `/solana/score/:agent` | Krexit Score and components |
+| GET | `/solana/credit/:agent/eligibility` | Credit eligibility check |
+| GET | `/solana/credit/:agent/line` | Active credit line details |
+| GET | `/solana/vault/stats` | Vault TVL and tranche data |
+| POST | `/solana/faucet/usdc` | Request devnet USDC |
+| POST | `/solana/oracle/sign-credit` | Oracle co-sign a borrow tx |
 
 ## Authentication
 
-Most endpoints are **public** and don't require authentication. The oracle endpoint requires a valid agent signature.
+Most endpoints are public. Oracle signing requires a valid agent registration.
 
----
-
-## Response format
-
-All responses return JSON:
-
-```json
-{
-  "data": { ... },
-  "error": null
-}
-```
-
-Error responses:
+## Errors
 
 ```json
 {
@@ -58,13 +33,13 @@ Error responses:
 }
 ```
 
----
+| Status | Meaning |
+|--------|---------|
+| 400 | Bad request / validation failed |
+| 404 | Agent or resource not found |
+| 429 | Rate limited |
+| 500 | Server error |
 
-## Rate limits
-
-| Endpoint | Limit |
-|----------|-------|
-| Score queries | 60/min |
-| Faucet | 1/24h per address |
-| Oracle signing | 10/min |
-| Vault stats | 60/min |
+<Note>
+The backend runs on Render free tier. First request after inactivity may take 30-60 seconds.
+</Note>

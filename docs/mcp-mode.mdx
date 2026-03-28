@@ -1,124 +1,48 @@
 ---
-title: "MCP Server Mode"
-description: "Give AI coding assistants native access to Krexa tools via the Model Context Protocol."
-icon: "bot"
+title: MCP Integration
+description: Give AI assistants native access to Krexa tools.
 ---
 
-## What is MCP?
+The Model Context Protocol (MCP) lets AI assistants call Krexa tools directly.
 
-The **Model Context Protocol (MCP)** lets AI assistants call external tools directly.
-Krexa's MCP server exposes borrowing, repayment, scoring, and wallet tools to any MCP-compatible client.
+## Quick setup
+
+```bash
+claude mcp add krexa --scope user -- npx -y @krexa/cli mcp
+```
+
+That's it. Claude Code can now borrow, repay, check scores, and manage your agent.
+
+## Available tools
+
+| Tool | Description |
+|------|------------|
+| `register_agent` | Register on Solana |
+| `check_balance` | Get USDC balance |
+| `draw_credit` | Borrow USDC |
+| `repay` | Repay debt |
+| `get_score` | Krexit Score breakdown |
+| `pay` | Send USDC |
+| `trade` | Execute DEX trade |
+
+## Environment variables
+
+| Variable | Default | Description |
+|----------|---------|------------|
+| `KREXA_KEYPAIR` | `~/.krexa/keypair.json` | Path to keypair |
+| `KREXA_NETWORK` | `devnet` | Solana network |
+| `KREXA_RPC_URL` | Solana devnet RPC | Custom RPC |
+
+## Client setup guides
 
 <CardGroup cols={3}>
   <Card title="Claude Code" icon="terminal" href="/docs/installation/claude-code">
-    Add Krexa to Claude Code with a single command.
+    One command setup.
   </Card>
   <Card title="Cursor" icon="mouse-pointer" href="/docs/installation/cursor">
-    Configure Krexa as an MCP server in Cursor.
+    JSON config file.
   </Card>
-  <Card title="Other Clients" icon="plug" href="/docs/installation/other-clients">
-    Any MCP-compatible client can connect to Krexa.
+  <Card title="Other clients" icon="plug" href="/docs/installation/other-clients">
+    Generic MCP config.
   </Card>
 </CardGroup>
-
----
-
-## Available Tools
-
-When running as an MCP server, Krexa exposes the following tools to your AI assistant:
-
-<Tabs>
-  <Tab title="Credit & Payments">
-    | Tool | Description |
-    |------|-------------|
-    | `draw_credit` | Borrow USDC from the vault up to your credit limit |
-    | `repay` | Repay outstanding debt (partial or full) |
-    | `pay` | Send USDC to any Solana address |
-  </Tab>
-  <Tab title="Wallet & Identity">
-    | Tool | Description |
-    |------|-------------|
-    | `register_agent` | Register a new agent on Solana and create a PDA wallet |
-    | `check_balance` | Check your PDA wallet USDC balance |
-    | `get_score` | Fetch your full Krexit Score breakdown |
-  </Tab>
-  <Tab title="Trading">
-    | Tool | Description |
-    |------|-------------|
-    | `trade` | Execute a DEX trade through supported venues |
-  </Tab>
-</Tabs>
-
----
-
-## Quick Setup
-
-<Steps>
-  <Step title="Initialize your agent">
-    If you haven't already, set up your Krexa agent:
-
-    ```bash
-    npx @krexa/cli init
-    ```
-  </Step>
-  <Step title="Register the MCP server">
-    Add Krexa to Claude Code (recommended) with one command:
-
-    ```bash
-    claude mcp add krexa --scope user -- npx -y @krexa/cli mcp
-    ```
-
-    Or run the MCP server standalone:
-
-    ```bash
-    npx @krexa/cli mcp
-    ```
-  </Step>
-  <Step title="Start using tools">
-    Your AI assistant can now call Krexa tools directly. Try asking it to check your balance or borrow USDC.
-  </Step>
-</Steps>
-
-<Info>
-  The MCP server uses the same keypair and config as the CLI. Run `krexa init` first to set up your agent.
-</Info>
-
----
-
-## Environment Variables
-
-Configure the MCP server behaviour with these environment variables:
-
-<AccordionGroup>
-  <Accordion title="KREXA_KEYPAIR" icon="key">
-    **Default:** `~/.krexa/keypair.json`
-
-    Path to your agent's Solana keypair file. Override this if you store your keypair in a non-standard location.
-
-    ```bash
-    export KREXA_KEYPAIR="/path/to/your/keypair.json"
-    ```
-  </Accordion>
-  <Accordion title="KREXA_NETWORK" icon="globe">
-    **Default:** `devnet`
-
-    The Solana network to connect to. Use `devnet` for testing or `mainnet-beta` for production.
-
-    ```bash
-    export KREXA_NETWORK="devnet"
-    ```
-  </Accordion>
-  <Accordion title="KREXA_RPC_URL" icon="server">
-    **Default:** Solana public devnet RPC
-
-    Set a custom RPC endpoint for better reliability or rate limits.
-
-    ```bash
-    export KREXA_RPC_URL="https://your-rpc-provider.com"
-    ```
-  </Accordion>
-</AccordionGroup>
-
-<Warning>
-  Never commit your keypair file to version control. Add `~/.krexa/` to your `.gitignore`.
-</Warning>

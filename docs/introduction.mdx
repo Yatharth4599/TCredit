@@ -1,151 +1,80 @@
 ---
-title: "Welcome to Krexa"
-sidebarTitle: "Introduction"
-description: "The credit layer for AI agents on Solana. Borrow USDC, build reputation, scale autonomously."
-mode: "wide"
-icon: "sparkles"
+title: What is Krexa?
+description: Credit infrastructure for AI agents on Solana.
 ---
 
-<Info>
-  **Krexa is live on Solana devnet.** Start building in under 2 minutes with `npx @krexa/cli init`
-</Info>
+Krexa is a CLI and protocol that gives AI agents credit on Solana. Borrow USDC, operate your agent, repay automatically through the Revenue Router.
 
-# Credit infrastructure for autonomous agents
+No collateral. No human approval. Credit decisions come from the Krexit Score — a 200-850 score computed from on-chain behavior.
 
-Krexa gives AI agents access to **undercollateralized credit lines** on Solana. Agents borrow USDC, operate autonomously, and repay through an on-chain Revenue Router — building a portable credit score along the way.
+## Quick setup
 
-<CardGroup cols={3}>
-  <Card title="CLI" icon="terminal" color="#22d3ee" href="/docs/quickstart">
-    One command to init, borrow, repay, and monitor. Built for automation.
-  </Card>
-  <Card title="MCP Server" icon="robot" color="#4ade80" href="/docs/mcp-mode">
-    Native tool access for Claude Code, Cursor, and any MCP-compatible client.
-  </Card>
-  <Card title="Hosted Skill" icon="file-lines" color="#a78bfa" href="/docs/installation/other-clients">
-    Drop `krexa.xyz/skill.md` into any agent's system prompt.
-  </Card>
-</CardGroup>
-
----
-
-## Why Krexa?
-
-<CardGroup cols={2}>
-  <Card title="Zero Collateral" icon="unlock">
-    No upfront deposits. Credit is based on your agent's on-chain behavior and Krexit Score.
-  </Card>
-  <Card title="Revenue Router" icon="split" >
-    Every dollar of revenue flows through Krexa first — debt service is automatic, not manual.
-  </Card>
-  <Card title="Krexit Score" icon="chart-line">
-    A 200–850 reputation score that unlocks higher credit limits and lower rates over time.
-  </Card>
-  <Card title="Three Agent Types" icon="users">
-    Purpose-built scoring for Traders, Service agents, and Hybrids.
-  </Card>
-  <Card title="LP Vault" icon="vault">
-    Three-tranche vault lets LPs choose their risk/reward — Senior, Mezzanine, or Junior.
-  </Card>
-  <Card title="7 Solana Programs" icon="cubes">
-    Agent Registry, Credit Vault, Payment Router, Krexit Score, and more — all deployed on devnet.
-  </Card>
-</CardGroup>
-
----
-
-## Architecture at a glance
-
-```mermaid
-graph LR
-    A[AI Agent] -->|1. Register| B[Agent Registry]
-    A -->|2. Borrow| C[Credit Vault]
-    C -->|USDC| D[Agent Wallet PDA]
-    D -->|3. Operate| E[DEXs / APIs]
-    E -->|4. Revenue| F[Payment Router]
-    F -->|Debt Service| C
-    F -->|Remainder| D
-    F -->|5. Score Update| G[Krexit Score]
-    G -->|Level Up| C
+<CodeGroup>
+```bash CLI
+npx @krexa/cli init
 ```
 
-<Tabs>
-  <Tab title="For AI Agents">
-    <Steps>
-      <Step title="Register your agent">
-        Run `npx @krexa/cli init` to create your on-chain identity, PDA wallet, and initial Krexit Score of 350.
-      </Step>
-      <Step title="Borrow USDC">
-        Draw from the Credit Vault with `krexa borrow`. The oracle co-signs your transaction — no collateral needed.
-      </Step>
-      <Step title="Operate freely">
-        Trade on DEXs, pay for API calls, provide services. Krexa does not restrict how you use your credit.
-      </Step>
-      <Step title="Repay and level up">
-        Revenue flows through the Payment Router automatically. Each repayment improves your Krexit Score.
-      </Step>
-    </Steps>
-  </Tab>
-  <Tab title="For Liquidity Providers">
-    <Steps>
-      <Step title="Choose your tranche">
-        Pick Senior (lowest risk, lowest yield), Mezzanine (balanced), or Junior (highest risk, highest yield).
-      </Step>
-      <Step title="Deposit USDC">
-        Supply USDC to the Credit Vault. Your funds are lent to scored agents with on-chain repayment guarantees.
-      </Step>
-      <Step title="Earn yield">
-        Interest payments from borrowing agents flow back to your tranche. Earn 10-20% APR depending on risk tier.
-      </Step>
-    </Steps>
-  </Tab>
-  <Tab title="For Developers">
-    <Steps>
-      <Step title="Pick your integration">
-        CLI for scripts, MCP Server for AI IDEs, SDK for custom builds, or the Hosted Skill for zero-code setup.
-      </Step>
-      <Step title="Initialize in one command">
-        ```bash
-        npx @krexa/cli init
-        ```
-      </Step>
-      <Step title="Build and ship">
-        Full TypeScript SDK, REST API, and 12 CLI commands at your disposal.
-      </Step>
-    </Steps>
-  </Tab>
-</Tabs>
+```text Skill
+# Paste into your agent's prompt:
+Fetch and follow krexa.xyz/skill.md
+```
 
----
+```bash MCP
+claude mcp add krexa --scope user -- npx -y @krexa/cli mcp
+```
+</CodeGroup>
+
+## How credit works
+
+<Steps>
+  <Step title="Register">
+    `npx @krexa/cli init` creates your agent identity, PDA wallet, and Krexit Score on Solana.
+  </Step>
+  <Step title="Borrow">
+    `krexa borrow 500` draws USDC from the vault. The oracle co-signs your transaction.
+  </Step>
+  <Step title="Operate">
+    Trade, provide services, earn revenue. Use the credit however you want.
+  </Step>
+  <Step title="Auto-repay">
+    Revenue flows through the Revenue Router. Debt service is extracted before you receive funds.
+  </Step>
+</Steps>
+
+## Credit levels
+
+| Level | Max Credit | APR | Requirement |
+|-------|-----------|-----|-------------|
+| L1 Micro | $500 | 36.50% | New agent |
+| L2 Standard | $20,000 | 29.20% | Score >= 500 |
+| L3 Growth | $50,000 | 21.90% | Score >= 650 |
+| L4 Prime | $500,000 | 18.25% | Score >= 750 |
 
 ## On-chain programs
 
-<Accordion title="7 deployed Solana programs on devnet">
-  | Program | Purpose |
-  |---------|---------|
-  | **Agent Registry** | Agent identity, profiles, and type classification |
-  | **Agent Wallet** | PDA wallets with spending controls and freeze logic |
-  | **Credit Vault** | LP deposits, credit origination, and tranche accounting |
-  | **Payment Router** | Revenue splitting and automatic debt service |
-  | **Venue Whitelist** | Approved trading venues for Trader agents |
-  | **Service Plan** | Milestone-based credit for Service agents |
-  | **Krexit Score** | On-chain credit scoring (200-850) |
-</Accordion>
+7 Solana programs deployed on devnet:
 
----
-
-## Quick links
+| Program | Address |
+|---------|---------|
+| Agent Registry | `ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG` |
+| Agent Wallet | `35t8yWLsUZNTLT71ej7DF59P81HrtZTx2uZeMhwuhhf6` |
+| Credit Vault | `26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N` |
+| Credit Router | `2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8` |
+| Krexit Score | `2GwtAXnjY5LehfZfT77ZH3XSshwbni8LP9zXeA84WUqh` |
+| Service Plan | `Eqc48c6TtKAPRosTMoC6Nasi85iqdLuzwbu6WBrsPFdt` |
+| Venue | `HyWQrHG14Sw6KpKYSMiBDmVj5u7PXfLWvim6FHbBLmua` |
 
 <CardGroup cols={2}>
   <Card title="Quickstart" icon="rocket" href="/docs/quickstart">
-    Init, Faucet, Borrow, Status in 5 commands
+    Init, borrow, and check status in 5 commands.
   </Card>
-  <Card title="How It Works" icon="lightbulb" href="/docs/how-it-works">
-    Credit lifecycle, scoring algorithm, and PDA wallets
+  <Card title="How it works" icon="gears" href="/docs/how-it-works">
+    Revenue Router, Krexit Score, PDA wallets.
   </Card>
-  <Card title="CLI Reference" icon="book-open" href="/docs/cli/overview">
-    Full command documentation for all 12 commands
+  <Card title="CLI Reference" icon="terminal" href="/docs/cli/overview">
+    All 12 commands documented.
   </Card>
-  <Card title="API Reference" icon="code" href="/docs/api/overview">
-    REST endpoints for score, credit, faucet, and vault
+  <Card title="For Builders" icon="code" href="/docs/builders/sdk">
+    SDK, x402 integration, score queries.
   </Card>
 </CardGroup>

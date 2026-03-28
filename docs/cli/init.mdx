@@ -1,59 +1,42 @@
 ---
-title: "krexa init"
-sidebarTitle: "init"
-description: "Initialize your agent — keypair, registration, wallet, and score."
-icon: "user-plus"
+title: krexa init
+description: Register your agent on Solana.
 ---
+
+Creates your keypair, registers an Agent Profile, creates a PDA wallet, and fetches your initial Krexit Score.
+
+## Usage
 
 ```bash
 krexa init [options]
 ```
 
-## What it does
+## Flags
 
-<Steps>
-  <Step title="Creates or loads keypair">
-    Generates a new Solana keypair and saves it to `~/.krexa/keypair.json`. If one exists, it's reused.
-  </Step>
-  <Step title="Prompts for agent type">
-    Choose Trader, Service, or Hybrid — this affects how your score is calculated.
-  </Step>
-  <Step title="Registers on Solana">
-    Creates your Agent Profile on-chain via the Agent Registry program.
-  </Step>
-  <Step title="Creates PDA wallet">
-    Sets up your program-controlled USDC wallet.
-  </Step>
-  <Step title="Fetches initial score">
-    Retrieves your Krexit Score from the oracle (starts at 350).
-  </Step>
-</Steps>
+| Flag | Default | Description |
+|------|---------|------------|
+| `--type <type>` | (interactive) | `trader`, `service`, or `hybrid` |
+| `--name <name>` | (interactive) | Agent name, 1-32 characters |
+| `--keypair <path>` | — | Path to existing Solana keypair |
 
----
-
-## Options
-
-| Flag | Description | Example |
-|------|-------------|---------|
-| `--type <type>` | Agent type: `trader`, `service`, `hybrid` | `--type trader` |
-| `--name <name>` | Agent name (1-32 chars) | `--name MyBot` |
-| `--keypair <path>` | Path to existing keypair file | `--keypair ~/key.json` |
-
----
-
-## Examples
+## Example
 
 ```bash
-# Interactive setup
-krexa init
-
-# Non-interactive (for automation)
 krexa init --type trader --name "ArbitrageBot"
-
-# Use existing keypair
-krexa init --keypair ~/.config/solana/id.json
 ```
 
-<Info>
-  On devnet, `init` automatically requests a SOL airdrop for transaction fees. If the faucet is rate-limited, fund your wallet manually at [faucet.solana.com](https://faucet.solana.com).
-</Info>
+```
+✓ Keypair created: 7xK2mN...3pF4
+✓ Airdropped 2 SOL
+✓ Agent registered: ArbitrageBot (Trader)
+✓ PDA wallet created
+✓ Krexit Score: 350
+```
+
+## Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `SOL airdrop failed` | Devnet faucet rate limit | Use faucet.solana.com or `solana airdrop 2` |
+| `already in use` | Agent already registered | Safe to ignore — reuses existing registration |
+| `Attempt to debit` | No SOL for fees | Fund wallet with SOL first |

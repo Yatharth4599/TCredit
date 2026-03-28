@@ -1,34 +1,48 @@
 ---
-title: "krexa repay"
-sidebarTitle: "repay"
-description: "Repay outstanding credit line debt."
-icon: "rotate-ccw"
+title: krexa repay
+description: Repay outstanding credit line debt.
 ---
+
+Repays your credit line. Interest is paid first, then principal.
+
+## Usage
 
 ```bash
 krexa repay <amount|all>
 ```
 
-Repays your credit line. Interest is paid first, then principal.
+## Arguments
 
-## Parameters
-
-| Parameter | Required | Description |
-|-----------|----------|-------------|
+| Argument | Required | Description |
+|----------|----------|------------|
 | `amount` | Yes | USDC amount or `all` for full repayment |
 
----
-
-## Examples
+## Example
 
 ```bash
-# Repay $50
 krexa repay 50
+```
 
-# Repay entire balance
+```
+✓ Repaid $50.00 USDC
+  Remaining: $450.00
+```
+
+Full repayment:
+
+```bash
 krexa repay all
 ```
 
-<Tip>
-  Partial repayments still improve your score. Even small, consistent payments help your Repayment History component.
-</Tip>
+```
+✓ Repaid $502.50 USDC (including $2.50 interest)
+  Remaining: $0.00
+  Credit line closed.
+```
+
+## Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `No active credit line` | Nothing to repay | Check with `krexa status` |
+| `Insufficient balance` | Not enough USDC | Get more via `krexa faucet` (devnet) |

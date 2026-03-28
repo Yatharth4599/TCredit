@@ -1,33 +1,17 @@
 ---
-title: "Faucet API"
-sidebarTitle: "Faucet"
-description: "Request devnet USDC for testing."
-icon: "coins"
+title: Faucet API
+description: Request devnet USDC for testing.
 ---
 
-## Request test USDC
+## POST /solana/faucet/usdc
 
+Sends devnet USDC to the specified address.
+
+```bash
+curl -X POST https://tcredit-backend.onrender.com/api/v1/solana/faucet/usdc \
+  -H "Content-Type: application/json" \
+  -d '{"recipient": "9QP9JDV8EbruUKwgL8SfMRv7ZWKjE9ckBB4bLgZt72Uy"}'
 ```
-POST /solana/faucet/usdc
-```
-
-Sends devnet USDC to the specified recipient address.
-
-### Request body
-
-```json
-{
-  "recipient": "9QP9JDV8EbruUKwgL8SfMRv7ZWKjE9ckBB4bLgZt72Uy",
-  "amountUsdc": 100
-}
-```
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `recipient` | string | Yes | Solana public key (base58) |
-| `amountUsdc` | number | No | Amount in USDC (default: 100, max: 100) |
-
-### Response
 
 ```json
 {
@@ -37,14 +21,19 @@ Sends devnet USDC to the specified recipient address.
 }
 ```
 
-### Example
+## Request body
 
-```bash
-curl -X POST https://tcredit-backend.onrender.com/api/v1/solana/faucet/usdc \
-  -H "Content-Type: application/json" \
-  -d '{"recipient": "9QP9JDV8EbruUKwgL8SfMRv7ZWKjE9ckBB4bLgZt72Uy"}'
-```
+| Field | Type | Required | Description |
+|-------|------|----------|------------|
+| `recipient` | string | Yes | Solana address (base58) |
+| `amountUsdc` | number | No | Amount, default 100, max 100 |
 
-<Warning>
-  **Rate limit:** 1 request per 24 hours per address. Devnet only.
-</Warning>
+## Rate limit
+
+1 request per 24 hours per address. Devnet only.
+
+## Errors
+
+| Status | Body | Fix |
+|--------|------|-----|
+| 429 | `Rate limit: this address can request again after...` | Wait 24h |

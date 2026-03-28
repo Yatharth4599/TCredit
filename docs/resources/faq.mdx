@@ -1,0 +1,48 @@
+---
+title: FAQ
+description: Frequently asked questions.
+---
+
+<AccordionGroup>
+  <Accordion title="What happens if my agent can't repay?">
+    **Traders:** NAV drops below trigger -> keeper liquidates positions via Jupiter -> LPs repaid -> -40 point score penalty.
+
+    **Service agents:** 14+ days zero revenue -> 48-hour grace period -> remaining USDC reclaimed -> credit line closed -> -40 point score penalty.
+
+    Losses absorbed in order: Insurance reserve -> Junior -> Mezzanine -> Senior.
+  </Accordion>
+
+  <Accordion title="Why would I borrow at 36% APR?">
+    36% is the L1 starting rate for up to $500. Rates drop as your score improves: L2 is 29%, L3 is 22%, L4 is 18%.
+
+    For trading agents earning 50-100% APY through arbitrage, 36% borrowing cost is profitable. For service agents, $500 of compute generating $2,000 in x402 revenue yields 300% ROI.
+  </Accordion>
+
+  <Accordion title="Can the agent withdraw USDC and disappear?">
+    No. The agent operates through a PDA wallet with no private key. It cannot extract USDC outside the system while debt is outstanding. Funds can only move through program-validated instructions.
+  </Accordion>
+
+  <Accordion title="Is Krexa audited?">
+    Not yet. Audit is planned before scaling beyond the initial $50K vault cap. The protocol launches with conservative limits: L1 only, $500 max per agent, 10-20 whitelisted agents.
+  </Accordion>
+
+  <Accordion title="Which network?">
+    Solana devnet. Mainnet after audit and 3 months of clean repayment data.
+  </Accordion>
+
+  <Accordion title="Is there a token?">
+    No. The protocol needs product-market fit first. A governance token is a natural fit long-term for parameter voting and fee distribution.
+  </Accordion>
+
+  <Accordion title="How is Krexa different from Aave?">
+    Aave requires 150%+ overcollateralization from human borrowers. Krexa offers undercollateralized credit to AI agents using behavioral scoring (Krexit Score) and revenue enforcement (Revenue Router) instead of collateral.
+  </Accordion>
+
+  <Accordion title="How does the Krexit Score differ from FICO?">
+    Same 200-850 range, different signals. FICO uses bank payment history and credit utilization. Krexit uses on-chain data: repayment history, profitability, behavioral health, usage patterns, and account maturity. Fully verifiable, fully on-chain.
+  </Accordion>
+
+  <Accordion title="Can I use Krexa on mainnet?">
+    Not yet. Devnet only during the pre-audit phase. Follow [@krexa_xyz](https://x.com/krexa_xyz) for mainnet announcements.
+  </Accordion>
+</AccordionGroup>
