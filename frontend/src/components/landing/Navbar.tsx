@@ -99,85 +99,22 @@ export function Navbar() {
             </span>
           </a>
 
-          {/* Links — desktop */}
-          <div className="hidden md:flex" style={{ alignItems: 'center', gap: '32px' }}>
-            {NAV_LINKS.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                target={link.href.startsWith('http') ? '_blank' : undefined}
-                rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                style={{
-                  fontSize: '14px',
-                  color: '#a0a0a8',
-                  textDecoration: 'none',
-                  transition: 'color 0.2s',
-                  fontFamily: "'Geist', 'Inter', sans-serif",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#f0f0f0')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = '#a0a0a8')}
-              >
-                {link.label}
-              </a>
-            ))}
-            <a
-              href="https://krexa.mintlify.app/docs/quickstart"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                padding: '8px 20px',
-                background: 'linear-gradient(135deg, #22d3ee, #34d399)',
-                color: '#050505',
-                fontSize: '14px',
-                fontWeight: 600,
-                borderRadius: '9999px',
-                textDecoration: 'none',
-                fontFamily: "'Geist', 'Inter', sans-serif",
-                transition: 'opacity 0.2s',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.9')}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
-            >
-              Get Started
-            </a>
-          </div>
-
-          {/* Mobile: Get Started CTA + hamburger side by side */}
-          <div className="md:hidden" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <a
-              href="https://krexa.mintlify.app/docs/quickstart"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                padding: '6px 16px',
-                background: 'linear-gradient(135deg, #22d3ee, #34d399)',
-                color: '#050505',
-                fontSize: '13px',
-                fontWeight: 600,
-                borderRadius: '9999px',
-                textDecoration: 'none',
-                fontFamily: "'Geist', 'Inter', sans-serif",
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Get Started
-            </a>
-            <button
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#a0a0a8',
-                cursor: 'pointer',
-                padding: '8px',
-              }}
-              onClick={() => setMenuOpen((prev) => !prev)}
-              aria-label="Toggle menu"
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 12h18M3 6h18M3 18h18" />
-              </svg>
-            </button>
-          </div>
+          {/* Hamburger menu button */}
+          <button
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#a0a0a8',
+              cursor: 'pointer',
+              padding: '8px',
+            }}
+            onClick={() => setMenuOpen((prev) => !prev)}
+            aria-label="Toggle menu"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 12h18M3 6h18M3 18h18" />
+            </svg>
+          </button>
         </div>
       </nav>
 
