@@ -1,0 +1,94 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Krexa",
+  "logo": {
+    "dark": "/docs/logo/krexa-white.svg",
+    "light": "/docs/logo/krexa-dark.svg"
+  },
+  "favicon": "/docs/favicon.svg",
+  "colors": {
+    "primary": "#22d3ee",
+    "light": "#4ade80",
+    "dark": "#0a0a0b",
+    "background": { "dark": "#0a0a0b" }
+  },
+  "topbarLinks": [
+    { "name": "Dashboard", "url": "https://krexa-dashboard.vercel.app" }
+  ],
+  "topbarCtaButton": {
+    "name": "Get Started",
+    "url": "/docs/quickstart"
+  },
+  "tabs": [
+    { "name": "Documentation", "url": "/" },
+    { "name": "CLI Reference", "url": "/docs/cli/overview" }
+  ],
+  "navigation": [
+    {
+      "group": "Get Started",
+      "pages": [
+        "docs/introduction",
+        "docs/quickstart",
+        "docs/how-it-works"
+      ]
+    },
+    {
+      "group": "Guides",
+      "pages": [
+        "docs/guides/borrowing",
+        "docs/guides/repaying",
+        "docs/guides/service-agents",
+        "docs/guides/lp-guide",
+        "docs/guides/improving-score"
+      ]
+    },
+    {
+      "group": "MCP Mode",
+      "pages": [
+        "docs/mcp-mode",
+        "docs/installation/claude-code",
+        "docs/installation/cursor",
+        "docs/installation/other-clients"
+      ]
+    },
+    {
+      "group": "CLI Reference",
+      "pages": [
+        "docs/cli/overview",
+        "docs/cli/init",
+        "docs/cli/borrow",
+        "docs/cli/repay",
+        "docs/cli/status",
+        "docs/cli/score",
+        "docs/cli/wallet",
+        "docs/cli/lp",
+        "docs/cli/faucet",
+        "docs/cli/config"
+      ]
+    },
+    {
+      "group": "Protocol",
+      "pages": [
+        "docs/protocol/revenue-router",
+        "docs/protocol/krexit-score",
+        "docs/protocol/tranches",
+        "docs/protocol/agent-types",
+        "docs/protocol/programs"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "docs/api/overview",
+        "docs/api/score",
+        "docs/api/faucet",
+        "docs/api/oracle",
+        "docs/api/vault"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "x": "https://x.com/krexa_xyz",
+    "github": "https://github.com/Yatharth4599/Krexa"
+  }
+}
