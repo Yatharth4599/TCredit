@@ -315,7 +315,7 @@ pub struct PayX402<'info> {
     /// SOL-058 fix: Validate this is the exact treasury token account stored in config.
     #[account(
         mut,
-        address = config.platform_treasury_token @ WalletError::InvalidTreasury,
+        address = config.platform_treasury @ WalletError::InvalidTreasury,
     )]
     pub platform_treasury_token: Account<'info, TokenAccount>,
 
@@ -855,10 +855,13 @@ pub mod krexa_agent_wallet {
         new_keeper: Option<Pubkey>,
     ) -> Result<()> {
         let cfg = &mut ctx.accounts.config;
+        // SOL-075 fix: prevent permanent lockout via zero-address admin/keeper
         if let Some(admin) = new_admin {
+            require!(admin != Pubkey::default(), WalletError::InvalidAddress);
             cfg.admin = admin;
         }
         if let Some(keeper) = new_keeper {
+            require!(keeper != Pubkey::default(), WalletError::InvalidAddress);
             cfg.keeper = keeper;
         }
         Ok(())

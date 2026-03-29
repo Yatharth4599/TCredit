@@ -5,6 +5,16 @@ import { AppError } from '../middleware/errorHandler.js';
 import { prisma } from '../../config/prisma.js';
 const router = Router();
 
+// BUG-113 fix: prevent CSV injection / DDE attacks in exported fields
+function sanitizeCsvField(val: string): string {
+  const dangerous = /^[=+\-@\t\r]/;
+  const escaped = val.replace(/"/g, '""');
+  if (dangerous.test(val) || val.includes(',') || val.includes('\n')) {
+    return `"'${escaped}"`;
+  }
+  return `"${escaped}"`;
+}
+
 // All admin routes require an admin-tier API key (BUG-029)
 router.use(requireAdmin as never);
 
@@ -163,7 +173,10 @@ router.post('/webhooks', async (req, res, next) => {
       data: { url, events, secret },
     });
 
-    // Return secret only on creation — never exposed again
+    // BUG-102: ACCEPTED — The webhook secret is intentionally returned exactly once
+    // at creation time. This is industry standard (same pattern as Stripe, GitHub, etc.).
+    // The secret is never exposed again in GET /webhooks or PATCH responses.
+    // Callers must store it securely at creation time for HMAC signature verification.
     res.status(201).json({
       id: endpoint.id,
       url: endpoint.url,
@@ -269,7 +282,7 @@ router.get('/waitlist/export', async (_req, res, next) => {
     const rows = [
       'id,email,walletAddress,joinedAt',
       ...entries.map((e) =>
-        [e.id, e.email, e.walletAddress ?? '', e.createdAt.toISOString()].join(',')
+        [e.id, sanitizeCsvField(e.email), sanitizeCsvField(e.walletAddress ?? ''), e.createdAt.toISOString()].join(',')
       ),
     ];
     res.setHeader('Content-Type', 'text/csv');

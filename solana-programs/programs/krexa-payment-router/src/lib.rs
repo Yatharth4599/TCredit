@@ -147,6 +147,10 @@ pub enum RouterError {
     InvalidVaultConfig,
     #[msg("Payer USDC account does not belong to the oracle")]
     InvalidPayerAccount,
+    #[msg("Address cannot be the zero/default pubkey")]
+    InvalidAddress,
+    #[msg("Platform fee exceeds maximum (20%)")]
+    InvalidFee,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -420,16 +424,21 @@ pub mod krexa_payment_router {
         new_platform_fee_bps: Option<u16>,
     ) -> Result<()> {
         let cfg = &mut ctx.accounts.config;
+        // SOL-075 fix: prevent permanent lockout via zero-address
         if let Some(admin) = new_admin {
+            require!(admin != Pubkey::default(), RouterError::InvalidAddress);
             cfg.admin = admin;
         }
         if let Some(oracle) = new_oracle {
+            require!(oracle != Pubkey::default(), RouterError::InvalidAddress);
             cfg.oracle = oracle;
         }
         if let Some(treasury) = new_platform_treasury {
             cfg.platform_treasury = treasury;
         }
+        // SOL-078 fix: cap platform fee at 20%
         if let Some(fee) = new_platform_fee_bps {
+            require!(fee <= 2000, RouterError::InvalidFee);
             cfg.platform_fee_bps = fee;
         }
         Ok(())

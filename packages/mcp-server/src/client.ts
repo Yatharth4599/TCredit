@@ -37,7 +37,12 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
     throw new Error(`Krexa API ${res.status}: ${text}`);
   }
 
-  return res.json() as Promise<T>;
+  // BUG-106: Runtime validation — don't blindly trust backend JSON shape
+  const data = await res.json();
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid response from backend: expected JSON object');
+  }
+  return data as T;
 }
 
 // ---------------------------------------------------------------------------

@@ -227,6 +227,8 @@ pub enum RegistryError {
     NotPendingOwner,
     #[msg("Wallet is already linked to this agent profile")]
     WalletAlreadyLinked,
+    #[msg("Address cannot be the zero/default pubkey")]
+    InvalidAddress,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -482,10 +484,13 @@ pub mod krexa_agent_registry {
         new_wallet_program: Option<Pubkey>,
     ) -> Result<()> {
         let cfg = &mut ctx.accounts.config;
+        // SOL-075 fix: prevent permanent lockout via zero-address
         if let Some(admin) = new_admin {
+            require!(admin != Pubkey::default(), RegistryError::InvalidAddress);
             cfg.admin = admin;
         }
         if let Some(oracle) = new_oracle {
+            require!(oracle != Pubkey::default(), RegistryError::InvalidAddress);
             cfg.oracle = oracle;
         }
         if let Some(wp) = new_wallet_program {
@@ -503,7 +508,8 @@ pub mod krexa_agent_registry {
         let new_len = AgentProfile::LEN;
 
         if current_len < new_len {
-            profile_info.realloc(new_len, false)?;
+            // SOL-076 fix: use true to zero-init new bytes (owner_type defaults to 0 = EOA)
+            profile_info.realloc(new_len, true)?;
             let rent = Rent::get()?;
             let new_min = rent.minimum_balance(new_len);
             let old_min = rent.minimum_balance(current_len);

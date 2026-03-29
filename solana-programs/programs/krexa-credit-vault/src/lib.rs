@@ -265,6 +265,10 @@ pub enum VaultError {
     ZeroAmount,
     #[msg("Arithmetic overflow")]
     Overflow,
+    #[msg("Address cannot be the zero/default pubkey")]
+    InvalidAddress,
+    #[msg("Parameter out of valid range")]
+    InvalidParam,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -760,7 +764,7 @@ pub mod krexa_credit_vault {
 
         emit!(BadDebtWrittenOff {
             agent: cl.agent,
-            loss,
+            loss: total_loss,
             insurance_covered,
             lp_absorbed,
         });
@@ -787,19 +791,25 @@ pub mod krexa_credit_vault {
         new_lockup_seconds: Option<i64>,
     ) -> Result<()> {
         let cfg = &mut ctx.accounts.config;
+        // SOL-075 fix: prevent permanent lockout via zero-address
         if let Some(admin) = new_admin {
+            require!(admin != Pubkey::default(), VaultError::InvalidAddress);
             cfg.admin = admin;
         }
         if let Some(oracle) = new_oracle {
+            require!(oracle != Pubkey::default(), VaultError::InvalidAddress);
             cfg.oracle = oracle;
         }
         if let Some(wp) = new_wallet_program {
             cfg.wallet_program = wp;
         }
+        // SOL-079 fix: validate parameter bounds
         if let Some(cap) = new_utilization_cap_bps {
+            require!(cap <= 10_000, VaultError::InvalidParam);
             cfg.utilization_cap_bps = cap;
         }
         if let Some(rate) = new_base_interest_rate_bps {
+            require!(rate <= 5_000, VaultError::InvalidParam);
             cfg.base_interest_rate_bps = rate;
         }
         if let Some(lockup) = new_lockup_seconds {
