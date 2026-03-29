@@ -65,6 +65,17 @@ export async function processWebhookDeliveries(): Promise<number> {
     const attempt = delivery.attempts + 1;
 
     try {
+      // BUG-112 fix: re-validate URL at delivery time to prevent DNS rebinding SSRF
+      const deliveryUrl = new URL(delivery.endpoint.url);
+      const blockedHosts = ['localhost', '127.0.0.1', '0.0.0.0', '::1', '[::1]'];
+      const hn = deliveryUrl.hostname.toLowerCase();
+      if (blockedHosts.includes(hn) || hn.startsWith('fd') || hn.startsWith('fc') || hn.startsWith('fe80') || hn.startsWith('169.254')) {
+        throw new Error('Webhook URL resolves to blocked address');
+      }
+      if (process.env.NODE_ENV === 'production' && deliveryUrl.protocol !== 'https:') {
+        throw new Error('Webhook URL must use HTTPS in production');
+      }
+
       const res = await fetch(delivery.endpoint.url, {
         method: 'POST',
         headers: {

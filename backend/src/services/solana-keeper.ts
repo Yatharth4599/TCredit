@@ -12,7 +12,7 @@
 import { PublicKey } from '@solana/web3.js';
 import { getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { solanaConnection, keeperSolanaKeypair } from '../chain/solana/connection.js';
-import { getAllAgentWallets, readTokenBalance, AgentWallet } from '../chain/solana/reader.js';
+import { getAllAgentWallets, readTokenBalance, AgentWallet, readWalletConfig } from '../chain/solana/reader.js';
 import { buildCheckHealth, buildDeleverage, buildLiquidate } from '../chain/solana/builder.js';
 import { walletUsdcPda } from '../chain/solana/programs.js';
 import { prisma } from '../config/prisma.js';
@@ -84,6 +84,9 @@ async function processWallet(agentPubkey: PublicKey, wallet: AgentWallet): Promi
   }
 
   if (wallet.isFrozen || wallet.isLiquidating) return;
+
+  // BUG-072: Skip liquidation/deleverage if keeper is not authorized on-chain
+  if (!keeperAuthorized) return;
 
   if (hf < HF_LIQUIDATION_BPS && wallet.creditDrawn > 0n) {
     console.log(`[SolanaKeeper] LIQUIDATE agent ${agentKey} HF=${hf}`);
@@ -206,6 +209,38 @@ async function runKeeperCycle(): Promise<void> {
 
 let keeperInterval: NodeJS.Timeout | null = null;
 
+// BUG-072: tracks whether the keeper pubkey has been validated against on-chain config
+let keeperAuthorized = false;
+
+/**
+ * BUG-072: Validate the keeper keypair matches the on-chain WalletConfig.keeper.
+ * Returns true if authorized, false if mismatched or config unavailable.
+ */
+async function validateKeeperAuthorization(): Promise<boolean> {
+  if (!keeperSolanaKeypair) return false;
+  try {
+    const config = await readWalletConfig();
+    if (!config) {
+      console.warn('[SolanaKeeper] WalletConfig not found on-chain — cannot validate keeper authorization');
+      return false;
+    }
+    const onChainKeeper = config.keeper.toBase58();
+    const localKeeper = keeperSolanaKeypair.publicKey.toBase58();
+    if (onChainKeeper !== localKeeper) {
+      console.error(
+        `[SolanaKeeper] KEEPER MISMATCH — on-chain keeper is ${onChainKeeper}, ` +
+        `but local keypair is ${localKeeper}. Liquidation/deleverage txs will be rejected. Skipping keeper actions.`
+      );
+      return false;
+    }
+    console.log(`[SolanaKeeper] Keeper authorization verified — matches on-chain config`);
+    return true;
+  } catch (err) {
+    console.error('[SolanaKeeper] Failed to validate keeper authorization:', err instanceof Error ? err.message : err);
+    return false;
+  }
+}
+
 export function startSolanaKeeper(): void {
   if (keeperInterval) return;
 
@@ -215,8 +250,14 @@ export function startSolanaKeeper(): void {
     console.log(`[SolanaKeeper] Keeper started (${keeperSolanaKeypair.publicKey.toBase58()})`);
   }
 
-  // Run once immediately
-  runKeeperCycle().catch((err) => console.error('[SolanaKeeper] Initial run error:', err));
+  // BUG-072: Validate keeper authorization before first cycle
+  (async () => {
+    if (keeperSolanaKeypair) {
+      keeperAuthorized = await validateKeeperAuthorization();
+    }
+    // Run once immediately
+    runKeeperCycle().catch((err) => console.error('[SolanaKeeper] Initial run error:', err));
+  })();
 
   keeperInterval = setInterval(() => {
     runKeeperCycle().catch((err) => console.error('[SolanaKeeper] Cycle error:', err));

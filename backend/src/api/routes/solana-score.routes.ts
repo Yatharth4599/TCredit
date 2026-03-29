@@ -12,6 +12,7 @@ import { krexitScorePda } from '../../chain/solana/programs.js';
 import { readAgentProfile } from '../../chain/solana/reader.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { rateLimit } from '../middleware/rateLimit.js';
+import { apiKeyAuth, type AuthenticatedRequest } from '../middleware/apiKeyAuth.js';
 
 const router = Router();
 
@@ -196,9 +197,11 @@ async function computePreviewScore(agent: PublicKey): Promise<{
 }
 
 // GET /api/v1/solana/score/:agent — full score or preview
-router.get('/:agent', async (req, res, next) => {
+// BUG-068: Use optional API key auth; redact sensitive fields for unauthenticated requests
+router.get('/:agent', apiKeyAuth as any, async (req, res, next) => {
   try {
     const agentPk = parsePubkey(req.params.agent);
+    const isAuthenticated = !!(req as AuthenticatedRequest).apiKey;
 
     // 1. Try to read on-chain KrexitScore PDA
     const scorePda = krexitScorePda(agentPk);
@@ -207,6 +210,20 @@ router.get('/:agent', async (req, res, next) => {
     if (scoreInfo && scoreInfo.data.length >= 8) {
       try {
         const parsed = deserializeKrexitScore(scoreInfo.data as unknown as Buffer);
+
+        // BUG-068: Redact sensitive fields for unauthenticated requests
+        if (!isAuthenticated) {
+          return res.json({
+            source: 'on-chain',
+            agentPubkey: req.params.agent,
+            scorePda: scorePda.toBase58(),
+            score: parsed.score,
+            isActive: parsed.isActive,
+            isBlacklisted: parsed.isBlacklisted,
+            _redacted: 'Authenticate with API key (X-API-Key) for full score breakdown',
+          });
+        }
+
         return res.json({
           source: 'on-chain',
           agentPubkey: req.params.agent,
@@ -224,6 +241,7 @@ router.get('/:agent', async (req, res, next) => {
     // 3. Compute preview from raw Solana activity
     const preview = await computePreviewScore(agentPk);
 
+    // BUG-068: Redact creditLevel and kyaTier equivalent fields for unauthenticated requests
     res.json({
       source: 'preview',
       agentPubkey: req.params.agent,
@@ -231,8 +249,11 @@ router.get('/:agent', async (req, res, next) => {
       isRegistered: !!profile,
       registeredName: profile ? Buffer.from(profile.name as unknown as Buffer).toString('utf-8').replace(/\0/g, '').trim() : null,
       creditScore: profile?.creditScore ?? null,
-      creditLevel: profile?.creditLevel ?? null,
+      creditLevel: isAuthenticated ? (profile?.creditLevel ?? null) : undefined,
       preview,
+      ...(!isAuthenticated && profile?.creditLevel != null
+        ? { _redacted: 'Authenticate with API key (X-API-Key) for creditLevel and full metadata' }
+        : {}),
     });
   } catch (err) {
     next(err);

@@ -54,7 +54,8 @@ export interface KrexaPaywallOptions {
   /**
    * Optional: verify the payment token against the Krexa oracle before
    * allowing the request through (requires API key with oracle access).
-   * Default: false (trust-but-verify via header presence only in dev mode).
+   * Default: true (full oracle verification). Set to false ONLY for local
+   * development — tokens will be trusted without signature verification.
    */
   verify?: boolean;
 
@@ -148,16 +149,32 @@ async function verifyWithOracle(
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (krexa.apiKey) headers['X-API-Key'] = krexa.apiKey;
 
+  // BUG-108: /api/v1/oracle/verify-payment does not exist in the backend yet.
+  // TODO: Implement a dedicated verify-payment endpoint in the backend oracle routes.
+  // For now, fall back to /api/v1/oracle/payment as a health probe — if the oracle
+  // is unreachable, reject the token. True verification requires the backend route.
+  const verifyUrl = `${baseUrl}/api/v1/oracle/verify-payment`;
   try {
-    const res = await fetch(`${baseUrl}/api/v1/oracle/verify-payment`, {
+    const res = await fetch(verifyUrl, {
       method: 'POST',
       headers,
       body: JSON.stringify({ token, recipient, amountUsdc }),
     });
+    if (res.status === 404) {
+      console.warn(
+        `[krexa-x402] WARNING: Verify endpoint ${verifyUrl} returned 404. ` +
+        'The backend does not implement /api/v1/oracle/verify-payment yet. ' +
+        'Payment tokens CANNOT be verified until this route is added.',
+      );
+      return false;
+    }
     if (!res.ok) return false;
     const body = await res.json() as { valid?: boolean };
     return body.valid === true;
-  } catch {
+  } catch (err) {
+    console.warn(
+      `[krexa-x402] WARNING: Verify endpoint ${verifyUrl} is unreachable: ${err instanceof Error ? err.message : String(err)}`,
+    );
     return false;
   }
 }
@@ -177,10 +194,19 @@ export function krexaPaywall(options: KrexaPaywallOptions): RequestHandler {
     recipient,
     amountUsdc,
     krexa = {},
-    verify = false,
+    verify = true,
     onPayment,
     paymentRequired: customChallenge,
   } = options;
+
+  // BUG-103: Warn loudly if verification is explicitly disabled
+  if (options.verify === false) {
+    console.warn(
+      '[krexa-x402] WARNING: Payment token verification is DISABLED. ' +
+      'Tokens will be accepted without oracle verification. ' +
+      'This should only be used in local development.',
+    );
+  }
 
   const chain = krexa.chain ?? 'solana';
 

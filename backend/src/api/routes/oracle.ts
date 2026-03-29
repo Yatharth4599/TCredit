@@ -16,12 +16,24 @@ const paymentSchema = z.object({
 });
 
 // POST /api/v1/oracle/payment — webhook receiver (requires API key)
+// TODO [BUG-104]: API keys need an `ownerWallet` field in the schema so we can
+// enforce `from === apiKey.ownerWallet`. Until then, log mismatches as security events.
 router.post('/payment', requireApiKey, async (req, res, next) => {
   try {
     const parsed = paymentSchema.safeParse(req.body);
     if (!parsed.success) {
       throw new AppError(400, `Invalid request: ${parsed.error.issues.map((i) => i.message).join(', ')}`);
     }
+
+    // BUG-104: Log security event — `from` address is not bound to the API key.
+    // API keys currently lack wallet binding, so any valid key can submit payments
+    // for any `from` address (on-chain allowance still required).
+    const apiKeyId = (req as unknown as { apiKeyId?: string }).apiKeyId ?? 'unknown';
+    console.warn(
+      `[security] oracle/payment: from=${parsed.data.from} submitted by apiKey=${apiKeyId}. ` +
+      'API key is not wallet-bound — payer identity is NOT verified. ' +
+      'TODO: add ownerWallet to ApiKey schema and enforce match.',
+    );
 
     const result = await processPayment({
       from: parsed.data.from as Address,

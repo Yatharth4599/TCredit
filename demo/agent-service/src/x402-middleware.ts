@@ -10,7 +10,7 @@ import { config } from './config.js';
 const usedSignatures = new Map<string, number>();
 const SIG_TTL_MS = 60 * 60 * 1000; // 1 hour
 
-async function verifyPayment(signature: string): Promise<boolean> {
+async function verifyPayment(signature: string, requiredAmount = 0): Promise<boolean> {
   if (usedSignatures.has(signature)) return false; // replay protection
 
   const connection = new Connection(config.solanaRpcUrl, 'confirmed');
@@ -25,16 +25,25 @@ async function verifyPayment(signature: string): Promise<boolean> {
   if (tx.meta?.err !== null) return false;
 
   // Verify merchant wallet is in the transaction
+  // BUG-114 fix: verify actual payment amount, not just presence
+  const preBalances = tx.meta?.preTokenBalances ?? [];
   const postBalances = tx.meta?.postTokenBalances ?? [];
-  const merchantReceived = postBalances.some(
-    (b) => b.owner === config.merchantWallet && (b.uiTokenAmount?.uiAmount ?? 0) > 0
+
+  // Find merchant's USDC balance change
+  const merchantPostBal = postBalances.find(
+    (b) => b.owner === config.merchantWallet && b.mint === config.usdcMint
   );
-  if (!merchantReceived) {
-    const accountKeys = tx.transaction.message.getAccountKeys();
-    const merchantInTx = accountKeys.staticAccountKeys.some(
-      (key) => key.toBase58() === config.merchantWallet
-    );
-    if (!merchantInTx) return false;
+  const merchantPreBal = preBalances.find(
+    (b) => b.owner === config.merchantWallet && b.mint === config.usdcMint
+  );
+
+  const preAmount = merchantPreBal?.uiTokenAmount?.uiAmount ?? 0;
+  const postAmount = merchantPostBal?.uiTokenAmount?.uiAmount ?? 0;
+  const balanceChange = postAmount - preAmount;
+
+  // Verify merchant received at least the required amount
+  if (balanceChange < requiredAmount) {
+    return false;
   }
 
   usedSignatures.set(signature, Date.now());
@@ -75,7 +84,7 @@ export function requirePayment(amount: number) {
     const signature = Array.isArray(receipt) ? receipt[0] : receipt;
 
     try {
-      const verified = await verifyPayment(signature);
+      const verified = await verifyPayment(signature, amount);
       if (verified) {
         // Attach signature to request so handlers can include it in responses
         (req as Request & { paymentTx: string }).paymentTx = signature;

@@ -161,9 +161,10 @@ export async function submitPayment(params: SubmitPaymentParams): Promise<Submit
     throw new AppError(400, `No active settlement for merchant ${params.merchant}`);
   }
 
-  // Nonce replay protection
-  if (params.nonce <= settlement.nonce) {
-    throw new AppError(400, `Nonce ${params.nonce} already used (current: ${settlement.nonce})`);
+  // BUG-115 fix: enforce exact next nonce — no gaps, no caller-controlled skips
+  const expectedNonce = Number(settlement.nonce) + 1;
+  if (params.nonce !== expectedNonce) {
+    throw new AppError(400, `Invalid nonce ${params.nonce} — expected ${expectedNonce}`);
   }
 
   const agentWalletAddress = new PublicKey(settlement.agentWalletPda);
@@ -234,6 +235,11 @@ export async function activateSettlement(
 ): Promise<{ signature: string }> {
   if (!oracleSolanaKeypair) {
     throw new AppError(503, 'Oracle not configured: SOLANA_ORACLE_PRIVATE_KEY missing');
+  }
+
+  // BUG-116 fix: validate splitBps range before signing
+  if (splitBps < 0 || splitBps > 10000 || !Number.isFinite(splitBps)) {
+    throw new AppError(400, 'splitBps must be between 0 and 10000');
   }
 
   const merchant = new PublicKey(merchantPubkeyStr);

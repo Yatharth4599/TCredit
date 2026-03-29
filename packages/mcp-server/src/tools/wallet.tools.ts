@@ -3,11 +3,15 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { getWalletStatus, buildWalletTransfer, buildWalletDeposit } from '../client.js';
 
 export function registerWalletTools(server: McpServer) {
+  // BUG-105: Strict address/amount validators
+  const evmAddress = z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid EVM address (must be 0x + 40 hex chars)');
+  const usdcAmount = z.string().regex(/^\d+(\.\d+)?$/, 'Invalid amount (must be a positive decimal string, e.g. "50.00")');
+
   // krexa_wallet_status — check wallet state (balance, limits, remaining, frozen)
   server.tool(
     'krexa_wallet_status',
     'Check the status of a Krexa agent wallet (balance, limits, remaining daily, frozen state)',
-    { address: z.string().describe('Agent wallet contract address') },
+    { address: evmAddress.describe('Agent wallet contract address (0x...)') },
     async ({ address }) => {
       const data = await getWalletStatus(address);
       return {
@@ -36,9 +40,9 @@ export function registerWalletTools(server: McpServer) {
     'krexa_wallet_transfer',
     'Build an unsigned transfer tx for a Krexa agent wallet (operator signs)',
     {
-      walletAddress: z.string().describe('Agent wallet contract address'),
-      to: z.string().describe('Recipient address'),
-      amountUsdc: z.string().describe('Amount in USDC (e.g. "50.00")'),
+      walletAddress: evmAddress.describe('Agent wallet contract address (0x...)'),
+      to: evmAddress.describe('Recipient address (0x...)'),
+      amountUsdc: usdcAmount.describe('Amount in USDC (e.g. "50.00")'),
     },
     async ({ walletAddress, to, amountUsdc }) => {
       const tx = await buildWalletTransfer(walletAddress, to, amountUsdc);
@@ -62,8 +66,8 @@ export function registerWalletTools(server: McpServer) {
     'krexa_wallet_deposit',
     'Build an unsigned USDC deposit tx into a Krexa agent wallet',
     {
-      walletAddress: z.string().describe('Agent wallet contract address'),
-      amountUsdc: z.string().describe('Amount in USDC (e.g. "100.00")'),
+      walletAddress: evmAddress.describe('Agent wallet contract address (0x...)'),
+      amountUsdc: usdcAmount.describe('Amount in USDC (e.g. "100.00")'),
     },
     async ({ walletAddress, amountUsdc }) => {
       const tx = await buildWalletDeposit(walletAddress, amountUsdc);

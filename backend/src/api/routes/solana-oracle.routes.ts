@@ -56,6 +56,11 @@ router.post('/sign-credit', requireApiKey, async (req, res, next) => {
     const agentPk = parsePubkey(agentPubkey);
     const agentOrOwnerPk = parsePubkey(agentOrOwnerPubkey);
 
+    // BUG-066: Log security event — REST endpoints cannot verify wallet ownership
+    // of agentOrOwnerPubkey. The on-chain program enforces the real signer check
+    // when the browser wallet co-signs the transaction. This log is for audit trails.
+    console.warn('[SECURITY] Credit co-sign requested for agent', agentPubkey, 'by API key', (req as any).apiKeyId ?? 'unknown');
+
     // Load oracle keypair (fails with 503 if not configured)
     const oracleKeypair = loadOracleKeypair();
 
@@ -65,21 +70,36 @@ router.post('/sign-credit', requireApiKey, async (req, res, next) => {
       throw new AppError(400, `Credit not eligible: ${eligibility.reason}`);
     }
 
+    // BUG-110: Validate amount does not exceed evaluated credit limit
+    const requestedAmount = BigInt(amount);
+    if (requestedAmount <= 0n) {
+      throw new AppError(400, 'Amount must be positive');
+    }
+    if (requestedAmount > BigInt(eligibility.maxCreditUsdc ?? 0)) {
+      throw new AppError(400, `Amount ${amount} exceeds credit limit of ${eligibility.maxCreditUsdc}`);
+    }
+
+    // BUG-109: Never use client-supplied creditLevel — always use oracle evaluation
+    const evaluatedLevel = eligibility.creditLevel ?? 1;
+    if (creditLevel !== undefined && creditLevel > evaluatedLevel) {
+      throw new AppError(400, `Requested level ${creditLevel} exceeds evaluated level ${evaluatedLevel}`);
+    }
+
     // Validate wallet state
     const wallet = await readAgentWallet(agentPk);
     if (!wallet) throw new AppError(404, 'Agent wallet not found — create wallet first');
     if (wallet.isFrozen) throw new AppError(400, 'Wallet is frozen');
     if (wallet.creditDrawn > 0n) throw new AppError(400, 'Existing credit must be repaid first');
 
-    // Build the instruction
+    // Build the instruction — use oracle-evaluated values, not client-supplied
     const ixn = buildRequestCredit({
       agent: agentPk,
       oracle: oracleKeypair.publicKey,
       agentOrOwner: agentOrOwnerPk,
-      amount: BigInt(amount),
+      amount: requestedAmount,
       rateBps: rateBps ?? 1000,
-      creditLevel: creditLevel ?? eligibility.creditLevel ?? 1,
-      collateralValueUsdc: BigInt(collateralValueUsdc ?? 0),
+      creditLevel: evaluatedLevel,
+      collateralValueUsdc: 0n, // BUG-109: collateral must be computed on-chain, not client-supplied
     });
 
     // Build transaction with oracle as fee payer

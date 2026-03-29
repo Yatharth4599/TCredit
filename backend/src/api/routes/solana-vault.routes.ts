@@ -18,6 +18,32 @@ import { AppError } from '../middleware/errorHandler.js';
 
 const router = Router();
 
+// BUG-071: In-memory cache for wallet count queries (30s TTL)
+interface WalletCountCache {
+  walletCount: number;
+  criticalWallets: number;
+  frozenWallets: number;
+  cachedAt: number;
+}
+const WALLET_COUNT_CACHE_TTL_MS = 30_000;
+let walletCountCache: WalletCountCache | null = null;
+
+async function getCachedWalletCounts(): Promise<WalletCountCache> {
+  const now = Date.now();
+  if (walletCountCache && (now - walletCountCache.cachedAt) < WALLET_COUNT_CACHE_TTL_MS) {
+    return walletCountCache;
+  }
+
+  const [walletCount, criticalWallets, frozenWallets] = await Promise.all([
+    prisma.solanaAgentWallet.count().catch(() => 0),
+    prisma.solanaAgentWallet.count({ where: { healthFactorBps: { lt: 10_500 } } }).catch(() => 0),
+    prisma.solanaAgentWallet.count({ where: { isFrozen: true } }).catch(() => 0),
+  ]);
+
+  walletCountCache = { walletCount, criticalWallets, frozenWallets, cachedAt: now };
+  return walletCountCache;
+}
+
 function parsePubkey(raw: string): PublicKey {
   try { return new PublicKey(raw); }
   catch { throw new AppError(400, `Invalid Solana public key: ${raw}`); }
@@ -136,29 +162,23 @@ router.get('/collateral/:agent', async (req, res, next) => {
 });
 
 // GET /solana/vault/health — combined service health
+// BUG-071: wallet counts now use 30s in-memory cache to avoid hammering DB on every request
 router.get('/health', async (req, res, next) => {
   try {
-    const [keeperHealth, indexerHealth] = await Promise.all([
+    const [keeperHealth, indexerHealth, walletCounts] = await Promise.all([
       getSolanaKeeperHealth(),
       getSolanaIndexerHealth(),
+      getCachedWalletCounts(),
     ]);
-
-    const walletCount = await prisma.solanaAgentWallet.count().catch(() => 0);
-    const criticalWallets = await prisma.solanaAgentWallet.count({
-      where: { healthFactorBps: { lt: 10_500 } },
-    }).catch(() => 0);
-    const frozenWallets = await prisma.solanaAgentWallet.count({
-      where: { isFrozen: true },
-    }).catch(() => 0);
 
     res.json({
       keeper: keeperHealth,
       indexer: indexerHealth,
       oracle: getSolanaOracleHealth(),
       portfolio: {
-        totalWallets: walletCount,
-        criticalWallets,
-        frozenWallets,
+        totalWallets: walletCounts.walletCount,
+        criticalWallets: walletCounts.criticalWallets,
+        frozenWallets: walletCounts.frozenWallets,
       },
     });
   } catch (err) { next(err); }
