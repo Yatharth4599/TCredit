@@ -5,9 +5,9 @@ import { Connection } from "@solana/web3.js";
 import BN from "bn.js";
 import { loadKeypair, getRpcUrl, getNetwork, config, shortenAddress } from "../utils/config.js";
 import { header, field, divider, progressBar, healthBadge } from "../utils/display.js";
-import { findAgentProfile, findAgentWallet, findCreditLine, getAssociatedTokenAddress } from "../utils/pda.js";
+import { findAgentProfile, findAgentWallet, findCreditLine, findSettlement, getAssociatedTokenAddress } from "../utils/pda.js";
 import { USDC_MINT } from "../utils/constants.js";
-import { deserializeAgentProfile, deserializeAgentWallet, deserializeCreditLine, decodeName, formatUsdc, bpsToPercent } from "../utils/deserialize.js";
+import { deserializeAgentProfile, deserializeAgentWallet, deserializeCreditLine, deserializeMerchantSettlement, decodeName, formatUsdc, bpsToPercent } from "../utils/deserialize.js";
 import { AGENT_TYPES, CREDIT_LEVELS, PROTOCOL } from "../utils/constants.js";
 import * as api from "../utils/api.js";
 
@@ -131,6 +131,20 @@ export const statusCommand = new Command("status")
       field("USDC", chalk.white(formatUsdc(totalUsdc)));
     }
     console.log();
+
+    // Revenue Router
+    const [settlementPda] = findSettlement(agent);
+    const settlementInfo = await connection.getAccountInfo(settlementPda);
+    if (settlementInfo) {
+      const settlement = deserializeMerchantSettlement(settlementInfo.data.slice(8));
+      if (!settlement.totalRouted.isZero()) {
+        console.log(chalk.bold.white("  Revenue Router:"));
+        field("Total Routed", chalk.green(formatUsdc(settlement.totalRouted) + " USDC"));
+        field("Auto-Repaid", chalk.cyan(formatUsdc(settlement.totalRepaid) + " USDC"));
+        field("You Received", chalk.white(formatUsdc(settlement.totalMerchantReceived) + " USDC"));
+        console.log();
+      }
+    }
 
     field("Health", healthBadge(healthFactorBps));
     divider();

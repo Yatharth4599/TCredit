@@ -82,6 +82,20 @@ export function findKrexitScore(agent: PublicKey): [PublicKey, number] {
   );
 }
 
+export function findRouterConfig(): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [PDA_SEEDS.ROUTER_CONFIG],
+    PROGRAM_IDS.PAYMENT_ROUTER
+  );
+}
+
+export function findSettlement(merchant: PublicKey): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [PDA_SEEDS.SETTLEMENT, merchant.toBuffer()],
+    PROGRAM_IDS.PAYMENT_ROUTER
+  );
+}
+
 export function getAssociatedTokenAddress(
   mint: PublicKey,
   owner: PublicKey,

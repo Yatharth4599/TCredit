@@ -469,6 +469,44 @@ export function deserializeKrexitScore(buf: Buffer): KrexitScore {
   };
 }
 
+export interface MerchantSettlement {
+  merchant: PublicKey;
+  agentWalletPda: PublicKey;
+  hasActiveCredit: boolean;
+  splitBps: number;
+  totalRouted: BN;
+  totalRepaid: BN;
+  totalMerchantReceived: BN;
+  nonce: BN;
+  isActive: boolean;
+  bump: number;
+}
+
+export function deserializeMerchantSettlement(buf: Buffer): MerchantSettlement {
+  let off = 0;
+  let merchant: PublicKey, agentWalletPda: PublicKey;
+  let hasActiveCredit: boolean, isActive: boolean;
+  let splitBps: number, bump: number;
+  let totalRouted: BN, totalRepaid: BN, totalMerchantReceived: BN, nonce: BN;
+
+  [merchant, off] = readPubkey(buf, off);
+  [agentWalletPda, off] = readPubkey(buf, off);
+  [hasActiveCredit, off] = readBool(buf, off);
+  [splitBps, off] = readU16(buf, off);
+  [totalRouted, off] = readU64(buf, off);
+  [totalRepaid, off] = readU64(buf, off);
+  [totalMerchantReceived, off] = readU64(buf, off);
+  [nonce, off] = readU64(buf, off);
+  [isActive, off] = readBool(buf, off);
+  [bump, off] = readU8(buf, off);
+
+  return {
+    merchant, agentWalletPda, hasActiveCredit, splitBps,
+    totalRouted, totalRepaid, totalMerchantReceived, nonce,
+    isActive, bump,
+  };
+}
+
 // Utility functions
 
 export function decodeName(nameBytes: number[]): string {

@@ -23,6 +23,12 @@ function encodeU8(v: number): Buffer {
   return b;
 }
 
+function encodeU16(v: number): Buffer {
+  const b = Buffer.alloc(2);
+  b.writeUInt16LE(v);
+  return b;
+}
+
 function encodeU64(v: bigint | BN): Buffer {
   const b = Buffer.alloc(8);
   if (typeof v === "bigint") b.writeBigUInt64LE(v);
@@ -139,28 +145,36 @@ export function buildUpdateKya(
 export function buildRepay(
   agent: PublicKey,
   caller: PublicKey,
-  callerUsdc: PublicKey,
   amount: BN,
+  vaultTokenAccount: PublicKey,
+  insuranceTokenAccount: PublicKey,
 ): Transaction {
-  const [vaultConfig] = pda.findVaultConfig();
-  const [vaultUsdc] = pda.findVaultUsdc();
-  const [creditLine] = pda.findCreditLine(agent);
+  const [walletConfig] = pda.findWalletConfig();
   const [agentWallet] = pda.findAgentWallet(agent);
+  const [walletUsdc] = pda.findWalletUsdc(agent);
+  const [vaultConfig] = pda.findVaultConfig();
+  const [creditLine] = pda.findCreditLine(agent);
+  const [registryConfig] = pda.findRegistryConfig();
+  const [agentProfile] = pda.findAgentProfile(agent);
 
   const data = Buffer.concat([disc("repay"), encodeU64(amount)]);
 
   const ix = new TransactionInstruction({
-    programId: PROGRAM_IDS.CREDIT_VAULT,
+    programId: PROGRAM_IDS.AGENT_WALLET,
     keys: [
-      { pubkey: vaultConfig, isSigner: false, isWritable: true },
-      { pubkey: vaultUsdc, isSigner: false, isWritable: true },
-      { pubkey: creditLine, isSigner: false, isWritable: true },
+      { pubkey: walletConfig, isSigner: false, isWritable: false },
       { pubkey: agentWallet, isSigner: false, isWritable: true },
-      { pubkey: callerUsdc, isSigner: false, isWritable: true },
-      { pubkey: caller, isSigner: true, isWritable: true },
-      { pubkey: PROGRAM_IDS.AGENT_WALLET, isSigner: false, isWritable: false },
+      { pubkey: walletUsdc, isSigner: false, isWritable: true },
+      { pubkey: vaultConfig, isSigner: false, isWritable: true },
+      { pubkey: vaultTokenAccount, isSigner: false, isWritable: true },
+      { pubkey: insuranceTokenAccount, isSigner: false, isWritable: true },
+      { pubkey: creditLine, isSigner: false, isWritable: true },
+      { pubkey: registryConfig, isSigner: false, isWritable: false },
+      { pubkey: agentProfile, isSigner: false, isWritable: true },
+      { pubkey: caller, isSigner: true, isWritable: false },
+      { pubkey: PROGRAM_IDS.CREDIT_VAULT, isSigner: false, isWritable: false },
+      { pubkey: PROGRAM_IDS.AGENT_REGISTRY, isSigner: false, isWritable: false },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data,
   });
@@ -230,6 +244,91 @@ export function buildWithdrawLP(
       { pubkey: depositor, isSigner: true, isWritable: true },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    ],
+    data,
+  });
+
+  const tx = new Transaction();
+  tx.add(ix);
+  return tx;
+}
+
+export function buildActivateSettlement(
+  oracle: PublicKey,
+  merchant: PublicKey,
+  agentWalletPda: PublicKey,
+  splitBps: number,
+  hasActiveCredit: boolean,
+): Transaction {
+  const [routerConfig] = pda.findRouterConfig();
+  const [settlement] = pda.findSettlement(merchant);
+
+  // On-chain args: merchant (Pubkey), split_bps (u16), agent_wallet_pda (Pubkey)
+  const data = Buffer.concat([
+    disc("activate_settlement"),
+    merchant.toBuffer(),
+    encodeU16(splitBps),
+    agentWalletPda.toBuffer(),
+  ]);
+
+  const ix = new TransactionInstruction({
+    programId: PROGRAM_IDS.PAYMENT_ROUTER,
+    keys: [
+      { pubkey: routerConfig, isSigner: false, isWritable: false },
+      { pubkey: settlement, isSigner: false, isWritable: true },
+      { pubkey: oracle, isSigner: true, isWritable: true },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    ],
+    data,
+  });
+
+  const tx = new Transaction();
+  tx.add(ix);
+  return tx;
+}
+
+// On-chain ExecutePayment accounts (12):
+//   config, settlement, payer_usdc, merchant_usdc, platform_treasury_token,
+//   vault_config, vault_token, insurance_token, credit_line, oracle, vault_program, token_program
+// Instruction args: merchant (Pubkey), amount (u64), nonce (u64)
+export function buildExecutePayment(
+  oracle: PublicKey,
+  merchant: PublicKey,
+  payerUsdc: PublicKey,
+  merchantUsdc: PublicKey,
+  platformTreasury: PublicKey,
+  vaultToken: PublicKey,
+  insuranceToken: PublicKey,
+  amount: BN,
+  nonce: BN,
+): Transaction {
+  const [routerConfig] = pda.findRouterConfig();
+  const [settlement] = pda.findSettlement(merchant);
+  const [vaultConfig] = pda.findVaultConfig();
+  const [creditLine] = pda.findCreditLine(merchant);
+
+  const data = Buffer.concat([
+    disc("execute_payment"),
+    merchant.toBuffer(),
+    encodeU64(amount),
+    encodeU64(nonce),
+  ]);
+
+  const ix = new TransactionInstruction({
+    programId: PROGRAM_IDS.PAYMENT_ROUTER,
+    keys: [
+      { pubkey: routerConfig, isSigner: false, isWritable: false },
+      { pubkey: settlement, isSigner: false, isWritable: true },
+      { pubkey: payerUsdc, isSigner: false, isWritable: true },
+      { pubkey: merchantUsdc, isSigner: false, isWritable: true },
+      { pubkey: platformTreasury, isSigner: false, isWritable: true },
+      { pubkey: vaultConfig, isSigner: false, isWritable: true },
+      { pubkey: vaultToken, isSigner: false, isWritable: true },
+      { pubkey: insuranceToken, isSigner: false, isWritable: true },
+      { pubkey: creditLine, isSigner: false, isWritable: true },
+      { pubkey: oracle, isSigner: true, isWritable: true },
+      { pubkey: PROGRAM_IDS.CREDIT_VAULT, isSigner: false, isWritable: false },
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
     ],
     data,
   });

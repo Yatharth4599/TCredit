@@ -395,14 +395,14 @@ pub struct Repay<'info> {
         seeds = [WalletConfig::SEED],
         bump = config.bump,
     )]
-    pub config: Account<'info, WalletConfig>,
+    pub config: Box<Account<'info, WalletConfig>>,
 
     #[account(
         mut,
         seeds = [AgentWallet::SEED, agent_wallet.agent.as_ref()],
         bump = agent_wallet.bump,
     )]
-    pub agent_wallet: Account<'info, AgentWallet>,
+    pub agent_wallet: Box<Account<'info, AgentWallet>>,
 
     #[account(
         mut,
@@ -418,7 +418,7 @@ pub struct Repay<'info> {
         seeds::program = config.credit_vault_program,
         bump = vault_config.bump,
     )]
-    pub vault_config: Account<'info, VaultConfig>,
+    pub vault_config: Box<Account<'info, VaultConfig>>,
 
     #[account(
         mut,
@@ -438,14 +438,14 @@ pub struct Repay<'info> {
         seeds::program = config.credit_vault_program,
         bump = credit_line.bump,
     )]
-    pub credit_line: Account<'info, CreditLine>,
+    pub credit_line: Box<Account<'info, CreditLine>>,
 
     #[account(
         seeds = [b"registry_config"],
         seeds::program = config.agent_registry_program,
         bump = registry_config.bump,
     )]
-    pub registry_config: Account<'info, RegistryConfig>,
+    pub registry_config: Box<Account<'info, RegistryConfig>>,
 
     #[account(
         mut,
@@ -453,7 +453,7 @@ pub struct Repay<'info> {
         seeds::program = config.agent_registry_program,
         bump = agent_profile.bump,
     )]
-    pub agent_profile: Account<'info, AgentProfile>,
+    pub agent_profile: Box<Account<'info, AgentProfile>>,
 
     /// SOL-001 fix: Only agent or owner may repay — caller must match one of them
     #[account(
@@ -531,14 +531,14 @@ pub struct Liquidate<'info> {
         seeds = [WalletConfig::SEED],
         bump = config.bump,
     )]
-    pub config: Account<'info, WalletConfig>,
+    pub config: Box<Account<'info, WalletConfig>>,
 
     #[account(
         mut,
         seeds = [AgentWallet::SEED, agent_wallet.agent.as_ref()],
         bump = agent_wallet.bump,
     )]
-    pub agent_wallet: Account<'info, AgentWallet>,
+    pub agent_wallet: Box<Account<'info, AgentWallet>>,
 
     #[account(
         mut,
@@ -554,7 +554,7 @@ pub struct Liquidate<'info> {
         seeds::program = config.credit_vault_program,
         bump = vault_config.bump,
     )]
-    pub vault_config: Account<'info, VaultConfig>,
+    pub vault_config: Box<Account<'info, VaultConfig>>,
 
     #[account(mut, address = vault_config.vault_token_account)]
     pub vault_token: Account<'info, TokenAccount>,
@@ -568,14 +568,14 @@ pub struct Liquidate<'info> {
         seeds::program = config.credit_vault_program,
         bump = credit_line.bump,
     )]
-    pub credit_line: Account<'info, CreditLine>,
+    pub credit_line: Box<Account<'info, CreditLine>>,
 
     #[account(
         seeds = [b"registry_config"],
         seeds::program = config.agent_registry_program,
         bump = registry_config.bump,
     )]
-    pub registry_config: Account<'info, RegistryConfig>,
+    pub registry_config: Box<Account<'info, RegistryConfig>>,
 
     #[account(
         mut,
@@ -583,7 +583,7 @@ pub struct Liquidate<'info> {
         seeds::program = config.agent_registry_program,
         bump = agent_profile.bump,
     )]
-    pub agent_profile: Account<'info, AgentProfile>,
+    pub agent_profile: Box<Account<'info, AgentProfile>>,
 
     /// Liquidator's USDC account — receives keeper reward (0.5%)
     #[account(

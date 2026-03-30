@@ -1,20 +1,30 @@
 {
   "name": "@krexa/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CLI for the Krexa Protocol — credit for AI agents on Solana",
   "type": "module",
   "bin": {
     "krexa": "./dist/index.js"
   },
   "main": "dist/index.js",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["solana", "ai-agents", "credit", "defi", "krexa", "x402", "cli"],
+  "keywords": [
+    "solana",
+    "ai-agents",
+    "credit",
+    "defi",
+    "krexa",
+    "x402",
+    "cli"
+  ],
   "author": "Krexa Protocol",
   "license": "MIT",
   "dependencies": {

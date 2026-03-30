@@ -4,11 +4,11 @@ import ora from "ora";
 import { Connection } from "@solana/web3.js";
 import BN from "bn.js";
 import { loadKeypair, getRpcUrl } from "../utils/config.js";
-import { success, header, field, divider } from "../utils/display.js";
-import { findCreditLine, findAgentWallet, getAssociatedTokenAddress } from "../utils/pda.js";
-import { deserializeCreditLine, deserializeAgentWallet, formatUsdc } from "../utils/deserialize.js";
+import { success } from "../utils/display.js";
+import { findCreditLine, findVaultConfig } from "../utils/pda.js";
+import { deserializeCreditLine, deserializeVaultConfig, formatUsdc } from "../utils/deserialize.js";
 import { buildRepay } from "../utils/transactions.js";
-import { USDC_MINT, PROTOCOL } from "../utils/constants.js";
+import { PROTOCOL } from "../utils/constants.js";
 
 export const repayCommand = new Command("repay")
   .description("Repay credit line debt")
@@ -46,13 +46,19 @@ export const repayCommand = new Command("repay")
       repayAmount = totalOwed;
     }
 
-    // Get caller's USDC ATA
-    const callerUsdc = getAssociatedTokenAddress(USDC_MINT, agent);
+    // Fetch vault config to get vault_token_account and insurance_token_account
+    const [vaultConfigPda] = findVaultConfig();
+    const vcInfo = await connection.getAccountInfo(vaultConfigPda);
+    if (!vcInfo) {
+      spinner.fail("Vault config not found on-chain.");
+      return;
+    }
+    const vc = deserializeVaultConfig(vcInfo.data.slice(8));
 
     spinner.text = `Repaying ${formatUsdc(repayAmount)} USDC...`;
 
     try {
-      const tx = buildRepay(agent, agent, callerUsdc, repayAmount);
+      const tx = buildRepay(agent, agent, repayAmount, vc.vaultTokenAccount, vc.insuranceTokenAccount);
       tx.feePayer = keypair.publicKey;
       tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
       tx.sign(keypair);

@@ -12,6 +12,8 @@ import { lpCommand } from "./commands/lp.js";
 import { configCommand } from "./commands/config-cmd.js";
 import { mcpCommand } from "./commands/mcp.js";
 import { docsCommand } from "./commands/docs.js";
+import { revenueCommand } from "./commands/revenue.js";
+import { settleCommand } from "./commands/settle.js";
 
 const program = new Command();
 
@@ -31,5 +33,7 @@ program.addCommand(lpCommand);
 program.addCommand(configCommand);
 program.addCommand(mcpCommand);
 program.addCommand(docsCommand);
+program.addCommand(revenueCommand);
+program.addCommand(settleCommand);
 
 program.parse();
