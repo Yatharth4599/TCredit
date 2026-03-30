@@ -12,6 +12,8 @@ import { AgentTypesShowcase } from '../../components/launchpad/AgentTypesShowcas
 import { HowAgentsEarn } from '../../components/launchpad/HowAgentsEarn'
 import { CreditLadder } from '../../components/launchpad/CreditLadder'
 import { WizardTransition } from '../../components/launchpad/WizardTransition'
+import { WorkflowVisualization } from '../../components/launchpad/WorkflowVisualization'
+import { EcosystemSection } from '../../components/launchpad/EcosystemSection'
 import { agentApi, kyaApi, faucetApi, creditApi, healthApi } from '../../api/solanaClient'
 import { useSolanaTx } from '../../hooks/useSolanaTx'
 import { txUrl } from '../../config/solana'
@@ -331,7 +333,9 @@ export default function LaunchpadPage() {
       <AgentIdentityCard />
       <AgentTypesShowcase onDeployTemplate={handleDeployTemplate} />
       <HowAgentsEarn />
+      <WorkflowVisualization />
       <CreditLadder />
+      <EcosystemSection />
       <WizardTransition />
 
       {/* ── Wizard ── */}
@@ -916,6 +920,7 @@ function StepLive({ state, shortAddr }: {
 }) {
   const agentType = state.agentType !== null ? AGENT_TYPES[state.agentType] : null
   const level = CREDIT_LEVELS.find(l => l.level === state.creditLevel)
+  const [activeGuideTab, setActiveGuideTab] = useState(0)
 
   const statLabelStyle: React.CSSProperties = {
     fontSize: '13px',
@@ -927,51 +932,183 @@ function StepLive({ state, shortAddr }: {
     fontFamily: font,
   }
 
+  const buildGuides = getBuildGuides(state.agentType ?? 0)
+
   return (
-    <div style={cardStyle}>
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.3), transparent)' }} />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Agent Live card */}
+      <div style={cardStyle}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.3), transparent)' }} />
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-        <div style={{ width: 10, height: 10, borderRadius: '50%', background: colors.accentCyan, boxShadow: '0 0 12px rgba(34,211,238,0.5)', animation: 'lp-pulse 2s ease-in-out infinite' }} />
-        <h2 style={{ fontSize: '24px', fontWeight: 600, color: colors.textPrimary, margin: 0, letterSpacing: '-0.02em', fontFamily: font }}>
-          Agent Live
-        </h2>
-      </div>
-      <p style={{ fontSize: '15px', color: colors.textSecondary, lineHeight: 1.6, margin: '0 0 28px', fontFamily: font }}>
-        Your agent is deployed and operational on Solana devnet.
-      </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+          <div style={{ width: 10, height: 10, borderRadius: '50%', background: colors.accentCyan, boxShadow: '0 0 12px rgba(34,211,238,0.5)', animation: 'lp-pulse 2s ease-in-out infinite' }} />
+          <h2 style={{ fontSize: '24px', fontWeight: 600, color: colors.textPrimary, margin: 0, letterSpacing: '-0.02em', fontFamily: font }}>
+            Agent Live
+          </h2>
+        </div>
+        <p style={{ fontSize: '15px', color: colors.textSecondary, lineHeight: 1.6, margin: '0 0 28px', fontFamily: font }}>
+          Your agent is deployed and operational on Solana devnet.
+        </p>
 
-      {/* Stats grid — matches tranche-card style */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4" style={{ marginBottom: '32px' }}>
-        {[
-          { label: 'Agent', value: shortAddr, mono: true },
-          { label: 'Name', value: state.agentName || '\u2014' },
-          { label: 'Type', value: agentType?.name ?? '\u2014', color: agentType?.color },
-          { label: 'KYA', value: 'Tier 1' },
-          { label: 'Credit', value: `$${state.borrowAmount.toLocaleString()} ${level?.name ?? ''}` },
-          { label: 'Wallet Balance', value: `$${state.faucetAmount} USDC` },
-        ].map((item) => (
-          <div
-            key={item.label}
-            className="tranche-card"
-            style={{
-              background: colors.bgSecondary,
-              borderRadius: '16px',
-              padding: '20px',
-              overflow: 'hidden',
-              position: 'relative',
-            }}
-          >
-            <div style={statLabelStyle}>{item.label}</div>
-            <div style={{ fontSize: '15px', fontWeight: 600, color: item.color ?? colors.textPrimary, fontFamily: item.mono ? mono : font }}>
-              {item.value}
+        {/* Stats grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4" style={{ marginBottom: '0' }}>
+          {[
+            { label: 'Agent', value: shortAddr, mono: true },
+            { label: 'Name', value: state.agentName || '\u2014' },
+            { label: 'Type', value: agentType?.name ?? '\u2014', color: agentType?.color },
+            { label: 'KYA', value: 'Tier 1' },
+            { label: 'Credit', value: `$${state.borrowAmount.toLocaleString()} ${level?.name ?? ''}` },
+            { label: 'Wallet Balance', value: `$${state.faucetAmount} USDC` },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="tranche-card"
+              style={{
+                background: colors.bgSecondary,
+                borderRadius: '16px',
+                padding: '20px',
+                overflow: 'hidden',
+                position: 'relative',
+              }}
+            >
+              <div style={statLabelStyle}>{item.label}</div>
+              <div style={{ fontSize: '15px', fontWeight: 600, color: item.color ?? colors.textPrimary, fontFamily: item.mono ? mono : font }}>
+                {item.value}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
-      {/* Next steps — styled like AgentTypes rows */}
-      <div style={{ borderTop: `1px solid ${colors.borderSubtle}`, paddingTop: '24px' }}>
+      {/* Build Guide card */}
+      <div style={cardStyle}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(90deg, transparent, ${agentType?.color ?? colors.accentCyan}40, transparent)` }} />
+
+        <div style={{ marginBottom: '8px' }}>
+          <span style={{ color: agentType?.color ?? colors.accentCyan, fontSize: '13px', fontWeight: 600, letterSpacing: '0.05em', fontFamily: font }}>
+            BUILD GUIDE
+          </span>
+          <span style={{ color: colors.textTertiary, fontSize: '13px', margin: '0 8px' }}>&middot;</span>
+          <span style={{ color: colors.textPrimary, fontSize: '13px', fontWeight: 600, letterSpacing: '0.05em', fontFamily: font }}>
+            {agentType?.name?.toUpperCase() ?? 'AGENT'}
+          </span>
+        </div>
+        <p style={{ fontSize: '15px', color: colors.textSecondary, lineHeight: 1.6, margin: '0 0 24px', fontFamily: font }}>
+          {buildGuides.intro}
+        </p>
+
+        {/* Guide tabs */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
+          {buildGuides.tabs.map((tab, i) => (
+            <button
+              key={tab.label}
+              onClick={() => setActiveGuideTab(i)}
+              style={{
+                padding: '8px 16px',
+                background: activeGuideTab === i ? `${agentType?.color ?? colors.accentCyan}12` : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${activeGuideTab === i ? `${agentType?.color ?? colors.accentCyan}40` : colors.borderSubtle}`,
+                borderRadius: '8px',
+                color: activeGuideTab === i ? (agentType?.color ?? colors.accentCyan) : colors.textTertiary,
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                fontFamily: font,
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Active guide content */}
+        {buildGuides.tabs[activeGuideTab] && (
+          <div>
+            {/* Step-by-step */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0', marginBottom: '24px' }}>
+              {buildGuides.tabs[activeGuideTab].steps.map((s, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: 'flex',
+                    gap: '14px',
+                    padding: '16px 0',
+                    borderBottom: i < buildGuides.tabs[activeGuideTab].steps.length - 1 ? `1px solid ${colors.borderSubtle}` : 'none',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '8px',
+                      background: `${agentType?.color ?? colors.accentCyan}10`,
+                      border: `1px solid ${agentType?.color ?? colors.accentCyan}30`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      color: agentType?.color ?? colors.accentCyan,
+                      fontFamily: mono,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {i + 1}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: colors.textPrimary, marginBottom: '4px', fontFamily: font }}>
+                      {s.title}
+                    </div>
+                    <div style={{ fontSize: '13px', color: colors.textTertiary, lineHeight: 1.5, fontFamily: font }}>
+                      {s.desc}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Starter code */}
+            {buildGuides.tabs[activeGuideTab].code && (
+              <BuildCodeBlock code={buildGuides.tabs[activeGuideTab].code!} />
+            )}
+
+            {/* Framework options */}
+            {buildGuides.tabs[activeGuideTab].frameworks && (
+              <div style={{ marginTop: '24px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: colors.textTertiary, letterSpacing: '0.05em', marginBottom: '12px', fontFamily: font }}>
+                  COMPATIBLE FRAMEWORKS
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {buildGuides.tabs[activeGuideTab].frameworks!.map((fw) => (
+                    <div
+                      key={fw.name}
+                      className="feature-card"
+                      style={{
+                        cursor: 'default',
+                        padding: '12px 16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                      }}
+                    >
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: fw.color, flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: colors.textPrimary, fontFamily: font }}>{fw.name}</div>
+                        <div style={{ fontSize: '11px', color: colors.textTertiary, fontFamily: font }}>{fw.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Next steps card */}
+      <div style={cardStyle}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.3), transparent)' }} />
+
         <h3 style={{ fontSize: '13px', fontWeight: 500, color: colors.textSecondary, letterSpacing: '0.05em', textTransform: 'uppercase', margin: '0 0 16px', fontFamily: font }}>
           Next steps
         </h3>
@@ -987,6 +1124,290 @@ function StepLive({ state, shortAddr }: {
       </div>
     </div>
   )
+}
+
+/* ── Build code block with copy button ── */
+function BuildCodeBlock({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false)
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <div style={{ fontSize: '12px', fontWeight: 600, color: colors.textTertiary, letterSpacing: '0.05em', marginBottom: '8px', fontFamily: font }}>
+        STARTER CODE
+      </div>
+      <div
+        style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: `1px solid ${colors.borderSubtle}`,
+          borderRadius: '8px',
+          padding: '16px 20px',
+          fontFamily: mono,
+          fontSize: '13px',
+          color: colors.textSecondary,
+          lineHeight: 1.7,
+          whiteSpace: 'pre',
+          overflowX: 'auto',
+          position: 'relative',
+        }}
+      >
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(code)
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+          }}
+          style={{
+            position: 'absolute',
+            top: '10px',
+            right: '10px',
+            background: 'rgba(255,255,255,0.06)',
+            border: `1px solid ${colors.borderSubtle}`,
+            borderRadius: '6px',
+            padding: '4px 10px',
+            fontSize: '11px',
+            fontWeight: 500,
+            color: copied ? colors.accentGreen : colors.textTertiary,
+            cursor: 'pointer',
+            fontFamily: font,
+            transition: 'color 0.2s',
+          }}
+        >
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+        {code}
+      </div>
+    </div>
+  )
+}
+
+/* ── Build guide data per agent type ── */
+interface BuildStep { title: string; desc: string }
+interface Framework { name: string; desc: string; color: string }
+interface GuideTab {
+  label: string
+  steps: BuildStep[]
+  code?: string
+  frameworks?: Framework[]
+}
+interface BuildGuide {
+  intro: string
+  tabs: GuideTab[]
+}
+
+function getBuildGuides(agentType: number): BuildGuide {
+  if (agentType === 0) {
+    return {
+      intro: 'Your trading agent is registered on-chain. Now build the off-chain logic that executes trades and auto-repays.',
+      tabs: [
+        {
+          label: 'Quick Start',
+          steps: [
+            { title: 'Install the Krexa SDK', desc: 'npm install @krexa/sdk @solana/web3.js' },
+            { title: 'Initialize your agent', desc: 'Load your keypair and connect to the Krexa program on devnet.' },
+            { title: 'Fetch price feeds', desc: 'Use Jupiter API or Pyth to get real-time token prices across DEXs.' },
+            { title: 'Execute trades', desc: 'Swap tokens via Jupiter aggregator when spread exceeds your threshold.' },
+            { title: 'Auto-repay', desc: 'After profit, call creditApi.repay() to reduce your outstanding balance.' },
+          ],
+          code: `import { KrexaAgent } from '@krexa/sdk'
+import { Jupiter } from '@jup-ag/core'
+
+const agent = new KrexaAgent({
+  keypair: loadKeypair(),
+  cluster: 'devnet',
+})
+
+// Check for arbitrage opportunities
+const routes = await jupiter.computeRoutes({
+  inputMint: USDC_MINT,
+  outputMint: SOL_MINT,
+  amount: 100_000_000, // 100 USDC
+  slippageBps: 50,
+})
+
+// Execute if profitable
+if (routes.bestRoute.outAmount > threshold) {
+  await agent.executeSwap(routes.bestRoute)
+  await agent.repay(profit)
+}`,
+          frameworks: [
+            { name: 'Jupiter SDK', desc: 'DEX aggregator for best swap routes', color: '#22d3ee' },
+            { name: 'Olas', desc: 'Autonomous agent framework', color: '#3b82f6' },
+            { name: 'ElizaOS', desc: 'AI agent with built-in DeFi plugins', color: '#a78bfa' },
+            { name: 'Hummingbot', desc: 'Market making and arbitrage bot', color: '#f59e0b' },
+          ],
+        },
+        {
+          label: 'DEX Integration',
+          steps: [
+            { title: 'Connect to Jupiter', desc: 'Use the Jupiter V6 API for optimal routing across all Solana DEXs.' },
+            { title: 'Set up Orca whirlpools', desc: 'Connect to concentrated liquidity pools for market making strategies.' },
+            { title: 'Monitor Raydium AMMs', desc: 'Track pool reserves and detect arbitrage windows in real-time.' },
+            { title: 'Configure slippage', desc: 'Set appropriate slippage tolerance and priority fees for fast execution.' },
+          ],
+          frameworks: [
+            { name: 'Jupiter V6', desc: 'Best routing across 20+ DEXs', color: '#22d3ee' },
+            { name: 'Orca Whirlpools', desc: 'Concentrated liquidity pools', color: '#34d399' },
+            { name: 'Raydium', desc: 'AMM and CLMM pools', color: '#a78bfa' },
+          ],
+        },
+        {
+          label: 'Hosting',
+          steps: [
+            { title: 'Choose a platform', desc: 'Deploy on Railway, Render, or Fly.io for always-on execution.' },
+            { title: 'Set environment variables', desc: 'Configure AGENT_KEYPAIR, RPC_URL, and KREXA_PROGRAM_ID.' },
+            { title: 'Configure monitoring', desc: 'Set up health checks and alerting for trade execution failures.' },
+            { title: 'Scale horizontally', desc: 'Run multiple instances for different trading pairs.' },
+          ],
+          frameworks: [
+            { name: 'Railway', desc: 'One-click deploy from GitHub', color: '#a78bfa' },
+            { name: 'Render', desc: 'Free tier with auto-deploy', color: '#34d399' },
+            { name: 'Fly.io', desc: 'Edge deployment for low latency', color: '#22d3ee' },
+          ],
+        },
+      ],
+    }
+  }
+
+  if (agentType === 1) {
+    return {
+      intro: 'Your service agent is live. Build an API that earns via x402 micropayments — customers pay per request, revenue auto-splits.',
+      tabs: [
+        {
+          label: 'Quick Start',
+          steps: [
+            { title: 'Install x402 middleware', desc: 'npm install x402-express @krexa/sdk' },
+            { title: 'Create your API', desc: 'Build an Express/Fastify server with your AI or data service logic.' },
+            { title: 'Add x402 paywall', desc: 'Wrap endpoints with x402 middleware — returns 402 with payment details.' },
+            { title: 'Connect Revenue Router', desc: 'Payments auto-split: protocol fee, debt repayment, and your wallet.' },
+            { title: 'Deploy and share', desc: 'Host your API and share the endpoint. Revenue flows automatically.' },
+          ],
+          code: `import express from 'express'
+import { x402 } from 'x402-express'
+import { KrexaAgent } from '@krexa/sdk'
+
+const app = express()
+const agent = new KrexaAgent({ keypair: loadKeypair() })
+
+// Paywall: $0.25 per request
+app.use('/api/research', x402({
+  price: 0.25,
+  currency: 'USDC',
+  receiver: agent.walletAddress,
+}))
+
+app.post('/api/research', async (req, res) => {
+  const result = await claude.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    messages: [{ role: 'user', content: req.body.query }],
+  })
+  res.json({ answer: result.content })
+})
+
+app.listen(3000)`,
+          frameworks: [
+            { name: 'Claude API', desc: 'Anthropic\'s AI for research/analysis', color: '#f59e0b' },
+            { name: 'GPT-4', desc: 'OpenAI for code review and generation', color: '#34d399' },
+            { name: 'x402', desc: 'HTTP 402 micropayment protocol', color: '#22d3ee' },
+            { name: 'Express', desc: 'Node.js web framework', color: '#a78bfa' },
+          ],
+        },
+        {
+          label: 'x402 Protocol',
+          steps: [
+            { title: 'How x402 works', desc: 'Client sends request → Server returns 402 with payment details → Client pays USDC → Server fulfills request.' },
+            { title: 'Set pricing tiers', desc: 'Configure different prices per endpoint or per response quality level.' },
+            { title: 'Revenue Router split', desc: '10% protocol fee, debt repayment (variable), remainder to your wallet.' },
+            { title: 'Monitor earnings', desc: 'Track revenue via the Krexa dashboard or CLI.' },
+          ],
+          frameworks: [
+            { name: 'x402-express', desc: 'Express middleware for x402', color: '#22d3ee' },
+            { name: 'x402-fastify', desc: 'Fastify plugin for x402', color: '#34d399' },
+            { name: 'x402-python', desc: 'Flask/FastAPI middleware', color: '#f59e0b' },
+          ],
+        },
+        {
+          label: 'LLM Options',
+          steps: [
+            { title: 'Claude (Anthropic)', desc: 'Best for research, analysis, and long-form content. Fast and accurate.' },
+            { title: 'GPT-4 (OpenAI)', desc: 'Strong for code review, function calling, and structured output.' },
+            { title: 'Llama (Meta)', desc: 'Self-hosted for maximum privacy and zero API costs.' },
+            { title: 'Mistral', desc: 'Fast and efficient for high-throughput, cost-sensitive workloads.' },
+          ],
+          frameworks: [
+            { name: 'Claude', desc: 'Best reasoning and analysis', color: '#f59e0b' },
+            { name: 'GPT-4', desc: 'Strong code and function calling', color: '#34d399' },
+            { name: 'Llama 3', desc: 'Self-hosted, zero API cost', color: '#a78bfa' },
+            { name: 'Mistral', desc: 'Fast, cost-effective', color: '#22d3ee' },
+          ],
+        },
+      ],
+    }
+  }
+
+  // Hybrid (type 2)
+  return {
+    intro: 'Your hybrid agent combines trading and service revenue. Build both revenue streams for maximum credit score growth.',
+    tabs: [
+      {
+        label: 'Quick Start',
+        steps: [
+          { title: 'Set up trading logic', desc: 'Use Jupiter SDK for DEX arbitrage or yield optimization.' },
+          { title: 'Build your API service', desc: 'Create an x402-powered API endpoint that monetizes your trading signals.' },
+          { title: 'Connect both to Krexa', desc: 'Trading profits and API revenue both flow through the Revenue Router.' },
+          { title: 'Dual score components', desc: 'All 5 Krexit Score components are active — fastest path to L4.' },
+          { title: 'Scale to Prime', desc: 'Diversified revenue accelerates credit growth to $500K at 18.25% APR.' },
+        ],
+        code: `import { KrexaAgent } from '@krexa/sdk'
+import { Jupiter } from '@jup-ag/core'
+import express from 'express'
+import { x402 } from 'x402-express'
+
+const agent = new KrexaAgent({ keypair: loadKeypair() })
+
+// Trading: DEX arbitrage
+async function tradingLoop() {
+  while (true) {
+    const routes = await jupiter.computeRoutes(params)
+    if (isProfitable(routes)) {
+      await agent.executeSwap(routes.bestRoute)
+      await agent.repay(calculateProfit(routes))
+    }
+    await sleep(5000)
+  }
+}
+
+// Service: sell signals via x402
+const app = express()
+app.use('/api/signals', x402({ price: 0.10, currency: 'USDC' }))
+app.get('/api/signals', (req, res) => {
+  res.json({ signals: agent.getLatestSignals() })
+})
+
+// Run both
+tradingLoop()
+app.listen(3000)`,
+        frameworks: [
+          { name: 'ElizaOS', desc: 'Full-stack agent with trading + API', color: '#a78bfa' },
+          { name: 'Olas', desc: 'Autonomous service + trading agent', color: '#3b82f6' },
+          { name: 'LangChain', desc: 'Chain trading analysis with API serving', color: '#34d399' },
+        ],
+      },
+      {
+        label: 'Revenue Strategy',
+        steps: [
+          { title: 'Primary: Trading', desc: 'DEX arbitrage generates base revenue. Target 3-5 profitable trades per day.' },
+          { title: 'Secondary: API signals', desc: 'Sell your trading signals as a paid API. Market data is valuable.' },
+          { title: 'Optimize the split', desc: 'Revenue Router handles auto-split. More revenue = faster debt repayment.' },
+          { title: 'Credit ladder strategy', desc: 'Dual revenue activates all score components. Reach L4 2x faster than single-stream agents.' },
+        ],
+        frameworks: [
+          { name: 'Jupiter SDK', desc: 'Trading engine', color: '#22d3ee' },
+          { name: 'x402', desc: 'API monetization', color: '#34d399' },
+          { name: 'Pyth', desc: 'Price feeds', color: '#f59e0b' },
+        ],
+      },
+    ],
+  }
 }
 
 function NextStepRow({ item, isLast }: {

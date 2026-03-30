@@ -8,6 +8,7 @@ interface Template {
   desc: string
   revenue: string
   revenueLabel: string
+  frameworks: string[]
 }
 
 interface AgentCategory {
@@ -27,9 +28,9 @@ const categories: AgentCategory[] = [
     flow: 'Borrow \u2192 Trade \u2192 Profit \u2192 Auto-repay',
     typeId: 0,
     templates: [
-      { name: 'DEX Arbitrage', desc: 'Catch price gaps across Jupiter, Orca, Raydium.', revenue: '~30\u201380%', revenueLabel: 'APY' },
-      { name: 'Yield Optimizer', desc: 'Move capital to highest yield pools on Kamino, MarginFi.', revenue: '~15\u201340%', revenueLabel: 'APY' },
-      { name: 'Market Making', desc: 'Provide liquidity and earn bid-ask spreads.', revenue: '~20\u201360%', revenueLabel: 'APY' },
+      { name: 'DEX Arbitrage', desc: 'Catch price gaps across Jupiter, Orca, Raydium.', revenue: '~30\u201380%', revenueLabel: 'APY', frameworks: ['Jupiter SDK', 'Olas', 'Python'] },
+      { name: 'Yield Optimizer', desc: 'Move capital to highest yield pools on Kamino, MarginFi.', revenue: '~15\u201340%', revenueLabel: 'APY', frameworks: ['Kamino SDK', 'ElizaOS', 'TypeScript'] },
+      { name: 'Market Making', desc: 'Provide liquidity and earn bid-ask spreads.', revenue: '~20\u201360%', revenueLabel: 'APY', frameworks: ['Orca SDK', 'Hummingbot', 'Python'] },
     ],
   },
   {
@@ -39,9 +40,9 @@ const categories: AgentCategory[] = [
     flow: 'Borrow \u2192 Build \u2192 Earn via x402 \u2192 Auto-repay',
     typeId: 1,
     templates: [
-      { name: 'Research API', desc: 'AI-powered research queries. Charges per query.', revenue: '$0.25/call', revenueLabel: '~$7.50/day' },
-      { name: 'Code Reviewer', desc: 'Analyze smart contracts for bugs. Per audit.', revenue: '$5/review', revenueLabel: '~$25/day' },
-      { name: 'Data Oracle', desc: 'Serve real-time crypto prices and social data.', revenue: '$0.01/call', revenueLabel: '~$10/day' },
+      { name: 'Research API', desc: 'AI-powered research queries. Charges per query.', revenue: '$0.25/call', revenueLabel: '~$7.50/day', frameworks: ['Claude API', 'x402', 'Express'] },
+      { name: 'Code Reviewer', desc: 'Analyze smart contracts for bugs. Per audit.', revenue: '$5/review', revenueLabel: '~$25/day', frameworks: ['GPT-4', 'x402', 'FastAPI'] },
+      { name: 'Data Oracle', desc: 'Serve real-time crypto prices and social data.', revenue: '$0.01/call', revenueLabel: '~$10/day', frameworks: ['Pyth', 'x402', 'Node.js'] },
     ],
   },
   {
@@ -51,8 +52,8 @@ const categories: AgentCategory[] = [
     flow: 'Trade AND serve. Dual revenue. Dual enforcement.',
     typeId: 2,
     templates: [
-      { name: 'Trader + Analytics', desc: 'Trade on DEXs AND sell market signals as a paid API.', revenue: 'Dual', revenueLabel: 'revenue' },
-      { name: 'Portfolio Manager', desc: 'Manage DeFi strategies AND charge management fees.', revenue: 'Dual', revenueLabel: 'revenue' },
+      { name: 'Trader + Analytics', desc: 'Trade on DEXs AND sell market signals as a paid API.', revenue: 'Dual', revenueLabel: 'revenue', frameworks: ['ElizaOS', 'Jupiter SDK', 'x402'] },
+      { name: 'Portfolio Manager', desc: 'Manage DeFi strategies AND charge management fees.', revenue: 'Dual', revenueLabel: 'revenue', frameworks: ['Olas', 'LangChain', 'x402'] },
     ],
   },
 ]
@@ -154,10 +155,32 @@ function CategorySection({ cat, onDeploy }: { cat: AgentCategory; onDeploy: (typ
           >
             <div style={{ fontSize: '15px', fontWeight: 600, color: '#f0f0f0', marginBottom: '8px', fontFamily: font }}>{t.name}</div>
             <p style={{ fontSize: '13px', color: '#a0a0a8', lineHeight: 1.6, margin: '0 0 16px', fontFamily: font }}>{t.desc}</p>
-            <div style={{ marginBottom: '16px' }}>
+            <div style={{ marginBottom: '12px' }}>
               <span style={{ fontSize: '18px', fontWeight: 600, color: '#22d3ee', fontFamily: mono }}>{t.revenue}</span>
               <span style={{ fontSize: '12px', color: '#5a5a65', marginLeft: '6px', fontFamily: font }}>{t.revenueLabel}</span>
             </div>
+
+            {/* Framework pills */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
+              {t.frameworks.map((fw) => (
+                <span
+                  key={fw}
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 500,
+                    color: '#a0a0a8',
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    borderRadius: '100px',
+                    padding: '3px 10px',
+                    fontFamily: font,
+                  }}
+                >
+                  {fw}
+                </span>
+              ))}
+            </div>
+
             <button
               onClick={() => onDeploy(cat.typeId)}
               style={{
