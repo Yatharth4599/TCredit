@@ -6,6 +6,12 @@ import toast from 'react-hot-toast'
 import '../../styles/landing.css'
 import { Navbar } from '../../components/landing/Navbar'
 import { Footer } from '../../components/landing/Footer'
+import { LaunchHero } from '../../components/launchpad/LaunchHero'
+import { AgentIdentityCard } from '../../components/launchpad/AgentIdentityCard'
+import { AgentTypesShowcase } from '../../components/launchpad/AgentTypesShowcase'
+import { HowAgentsEarn } from '../../components/launchpad/HowAgentsEarn'
+import { CreditLadder } from '../../components/launchpad/CreditLadder'
+import { WizardTransition } from '../../components/launchpad/WizardTransition'
 import { agentApi, kyaApi, faucetApi, creditApi, healthApi } from '../../api/solanaClient'
 import { useSolanaTx } from '../../hooks/useSolanaTx'
 import { txUrl } from '../../config/solana'
@@ -142,15 +148,6 @@ const CREDIT_LEVELS = [
   { level: 3, name: 'L3 Growth', max: 50000, rate: '21.9%' },
 ]
 
-/* ── Shared style helpers — identical to LandingPage.tsx ── */
-function fadeInStyle(loaded: boolean, delay: number): React.CSSProperties {
-  return {
-    opacity: loaded ? 1 : 0,
-    transform: loaded ? 'translateY(0)' : 'translateY(20px)',
-    transition: `opacity 0.8s ${easing} ${delay}ms, transform 0.8s ${easing} ${delay}ms`,
-  }
-}
-
 /* ── Primary button — matches landing "gradient-bg" CTA ── */
 const primaryBtnBase: React.CSSProperties = {
   display: 'inline-flex',
@@ -200,17 +197,12 @@ export default function LaunchpadPage() {
 
   const [step, setStep] = useState(1)
   const [state, setState] = useState<LaunchpadState>(INITIAL_STATE)
-  const [loaded, setLoaded] = useState(false)
   const [serverWaking, setServerWaking] = useState(false)
   const warmedRef = useRef(false)
+  const wizardRef = useRef<HTMLDivElement>(null)
 
   const addr = publicKey?.toBase58() ?? ''
   const shortAddr = addr ? `${addr.slice(0, 4)}...${addr.slice(-4)}` : ''
-
-  useEffect(() => {
-    const timer = setTimeout(() => setLoaded(true), 100)
-    return () => clearTimeout(timer)
-  }, [])
 
   useEffect(() => {
     if (warmedRef.current) return
@@ -319,69 +311,31 @@ export default function LaunchpadPage() {
   const canAdvanceStep3 = state.agentType !== null && state.agentName.length > 0
   const allDeployed = state.registerStatus === 'done' && state.kyaStatus === 'done' && state.faucetStatus === 'done'
 
+  const scrollToWizard = useCallback(() => {
+    wizardRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [])
+
+  const handleDeployTemplate = useCallback((typeId: number) => {
+    update({ agentType: typeId })
+    setStep(2)
+    wizardRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [update])
+
   return (
     <div className="landing-root" style={{ minHeight: '100vh' }}>
       <style>{spinnerCSS}</style>
       <Navbar />
 
-      {/* ── Hero ── identical structure to landing hero */}
-      <section
-        className="dot-grid"
-        style={{
-          padding: '140px 24px 60px',
-          textAlign: 'center',
-          position: 'relative',
-        }}
-      >
-        {/* Radial glow — same as landing hero */}
-        <div
-          className="hero-glow"
-          style={{
-            position: 'absolute',
-            width: '600px',
-            height: '400px',
-            borderRadius: '50%',
-            background: 'radial-gradient(ellipse, rgba(34, 211, 238, 0.06), transparent 70%)',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -30%)',
-            pointerEvents: 'none',
-          }}
-        />
+      {/* ── Educational sections ── */}
+      <LaunchHero onScrollToWizard={scrollToWizard} />
+      <AgentIdentityCard />
+      <AgentTypesShowcase onDeployTemplate={handleDeployTemplate} />
+      <HowAgentsEarn />
+      <CreditLadder />
+      <WizardTransition />
 
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <h1
-            style={{
-              fontSize: 'clamp(36px, 5vw, 64px)',
-              fontWeight: 700,
-              color: colors.textPrimary,
-              letterSpacing: '-0.03em',
-              lineHeight: 1.1,
-              margin: '0 0 24px',
-              fontFamily: font,
-              ...fadeInStyle(loaded, 0),
-            }}
-          >
-            Launch your <span className="gradient-text">AI agent</span>
-          </h1>
-          <p
-            style={{
-              fontSize: '18px',
-              color: colors.textSecondary,
-              lineHeight: 1.7,
-              maxWidth: '500px',
-              margin: '0 auto',
-              fontFamily: font,
-              ...fadeInStyle(loaded, 150),
-            }}
-          >
-            Deploy on Solana, get credit, start operating — all from the browser.
-          </p>
-        </div>
-      </section>
-
-      {/* ── Main content area ── */}
-      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 24px 140px', ...fadeInStyle(loaded, 300) }}>
+      {/* ── Wizard ── */}
+      <div ref={wizardRef} style={{ maxWidth: '720px', margin: '0 auto', padding: '80px 24px 140px' }}>
 
         {/* Step indicator */}
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '40px' }}>
