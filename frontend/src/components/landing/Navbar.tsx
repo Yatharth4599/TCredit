@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 
 const NAV_LINKS = [
+  { label: 'Launch', href: '/launch' },
   { label: 'Docs', href: 'https://krexa.mintlify.app' },
   { label: 'GitHub', href: 'https://github.com/Yatharth4599/Krexa' },
   { label: 'Dashboard', href: '/app/solana/credit' },
