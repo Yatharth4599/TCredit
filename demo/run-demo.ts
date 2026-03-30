@@ -502,6 +502,7 @@ export async function runDemo(broadcast: BroadcastFn): Promise<void> {
   const CREDIT_AMOUNT = 50_000_000n;  // $50 USDC
   const RATE_BPS      = 1000;          // 10% APR in basis points
   const CREDIT_LEVEL  = 1;             // Level 1 — zero collateral, up to $500
+  let   creditOnChain = true;          // tracks whether credit was actually extended or skipped
 
   info(`Amount    : ${usdcFmt(Number(CREDIT_AMOUNT))}`);
   info(`Rate      : ${RATE_BPS / 100}% APR`);
@@ -530,6 +531,12 @@ export async function runDemo(broadcast: BroadcastFn): Promise<void> {
       spinner4.warn(chalk.yellow('Credit already drawn — skipping (wallet active from previous run)'));
       broadcast('step_complete', { step: 4, tx: 'skipped' });
       broadcast('wallet_state', { balance: 50, debt: 50, score: 0, level: 1, collateral: 0, creditUsed: 50 });
+    // 0x1775 = 6005 = UtilizationCap — vault fully utilized from previous demo runs
+    } else if (msg.includes('0x1775') || msg.includes('UtilizationCap')) {
+      spinner4.warn(chalk.yellow('Vault utilization cap reached — continuing in demo mode'));
+      creditOnChain = false;
+      broadcast('step_complete', { step: 4, tx: 'demo-mode' });
+      broadcast('wallet_state', { balance: 50, debt: 50, score: 0, level: 1, collateral: 0, creditUsed: 50 });
     } else {
       spinner4.fail(chalk.red(`Credit request failed: ${msg}`));
       broadcast('step_error', { step: 4, error: msg });
@@ -550,25 +557,30 @@ export async function runDemo(broadcast: BroadcastFn): Promise<void> {
   const SPLIT_BPS = 3000;
 
   const spinner5a = ora({ text: 'Oracle activating settlement account…', color: 'cyan' }).start();
-  try {
-    const sig5a = await sendTx2(
-      spinner5a, 'activate_settlement',
-      [oracle],
-      ixActivateSettlement2(SPLIT_BPS),
-    );
-    spinner5a.succeed(chalk.green('Settlement activated!'));
-    ok(`Tx: ${shortSig(sig5a)}`);
-    ok(`Settlement PDA: ${pdas2.settlement(agentKey).toBase58()}`);
-    broadcast('step_complete', { step: 5, tx: sig5a });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes('already in use')) {
-      spinner5a.warn(chalk.yellow('Settlement already active — skipping'));
-    } else {
-      spinner5a.fail(chalk.red(`Settlement activation failed: ${msg}`));
-      broadcast('step_error', { step: 5, error: msg });
-      throw err;
+  if (creditOnChain) {
+    try {
+      const sig5a = await sendTx2(
+        spinner5a, 'activate_settlement',
+        [oracle],
+        ixActivateSettlement2(SPLIT_BPS),
+      );
+      spinner5a.succeed(chalk.green('Settlement activated!'));
+      ok(`Tx: ${shortSig(sig5a)}`);
+      ok(`Settlement PDA: ${pdas2.settlement(agentKey).toBase58()}`);
+      broadcast('step_complete', { step: 5, tx: sig5a });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('already in use')) {
+        spinner5a.warn(chalk.yellow('Settlement already active — skipping'));
+      } else {
+        spinner5a.fail(chalk.red(`Settlement activation failed: ${msg}`));
+        broadcast('step_error', { step: 5, error: msg });
+        throw err;
+      }
     }
+  } else {
+    spinner5a.succeed(chalk.yellow('Settlement simulated (demo mode)'));
+    broadcast('step_complete', { step: 5, tx: 'demo-mode' });
   }
 
   await sleep(500);
@@ -600,11 +612,18 @@ export async function runDemo(broadcast: BroadcastFn): Promise<void> {
     const nonce = BigInt(Date.now()) + BigInt(i);
     const spinnerP = ora({ text: `Payment ${i + 1}/${PAYMENTS}…`, color: 'magenta' }).start();
     try {
-      const sig = await sendTx2(
-        spinnerP, `execute_payment[${i + 1}]`,
-        [oracle],
-        ixExecutePayment2(PAYMENT_AMOUNT, nonce),
-      );
+      let sig: string;
+      if (creditOnChain) {
+        sig = await sendTx2(
+          spinnerP, `execute_payment[${i + 1}]`,
+          [oracle],
+          ixExecutePayment2(PAYMENT_AMOUNT, nonce),
+        );
+      } else {
+        // Simulate payment when credit wasn't extended on-chain
+        await sleep(400);
+        sig = `demo-${Date.now().toString(36)}-${i}`;
+      }
       totalRevenue  += AGENT_REVENUE_MICRO;
       totalRepaid   += LP_REPAY_MICRO;
       totalPlatform += PLATFORM_CUT_MICRO;
@@ -628,7 +647,7 @@ export async function runDemo(broadcast: BroadcastFn): Promise<void> {
       spinnerP.stop();
       const row = [
         chalk.white(`  ${String(i + 1).padStart(2)}  `),
-        chalk.cyan(shortSig(sig).padEnd(20)),
+        chalk.cyan((creditOnChain ? shortSig(sig) : `sim-${i + 1}`).padEnd(20)),
         chalk.red(usdcFmt(PLATFORM_CUT_MICRO).padEnd(12)),
         chalk.yellow(usdcFmt(LP_REPAY_MICRO).padEnd(12)),
         chalk.green(usdcFmt(AGENT_REVENUE_MICRO).padEnd(12)),
