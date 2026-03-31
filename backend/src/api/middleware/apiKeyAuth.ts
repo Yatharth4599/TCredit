@@ -37,7 +37,10 @@ export async function apiKeyAuth(req: AuthenticatedRequest, res: Response, next:
     req.apiKey = { id: apiKey.id, name: apiKey.name, rateLimit: apiKey.rateLimit, tier: apiKey.tier };
     next();
   } catch {
-    next();
+    // EXPLOIT-2 fix: fail closed — don't call next() on DB error when a key WAS provided.
+    // If no key was provided, the early return at line 23-25 already called next().
+    // If a key WAS provided but DB failed, we must reject — not silently proceed as anonymous.
+    res.status(503).json({ error: 'Auth service temporarily unavailable' });
   }
 }
 

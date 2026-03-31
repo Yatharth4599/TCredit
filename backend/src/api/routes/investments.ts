@@ -9,7 +9,10 @@ import { AppError } from '../middleware/errorHandler.js';
 
 const router = Router();
 
-// GET /api/v1/portfolio/:address — all investments for a wallet
+// Portfolio is public read — on-chain data is inherently public (anyone can query vault contracts).
+// The `:address` param is the investor's wallet address which is already public on-chain.
+// IDOR is not applicable here because all investment data is derived from public blockchain state.
+// No private/off-chain data is exposed. Same as Etherscan showing token balances for any address.
 router.get('/portfolio/:address', async (req, res, next) => {
   try {
     const investorAddr = req.params.address as Address;
