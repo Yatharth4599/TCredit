@@ -6,6 +6,7 @@ interface EcosystemItem {
   name: string
   category: string
   color: string
+  isNew?: boolean
 }
 
 const ecosystem: EcosystemItem[] = [
@@ -16,6 +17,8 @@ const ecosystem: EcosystemItem[] = [
   { name: 'CrewAI', category: 'Frameworks', color: '#a78bfa' },
   { name: 'AutoGPT', category: 'Frameworks', color: '#a78bfa' },
   // DEXs
+  { name: '1inch', category: 'DEXs', color: '#22d3ee', isNew: true },
+  { name: 'OKX DEX', category: 'DEXs', color: '#22d3ee', isNew: true },
   { name: 'Jupiter', category: 'DEXs', color: '#22d3ee' },
   { name: 'Orca', category: 'DEXs', color: '#22d3ee' },
   { name: 'Raydium', category: 'DEXs', color: '#22d3ee' },
@@ -94,8 +97,22 @@ export function EcosystemSection() {
                         transitionDelay: `${i * 50}ms`,
                       }}
                     >
-                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: item.color, flexShrink: 0, boxShadow: item.isNew ? `0 0 8px ${item.color}60` : 'none' }} />
                       <span style={{ fontSize: '14px', fontWeight: 500, color: '#f0f0f0', fontFamily: font }}>{item.name}</span>
+                      {item.isNew && (
+                        <span style={{
+                          padding: '1px 6px',
+                          fontSize: '9px',
+                          fontWeight: 700,
+                          letterSpacing: '0.05em',
+                          textTransform: 'uppercase' as const,
+                          background: 'linear-gradient(90deg, #22d3ee, #34d399)',
+                          color: '#050505',
+                          borderRadius: '100px',
+                        }}>
+                          NEW
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>

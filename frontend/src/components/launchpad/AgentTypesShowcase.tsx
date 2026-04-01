@@ -3,12 +3,18 @@ import { useScrollAnimation } from '../../hooks/useScrollAnimation'
 const font = "'Geist', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
 const mono = "'Geist Mono', 'JetBrains Mono', monospace"
 
+interface FrameworkPill {
+  name: string
+  url?: string
+  isNew?: boolean
+}
+
 interface Template {
   name: string
   desc: string
   revenue: string
   revenueLabel: string
-  frameworks: string[]
+  frameworks: (string | FrameworkPill)[]
 }
 
 interface AgentCategory {
@@ -28,9 +34,9 @@ const categories: AgentCategory[] = [
     flow: 'Borrow \u2192 Trade \u2192 Profit \u2192 Auto-repay',
     typeId: 0,
     templates: [
-      { name: 'DEX Arbitrage', desc: 'Catch price gaps across Jupiter, Orca, Raydium.', revenue: '~30\u201380%', revenueLabel: 'APY', frameworks: ['Jupiter SDK', 'Olas', 'Python'] },
-      { name: 'Yield Optimizer', desc: 'Move capital to highest yield pools on Kamino, MarginFi.', revenue: '~15\u201340%', revenueLabel: 'APY', frameworks: ['Kamino SDK', 'ElizaOS', 'TypeScript'] },
-      { name: 'Market Making', desc: 'Provide liquidity and earn bid-ask spreads.', revenue: '~20\u201360%', revenueLabel: 'APY', frameworks: ['Orca SDK', 'Hummingbot', 'Python'] },
+      { name: 'DEX Arbitrage', desc: 'Catch price gaps across Jupiter, Orca, Raydium.', revenue: '~30\u201380%', revenueLabel: 'APY', frameworks: [{ name: '1inch MCP', url: 'https://blog.1inch.com/1inch-business-mcp/', isNew: true }, { name: 'OKX OnchainOS', url: 'https://www.okx.com/web3/build/docs/devportal/introduction-to-developer-portal-interface', isNew: true }, 'Jupiter SDK', 'Olas', 'Python'] },
+      { name: 'Yield Optimizer', desc: 'Move capital to highest yield pools on Kamino, MarginFi.', revenue: '~15\u201340%', revenueLabel: 'APY', frameworks: [{ name: '1inch MCP', url: 'https://blog.1inch.com/1inch-business-mcp/', isNew: true }, { name: 'OKX OnchainOS', url: 'https://www.okx.com/web3/build/docs/devportal/introduction-to-developer-portal-interface', isNew: true }, 'Kamino SDK', 'ElizaOS', 'TypeScript'] },
+      { name: 'Market Making', desc: 'Provide liquidity and earn bid-ask spreads.', revenue: '~20\u201360%', revenueLabel: 'APY', frameworks: [{ name: '1inch MCP', url: 'https://blog.1inch.com/1inch-business-mcp/', isNew: true }, { name: 'OKX OnchainOS', url: 'https://www.okx.com/web3/build/docs/devportal/introduction-to-developer-portal-interface', isNew: true }, 'Orca SDK', 'Hummingbot', 'Python'] },
     ],
   },
   {
@@ -162,23 +168,56 @@ function CategorySection({ cat, onDeploy }: { cat: AgentCategory; onDeploy: (typ
 
             {/* Framework pills */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
-              {t.frameworks.map((fw) => (
-                <span
-                  key={fw}
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 500,
-                    color: '#a0a0a8',
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: '100px',
-                    padding: '3px 10px',
-                    fontFamily: font,
-                  }}
-                >
-                  {fw}
-                </span>
-              ))}
+              {t.frameworks.map((fw) => {
+                const isObj = typeof fw === 'object'
+                const name = isObj ? fw.name : fw
+                const url = isObj ? fw.url : undefined
+                const isNew = isObj ? fw.isNew : false
+
+                const pill = (
+                  <span
+                    key={name}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '11px',
+                      fontWeight: 500,
+                      color: '#a0a0a8',
+                      background: 'rgba(255,255,255,0.04)',
+                      border: isNew ? '1px solid rgba(34,211,238,0.20)' : '1px solid rgba(255,255,255,0.06)',
+                      borderRadius: '100px',
+                      padding: '3px 10px',
+                      fontFamily: font,
+                      cursor: url ? 'pointer' : 'default',
+                      transition: 'border-color 0.2s, color 0.2s',
+                    }}
+                  >
+                    <span>{name}</span>
+                    {isNew && (
+                      <span style={{
+                        marginLeft: '2px',
+                        padding: '1px 5px',
+                        fontSize: '8px',
+                        fontWeight: 700,
+                        letterSpacing: '0.05em',
+                        textTransform: 'uppercase' as const,
+                        background: 'linear-gradient(90deg, #22d3ee, #34d399)',
+                        color: '#050505',
+                        borderRadius: '100px',
+                      }}>
+                        NEW
+                      </span>
+                    )}
+                    {url && <span style={{ color: '#5a5a65', fontSize: '10px' }}>&nearr;</span>}
+                  </span>
+                )
+
+                if (url) {
+                  return <a key={name} href={url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>{pill}</a>
+                }
+                return pill
+              })}
             </div>
 
             <button

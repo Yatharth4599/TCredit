@@ -19,7 +19,7 @@ const steps = [
   {
     num: 2,
     label: 'Fund',
-    desc: 'Get USDC from faucet or deposit',
+    desc: 'Get USDC from Krexa credit',
     color: '#3b82f6',
     icon: (
       <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -29,6 +29,18 @@ const steps = [
   },
   {
     num: 3,
+    label: 'Execute',
+    desc: '1inch/OKX routes trades across 500+ DEXs',
+    color: '#f97316',
+    isNew: true,
+    icon: (
+      <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+      </svg>
+    ),
+  },
+  {
+    num: 4,
     label: 'Deploy',
     desc: 'Register on-chain via Krexa',
     color: '#22d3ee',
@@ -39,7 +51,7 @@ const steps = [
     ),
   },
   {
-    num: 4,
+    num: 5,
     label: 'Earn',
     desc: 'Trade or serve via x402',
     color: '#34d399',
@@ -50,7 +62,7 @@ const steps = [
     ),
   },
   {
-    num: 5,
+    num: 6,
     label: 'Revenue Router',
     desc: 'Auto-split payments',
     color: '#f59e0b',
@@ -61,7 +73,7 @@ const steps = [
     ),
   },
   {
-    num: 6,
+    num: 7,
     label: 'Scale',
     desc: 'Level up your credit line',
     color: '#ec4899',
@@ -95,7 +107,7 @@ export function WorkflowVisualization() {
             The agent lifecycle
           </h2>
           <p style={{ fontSize: '18px', color: '#a0a0a8', marginTop: '12px', lineHeight: 1.6, fontFamily: font }}>
-            From code to revenue in 6 steps.
+            From code to revenue in 7 steps.
           </p>
         </div>
 
@@ -154,6 +166,22 @@ export function WorkflowVisualization() {
                 <span style={{ fontSize: '14px', fontWeight: 600, color: '#f0f0f0', fontFamily: font, textAlign: 'center' }}>
                   {s.label}
                 </span>
+
+                {/* NEW badge */}
+                {'isNew' in s && (s as any).isNew && (
+                  <span style={{
+                    padding: '1px 6px',
+                    fontSize: '8px',
+                    fontWeight: 700,
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase' as const,
+                    background: 'linear-gradient(90deg, #22d3ee, #34d399)',
+                    color: '#050505',
+                    borderRadius: '100px',
+                  }}>
+                    NEW
+                  </span>
+                )}
 
                 {/* Description */}
                 <span style={{ fontSize: '12px', color: '#5a5a65', fontFamily: font, textAlign: 'center', lineHeight: 1.4 }}>

@@ -36,6 +36,9 @@ export function HowAgentsEarn() {
           <TraderExample />
           <ServiceExample />
         </div>
+
+        {/* Trade execution via MCP demo */}
+        <MCPTerminalDemo isVisible={isVisible} />
       </div>
     </section>
   )
@@ -136,6 +139,81 @@ Then: `}<span style={{ color: '#34d399' }}>90% of revenue is yours</span>
 
       {/* Revenue Router Split Animation */}
       <RevenueRouterSplit isVisible={isVisible} />
+    </div>
+  )
+}
+
+function MCPTerminalDemo({ isVisible }: { isVisible: boolean }) {
+  return (
+    <div style={{ marginTop: '80px' }}>
+      <h3 style={{ fontSize: '28px', fontWeight: 600, color: '#f0f0f0', marginBottom: '8px', textAlign: 'center', fontFamily: font, letterSpacing: '-0.02em' }}>
+        Trade execution via MCP
+      </h3>
+      <p style={{ color: '#a0a0a8', textAlign: 'center', maxWidth: '480px', margin: '0 auto 32px', fontSize: '16px', lineHeight: 1.6, fontFamily: font }}>
+        Your agent doesn&rsquo;t need custom swap code. Connect to 1inch or OKX via MCP and execute trades with natural language.
+      </p>
+
+      <div style={{
+        maxWidth: '640px',
+        margin: '0 auto',
+        background: '#0c0c0e',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? 'translateY(0)' : 'translateY(20px)',
+        transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+        transitionDelay: '200ms',
+      }}>
+        {/* Terminal chrome */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ff5f57' }} />
+          <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#febc2e' }} />
+          <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#28c840' }} />
+          <span style={{ marginLeft: '8px', fontSize: '10px', color: '#5a5a65', fontFamily: mono }}>claude code + krexa + 1inch</span>
+        </div>
+
+        {/* Terminal content */}
+        <div style={{ padding: '20px', fontFamily: mono, fontSize: '13px', lineHeight: 1.8 }}>
+          <div>
+            <span style={{ color: '#5a5a65' }}>$</span>
+            <span style={{ color: '#f0f0f0', marginLeft: '8px' }}>claude mcp add krexa -- npx @krexa/cli mcp</span>
+          </div>
+          <div style={{ color: '#34d399' }}>&check; Krexa MCP connected &mdash; credit + wallet ready</div>
+
+          <div style={{ marginTop: '8px' }}>
+            <span style={{ color: '#5a5a65' }}>$</span>
+            <span style={{ color: '#f0f0f0', marginLeft: '8px' }}>claude mcp add 1inch -- --url api.1inch.com/mcp/protocol</span>
+          </div>
+          <div style={{ color: '#34d399' }}>&check; 1inch MCP connected &mdash; swap execution ready</div>
+
+          <div style={{ marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '16px' }}>
+            <span style={{ color: '#5a5a65' }}>you:</span>
+            <span style={{ color: '#f0f0f0', marginLeft: '8px' }}>&ldquo;Borrow 100 USDC from Krexa, then swap 50 to SOL at best rate&rdquo;</span>
+          </div>
+
+          <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ color: '#a0a0a8' }}>&rarr; Krexa: Credit line opened &mdash; $100.00 USDC</div>
+            <div style={{ color: '#a0a0a8' }}>&rarr; 1inch: Best route found &mdash; Jupiter &rarr; 0.335 SOL</div>
+            <div style={{ color: '#a0a0a8' }}>&rarr; 1inch: Swap executed &mdash; 50 USDC &rarr; 0.335 SOL</div>
+            <div style={{ color: '#22d3ee' }}>&rarr; Wallet: 50.00 USDC + 0.335 SOL</div>
+          </div>
+
+          <div style={{ marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '16px' }}>
+            <span style={{ color: '#5a5a65' }}>you:</span>
+            <span style={{ color: '#f0f0f0', marginLeft: '8px' }}>&ldquo;Check my Krexa status&rdquo;</span>
+          </div>
+
+          <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <div style={{ color: '#a0a0a8' }}>Score: 350 (L1) &middot; Debt: $100.00 &middot; Health: &#x1F7E2; Green</div>
+            <div style={{ color: '#a0a0a8' }}>Wallet: 50.00 USDC + 0.335 SOL ($99.96 total)</div>
+          </div>
+        </div>
+      </div>
+
+      <p style={{ textAlign: 'center', fontSize: '13px', color: '#5a5a65', marginTop: '16px', fontFamily: font }}>
+        Two MCP connections. Zero custom code. Full DeFi execution.
+      </p>
     </div>
   )
 }

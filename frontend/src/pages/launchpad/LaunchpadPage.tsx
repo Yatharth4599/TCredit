@@ -1078,24 +1078,55 @@ function StepLive({ state, shortAddr }: {
                 <div style={{ fontSize: '12px', fontWeight: 600, color: colors.textTertiary, letterSpacing: '0.05em', marginBottom: '12px', fontFamily: font }}>
                   COMPATIBLE FRAMEWORKS
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {buildGuides.tabs[activeGuideTab].frameworks!.map((fw) => (
                     <div
                       key={fw.name}
                       className="feature-card"
                       style={{
                         cursor: 'default',
-                        padding: '12px 16px',
+                        padding: fw.features ? '20px' : '12px 16px',
                         display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
+                        flexDirection: fw.features ? 'column' : 'row',
+                        alignItems: fw.features ? 'stretch' : 'center',
+                        gap: fw.features ? '12px' : '10px',
+                        borderColor: fw.badge ? 'rgba(34,211,238,0.20)' : undefined,
                       }}
                     >
-                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: fw.color, flexShrink: 0 }} />
-                      <div>
-                        <div style={{ fontSize: '13px', fontWeight: 600, color: colors.textPrimary, fontFamily: font }}>{fw.name}</div>
-                        <div style={{ fontSize: '11px', color: colors.textTertiary, fontFamily: font }}>{fw.desc}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: fw.color, flexShrink: 0, boxShadow: fw.badge ? `0 0 8px ${fw.color}60` : 'none' }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: colors.textPrimary, fontFamily: font }}>{fw.name}</span>
+                            {fw.badge && (
+                              <span style={{
+                                padding: '1px 6px',
+                                fontSize: '9px',
+                                fontWeight: 700,
+                                letterSpacing: '0.05em',
+                                textTransform: 'uppercase' as const,
+                                background: 'linear-gradient(90deg, rgba(34,211,238,0.2), rgba(52,211,153,0.2))',
+                                color: '#22d3ee',
+                                borderRadius: '100px',
+                                border: '1px solid rgba(34,211,238,0.2)',
+                              }}>
+                                {fw.badge}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: '11px', color: colors.textTertiary, fontFamily: font, marginTop: '2px' }}>{fw.desc}</div>
+                        </div>
                       </div>
+                      {fw.features && fw.features.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingLeft: '16px' }}>
+                          {fw.features.map((feature, fi) => (
+                            <div key={fi} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '12px', color: colors.textTertiary }}>
+                              <span style={{ color: '#22d3ee', marginTop: '1px', flexShrink: 0 }}>&middot;</span>
+                              <span style={{ fontFamily: font }}>{feature}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1182,7 +1213,7 @@ function BuildCodeBlock({ code }: { code: string }) {
 
 /* ── Build guide data per agent type ── */
 interface BuildStep { title: string; desc: string }
-interface Framework { name: string; desc: string; color: string }
+interface Framework { name: string; desc: string; color: string; badge?: string; features?: string[] }
 interface GuideTab {
   label: string
   steps: BuildStep[]
@@ -1230,6 +1261,8 @@ if (routes.bestRoute.outAmount > threshold) {
   await agent.repay(profit)
 }`,
           frameworks: [
+            { name: '1inch MCP', desc: 'MCP-native swap execution across all major DEXs. 15 APIs.', color: '#22d3ee', badge: 'NEW \u2014 launched March 30, 2026', features: ['15 APIs (Swap, Balance, Portfolio, Token, Gas Price, Charts)', 'All swap types: Classic, Intent-based, Cross-chain', 'Gasless transactions \u2014 no gas management needed', '$300M+ daily volume \u00b7 27M users \u00b7 Best-in-class routing'] },
+            { name: 'OKX OnchainOS', desc: 'AI agent trading OS. 60+ chains, 500+ DEXs, 1.2B daily API calls.', color: '#f97316', badge: 'NEW \u2014 launched March 3, 2026', features: ['60+ blockchains \u00b7 500+ DEXs', '1.2B daily API calls in production', 'Natural language trading commands', 'MCP + REST API dual access'] },
             { name: 'Jupiter SDK', desc: 'DEX aggregator for best swap routes', color: '#22d3ee' },
             { name: 'Olas', desc: 'Autonomous agent framework', color: '#3b82f6' },
             { name: 'ElizaOS', desc: 'AI agent with built-in DeFi plugins', color: '#a78bfa' },
@@ -1245,6 +1278,8 @@ if (routes.bestRoute.outAmount > threshold) {
             { title: 'Configure slippage', desc: 'Set appropriate slippage tolerance and priority fees for fast execution.' },
           ],
           frameworks: [
+            { name: '1inch MCP', desc: 'Execute swaps via MCP \u2014 no custom swap code', color: '#22d3ee', badge: 'NEW' },
+            { name: 'OKX OnchainOS', desc: 'Natural language trading across 500+ DEXs', color: '#f97316', badge: 'NEW' },
             { name: 'Jupiter V6', desc: 'Best routing across 20+ DEXs', color: '#22d3ee' },
             { name: 'Orca Whirlpools', desc: 'Concentrated liquidity pools', color: '#34d399' },
             { name: 'Raydium', desc: 'AMM and CLMM pools', color: '#a78bfa' },
