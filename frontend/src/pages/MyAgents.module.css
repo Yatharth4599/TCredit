@@ -1,0 +1,530 @@
+/* ============================================================
+   MyAgents.module.css — Brutalist design system
+   Fonts: Space Grotesk (headings) + JetBrains Mono (labels/values)
+   Colors: #000 / #F9F9F9 / #034694 / #2DD4BF
+   No border-radius anywhere.
+   ============================================================ */
+
+/* ---------- Page shell ---------- */
+.page {
+  background: #000;
+  color: #fff;
+  min-height: 100vh;
+  padding-top: 80px;
+}
+
+.container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 60px 24px;
+}
+
+/* ---------- Header ---------- */
+.header {
+  margin-bottom: 48px;
+}
+
+.deployerTag {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: #2DD4BF;
+  background: rgba(45, 212, 191, 0.1);
+  border: 1px solid rgba(45, 212, 191, 0.3);
+  padding: 4px 10px;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+}
+
+.heading {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(36px, 5vw, 64px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #F9F9F9;
+  margin: 0 0 16px 0;
+  line-height: 1;
+}
+
+.subtitle {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px;
+  color: #888;
+  max-width: 600px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ---------- Search form ---------- */
+.searchForm {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 48px;
+  flex-wrap: wrap;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 260px;
+  background: #0A0A0A;
+  border: 3px solid #333;
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  padding: 12px 16px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.searchInput::placeholder {
+  color: #555;
+}
+
+.searchInput:focus {
+  border-color: #2DD4BF;
+}
+
+.searchButton {
+  background: #F0F0F0;
+  color: #000;
+  border: 3px solid #fff;
+  box-shadow: 4px 4px 0 #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 12px 24px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.searchButton:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #fff;
+}
+
+.searchButton:active:not(:disabled) {
+  transform: translate(0, 0);
+  box-shadow: 2px 2px 0 #fff;
+}
+
+.searchButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ---------- Empty / initial state ---------- */
+.emptyState {
+  text-align: center;
+  padding: 80px 0;
+  border: 2px dashed #222;
+}
+
+.emptyStateText {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 15px;
+  color: #555;
+  margin: 0;
+}
+
+/* ---------- Error banner ---------- */
+.errorBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 2px solid rgba(239, 68, 68, 0.4);
+  padding: 14px 18px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: #ef4444;
+  margin-bottom: 32px;
+}
+
+.errorLabel {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+  padding: 2px 6px;
+}
+
+/* ---------- No results ---------- */
+.noResults {
+  text-align: center;
+  padding: 80px 0;
+  border: 2px dashed #222;
+}
+
+.noResultsText {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 15px;
+  color: #555;
+  margin: 0;
+}
+
+/* ---------- Results header ---------- */
+.resultsHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.resultsCount {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #2DD4BF;
+  text-transform: uppercase;
+}
+
+.resultsTruncated {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #555;
+}
+
+/* ---------- Agent grid ---------- */
+.agentGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .agentGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Agent card ---------- */
+.agentCard {
+  background: #0A0A0A;
+  border: 3px solid #333;
+  box-shadow: 6px 6px 0 #333;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.agentCard:hover {
+  border-color: #2DD4BF;
+  box-shadow: 6px 6px 0 #2DD4BF;
+  transform: translate(-2px, -2px);
+}
+
+/* Top row: pubkey + health badge */
+.cardTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pubkeyLabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: #F9F9F9;
+  letter-spacing: 0.02em;
+}
+
+/* Health badge variants */
+.healthBadge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  flex-shrink: 0;
+}
+
+.badgeHealthy {
+  background: rgba(34, 197, 94, 0.12);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.badgeWarning {
+  background: rgba(234, 179, 8, 0.12);
+  color: #eab308;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.badgeDanger {
+  background: rgba(249, 115, 22, 0.12);
+  color: #f97316;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.badgeLiquidation {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Level row */
+.levelRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.levelBadge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #2DD4BF;
+  background: rgba(45, 212, 191, 0.08);
+  border: 1px solid rgba(45, 212, 191, 0.25);
+  padding: 3px 8px;
+}
+
+.multisigBadge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a78bfa;
+  background: rgba(167, 139, 250, 0.08);
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  padding: 3px 8px;
+}
+
+/* Credit drawn row */
+.drawnRow {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  border-top: 1px solid #1a1a1a;
+  padding-top: 14px;
+}
+
+.drawnLabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #555;
+  flex-shrink: 0;
+}
+
+.drawnValue {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: #F9F9F9;
+  letter-spacing: -0.02em;
+}
+
+/* Health factor row */
+.healthRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.healthLabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #555;
+}
+
+.healthRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.healthValue {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.healthHealthy {
+  color: #22c55e;
+}
+
+.healthWarning {
+  color: #eab308;
+}
+
+.healthDanger {
+  color: #f97316;
+}
+
+.healthLiquidation {
+  color: #ef4444;
+}
+
+.healthDot {
+  width: 8px;
+  height: 8px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* Status flags */
+.statusFlags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.frozenBadge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  padding: 3px 8px;
+}
+
+.liquidatingBadge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+  border: 2px solid #ef4444;
+  padding: 3px 8px;
+}
+
+/* Pending owner */
+.pendingOwnerRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(251, 191, 36, 0.05);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  padding: 8px 10px;
+}
+
+.pendingOwnerLabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fbbf24;
+  flex-shrink: 0;
+}
+
+.pendingOwnerValue {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #fbbf24;
+  opacity: 0.7;
+}
+
+/* View dashboard button */
+.viewButton {
+  margin-top: 4px;
+  background: transparent;
+  color: #F9F9F9;
+  border: 2px solid #333;
+  box-shadow: 3px 3px 0 #333;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 10px 16px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease, color 0.12s ease;
+}
+
+.viewButton:hover {
+  border-color: #2DD4BF;
+  box-shadow: 3px 3px 0 #2DD4BF;
+  color: #2DD4BF;
+  transform: translate(-1px, -1px);
+}
+
+.viewButton:active {
+  transform: translate(0, 0);
+  box-shadow: 1px 1px 0 #2DD4BF;
+}
+
+/* ---------- Skeleton cards ---------- */
+.skeletonGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .skeletonGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.skeletonCard {
+  background: #0A0A0A;
+  border: 3px solid #1a1a1a;
+  box-shadow: 6px 6px 0 #1a1a1a;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@keyframes skelPulse {
+  0% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.4; }
+}
+
+.skeletonLine {
+  background: #1e1e1e;
+  height: 14px;
+  animation: skelPulse 1.6s ease-in-out infinite;
+}
+
+.skeletonLineWide {
+  width: 100%;
+  height: 16px;
+}
+
+.skeletonLineShort {
+  width: 40%;
+  height: 12px;
+}
+
+.skeletonLineMedium {
+  width: 65%;
+  height: 24px;
+}
+
+.skeletonLineButton {
+  width: 100%;
+  height: 38px;
+  margin-top: 4px;
+}

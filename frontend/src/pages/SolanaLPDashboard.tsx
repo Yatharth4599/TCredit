@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
 import { lpApi } from '../api/solanaClient'
+import styles from './SolanaLPDashboard.module.css'
 
 function formatUsdc(raw: number | string): string {
   const val = Number(raw) / 1e6
@@ -11,27 +11,17 @@ function formatPct(bps: number): string {
   return (bps / 100).toFixed(2) + '%'
 }
 
-const fadeIn = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.4 },
-}
-
-const stagger = {
-  animate: { transition: { staggerChildren: 0.08 } },
-}
-
 function LoadingSpinner() {
   return (
-    <div className="flex items-center justify-center py-8">
-      <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+    <div className={styles.spinnerWrap}>
+      <div className={styles.spinner} />
     </div>
   )
 }
 
 function ErrorBanner({ message }: { message: string }) {
   return (
-    <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
+    <div className={styles.errorBanner}>
       {message}
     </div>
   )
@@ -40,18 +30,19 @@ function ErrorBanner({ message }: { message: string }) {
 function StatItem({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div>
-      <p className="text-xs text-gray-400 uppercase tracking-wider">{label}</p>
-      <p className="text-2xl font-bold text-gray-100">{value}</p>
-      {sub && <p className="text-xs text-gray-500 mt-0.5">{sub}</p>}
+      <p className={styles.statLabel}>{label}</p>
+      <p className={styles.statValue}>{value}</p>
+      {sub && <p className={styles.statSub}>{sub}</p>}
     </div>
   )
 }
 
 const TRANCHES = ['senior', 'mezzanine', 'junior'] as const
-const TRANCHE_STYLES: Record<string, { border: string; badge: string }> = {
-  senior: { border: 'border-blue-500/40', badge: 'bg-blue-500/20 text-blue-400' },
-  mezzanine: { border: 'border-purple-500/40', badge: 'bg-purple-500/20 text-purple-400' },
-  junior: { border: 'border-orange-500/40', badge: 'bg-orange-500/20 text-orange-400' },
+
+const TRANCHE_STYLES: Record<string, { borderColor: string; color: string }> = {
+  senior:    { borderColor: '#034694', color: '#034694' },
+  mezzanine: { borderColor: '#A855F7', color: '#A855F7' },
+  junior:    { borderColor: '#f97316', color: '#f97316' },
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -122,96 +113,112 @@ export default function SolanaLPDashboard() {
     : 0
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className={styles.page}>
+      <div className={styles.container}>
+
         {/* Header */}
-        <motion.div {...fadeIn} className="mb-10">
-          <h1 className="text-3xl font-bold text-gray-100 mb-2">LP Dashboard</h1>
-          <p className="text-gray-400">View LP positions, preview deposits, and calculate withdrawals.</p>
-        </motion.div>
+        <div>
+          <span className={styles.headerTag}>Liquidity Protocol</span>
+          <h1 className={styles.headerTitle}>LP Dashboard</h1>
+          <p className={styles.headerSubtitle}>View LP positions, preview deposits, and calculate withdrawals.</p>
+        </div>
 
         {/* Wallet Lookup */}
-        <motion.form {...fadeIn} onSubmit={handleLookup} className="mb-10 flex gap-3">
+        <form onSubmit={handleLookup} className={styles.lookupForm}>
           <input
             type="text"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="Enter LP wallet address..."
-            className="flex-1 bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500 font-mono text-sm"
+            className={styles.lookupInput}
           />
           <button
             type="submit"
             disabled={!address.trim()}
-            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium px-6 py-3 rounded-xl transition-colors"
+            className={styles.btnPrimary}
+            style={{ width: 'auto' }}
           >
             Lookup Positions
           </button>
-        </motion.form>
+        </form>
 
-        <motion.div variants={stagger} initial="initial" animate="animate" className="space-y-6">
-          {/* Positions */}
+        <div className={styles.sections}>
+
+          {/* LP Positions */}
           {searched && (
-            <motion.div variants={fadeIn}>
-              <h2 className="text-lg font-semibold text-gray-100 mb-4">LP Positions</h2>
+            <div>
+              <h2 className={styles.sectionLabel}>LP Positions</h2>
               {positions.loading && <LoadingSpinner />}
               {positions.error && <ErrorBanner message={positions.error} />}
               {positions.data && (
-                <div className="space-y-6">
-                  {/* Summary */}
-                  <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
-                    <h3 className="text-sm font-medium text-gray-400 mb-4">Portfolio Summary</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      <StatItem label="Total Deposited" value={formatUsdc(totalDeposited)} />
-                      <StatItem label="Total Yield Earned" value={formatUsdc(totalYield)} />
-                      <StatItem label="Active Positions" value={String(positions.data.positions?.length ?? 0)} />
+                <div>
+                  {/* Portfolio summary */}
+                  <div className={styles.summaryCard}>
+                    <h3 className={styles.summaryCardHeading}>Portfolio Summary</h3>
+                    <div className={styles.summaryStatsGrid}>
+                      <div>
+                        <p className={styles.statLabel}>Total Deposited</p>
+                        <p className={styles.summaryStatValue}>{formatUsdc(totalDeposited)}</p>
+                      </div>
+                      <div>
+                        <p className={styles.statLabel}>Total Yield Earned</p>
+                        <p className={styles.summaryStatValue}>{formatUsdc(totalYield)}</p>
+                      </div>
+                      <div>
+                        <p className={styles.statLabel}>Active Positions</p>
+                        <p className={styles.summaryStatValue}>{String(positions.data.positions?.length ?? 0)}</p>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Individual positions */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Individual tranche cards */}
+                  <div className={styles.positionsGrid}>
                     {positions.data.positions?.map((pos: AnyData) => {
                       const tranche = (pos.tranche ?? '').toLowerCase()
-                      const style = TRANCHE_STYLES[tranche] ?? TRANCHE_STYLES.senior
+                      const trancheStyle = TRANCHE_STYLES[tranche] ?? TRANCHE_STYLES.senior
                       return (
-                        <motion.div
+                        <div
                           key={pos.tranche}
-                          variants={fadeIn}
-                          className={`bg-gray-800/50 border ${style.border} rounded-2xl p-6`}
+                          className={styles.positionCard}
+                          style={{ borderColor: trancheStyle.borderColor }}
                         >
-                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${style.badge} mb-4`}>
+                          <span
+                            className={styles.trancheBadge}
+                            style={{ borderColor: trancheStyle.color, color: trancheStyle.color }}
+                          >
                             {pos.tranche}
                           </span>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className={styles.positionStatsGrid}>
                             <StatItem label="Deposits" value={formatUsdc(pos.deposits ?? 0)} />
                             <StatItem label="Shares" value={(Number(pos.shares ?? 0) / 1e6).toLocaleString()} />
                             <StatItem label="Est. Value" value={formatUsdc(pos.estimatedValue ?? 0)} />
                             <StatItem label="Yield Earned" value={formatUsdc(pos.yieldEarned ?? 0)} />
                           </div>
-                        </motion.div>
+                        </div>
                       )
                     })}
                     {(!positions.data.positions || positions.data.positions.length === 0) && (
-                      <div className="col-span-3 text-center py-8 text-gray-500">
+                      <div className={styles.noPositions}>
                         No LP positions found for this wallet.
                       </div>
                     )}
                   </div>
                 </div>
               )}
-            </motion.div>
+            </div>
           )}
 
           {/* Deposit Preview */}
-          <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
-            <h2 className="text-lg font-semibold text-gray-100 mb-4">Deposit Preview</h2>
-            <form onSubmit={handleDepositPreview} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className={styles.card}>
+            <h2 className={styles.cardHeading}>Deposit Preview</h2>
+            <form onSubmit={handleDepositPreview}>
+              <div className={styles.formGrid}>
                 <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wider block mb-2">Tranche</label>
+                  <label className={styles.fieldLabel}>Tranche</label>
                   <select
                     value={depositTranche}
                     onChange={(e) => setDepositTranche(e.target.value)}
-                    className="w-full bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 focus:outline-none focus:border-blue-500"
+                    className={styles.fieldSelect}
                   >
                     {TRANCHES.map((t) => (
                       <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
@@ -219,21 +226,21 @@ export default function SolanaLPDashboard() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wider block mb-2">Amount (USDC)</label>
+                  <label className={styles.fieldLabel}>Amount (USDC)</label>
                   <input
                     type="number"
                     step="0.01"
                     value={depositAmount}
                     onChange={(e) => setDepositAmount(e.target.value)}
                     placeholder="1000.00"
-                    className="w-full bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                    className={styles.fieldInput}
                   />
                 </div>
-                <div className="flex items-end">
+                <div className={styles.fieldBtnWrap}>
                   <button
                     type="submit"
                     disabled={!depositAmount}
-                    className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium px-6 py-3 rounded-xl transition-colors"
+                    className={styles.btnPrimary}
                   >
                     Preview
                   </button>
@@ -241,28 +248,32 @@ export default function SolanaLPDashboard() {
               </div>
             </form>
             {depositPreview.loading && <LoadingSpinner />}
-            {depositPreview.error && <div className="mt-4"><ErrorBanner message={depositPreview.error} /></div>}
+            {depositPreview.error && (
+              <div className={styles.mt4}>
+                <ErrorBanner message={depositPreview.error} />
+              </div>
+            )}
             {depositPreview.data && (
-              <motion.div {...fadeIn} className="mt-4 bg-gray-900/50 rounded-xl p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className={styles.previewResults4}>
                 <StatItem label="Shares Received" value={(Number(depositPreview.data.sharesReceived ?? 0) / 1e6).toLocaleString()} />
                 <StatItem label="Share Price" value={`$${(Number(depositPreview.data.sharePrice ?? 1e6) / 1e6).toFixed(4)}`} />
                 <StatItem label="Est. APY" value={formatPct(depositPreview.data.estimatedApyBps ?? 0)} />
                 <StatItem label="Daily Yield" value={formatUsdc(depositPreview.data.estimatedDailyYield ?? 0)} />
-              </motion.div>
+              </div>
             )}
-          </motion.div>
+          </div>
 
           {/* Withdrawal Preview */}
-          <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
-            <h2 className="text-lg font-semibold text-gray-100 mb-4">Withdrawal Preview</h2>
-            <form onSubmit={handleWithdrawPreview} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className={styles.card}>
+            <h2 className={styles.cardHeading}>Withdrawal Preview</h2>
+            <form onSubmit={handleWithdrawPreview}>
+              <div className={styles.formGrid}>
                 <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wider block mb-2">Tranche</label>
+                  <label className={styles.fieldLabel}>Tranche</label>
                   <select
                     value={withdrawTranche}
                     onChange={(e) => setWithdrawTranche(e.target.value)}
-                    className="w-full bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 focus:outline-none focus:border-blue-500"
+                    className={styles.fieldSelect}
                   >
                     {TRANCHES.map((t) => (
                       <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
@@ -270,21 +281,21 @@ export default function SolanaLPDashboard() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 uppercase tracking-wider block mb-2">Shares to Withdraw</label>
+                  <label className={styles.fieldLabel}>Shares to Withdraw</label>
                   <input
                     type="number"
                     step="0.01"
                     value={withdrawShares}
                     onChange={(e) => setWithdrawShares(e.target.value)}
                     placeholder="500.00"
-                    className="w-full bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                    className={styles.fieldInput}
                   />
                 </div>
-                <div className="flex items-end">
+                <div className={styles.fieldBtnWrap}>
                   <button
                     type="submit"
                     disabled={!withdrawShares}
-                    className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium px-6 py-3 rounded-xl transition-colors"
+                    className={styles.btnPrimary}
                   >
                     Preview
                   </button>
@@ -292,16 +303,21 @@ export default function SolanaLPDashboard() {
               </div>
             </form>
             {withdrawPreview.loading && <LoadingSpinner />}
-            {withdrawPreview.error && <div className="mt-4"><ErrorBanner message={withdrawPreview.error} /></div>}
+            {withdrawPreview.error && (
+              <div className={styles.mt4}>
+                <ErrorBanner message={withdrawPreview.error} />
+              </div>
+            )}
             {withdrawPreview.data && (
-              <motion.div {...fadeIn} className="mt-4 bg-gray-900/50 rounded-xl p-4 grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className={styles.previewResults3}>
                 <StatItem label="USDC Received" value={formatUsdc(withdrawPreview.data.usdcReceived ?? 0)} />
                 <StatItem label="Share Price" value={`$${(Number(withdrawPreview.data.sharePrice ?? 1e6) / 1e6).toFixed(4)}`} />
                 <StatItem label="Withdrawal Fee" value={formatUsdc(withdrawPreview.data.fee ?? 0)} />
-              </motion.div>
+              </div>
             )}
-          </motion.div>
-        </motion.div>
+          </div>
+
+        </div>
       </div>
     </div>
   )

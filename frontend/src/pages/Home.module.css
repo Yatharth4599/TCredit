@@ -1,6 +1,5 @@
 /* ============================================================
    HOME / DASHBOARD — Neo-Brutalist Theme
-   Same style system as Landing Page
    ============================================================ */
 
 .page {
@@ -50,9 +49,9 @@
   margin-bottom: 32px;
 }
 
-.heroCtas { display: flex; gap: 12px; }
+.heroCtas { display: flex; gap: 12px; flex-wrap: wrap; }
 
-/* ── Buttons ──────────────────────────────────────────── */
+/* ── Buttons ───────────────────────────────────────────── */
 
 .btnPrimary {
   font-family: 'JetBrains Mono', monospace;
@@ -96,25 +95,7 @@
   box-shadow: 6px 6px 0 #FFF;
 }
 
-.btnOutline {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  font-weight: 600;
-  color: #2DD4BF;
-  background: none;
-  border: 2px solid #2DD4BF;
-  padding: 8px 20px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.btnOutline:hover {
-  background: #2DD4BF;
-  color: #000;
-}
-
-/* ── Stats Row ────────────────────────────────────────── */
+/* ── Stats Row ─────────────────────────────────────────── */
 
 .statsRow {
   background: #F9F9F9;
@@ -151,7 +132,7 @@
   text-transform: uppercase;
 }
 
-/* ── Section ──────────────────────────────────────────── */
+/* ── Section ───────────────────────────────────────────── */
 
 .section {
   max-width: 1440px;
@@ -159,11 +140,15 @@
   padding: 80px 24px;
 }
 
-.sectionHead {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 40px;
+.sectionAlt {
+  background: #050505;
+  padding: 80px 24px;
+}
+
+.sectionAlt > * {
+  max-width: 1440px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .sectionTitle {
@@ -172,103 +157,15 @@
   letter-spacing: -2px;
   text-transform: uppercase;
   line-height: 1;
+  margin-bottom: 40px;
 }
 
-/* ── Vault Cards Grid ─────────────────────────────────── */
-
-.vaultsGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-.vaultCard {
-  background: #0A0A0A;
-  border: 3px solid #FFF;
-  box-shadow: 6px 6px 0 #FFF;
-  padding: 24px;
-  text-align: left;
-  cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.vaultCard:hover {
-  transform: translate(-3px, -3px);
-  box-shadow: 9px 9px 0 #2DD4BF;
-  border-color: #2DD4BF;
-}
-
-.vaultCardTop {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.vaultAddr {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  color: #A3A3A3;
-  letter-spacing: 0.04em;
-}
-
-.vaultBadge {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  padding: 3px 10px;
-  border: 2px solid;
-}
-
-.vaultTarget {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 28px;
-  font-weight: 700;
-  color: #FFF;
-}
-
-.vaultMeta {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: #5E5E5E;
-  letter-spacing: 0.04em;
-}
-
-.vaultBar {
-  width: 100%;
-  height: 6px;
-  background: #222;
-  margin-top: 4px;
-}
-
-.vaultBarFill {
-  height: 100%;
-  transition: width 0.6s ease;
-}
-
-.vaultPct {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: #A3A3A3;
-  letter-spacing: 0.06em;
-}
-
-.empty {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
-  color: #5E5E5E;
-  padding: 40px 0;
-}
-
-/* ── Quick Actions Grid ───────────────────────────────── */
+/* ── Actions Grid ──────────────────────────────────────── */
 
 .actionsGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
-  margin-top: 32px;
 }
 
 .actionCard {
@@ -295,12 +192,15 @@
   font-weight: 700;
   color: #FFF;
   letter-spacing: 0.08em;
+  margin: 0;
 }
 
 .actionDesc {
   font-size: 13px;
   color: #A3A3A3;
   line-height: 1.5;
+  margin: 0;
+  flex: 1;
 }
 
 .actionLink {
@@ -312,48 +212,92 @@
   margin-top: auto;
 }
 
-/* ── Connect Banner ───────────────────────────────────── */
+/* ── Compare Table ─────────────────────────────────────── */
 
-.connectBanner {
-  background: #034694;
-  padding: 20px 24px;
+.tableWrap {
+  overflow-x: auto;
 }
 
-.connectInner {
-  max-width: 1440px;
-  margin: 0 auto;
+.compareTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+.compareTable th,
+.compareTable td {
+  padding: 14px 16px;
+  border: 2px solid #222;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.compareTable th {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: #111;
+}
+
+.thFeature { color: #A3A3A3; }
+.thNeg     { color: #5E5E5E; }
+.thMid     { color: #A3A3A3; }
+.thPos     { color: #2DD4BF; background: #0A1A18 !important; }
+
+.tableRow:nth-child(even) td { background: #080808; }
+
+.tdFeature { color: #FFF; font-weight: 600; }
+.tdNeg     { color: #5E5E5E; }
+.tdMid     { color: #A3A3A3; }
+.tdPos     { color: #2DD4BF; font-weight: 600; }
+
+/* ── CTA Band ──────────────────────────────────────────── */
+
+.ctaBand {
+  background: #034694;
+  padding: 80px 24px;
   text-align: center;
 }
 
-.connectText {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  color: #FFF;
-  letter-spacing: 0.04em;
+.ctaHeadline {
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -1.5px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  line-height: 1.1;
 }
 
-/* ── Responsive ───────────────────────────────────────── */
+.ctaSubtitle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: rgba(255,255,255,0.75);
+  max-width: 600px;
+  margin: 0 auto 32px;
+  line-height: 1.7;
+}
+
+/* ── Responsive ────────────────────────────────────────── */
 
 @media (max-width: 1024px) {
-  .headline { font-size: 48px; letter-spacing: -2px; }
+  .headline     { font-size: 48px; letter-spacing: -2px; }
   .sectionTitle { font-size: 36px; letter-spacing: -1px; }
-  .vaultsGrid { grid-template-columns: repeat(2, 1fr); }
-  .actionsGrid { grid-template-columns: repeat(2, 1fr); }
-  .statsRow { grid-template-columns: repeat(2, 1fr); }
+  .actionsGrid  { grid-template-columns: repeat(2, 1fr); }
+  .statsRow     { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 680px) {
-  .headline { font-size: 36px; letter-spacing: -1px; }
+  .headline     { font-size: 36px; letter-spacing: -1px; }
   .sectionTitle { font-size: 28px; }
-  .vaultsGrid { grid-template-columns: 1fr; }
-  .actionsGrid { grid-template-columns: 1fr; }
-  .statsRow { grid-template-columns: 1fr; }
-  .statCard { box-shadow: 4px 4px 0 #000; }
-  .vaultCard { box-shadow: 4px 4px 0 #FFF; }
-  .actionCard { box-shadow: 4px 4px 0 #333; }
-  .heroCtas { flex-direction: column; }
+  .actionsGrid  { grid-template-columns: 1fr; }
+  .statsRow     { grid-template-columns: 1fr; }
+  .statCard     { box-shadow: 4px 4px 0 #000; }
+  .actionCard   { box-shadow: 4px 4px 0 #333; }
+  .heroCtas     { flex-direction: column; }
   .btnPrimary, .btnSecondary { width: 100%; text-align: center; }
-  .sectionHead { flex-direction: column; align-items: flex-start; gap: 16px; }
-  .hero { padding: 40px 16px 60px; }
-  .section { padding: 60px 16px; }
+  .hero         { padding: 40px 16px 60px; }
+  .section, .sectionAlt { padding: 60px 16px; }
+  .ctaHeadline  { font-size: 28px; }
 }

@@ -99,6 +99,14 @@ export default function LandingPage() {
   const scoreNumRef = useRef<HTMLDivElement>(null)
   const [activeRepayStep, setActiveRepayStep] = useState(0)
   const [activeLossStep, setActiveLossStep] = useState(0)
+  const [copiedStep, setCopiedStep] = useState<string | null>(null)
+
+  const handleCopy = (code: string, num: string) => {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopiedStep(num)
+      setTimeout(() => setCopiedStep(null), 2000)
+    }).catch(() => {})
+  }
 
   // Waterfall: cycle highlight every 1s
   useEffect(() => {
@@ -239,15 +247,46 @@ export default function LandingPage() {
             <motion.h2 variants={fadeUp} className={styles.sectionTitle}>HOW IT WORKS</motion.h2>
             <motion.div className={styles.stepsGrid} variants={stagger}>
               {[
-                { num: '01', title: 'Agent Earns via x402', desc: 'Revenue flows through PaymentRouter — oracle-signed, nonce-protected, settled on Solana in under 400ms. Every payment is an on-chain credit event.' },
-                { num: '02', title: 'Krexit Score Builds', desc: '5-component score (200–850): repayment history, profitability, behavioral health, usage patterns, account maturity. Recency-weighted. Asymmetric penalties.' },
-                { num: '03', title: 'Credit Line Opens', desc: 'L1 Micro ($500) to L4 Prime ($500K). Zero collateral required at every level. Optional collateral earns yield AND reduces rates.' },
-                { num: '04', title: 'Waterfall Enforces', desc: 'Revenue auto-splits: Protocol Fee → Senior → Mezzanine → Junior → Insurance. Losses flow the opposite direction. Senior is last to bleed.' },
+                {
+                  num: '01',
+                  title: 'Register your agent',
+                  code: `$ npx @krexa/cli init --type service --name "Bot"`,
+                  desc: 'One command creates your identity, PDA wallet, and credit profile on Solana.',
+                },
+                {
+                  num: '02',
+                  title: 'Borrow working capital',
+                  code: `$ krexa borrow 500\n✓ Credit line opened: $500.00 USDC`,
+                  desc: '',
+                },
+                {
+                  num: '03',
+                  title: 'Revenue auto-repays',
+                  code: `Revenue: $0.25 (x402) → Revenue Router\n  Protocol fee:  $0.025  → Treasury\n  LP yield:      $0.035  → Senior tranche\n  Agent receives: $0.19`,
+                  desc: 'Every dollar earned flows through the Revenue Router. We take what\'s owed. You get the rest.',
+                },
               ].map((s) => (
                 <motion.div key={s.num} variants={fadeUp} className={styles.stepCard}>
                   <span className={styles.stepNum}>{s.num}</span>
                   <h3 className={styles.stepTitle}>{s.title}</h3>
-                  <p className={styles.stepDesc}>{s.desc}</p>
+                  <div className={styles.stepCodeWrap}>
+                    <pre className={styles.stepCode}>{s.code}</pre>
+                    <button
+                      className={styles.copyBtn}
+                      onClick={() => handleCopy(s.code, s.num)}
+                      title="Copy"
+                    >
+                      {copiedStep === s.num ? (
+                        <span className={styles.copiedLabel}>COPIED</span>
+                      ) : (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                  {s.desc && <p className={styles.stepDesc}>{s.desc}</p>}
                 </motion.div>
               ))}
             </motion.div>
@@ -518,37 +557,66 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Code Preview — BLACK ──────────────────────────────── */}
+      {/* ── Three Ways — BLACK ──────────────────────────────── */}
       <section className={styles.sectionDark}>
         <div className={styles.container}>
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }} variants={stagger}>
-            <motion.span variants={fadeUp} className={styles.sectionTag}>DEVELOPER_READY</motion.span>
-            <motion.h2 variants={fadeUp} className={styles.sectionTitle}>MACHINE READABLE</motion.h2>
+          <motion.span initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className={styles.sectionTag}>DEVELOPER_READY</motion.span>
+          <motion.h2 initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className={styles.sectionTitle}>THREE WAYS TO USE KREXA</motion.h2>
 
-            <motion.div variants={fadeUp} className={styles.codeBlock}>
-              <span className={styles.codeLine}><span className={styles.codeComment}>{'// Initialize Krexa SDK'}</span></span>
-              <span className={styles.codeLine}><span className={styles.codeKw}>const</span> krexa = <span className={styles.codeKw}>new</span> <span className={styles.codeFn}>KrexaSDK</span>({'{ chain: '}<span className={styles.codeStr}>&apos;solana&apos;</span>{', agentAddress }'})</span>
-              <span className={styles.codeLine}> </span>
-              <span className={styles.codeLine}><span className={styles.codeComment}>{'// Check Krexit Score — 5-component, 200-850'}</span></span>
-              <span className={styles.codeLine}><span className={styles.codeKw}>const</span> score = <span className={styles.codeKw}>await</span> krexa.credit.<span className={styles.codeFn}>getKrexitScore</span>()</span>
-              <span className={styles.codeLine}><span className={styles.codeComment}>{'// { score: 780, level: 3, maxCredit: 50000 }'}</span></span>
-              <span className={styles.codeLine}> </span>
-              <span className={styles.codeLine}><span className={styles.codeComment}>{'// Route payment through waterfall'}</span></span>
-              <span className={styles.codeLine}><span className={styles.codeKw}>await</span> krexa.agent.<span className={styles.codeFn}>payX402</span>{'({'}</span>
-              <span className={styles.codeLine}>{'  recipient: '}<span className={styles.codeStr}>&apos;AgntVx9dMz…rK4f&apos;</span>,</span>
-              <span className={styles.codeLine}>{'  amount:    '}<span className={styles.codeStr}>25.00</span>,</span>
-              <span className={styles.codeLine}>{'  paymentId: '}<span className={styles.codeStr}>&apos;task-7f3a&apos;</span></span>
-              <span className={styles.codeLine}>{'})'}</span>
-              <span className={styles.codeLine}> </span>
-              <span className={styles.codeLine}><span className={styles.codeComment}>{'// Check wallet health — real-time'}</span></span>
-              <span className={styles.codeLine}><span className={styles.codeKw}>const</span> nav = <span className={styles.codeKw}>await</span> krexa.risk.<span className={styles.codeFn}>getNAV</span>()</span>
-              <span className={styles.codeLine}><span className={styles.codeComment}>{'// { nav: 0.87, trigger: 0.85, safe: true }'}</span></span>
+          <div className={styles.usageGrid}>
+            {/* Card 1 — CLI */}
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className={styles.usageCard}>
+              <div className={styles.usageIcon}>
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#2DD4BF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6,10 14,16 6,22" />
+                  <line x1="17" y1="22" x2="26" y2="22" />
+                </svg>
+              </div>
+              <h3 className={styles.usageCardTitle}>CLI</h3>
+              <div className={styles.usageCodeBlock}>
+                <code className={styles.usageCode}>npx @krexa/cli init</code>
+              </div>
+              <p className={styles.usageCardDesc}>One command. Full setup. Borrow in seconds.</p>
             </motion.div>
 
-            <motion.div variants={fadeUp} className={styles.codeLinks}>
-              <a href="https://github.com/Yatharth4599/TCredit" target="_blank" rel="noopener noreferrer" className={styles.codeLink}>View on GitHub →</a>
-              <button className={styles.codeLink} onClick={() => navigate('/app/lifecycle')}>Live Demo →</button>
+            {/* Card 2 — Skill */}
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className={styles.usageCard}>
+              <div className={styles.usageIcon}>
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#2DD4BF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 4h12l6 6v18H8V4z" />
+                  <polyline points="20,4 20,10 26,10" />
+                  <line x1="12" y1="16" x2="22" y2="16" />
+                  <line x1="12" y1="20" x2="22" y2="20" />
+                  <line x1="12" y1="24" x2="18" y2="24" />
+                </svg>
+              </div>
+              <h3 className={styles.usageCardTitle}>SKILL</h3>
+              <div className={styles.usageCodeBlock}>
+                <code className={styles.usageCode}>krexa.xyz/skill.md</code>
+              </div>
+              <p className={styles.usageCardDesc}>Paste into your agent&apos;s prompt. It learns Krexa instantly.</p>
             </motion.div>
+
+            {/* Card 3 — MCP */}
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className={styles.usageCard}>
+              <div className={styles.usageIcon}>
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#2DD4BF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 4a7 7 0 00-9.9 9.9L4 21l3 3 7.1-7.1A7 7 0 0021 4z" />
+                  <line x1="20" y1="5" x2="14" y2="11" />
+                  <line x1="17" y1="8" x2="22" y2="13" />
+                </svg>
+              </div>
+              <h3 className={styles.usageCardTitle}>MCP</h3>
+              <div className={styles.usageCodeBlock}>
+                <code className={styles.usageCode}>claude mcp add krexa -- npx @krexa/cli mcp</code>
+              </div>
+              <p className={styles.usageCardDesc}>Works with Claude Code, Cursor, and 14+ AI clients.</p>
+            </motion.div>
+          </div>
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className={styles.codeLinks}>
+            <a href="https://github.com/Yatharth4599/TCredit" target="_blank" rel="noopener noreferrer" className={styles.codeLink}>View on GitHub →</a>
+            <button className={styles.codeLink} onClick={() => navigate('/app/lifecycle')}>Live Demo →</button>
           </motion.div>
         </div>
       </section>

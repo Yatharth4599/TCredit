@@ -6,11 +6,10 @@ import styles from './Navbar.module.css'
 
 const NAV_ITEMS = [
   { label: 'HOME', href: '/app' },
-  { label: 'VAULTS', href: '/app/vaults' },
-  { label: 'POOLS', href: '/app/pools' },
-  { label: 'PORTFOLIO', href: '/app/portfolio' },
-  { label: 'IDENTITY', href: '/app/identity' },
-  { label: 'MERCHANT', href: '/app/merchant' },
+  { label: 'CREDIT', href: '/app/solana/credit' },
+  { label: 'SCORE', href: '/app/solana/score' },
+  { label: 'LP', href: '/app/solana/lp' },
+  { label: 'MY AGENTS', href: '/app/my-agents' },
 ]
 
 export default function Navbar() {

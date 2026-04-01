@@ -238,10 +238,13 @@ router.post('/:agent/cancel-transfer', async (req, res, next) => {
 });
 
 // GET /solana/wallets — list all wallets from DB (keeper-synced)
+// Optional: ?owner=<pubkey> to filter by owner
 router.get('/', async (req, res, next) => {
   try {
     const limit = Math.min(Number(req.query.limit ?? 50), 200);
+    const ownerFilter = req.query.owner ? String(req.query.owner) : undefined;
     const wallets = await prisma.solanaAgentWallet.findMany({
+      where: ownerFilter ? { ownerPubkey: ownerFilter } : undefined,
       orderBy: { createdAt: 'desc' },
       take: limit,
     });

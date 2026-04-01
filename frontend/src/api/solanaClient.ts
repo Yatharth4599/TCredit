@@ -49,6 +49,12 @@ export const lpApi = {
   previewWithdraw: (tranche: string, shares: string) => solanaApi.get(`/lp/preview/withdraw`, { params: { tranche, shares } }),
 }
 
+// === Wallet (owner-level) ===
+export const walletApi = {
+  getByOwner: (ownerPubkey: string, limit = 50) =>
+    solanaApi.get('/solana/wallets', { params: { owner: ownerPubkey, limit } }),
+}
+
 // === Score ===
 export const scoreApi = {
   getScore: (address: string) => solanaApi.get(`/agent/${address}/score`),

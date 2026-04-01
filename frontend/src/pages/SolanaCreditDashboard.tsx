@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { motion } from 'framer-motion'
+import styles from './SolanaCreditDashboard.module.css'
 import { agentApi, creditApi } from '../api/solanaClient'
 
 const CREDIT_LEVELS: Record<number, { name: string; limit: string }> = {
@@ -23,11 +23,11 @@ const AGENT_TYPES: Record<number, string> = {
   2: 'Hybrid',
 }
 
-function getHealthZone(factor: number): { label: string; color: string; bg: string } {
-  if (factor >= 15000) return { label: 'Healthy', color: 'text-green-400', bg: 'bg-green-500' }
-  if (factor >= 13000) return { label: 'Warning', color: 'text-yellow-400', bg: 'bg-yellow-500' }
-  if (factor >= 12000) return { label: 'Danger', color: 'text-orange-400', bg: 'bg-orange-500' }
-  return { label: 'Liquidation', color: 'text-red-400', bg: 'bg-red-500' }
+function getHealthZone(factor: number): { label: string; valueClass: string; bgClass: string } {
+  if (factor >= 15000) return { label: 'Healthy',     valueClass: styles.healthGreen,  bgClass: styles.healthBgGreen }
+  if (factor >= 13000) return { label: 'Warning',     valueClass: styles.healthYellow, bgClass: styles.healthBgYellow }
+  if (factor >= 12000) return { label: 'Danger',      valueClass: styles.healthOrange, bgClass: styles.healthBgOrange }
+  return                       { label: 'Liquidation', valueClass: styles.healthRed,    bgClass: styles.healthBgRed }
 }
 
 function formatUsdc(raw: number | string): string {
@@ -37,16 +37,6 @@ function formatUsdc(raw: number | string): string {
 
 function formatBps(bps: number): string {
   return (bps / 100).toFixed(2) + '%'
-}
-
-const fadeIn = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.4 },
-}
-
-const stagger = {
-  animate: { transition: { staggerChildren: 0.08 } },
 }
 
 interface SectionState<T> {
@@ -61,15 +51,15 @@ function useSectionState<T>(): [SectionState<T>, React.Dispatch<React.SetStateAc
 
 function LoadingSpinner() {
   return (
-    <div className="flex items-center justify-center py-8">
-      <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+    <div className={styles.spinnerWrap}>
+      <div className={styles.spinner} />
     </div>
   )
 }
 
 function ErrorBanner({ message }: { message: string }) {
   return (
-    <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
+    <div className={styles.errorBanner}>
       {message}
     </div>
   )
@@ -78,9 +68,9 @@ function ErrorBanner({ message }: { message: string }) {
 function StatItem({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div>
-      <p className="text-xs text-gray-400 uppercase tracking-wider">{label}</p>
-      <p className="text-2xl font-bold text-gray-100">{value}</p>
-      {sub && <p className="text-xs text-gray-500 mt-0.5">{sub}</p>}
+      <span className={styles.statLabel}>{label}</span>
+      <span className={styles.statValue}>{value}</span>
+      {sub && <span className={styles.statSub}>{sub}</span>}
     </div>
   )
 }
@@ -142,86 +132,77 @@ export default function SolanaCreditDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className={styles.page}>
+      <div className={styles.container}>
         {/* Header */}
-        <motion.div {...fadeIn} className="mb-10">
-          <h1 className="text-3xl font-bold text-gray-100 mb-2">Agent Credit Dashboard</h1>
-          <p className="text-gray-400">Inspect any agent's credit profile, health, and terms on the Krexa Solana protocol.</p>
-        </motion.div>
+        <div className={styles.header}>
+          <h1 className={styles.pageTitle}>Agent Credit Dashboard</h1>
+          <p className={styles.subtitle}>Inspect any agent's credit profile, health, and terms on the Krexa Solana protocol.</p>
+        </div>
 
         {/* Search */}
-        <motion.form {...fadeIn} onSubmit={handleSubmit} className="mb-10 flex gap-3">
+        <form onSubmit={handleSubmit} className={styles.searchForm}>
           <input
             type="text"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="Enter Solana agent pubkey..."
-            className="flex-1 bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500 font-mono text-sm"
+            className={styles.searchInput}
           />
           <button
             type="submit"
             disabled={!address.trim()}
-            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium px-6 py-3 rounded-xl transition-colors"
+            className={styles.submitBtn}
           >
             Lookup Agent
           </button>
-        </motion.form>
+        </form>
 
         {!searched && (
-          <motion.div {...fadeIn} className="text-center py-20 text-gray-500">
-            <p className="text-lg">Paste a Solana agent public key above to get started.</p>
-          </motion.div>
+          <div className={styles.emptyState}>
+            <p className={styles.emptyText}>Paste a Solana agent public key above to get started.</p>
+          </div>
         )}
 
         {searched && (
-          <motion.div variants={stagger} initial="initial" animate="animate" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className={styles.cardsGrid}>
             {/* Profile Card */}
-            <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
-              <h2 className="text-lg font-semibold text-gray-100 mb-4">Agent Profile</h2>
+            <div className={styles.card}>
+              <h2 className={styles.cardTitle}>Agent Profile</h2>
               {profile.loading && <LoadingSpinner />}
               {profile.error && <ErrorBanner message={profile.error} />}
               {profile.data && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-full bg-blue-600/30 flex items-center justify-center text-blue-400 font-bold text-lg">
+                <div className={styles.cardBody}>
+                  <div className={styles.profileRow}>
+                    <div className={styles.avatarCircle}>
                       {(profile.data.name || 'A')[0].toUpperCase()}
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-100">{profile.data.name || 'Unnamed Agent'}</p>
-                      <p className="text-xs text-gray-500 font-mono">{address.slice(0, 8)}...{address.slice(-6)}</p>
+                      <p className={styles.agentName}>{profile.data.name || 'Unnamed Agent'}</p>
+                      <p className={styles.agentAddress}>{address.slice(0, 8)}...{address.slice(-6)}</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className={styles.statsGrid2}>
+                    <StatItem label="Credit Score" value={String(profile.data.creditScore ?? '—')} />
+                    <StatItem label="KYA Tier" value={KYA_TIERS[profile.data.kyaTier] ?? String(profile.data.kyaTier)} />
                     <div>
-                      <p className="text-xs text-gray-400 uppercase tracking-wider">Credit Score</p>
-                      <p className="text-2xl font-bold text-gray-100">{profile.data.creditScore ?? '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400 uppercase tracking-wider">KYA Tier</p>
-                      <p className="text-2xl font-bold text-gray-100">{KYA_TIERS[profile.data.kyaTier] ?? profile.data.kyaTier}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400 uppercase tracking-wider">Credit Level</p>
-                      <div className="flex items-center gap-2">
-                        <p className="text-2xl font-bold text-gray-100">L{profile.data.creditLevel}</p>
-                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400">
+                      <span className={styles.statLabel}>Credit Level</span>
+                      <div className={styles.badgesRow}>
+                        <span className={styles.statValue}>L{profile.data.creditLevel}</span>
+                        <span className={`${styles.badge} ${styles.badgeBlue}`}>
                           {CREDIT_LEVELS[profile.data.creditLevel]?.name ?? 'Unknown'}
                         </span>
                       </div>
                     </div>
-                    <div>
-                      <p className="text-xs text-gray-400 uppercase tracking-wider">Agent Type</p>
-                      <p className="text-2xl font-bold text-gray-100">{AGENT_TYPES[profile.data.agentType] ?? profile.data.agentType}</p>
-                    </div>
+                    <StatItem label="Agent Type" value={AGENT_TYPES[profile.data.agentType] ?? String(profile.data.agentType)} />
                   </div>
                 </div>
               )}
-            </motion.div>
+            </div>
 
             {/* Health Gauge */}
-            <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
-              <h2 className="text-lg font-semibold text-gray-100 mb-4">Health Factor</h2>
+            <div className={styles.card}>
+              <h2 className={styles.cardTitle}>Health Factor</h2>
               {health.loading && <LoadingSpinner />}
               {health.error && <ErrorBanner message={health.error} />}
               {health.data && (() => {
@@ -229,52 +210,44 @@ export default function SolanaCreditDashboard() {
                 const zone = getHealthZone(factor)
                 const pct = Math.min((factor / 20000) * 100, 100)
                 return (
-                  <div className="space-y-6">
-                    <div className="text-center">
-                      <p className={`text-5xl font-bold ${zone.color}`}>{(factor / 100).toFixed(2)}x</p>
-                      <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ${zone.bg}/20 ${zone.color}`}>
-                        {zone.label}
-                      </span>
-                    </div>
-                    <div className="relative h-4 bg-gray-900 rounded-full overflow-hidden">
-                      <div className="absolute inset-0 flex">
-                        <div className="h-full bg-red-500/30" style={{ width: '25%' }} />
-                        <div className="h-full bg-orange-500/30" style={{ width: '10%' }} />
-                        <div className="h-full bg-yellow-500/30" style={{ width: '15%' }} />
-                        <div className="h-full bg-green-500/30" style={{ width: '50%' }} />
+                  <div className={styles.cardBody}>
+                    <div style={{ textAlign: 'center' }}>
+                      <span className={`${styles.healthValue} ${zone.valueClass}`}>{(factor / 100).toFixed(2)}x</span>
+                      <div>
+                        <span className={`${styles.zoneBadge} ${zone.valueClass}`}>
+                          {zone.label}
+                        </span>
                       </div>
+                    </div>
+                    <div className={styles.healthBarTrack}>
                       <div
-                        className={`absolute top-0 left-0 h-full ${zone.bg} rounded-full transition-all duration-700`}
-                        style={{ width: `${pct}%`, opacity: 0.7 }}
-                      />
-                      <div
-                        className={`absolute top-0 h-full w-1 ${zone.bg}`}
-                        style={{ left: `${pct}%` }}
+                        className={zone.bgClass}
+                        style={{ height: '100%', width: `${pct}%`, opacity: 0.7, transition: 'width 0.7s ease' }}
                       />
                     </div>
-                    <div className="flex justify-between text-xs text-gray-500">
-                      <span>Liquidation</span>
-                      <span>Danger</span>
-                      <span>Warning</span>
-                      <span>Healthy</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span className={styles.statSub}>Liquidation</span>
+                      <span className={styles.statSub}>Danger</span>
+                      <span className={styles.statSub}>Warning</span>
+                      <span className={styles.statSub}>Healthy</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div className={styles.statsGrid2}>
                       <StatItem label="Collateral" value={formatUsdc(health.data.collateral ?? 0)} />
                       <StatItem label="Debt" value={formatUsdc(health.data.debt ?? 0)} />
                     </div>
                   </div>
                 )
               })()}
-            </motion.div>
+            </div>
 
             {/* Credit Line */}
-            <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
-              <h2 className="text-lg font-semibold text-gray-100 mb-4">Credit Line</h2>
+            <div className={styles.card}>
+              <h2 className={styles.cardTitle}>Credit Line</h2>
               {creditLine.loading && <LoadingSpinner />}
               {creditLine.error && <ErrorBanner message={creditLine.error} />}
               {creditLine.data && (
-                <div className="space-y-5">
-                  <div className="grid grid-cols-2 gap-4">
+                <div className={styles.cardBody}>
+                  <div className={styles.statsGrid2}>
                     <StatItem label="Credit Limit" value={formatUsdc(creditLine.data.creditLimit ?? 0)} />
                     <StatItem label="Amount Drawn" value={formatUsdc(creditLine.data.drawn ?? 0)} />
                     <StatItem label="Accrued Interest" value={formatUsdc(creditLine.data.accruedInterest ?? 0)} />
@@ -282,37 +255,39 @@ export default function SolanaCreditDashboard() {
                   </div>
                   {creditLine.data.creditLimit > 0 && (
                     <div>
-                      <div className="flex justify-between text-xs text-gray-400 mb-1">
-                        <span>Utilization</span>
-                        <span>{((creditLine.data.drawn / creditLine.data.creditLimit) * 100).toFixed(1)}%</span>
+                      <div className={styles.utilHeader}>
+                        <span className={styles.statSub}>Utilization</span>
+                        <span className={styles.statSub}>
+                          {((creditLine.data.drawn / creditLine.data.creditLimit) * 100).toFixed(1)}%
+                        </span>
                       </div>
-                      <div className="h-2 bg-gray-900 rounded-full overflow-hidden">
+                      <div className={styles.utilBarWrap}>
                         <div
-                          className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                          className={styles.utilFill}
                           style={{ width: `${Math.min((creditLine.data.drawn / creditLine.data.creditLimit) * 100, 100)}%` }}
                         />
                       </div>
                     </div>
                   )}
-                  <div className="flex gap-2 flex-wrap">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${creditLine.data.active ? 'bg-green-500/20 text-green-400' : 'bg-gray-600/20 text-gray-400'}`}>
+                  <div className={styles.badgesRow}>
+                    <span className={`${styles.badge} ${creditLine.data.active ? styles.badgeGreen : styles.badgeGray}`}>
                       {creditLine.data.active ? 'Active' : 'Inactive'}
                     </span>
                     {creditLine.data.frozen && (
-                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400">Frozen</span>
+                      <span className={`${styles.badge} ${styles.badgeBlue}`}>Frozen</span>
                     )}
                   </div>
                 </div>
               )}
-            </motion.div>
+            </div>
 
             {/* Credit Terms */}
-            <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
-              <h2 className="text-lg font-semibold text-gray-100 mb-4">Credit Terms</h2>
+            <div className={styles.card}>
+              <h2 className={styles.cardTitle}>Credit Terms</h2>
               {terms.loading && <LoadingSpinner />}
               {terms.error && <ErrorBanner message={terms.error} />}
               {terms.data && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className={styles.statsGrid2}>
                   <StatItem label="Max Credit" value={formatUsdc(terms.data.maxCredit ?? 0)} />
                   <StatItem label="Daily Rate" value={formatBps(terms.data.dailyRateBps ?? 0)} />
                   <StatItem label="Annual Rate" value={formatBps(terms.data.annualRateBps ?? 0)} />
@@ -321,60 +296,60 @@ export default function SolanaCreditDashboard() {
                   <StatItem label="Grace Period" value={`${terms.data.gracePeriodDays ?? 0} days`} />
                 </div>
               )}
-            </motion.div>
+            </div>
 
             {/* Wallet Info */}
-            <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
-              <h2 className="text-lg font-semibold text-gray-100 mb-4">Wallet</h2>
+            <div className={styles.card}>
+              <h2 className={styles.cardTitle}>Wallet</h2>
               {wallet.loading && <LoadingSpinner />}
               {wallet.error && <ErrorBanner message={wallet.error} />}
               {wallet.data && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className={styles.statsGrid2}>
                   <StatItem label="USDC Balance" value={formatUsdc(wallet.data.usdcBalance ?? 0)} />
                   <StatItem label="SOL Balance" value={`${((wallet.data.solBalance ?? 0) / 1e9).toFixed(4)} SOL`} />
                   <StatItem label="Total Deposited" value={formatUsdc(wallet.data.totalDeposited ?? 0)} />
                   <StatItem label="Total Withdrawn" value={formatUsdc(wallet.data.totalWithdrawn ?? 0)} />
                 </div>
               )}
-            </motion.div>
+            </div>
 
             {/* Level Upgrade */}
-            <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
-              <h2 className="text-lg font-semibold text-gray-100 mb-4">Level Upgrade Check</h2>
+            <div className={styles.card}>
+              <h2 className={styles.cardTitle}>Level Upgrade Check</h2>
               {upgrade.loading && <LoadingSpinner />}
               {upgrade.error && <ErrorBanner message={upgrade.error} />}
               {upgrade.data && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-gray-400 uppercase tracking-wider">Current Level</span>
-                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400">
+                <div className={styles.cardBody}>
+                  <div className={styles.badgesRow}>
+                    <span className={styles.statLabel}>Current Level</span>
+                    <span className={`${styles.badge} ${styles.badgeBlue}`}>
                       L{upgrade.data.currentLevel} {CREDIT_LEVELS[upgrade.data.currentLevel]?.name}
                     </span>
                     {upgrade.data.nextLevel != null && (
                       <>
-                        <span className="text-gray-600">→</span>
-                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-400">
+                        <span className={styles.statSub}>→</span>
+                        <span className={`${styles.badge} ${styles.badgePurple}`}>
                           L{upgrade.data.nextLevel} {CREDIT_LEVELS[upgrade.data.nextLevel]?.name}
                         </span>
                       </>
                     )}
                   </div>
                   {upgrade.data.eligible != null && (
-                    <div className={`px-4 py-3 rounded-xl text-sm ${upgrade.data.eligible ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-yellow-500/10 border border-yellow-500/30 text-yellow-400'}`}>
+                    <div className={upgrade.data.eligible ? styles.eligibleBanner : styles.notEligibleBanner}>
                       {upgrade.data.eligible ? 'Eligible for upgrade!' : 'Not yet eligible for upgrade'}
                     </div>
                   )}
                   {upgrade.data.requirements && (
-                    <div className="space-y-2">
-                      <p className="text-xs text-gray-400 uppercase tracking-wider">Requirements</p>
+                    <div className={styles.cardBody}>
+                      <span className={styles.statLabel}>Requirements</span>
                       {Object.entries(upgrade.data.requirements).map(([key, val]: [string, unknown]) => {
                         const req = val as { required: unknown; current: unknown; met: boolean }
                         return (
-                          <div key={key} className="flex items-center justify-between text-sm">
-                            <span className="text-gray-300 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                            <div className="flex items-center gap-2">
-                              <span className="text-gray-400">{String(req.current)} / {String(req.required)}</span>
-                              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${req.met ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                          <div key={key} className={styles.requirementRow}>
+                            <span className={styles.requirementLabel}>{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                            <div className={styles.requirementValues}>
+                              <span>{String(req.current)} / {String(req.required)}</span>
+                              <span className={req.met ? styles.checkMark : styles.xMark}>
                                 {req.met ? '✓' : '✗'}
                               </span>
                             </div>
@@ -385,19 +360,19 @@ export default function SolanaCreditDashboard() {
                   )}
                 </div>
               )}
-            </motion.div>
+            </div>
 
             {/* Repayment Estimate */}
-            <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
-              <h2 className="text-lg font-semibold text-gray-100 mb-4">Repayment Estimate</h2>
+            <div className={styles.card}>
+              <h2 className={styles.cardTitle}>Repayment Estimate</h2>
               {repayment.loading && <LoadingSpinner />}
               {repayment.error && <ErrorBanner message={repayment.error} />}
               {repayment.data && (
-                <div className="space-y-4">
+                <div className={styles.cardBody}>
                   {repayment.data.totalOwed == null || repayment.data.totalOwed === 0 ? (
-                    <p className="text-gray-500 text-sm">No outstanding debt.</p>
+                    <p className={styles.emptyText}>No outstanding debt.</p>
                   ) : (
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className={styles.statsGrid2}>
                       <StatItem label="Principal" value={formatUsdc(repayment.data.principal ?? 0)} />
                       <StatItem label="Accrued Interest" value={formatUsdc(repayment.data.accruedInterest ?? 0)} />
                       <StatItem label="Total Owed" value={formatUsdc(repayment.data.totalOwed ?? 0)} />
@@ -406,29 +381,29 @@ export default function SolanaCreditDashboard() {
                   )}
                 </div>
               )}
-            </motion.div>
+            </div>
 
             {/* Service Plan (Type B agents) */}
-            <motion.div variants={fadeIn} className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6">
-              <h2 className="text-lg font-semibold text-gray-100 mb-4">Service Plan</h2>
+            <div className={styles.card}>
+              <h2 className={styles.cardTitle}>Service Plan</h2>
               {servicePlan.loading && <LoadingSpinner />}
               {servicePlan.error && <ErrorBanner message={servicePlan.error} />}
               {servicePlan.data && (
-                <div className="space-y-4">
+                <div className={styles.cardBody}>
                   {!servicePlan.data.active ? (
-                    <p className="text-gray-500 text-sm">No active service plan (Trader agents do not have service plans).</p>
+                    <p className={styles.emptyText}>No active service plan (Trader agents do not have service plans).</p>
                   ) : (
                     <>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className={styles.statsGrid2}>
                         <StatItem label="Total Revenue" value={formatUsdc(servicePlan.data.totalRevenue ?? 0)} />
                         <StatItem label="Milestones Completed" value={String(servicePlan.data.milestonesCompleted ?? 0)} />
                         <StatItem label="Next Milestone" value={formatUsdc(servicePlan.data.nextMilestone ?? 0)} />
                         <div>
-                          <p className="text-xs text-gray-400 uppercase tracking-wider">Health Zone</p>
+                          <span className={styles.statLabel}>Health Zone</span>
                           {(() => {
                             const zone = getHealthZone(servicePlan.data.healthFactor ?? 15000)
                             return (
-                              <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-medium ${zone.bg}/20 ${zone.color}`}>
+                              <span className={`${styles.zoneBadge} ${zone.valueClass}`}>
                                 {zone.label}
                               </span>
                             )
@@ -437,16 +412,19 @@ export default function SolanaCreditDashboard() {
                       </div>
                       {servicePlan.data.revenueHistory && servicePlan.data.revenueHistory.length > 0 && (
                         <div>
-                          <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">Revenue History</p>
-                          <div className="flex items-end gap-1 h-16">
+                          <span className={styles.statLabel}>Revenue History</span>
+                          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '64px' }}>
                             {servicePlan.data.revenueHistory.map((val: number, i: number) => {
                               const max = Math.max(...servicePlan.data.revenueHistory)
                               const h = max > 0 ? (val / max) * 100 : 0
                               return (
                                 <div
                                   key={i}
-                                  className="flex-1 bg-blue-500/40 rounded-t"
-                                  style={{ height: `${Math.max(h, 4)}%` }}
+                                  style={{
+                                    flex: 1,
+                                    background: 'rgba(37, 99, 235, 0.4)',
+                                    height: `${Math.max(h, 4)}%`,
+                                  }}
                                   title={formatUsdc(val)}
                                 />
                               )
@@ -458,8 +436,8 @@ export default function SolanaCreditDashboard() {
                   )}
                 </div>
               )}
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         )}
       </div>
     </div>
