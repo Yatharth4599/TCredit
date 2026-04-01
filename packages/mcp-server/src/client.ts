@@ -11,6 +11,13 @@ interface RequestOptions {
   params?: Record<string, string>;
 }
 
+function encodePathSegment(value: string, name: string): string {
+  if (!value) {
+    throw new Error(`${name} is required`);
+  }
+  return encodeURIComponent(value);
+}
+
 async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   const url = new URL(`${config.apiUrl}${path}`);
   if (opts.params) {
@@ -50,7 +57,7 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
 // ---------------------------------------------------------------------------
 
 export async function getBalance(address: string) {
-  return request<{ address: string; balanceUsdc: string }>(`/balance/${address}`);
+  return request<{ address: string; balanceUsdc: string }>(`/balance/${encodePathSegment(address, 'address')}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -66,7 +73,7 @@ export async function getMerchantStats(address: string) {
     vaultCount: number;
     totalBorrowed: string;
     totalRepaid: string;
-  }>(`/merchants/${address}/stats`);
+  }>(`/merchants/${encodePathSegment(address, 'address')}/stats`);
 }
 
 export async function getMerchantVaults(address: string) {
@@ -79,7 +86,7 @@ export async function getMerchantVaults(address: string) {
     totalToRepay: string;
     tranchesReleased: number;
     numTranches: number;
-  }>; total: number }>(`/merchants/${address}/vaults`);
+  }>; total: number }>(`/merchants/${encodePathSegment(address, 'address')}/vaults`);
 }
 
 export async function getSettlement(address: string) {
@@ -90,7 +97,7 @@ export async function getSettlement(address: string) {
     totalPayments: number;
     active: boolean;
     lastPaymentAt: string | null;
-  }>(`/merchants/${address}/settlement`);
+  }>(`/merchants/${encodePathSegment(address, 'address')}/settlement`);
 }
 
 // ---------------------------------------------------------------------------
@@ -126,8 +133,8 @@ export async function getWalletStatus(address: string) {
       whitelistEnabled: boolean;
       creditVault: string;
       remainingDaily: string;
-    }>(`/wallets/${address}`),
-    request<{ address: string; balanceUsdc: string }>(`/wallets/${address}/balance`),
+    }>(`/wallets/${encodePathSegment(address, 'wallet address')}`),
+    request<{ address: string; balanceUsdc: string }>(`/wallets/${encodePathSegment(address, 'wallet address')}/balance`),
   ]);
 
   // Convert wei values to human-readable USDC (6 decimals)
@@ -152,14 +159,14 @@ export async function getWalletStatus(address: string) {
 }
 
 export async function buildWalletTransfer(walletAddress: string, to: string, amountUsdc: string) {
-  return request<{ to: string; data: string; description: string }>(`/wallets/${walletAddress}/transfer`, {
+  return request<{ to: string; data: string; description: string }>(`/wallets/${encodePathSegment(walletAddress, 'wallet address')}/transfer`, {
     method: 'POST',
     body: { to, amountUsdc },
   });
 }
 
 export async function buildWalletDeposit(walletAddress: string, amountUsdc: string) {
-  return request<{ to: string; data: string; description: string }>(`/wallets/${walletAddress}/deposit`, {
+  return request<{ to: string; data: string; description: string }>(`/wallets/${encodePathSegment(walletAddress, 'wallet address')}/deposit`, {
     method: 'POST',
     body: { amountUsdc },
   });
@@ -181,11 +188,11 @@ export async function getVaultDetail(address: string) {
     interestRateBps: number;
     tranchesReleased: number;
     numTranches: number;
-  }>(`/vaults/${address}`);
+  }>(`/vaults/${encodePathSegment(address, 'vault address')}`);
 }
 
 export async function releaseTranche(vaultAddress: string) {
-  return request<{ to: string; data: string }>(`/vaults/${vaultAddress}/release-tranche`, {
+  return request<{ to: string; data: string }>(`/vaults/${encodePathSegment(vaultAddress, 'vault address')}/release-tranche`, {
     method: 'POST',
   });
 }

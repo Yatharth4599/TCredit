@@ -7,11 +7,89 @@ import { formatUnits } from 'viem';
 import { publicClientMainnet } from '../../chain/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { addresses, MerchantVaultABI } from '../../config/contracts.js';
+import { lookup } from 'dns/promises';
+import { isIP } from 'net';
 
 const router = Router();
 
 const KICKSTART_FACTORY = env.KICKSTART_FACTORY_ADDRESS as Address;
 const KICKSTART_API = env.KICKSTART_API_URL;
+
+function isPrivateIp(ip: string): boolean {
+  if (isIP(ip) === 4) {
+    const parts = ip.split('.').map(Number);
+    const a = parts[0] ?? 0;
+    const b = parts[1] ?? 0;
+    return (
+      a === 10 ||
+      a === 127 ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 169 && b === 254) ||
+      a === 0
+    );
+  }
+
+  if (isIP(ip) === 6) {
+    const n = ip.toLowerCase();
+    return (
+      n === '::1' ||
+      n === '::' ||
+      n.startsWith('fc') ||
+      n.startsWith('fd') ||
+      n.startsWith('fe8') ||
+      n.startsWith('fe9') ||
+      n.startsWith('fea') ||
+      n.startsWith('feb') ||
+      n.startsWith('::ffff:127.') ||
+      n.startsWith('::ffff:10.') ||
+      n.startsWith('::ffff:192.168.') ||
+      n.startsWith('::ffff:172.')
+    );
+  }
+
+  return true;
+}
+
+async function validateExternalImageUrl(rawUrl: string): Promise<URL> {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new AppError(400, 'imageUrl must be a valid URL');
+  }
+
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    throw new AppError(400, 'imageUrl must use http or https');
+  }
+  if (process.env.NODE_ENV === 'production' && parsed.protocol !== 'https:') {
+    throw new AppError(400, 'imageUrl must use https in production');
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '0.0.0.0') {
+    throw new AppError(400, 'imageUrl cannot target localhost');
+  }
+
+  if (isIP(hostname)) {
+    if (isPrivateIp(hostname)) throw new AppError(400, 'imageUrl cannot target private IP ranges');
+    return parsed;
+  }
+
+  const dnsResults = await lookup(hostname, { all: true }).catch(() => {
+    throw new AppError(400, 'imageUrl hostname lookup failed');
+  });
+  if (!dnsResults || dnsResults.length === 0) {
+    throw new AppError(400, 'imageUrl hostname did not resolve');
+  }
+  for (const r of dnsResults) {
+    if (isPrivateIp(r.address)) {
+      throw new AppError(400, 'imageUrl resolves to private/internal IP');
+    }
+  }
+
+  return parsed;
+}
 
 // POST /api/v1/kickstart/upload-metadata
 // Proxy metadata upload to EasyA Kickstart API
@@ -47,12 +125,21 @@ router.post('/upload-metadata', async (req, res, next) => {
       const blob = new Blob([buffer], { type: mime });
       formData.append('image', blob, `token-image.${ext}`);
     } else {
-      const imageRes = await fetch(effectiveImageUrl);
+      const validatedImageUrl = await validateExternalImageUrl(effectiveImageUrl);
+      let imageRes: Response;
+      try {
+        imageRes = await fetch(validatedImageUrl.toString(), {
+          signal: AbortSignal.timeout(10_000),
+          redirect: 'error',
+        });
+      } catch {
+        throw new AppError(400, 'Failed to fetch image');
+      }
       if (!imageRes.ok) {
         throw new AppError(400, `Failed to fetch image`);
       }
       const imageBlob = await imageRes.blob();
-      const ext = effectiveImageUrl.split('.').pop()?.split('?')[0] || 'png';
+      const ext = validatedImageUrl.pathname.split('.').pop()?.split('?')[0] || 'png';
       formData.append('image', imageBlob, `token-image.${ext}`);
     }
 

@@ -59,6 +59,11 @@ function post<T>(baseUrl: string, path: string, apiKey: string | undefined, body
   return req<T>(baseUrl, path, apiKey, { method: 'POST', body: JSON.stringify(body) });
 }
 
+function encodePathSegment(value: string, name: string): string {
+  if (!value) throw new KrexaError(400, `${name} is required`);
+  return encodeURIComponent(value);
+}
+
 // ---------------------------------------------------------------------------
 // Input validation (BUG-055, BUG-056, BUG-057)
 // ---------------------------------------------------------------------------
@@ -141,7 +146,7 @@ export function createAgentNamespace(
     /** Deposit USDC as collateral (builds unsigned tx). */
     async deposit(params: DepositParams): Promise<OperationResult> {
       validateAmount(params.amount, 'deposit');
-      const agent = requireAgent();
+      const agent = encodePathSegment(requireAgent(), 'agentAddress');
       if (chain === 'solana') {
         return post<OperationResult>(b, `/solana/wallets/${agent}/deposit`, apiKey, {
           amount: toBase(params.amount),
@@ -156,7 +161,7 @@ export function createAgentNamespace(
     /** Request a credit line draw. Returns unsigned tx or status. */
     async requestCredit(params: RequestCreditParams): Promise<OperationResult> {
       validateAmount(params.amount, 'requestCredit');
-      const agent = requireAgent();
+      const agent = encodePathSegment(requireAgent(), 'agentAddress');
       if (chain === 'solana') {
         return post<OperationResult>(b, `/solana/credit/${agent}/request`, apiKey, {
           amount: toBase(params.amount),
@@ -176,7 +181,7 @@ export function createAgentNamespace(
     async trade(params: TradeParams): Promise<OperationResult> {
       validateAmount(params.amount, 'trade');
       validateVenue(params.venue);
-      const agent = requireAgent();
+      const agent = encodePathSegment(requireAgent(), 'agentAddress');
       return post<OperationResult>(b, `/solana/wallets/${agent}/trade`, apiKey, {
         venue: params.venue,
         from: params.from,
@@ -189,7 +194,8 @@ export function createAgentNamespace(
     async payX402(params: PayX402Params): Promise<OperationResult> {
       validateAmount(params.amount, 'payX402');
       validateAddress(params.recipient, chain, 'recipient');
-      const agent = requireAgent();
+      const rawAgent = requireAgent();
+      const agent = encodePathSegment(rawAgent, 'agentAddress');
       if (chain === 'solana') {
         return post<OperationResult>(b, `/solana/wallets/${agent}/pay`, apiKey, {
           recipient: params.recipient,
@@ -198,7 +204,7 @@ export function createAgentNamespace(
         });
       }
       return post<OperationResult>(b, '/oracle/payment', apiKey, {
-        from: agent,
+        from: rawAgent,
         to: params.recipient,
         amount: toBase(params.amount),
         paymentId: params.paymentId,
@@ -208,7 +214,7 @@ export function createAgentNamespace(
     /** Withdraw USDC from the agent wallet (respects credit health buffer). */
     async withdraw(params: WithdrawParams): Promise<OperationResult> {
       validateAmount(params.amount, 'withdraw');
-      const agent = requireAgent();
+      const agent = encodePathSegment(requireAgent(), 'agentAddress');
       if (chain === 'solana') {
         return post<OperationResult>(b, `/solana/wallets/${agent}/withdraw`, apiKey, {
           amount: toBase(params.amount),
@@ -224,7 +230,7 @@ export function createAgentNamespace(
     /** Repay outstanding credit. */
     async repay(params: RepayParams): Promise<OperationResult> {
       validateAmount(params.amount, 'repay');
-      const agent = requireAgent();
+      const agent = encodePathSegment(requireAgent(), 'agentAddress');
       if (chain === 'solana') {
         return post<OperationResult>(b, `/solana/credit/${agent}/repay`, apiKey, {
           amount: toBase(params.amount),
@@ -238,7 +244,7 @@ export function createAgentNamespace(
 
     /** Get full agent status: wallet, credit, health, KYA, balance. */
     async getStatus(): Promise<AgentStatus> {
-      const agent = requireAgent();
+      const agent = encodePathSegment(requireAgent(), 'agentAddress');
       if (chain === 'solana') {
         const [wallet, credit, eligibility, kya, balance] = await Promise.allSettled([
           get<{ onChain: AgentWalletState }>(b, `/solana/wallets/${agent}`, apiKey)
@@ -278,7 +284,7 @@ export function createAgentNamespace(
 
     /** Get current USDC balance. */
     async getBalance(): Promise<{ balanceBaseUnits: string; balanceUsdc: string }> {
-      const agent = requireAgent();
+      const agent = encodePathSegment(requireAgent(), 'agentAddress');
       if (chain === 'solana') {
         return get(b, `/solana/wallets/${agent}/balance`, apiKey);
       }
@@ -288,7 +294,7 @@ export function createAgentNamespace(
 
     /** Get health factor and risk status. */
     async getHealth() {
-      const agent = requireAgent();
+      const agent = encodePathSegment(requireAgent(), 'agentAddress');
       if (chain !== 'solana') throw new KrexaError(400, 'Health factor only available on Solana');
       return get(b, `/solana/wallets/${agent}/health`, apiKey);
     },
@@ -302,7 +308,7 @@ export function createAgentNamespace(
       newOwner: string;
       newOwnerType?: 'eoa' | 'multisig';
     }): Promise<OperationResult> {
-      const agent = requireAgent();
+      const agent = encodePathSegment(requireAgent(), 'agentAddress');
       if (chain !== 'solana') throw new KrexaError(400, 'Ownership transfer only available on Solana');
       return post<OperationResult>(b, `/solana/wallets/${agent}/propose-transfer`, apiKey, {
         owner: params.ownerAddress,
@@ -319,7 +325,7 @@ export function createAgentNamespace(
       newOwner: string;
       rentReceiver?: string;
     }): Promise<OperationResult> {
-      const agent = requireAgent();
+      const agent = encodePathSegment(requireAgent(), 'agentAddress');
       if (chain !== 'solana') throw new KrexaError(400, 'Ownership transfer only available on Solana');
       return post<OperationResult>(b, `/solana/wallets/${agent}/accept-transfer`, apiKey, {
         newOwner: params.newOwner,
@@ -334,7 +340,7 @@ export function createAgentNamespace(
     async cancelOwnershipTransfer(params: {
       ownerAddress: string;
     }): Promise<OperationResult> {
-      const agent = requireAgent();
+      const agent = encodePathSegment(requireAgent(), 'agentAddress');
       if (chain !== 'solana') throw new KrexaError(400, 'Ownership transfer only available on Solana');
       return post<OperationResult>(b, `/solana/wallets/${agent}/cancel-transfer`, apiKey, {
         owner: params.ownerAddress,
@@ -364,7 +370,8 @@ export function createCreditNamespace(
   return {
     /** Check if the agent is eligible for credit and at what level. */
     async checkEligibility(): Promise<CreditEligibility> {
-      const agent = requireAgent();
+      const rawAgent = requireAgent();
+      const agent = encodePathSegment(rawAgent, 'agentAddress');
       if (chain === 'solana') {
         return get<CreditEligibility>(b, `/solana/credit/${agent}/eligibility`, apiKey);
       }
@@ -377,7 +384,7 @@ export function createCreditNamespace(
         creditLevel: profile.creditTierNum,
         maxCreditUsdc: 0,
         reason: profile.creditValid ? 'Credit active' : 'Credit not active',
-        agentPubkey: agent,
+        agentPubkey: rawAgent,
         creditScore: 0,
         kyaTier: 0,
       };
@@ -385,7 +392,8 @@ export function createCreditNamespace(
 
     /** Get current credit score and level history. */
     async getScore(): Promise<CreditScore> {
-      const agent = requireAgent();
+      const rawAgent = requireAgent();
+      const agent = encodePathSegment(rawAgent, 'agentAddress');
       if (chain === 'solana') {
         const [profile, history] = await Promise.all([
           get<{ creditScore: number; creditLevel: number }>(
@@ -396,7 +404,7 @@ export function createCreditNamespace(
           ).catch(() => ({ snapshots: [] })),
         ]);
         return {
-          agentPubkey: agent,
+          agentPubkey: rawAgent,
           score: (profile as { onChainTier?: number; creditScore?: number }).creditScore ?? 0,
           level: (profile as { onChainLevel?: number; creditLevel?: number }).creditLevel
                  ?? (profile as { onChainLevel?: number }).onChainLevel ?? 0,
@@ -404,12 +412,12 @@ export function createCreditNamespace(
         };
       }
       const m = await get<{ creditTierNum: number }>(b, `/merchants/${agent}/stats`, apiKey);
-      return { agentPubkey: agent, score: m.creditTierNum * 100, level: m.creditTierNum, history: [] };
+      return { agentPubkey: rawAgent, score: m.creditTierNum * 100, level: m.creditTierNum, history: [] };
     },
 
     /** Get active credit line state. */
     async getLine(): Promise<CreditLineState> {
-      const agent = requireAgent();
+      const agent = encodePathSegment(requireAgent(), 'agentAddress');
       if (chain !== 'solana') throw new KrexaError(400, 'Credit line details only available on Solana');
       return get<CreditLineState>(b, `/solana/credit/${agent}/line`, apiKey);
     },
@@ -451,7 +459,7 @@ export function createKyaNamespace(
       codeRepoUrl?: string;
       metadata?: Record<string, unknown>;
     }): Promise<KyaSubmitResult> {
-      const agent = requireAgent();
+      const agent = encodePathSegment(requireAgent(), 'agentAddress');
       return post<KyaSubmitResult>(b, `/solana/kya/${agent}/basic`, apiKey, {
         ownerPubkey: params.ownerPubkey,
         ownerSignature: params.ownerSignature,
@@ -468,13 +476,13 @@ export function createKyaNamespace(
       ownerPubkey: string;
       sumsubApplicantId: string;
     }): Promise<KyaSubmitResult> {
-      const agent = requireAgent();
+      const agent = encodePathSegment(requireAgent(), 'agentAddress');
       return post<KyaSubmitResult>(b, `/solana/kya/${agent}/enhanced`, apiKey, params);
     },
 
     /** Get current on-chain KYA tier and verification history. */
     async getStatus(): Promise<KyaStatus> {
-      const agent = requireAgent();
+      const agent = encodePathSegment(requireAgent(), 'agentAddress');
       return get<KyaStatus>(b, `/solana/kya/${agent}/status`, apiKey);
     },
   };

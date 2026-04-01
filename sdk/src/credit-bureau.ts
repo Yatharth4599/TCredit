@@ -72,6 +72,13 @@ export interface HistoryOptions {
   pageSize?: number;
 }
 
+function encodePathSegment(value: string, name: string): string {
+  if (!value) {
+    throw new Error(`${name} is required`);
+  }
+  return encodeURIComponent(value);
+}
+
 // ---------------------------------------------------------------------------
 // Namespace factory
 // ---------------------------------------------------------------------------
@@ -95,13 +102,13 @@ export function createCreditBureauNamespace(apiBase: string, apiKey?: string) {
      * Get an agent's credit score (free tier — no API key required).
      */
     getScore: (agentPubkey: string) =>
-      req<BureauScore>(apiBase, `/credit-bureau/${agentPubkey}/score`, apiKey),
+      req<BureauScore>(apiBase, `/credit-bureau/${encodePathSegment(agentPubkey, 'agentPubkey')}/score`, apiKey),
 
     /**
      * Get a full credit report (paid tier — API key required).
      */
     getReport: (agentPubkey: string) =>
-      req<BureauReport>(apiBase, `/credit-bureau/${agentPubkey}/report`, apiKey),
+      req<BureauReport>(apiBase, `/credit-bureau/${encodePathSegment(agentPubkey, 'agentPubkey')}/report`, apiKey),
 
     /**
      * Get credit event history (paid tier — API key required).
@@ -113,7 +120,7 @@ export function createCreditBureauNamespace(apiBase: string, apiKey?: string) {
       const qs = params.toString();
       return req<BureauHistory>(
         apiBase,
-        `/credit-bureau/${agentPubkey}/history${qs ? `?${qs}` : ''}`,
+        `/credit-bureau/${encodePathSegment(agentPubkey, 'agentPubkey')}/history${qs ? `?${qs}` : ''}`,
         apiKey,
       );
     },

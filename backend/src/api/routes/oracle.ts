@@ -3,7 +3,7 @@ import type { Address } from 'viem';
 import { z } from 'zod';
 import { processPayment, getOracleHealth } from '../../services/oracle.service.js';
 import { AppError } from '../middleware/errorHandler.js';
-import { requireApiKey } from '../middleware/apiKeyAuth.js';
+import { requireApiKey, requireAdmin } from '../middleware/apiKeyAuth.js';
 import { prisma } from '../../config/prisma.js';
 
 const router = Router();
@@ -15,10 +15,28 @@ const paymentSchema = z.object({
   paymentId: z.string().startsWith('0x').optional(),
 });
 
+const verifyPaymentSchema = z.object({
+  token: z.string().min(1),
+  recipient: z.string().startsWith('0x').length(42),
+  amountUsdc: z.number().finite().positive(),
+});
+
+function decodePaymentToken(token: string): { jti?: string; sub?: string; amt?: number; iat?: number } | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const payload = Buffer.from(parts[1]!, 'base64url').toString('utf-8');
+    const data = JSON.parse(payload) as { jti?: string; sub?: string; amt?: number; iat?: number };
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 // POST /api/v1/oracle/payment — webhook receiver (requires API key)
 // TODO [BUG-104]: API keys need an `ownerWallet` field in the schema so we can
 // enforce `from === apiKey.ownerWallet`. Until then, log mismatches as security events.
-router.post('/payment', requireApiKey, async (req, res, next) => {
+router.post('/payment', requireAdmin, async (req, res, next) => {
   try {
     const parsed = paymentSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -43,6 +61,48 @@ router.post('/payment', requireApiKey, async (req, res, next) => {
     });
 
     res.status(result.status === 'confirmed' ? 200 : 202).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/oracle/verify-payment — verify x402 payment token against settled oracle payment
+router.post('/verify-payment', requireApiKey, async (req, res, next) => {
+  try {
+    const parsed = verifyPaymentSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw new AppError(400, `Invalid request: ${parsed.error.issues.map((i) => i.message).join(', ')}`);
+    }
+
+    const payload = decodePaymentToken(parsed.data.token);
+    if (!payload?.jti) {
+      return res.json({ valid: false, reason: 'Invalid token payload' });
+    }
+
+    const expectedAmount = BigInt(Math.round(parsed.data.amountUsdc * 1_000_000));
+    const payment = await prisma.oraclePayment.findFirst({
+      where: {
+        paymentId: payload.jti,
+        to: parsed.data.recipient.toLowerCase(),
+        status: 'confirmed',
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!payment) {
+      return res.json({ valid: false, reason: 'No confirmed payment for token' });
+    }
+    if (payment.amount < expectedAmount) {
+      return res.json({ valid: false, reason: 'Payment amount below required threshold' });
+    }
+
+    return res.json({
+      valid: true,
+      paymentId: payment.id,
+      txHash: payment.txHash,
+      amount: payment.amount.toString(),
+      status: payment.status,
+    });
   } catch (err) {
     next(err);
   }

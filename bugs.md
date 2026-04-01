@@ -1,11 +1,12 @@
 # Krexa — Full Bug Report
 
-**Last updated:** 2026-03-24
+**Last updated:** 2026-04-01
 **Scopes covered:**
 - `base-contracts/` + `backend/` — EVM / Base Sepolia (BUG-001 – BUG-024)
 - `solana-programs/` — Solana / Anchor programs (SOL-001 – SOL-049)
 - `backend/` + `sdk/` + `mcp-server/` + `demo/` + `frontend/` — Full-stack security hardening (BUG-033 – BUG-064)
 - `backend/src/api/routes/solana-*` + `solana-programs/programs/krexa-score` + `krexa-service-plan` — New code audit (BUG-065 – BUG-080, SOL-053 – SOL-057)
+- `sdk/` + `packages/mcp-server/` + `backend/` — Path injection, SSRF, oracle verification (BUG-117 – BUG-118)
 
 ---
 
@@ -1708,3 +1709,115 @@ All programs with open bugs require contract redeployment. Group by program:
 - [ ] Load testing completed (keeper cycle, oracle signing, waterfall)
 - [ ] Monitoring/alerting configured (keeper health, oracle signing failures, NAV breaches)
 - [ ] Incident response playbook documented (pause procedures, key rotation)
+
+---
+
+## Part 13 — Security Hardening: SDK, MCP, Backend (2026-04-01)
+
+**Scope:** Path-segment injection prevention across SDK + MCP client, MCP input validation hardening, kickstart SSRF mitigation, oracle verify-payment endpoint implementation, OpenAPI spec alignment.
+**Method:** Code review + fix implementation across 8 files.
+
+| Severity | Count | Fixed |
+|----------|-------|-------|
+| High     | 1     | 1 ✅  |
+| Medium   | 1     | 1 ✅  |
+| **Total**| **2** | **2 ✅** |
+
+**Also resolved:** BUG-108 (verify-payment route now exists), BUG-105 further hardened.
+
+---
+
+### High
+
+#### BUG-117: Path-segment injection / endpoint smuggling in SDK + MCP client
+**Files:** `sdk/src/client.ts`, `sdk/src/agent.ts`, `sdk/src/credit-bureau.ts`, `packages/mcp-server/src/client.ts`
+**Status:** ✅ Fixed
+**Severity:** High
+
+All four HTTP client modules interpolated user-supplied values (addresses, vault IDs, merchant addresses) directly into URL path segments without encoding. An attacker passing values like `../admin/keys` or `foo%2F..%2Fadmin` could rewrite the target endpoint, potentially accessing admin routes or triggering unintended backend actions.
+
+**42 dynamic path segments affected across 4 files:**
+- `sdk/src/client.ts` — 23 endpoints (vaults, merchants, pools, portfolio, admin)
+- `sdk/src/agent.ts` — 16 endpoints (wallet, credit, score, trade, pay)
+- `sdk/src/credit-bureau.ts` — 3 endpoints (score, report, history)
+- `packages/mcp-server/src/client.ts` — all dynamic path segments
+
+**Fix applied:** Added `encodePathSegment()` helper using `encodeURIComponent()` in all four files. Applied to every dynamic URL path segment. Raw values preserved for request bodies (e.g., `from` in payment requests) and return values (e.g., `agentPubkey` in eligibility results). Query parameters already safe via `URLSearchParams`.
+
+---
+
+### Medium
+
+#### BUG-118: Kickstart endpoint vulnerable to SSRF via URL parameter
+**File:** `backend/src/api/routes/kickstart.ts`
+**Status:** ✅ Fixed
+**Severity:** Medium
+
+`POST /api/v1/kickstart` accepted a user-supplied URL and performed a server-side fetch without validation. Attacker could target internal services (`http://169.254.169.254/metadata`, `http://localhost:5432`), cloud metadata endpoints, or private network services.
+
+**Fix applied — defense-in-depth (7 layers):**
+1. URL parse via `new URL()` — rejects malformed input
+2. Protocol allowlist — only `http:` and `https:` accepted; HTTPS-only enforced in production
+3. Hostname blocking — explicitly rejects `localhost`, `127.0.0.1`, `::1`, `0.0.0.0`
+4. Private IP range blocking — IPv4 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16) and IPv6 (::1, fc00::/7, fe80::/10, ::ffff: mapped)
+5. DNS resolution check — resolves hostname and validates all returned IPs against private ranges (prevents DNS rebinding)
+6. Fetch timeout — `AbortSignal.timeout(10_000)` prevents hanging on slow/non-responsive internal hosts
+7. Redirect blocking — `redirect: 'error'` prevents redirect-based SSRF bypasses
+
+---
+
+### Existing Bug Updates
+
+#### BUG-105 (Further Hardened): MCP input validation — strict EVM address regex
+**File:** `packages/mcp-server/src/tools/credit.tools.ts`
+**Previous status:** ✅ Resolved (broad zod validators)
+**New status:** ✅ Further Hardened
+
+Previously used `z.string()` with basic checks. Now enforced with strict regex: `z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid EVM address')` on all address inputs across `krexa_check_credit`, `krexa_loan_status`, and `krexa_draw_credit` tools.
+
+---
+
+#### BUG-108 (Fully Resolved): Oracle verify-payment endpoint now exists
+**File:** `backend/src/api/routes/oracle.ts`
+**Previous status:** ✅ Resolved (404 detection + warning log; TODO for backend route)
+**New status:** ✅ Fully Resolved
+
+`POST /api/v1/oracle/verify-payment` now implemented with full validation:
+- `requireApiKey` middleware enforced
+- Token payload decoded and validated (JTI/payment ID check)
+- Recipient matching — case-insensitive DB lookup against `parsed.data.recipient`
+- Payment status gate — only `'confirmed'` payments accepted
+- Amount threshold enforcement — `payment.amount >= expectedAmount`
+
+x402-middleware can now use `verify: true` (default) without hitting 404.
+
+---
+
+#### BUG-104 (Status Update): Oracle payment endpoint payer binding
+**Previous status:** ✅ Resolved (warning log + TODO)
+**New status:** ✅ Resolved — additionally, `POST /oracle/payment` now requires `requireAdmin` tier (hardened from `requireApiKey`), and the new `verify-payment` endpoint provides independent payment verification for downstream consumers.
+
+---
+
+### API Documentation
+
+#### OpenAPI spec updated for oracle endpoints
+**File:** `backend/src/config/openapi.ts`
+
+- `POST /oracle/payment` — documented security requirement (`ApiKeyAuth`, admin tier), request/response schemas, HTTP codes (200/202/401/403)
+- `POST /oracle/verify-payment` — documented security requirement (`ApiKeyAuth`), request schema (`OracleVerifyPaymentRequest`: token, recipient, amountUsdc), response schema (`OracleVerifyPaymentResponse`: valid, reason, paymentId, txHash, amount, status)
+- Added 3 new schemas: `OraclePaymentRequest`, `OracleVerifyPaymentRequest`, `OracleVerifyPaymentResponse`
+
+---
+
+### Updated Open Bug Priority Matrix
+
+| Severity | Solana Programs | Backend/SDK/MCP | Total Open |
+|----------|----------------|-----------------|------------|
+| **Critical** | 0 | 0 | **0** |
+| **High** | 1 (SOL-073) | 0 | **1** |
+| **Medium** | 8 | 4 (BUG-031,032,079,111) | **12** |
+| **Low** | 11 | 3 (BUG-019,074,102) | **14** |
+| **Total** | **20** | **7** | **27** |
+
+*Reduced from 31 → 27 open bugs (BUG-107 contract change still tracked, BUG-108 resolved, BUG-117+118 found and fixed same session).*

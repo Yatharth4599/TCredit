@@ -3,11 +3,14 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { getMerchantStats, getMerchantVaults, releaseTranche } from '../client.js';
 
 export function registerCreditTools(server: McpServer) {
+  // BUG-105 follow-up: enforce strict EVM address validation in credit tools too
+  const evmAddress = z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid EVM address (must be 0x + 40 hex chars)');
+
   // krexa_check_credit — get credit score and tier for an agent
   server.tool(
     'krexa_check_credit',
     'Check the Krexa credit score and tier for an agent address',
-    { address: z.string().describe('Agent wallet address') },
+    { address: evmAddress.describe('Agent wallet address (0x...)') },
     async ({ address }) => {
       const stats = await getMerchantStats(address);
       return {
@@ -31,7 +34,7 @@ export function registerCreditTools(server: McpServer) {
   server.tool(
     'krexa_loan_status',
     'Get the status of all credit vaults (loans) for an agent',
-    { address: z.string().describe('Agent wallet address') },
+    { address: evmAddress.describe('Agent wallet address (0x...)') },
     async ({ address }) => {
       const data = await getMerchantVaults(address);
       if (data.vaults.length === 0) {
@@ -60,7 +63,7 @@ export function registerCreditTools(server: McpServer) {
   server.tool(
     'krexa_draw_credit',
     'Release the next tranche from a Krexa credit vault (returns unsigned tx)',
-    { vaultAddress: z.string().describe('Vault contract address') },
+    { vaultAddress: evmAddress.describe('Vault contract address (0x...)') },
     async ({ vaultAddress }) => {
       const tx = await releaseTranche(vaultAddress);
       return {

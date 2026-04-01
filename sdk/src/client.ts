@@ -11,6 +11,13 @@ export interface KrexaConfig {
   apiKey?: string;
 }
 
+function encodePathSegment(value: string, name: string): string {
+  if (!value) {
+    throw new Error(`${name} is required`);
+  }
+  return encodeURIComponent(value);
+}
+
 async function request<T>(baseUrl: string, path: string, apiKey?: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (apiKey) headers['X-API-Key'] = apiKey;
@@ -47,38 +54,38 @@ function createNamespace(baseUrl: string, apiKey?: string) {
         const qs = new URLSearchParams(params as Record<string, string>).toString();
         return get<{ vaults: Vault[]; total: number }>(`/vaults${qs ? `?${qs}` : ''}`);
       },
-      detail: (address: string) => get<VaultDetail>(`/vaults/${address}`),
+      detail: (address: string) => get<VaultDetail>(`/vaults/${encodePathSegment(address, 'vault address')}`),
       investors: (address: string) =>
-        get<{ investors: Investor[]; total: number }>(`/vaults/${address}/investors`),
-      waterfall: (address: string) => get<WaterfallData>(`/vaults/${address}/waterfall`),
+        get<{ investors: Investor[]; total: number }>(`/vaults/${encodePathSegment(address, 'vault address')}/investors`),
+      waterfall: (address: string) => get<WaterfallData>(`/vaults/${encodePathSegment(address, 'vault address')}/waterfall`),
       milestones: (address: string) =>
-        get<{ milestones: Milestone[]; total: number }>(`/vaults/${address}/milestones`),
-      tranches: (address: string) => get<TrancheResponse>(`/vaults/${address}/tranches`),
+        get<{ milestones: Milestone[]; total: number }>(`/vaults/${encodePathSegment(address, 'vault address')}/milestones`),
+      tranches: (address: string) => get<TrancheResponse>(`/vaults/${encodePathSegment(address, 'vault address')}/tranches`),
       repayments: (address: string) =>
-        get<{ repayments: VaultEvent[]; total: number }>(`/vaults/${address}/repayments`),
+        get<{ repayments: VaultEvent[]; total: number }>(`/vaults/${encodePathSegment(address, 'vault address')}/repayments`),
       create: (params: CreateVaultParams) => post<UnsignedTx>('/vaults/create', params),
       submitMilestone: (address: string, trancheIndex: number, evidenceHash: string) =>
-        post<UnsignedTx>(`/vaults/${address}/milestone/submit`, { trancheIndex, evidenceHash }),
+        post<UnsignedTx>(`/vaults/${encodePathSegment(address, 'vault address')}/milestone/submit`, { trancheIndex, evidenceHash }),
       voteMilestone: (address: string, trancheIndex: number, approve: boolean) =>
-        post<UnsignedTx>(`/vaults/${address}/milestone/vote`, { trancheIndex, approve }),
+        post<UnsignedTx>(`/vaults/${encodePathSegment(address, 'vault address')}/milestone/vote`, { trancheIndex, approve }),
     },
 
     merchants: {
-      profile: (address: string) => get<MerchantProfile>(`/merchants/${address}`),
+      profile: (address: string) => get<MerchantProfile>(`/merchants/${encodePathSegment(address, 'merchant address')}`),
       vaults: (address: string) =>
-        get<{ vaults: Vault[]; total: number }>(`/merchants/${address}/vaults`),
-      stats: (address: string) => get<MerchantStats>(`/merchants/${address}/stats`),
+        get<{ vaults: Vault[]; total: number }>(`/merchants/${encodePathSegment(address, 'merchant address')}/vaults`),
+      stats: (address: string) => get<MerchantStats>(`/merchants/${encodePathSegment(address, 'merchant address')}/stats`),
       register: (metadataURI: string) => post<UnsignedTx>('/merchants/register', { metadataURI }),
       updateCreditScore: (address: string, score: number) =>
-        post<UnsignedTx>(`/merchants/${address}/credit-score`, { score }),
+        post<UnsignedTx>(`/merchants/${encodePathSegment(address, 'merchant address')}/credit-score`, { score }),
     },
 
     pools: {
       list: () =>
         get<{ pools: Pool[]; total: number; summary: PoolsSummary }>('/pools'),
-      detail: (address: string) => get<Pool>(`/pools/${address}`),
+      detail: (address: string) => get<Pool>(`/pools/${encodePathSegment(address, 'pool address')}`),
       allocation: (poolAddress: string, vaultAddress: string) =>
-        get<Allocation>(`/pools/${poolAddress}/allocation/${vaultAddress}`),
+        get<Allocation>(`/pools/${encodePathSegment(poolAddress, 'pool address')}/allocation/${encodePathSegment(vaultAddress, 'vault address')}`),
       deposit: (poolAddress: string, amount: string) =>
         post<UnsignedTx>('/pools/deposit', { poolAddress, amount }),
       withdraw: (poolAddress: string, amount: string) =>
@@ -90,7 +97,7 @@ function createNamespace(baseUrl: string, apiKey?: string) {
     investments: {
       portfolio: (address: string) =>
         get<{ investments: PortfolioInvestment[]; total: number; summary: PortfolioSummary }>(
-          `/portfolio/${address}`
+          `/portfolio/${encodePathSegment(address, 'portfolio address')}`
         ),
       invest: (vaultAddress: string, amount: string) =>
         post<UnsignedTx>('/invest', { vaultAddress, amount }),
@@ -122,8 +129,8 @@ function createNamespace(baseUrl: string, apiKey?: string) {
       createKey: (name: string, rateLimit?: number) =>
         post<ApiKey>('/admin/keys', { name, rateLimit }),
       updateKey: (id: string, data: { name?: string; rateLimit?: number; active?: boolean }) =>
-        patch<ApiKey>(`/admin/keys/${id}`, data),
-      deleteKey: (id: string) => del<{ deleted: boolean }>(`/admin/keys/${id}`),
+        patch<ApiKey>(`/admin/keys/${encodePathSegment(id, 'api key id')}`, data),
+      deleteKey: (id: string) => del<{ deleted: boolean }>(`/admin/keys/${encodePathSegment(id, 'api key id')}`),
     },
   };
 }

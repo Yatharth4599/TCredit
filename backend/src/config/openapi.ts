@@ -345,7 +345,8 @@ export const openApiSpec = {
       post: {
         tags: ['Oracle'],
         summary: 'Submit payment for oracle processing',
-        description: 'The oracle signs the payment with ECDSA and submits it to the PaymentRouter contract.',
+        description: 'The oracle signs the payment with ECDSA and submits it to the PaymentRouter contract. Requires an admin-tier API key.',
+        security: [{ ApiKeyAuth: [] }],
         requestBody: {
           required: true,
           content: { 'application/json': { schema: { $ref: '#/components/schemas/OraclePaymentRequest' } } },
@@ -353,6 +354,27 @@ export const openApiSpec = {
         responses: {
           200: { description: 'Payment confirmed on-chain' },
           202: { description: 'Payment submitted, awaiting confirmation' },
+          401: { description: 'API key required' },
+          403: { description: 'Admin API key required' },
+        },
+      },
+    },
+    '/oracle/verify-payment': {
+      post: {
+        tags: ['Oracle'],
+        summary: 'Verify x402 payment token',
+        description: 'Validates that a payment token maps to a confirmed oracle payment for recipient and minimum amount.',
+        security: [{ ApiKeyAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/OracleVerifyPaymentRequest' } } },
+        },
+        responses: {
+          200: {
+            description: 'Verification result',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/OracleVerifyPaymentResponse' } } },
+          },
+          401: { description: 'API key required' },
         },
       },
     },
@@ -360,6 +382,7 @@ export const openApiSpec = {
       get: {
         tags: ['Oracle'],
         summary: 'Oracle service status',
+        security: [{ ApiKeyAuth: [] }],
         responses: { 200: { description: 'Oracle health' }, 503: { description: 'Oracle down' } },
       },
     },
@@ -367,6 +390,7 @@ export const openApiSpec = {
       get: {
         tags: ['Oracle'],
         summary: 'List oracle-processed payments',
+        security: [{ ApiKeyAuth: [] }],
         parameters: [
           { name: 'status', in: 'query', schema: { type: 'string', enum: ['pending', 'submitted', 'confirmed', 'failed'] } },
           { name: 'vault', in: 'query', schema: { type: 'string' } },
@@ -758,6 +782,27 @@ export const openApiSpec = {
           to: { type: 'string', description: '0x receiver address' },
           amount: { type: 'string', description: 'USDC wei amount' },
           paymentId: { type: 'string', description: '0x optional payment ID' },
+        },
+      },
+      OracleVerifyPaymentRequest: {
+        type: 'object',
+        required: ['token', 'recipient', 'amountUsdc'],
+        properties: {
+          token: { type: 'string', description: 'x402 payment token (JWT-like payload)' },
+          recipient: { type: 'string', description: '0x merchant recipient address' },
+          amountUsdc: { type: 'number', description: 'Minimum required USDC amount in human units' },
+        },
+      },
+      OracleVerifyPaymentResponse: {
+        type: 'object',
+        required: ['valid'],
+        properties: {
+          valid: { type: 'boolean' },
+          reason: { type: 'string', nullable: true },
+          paymentId: { type: 'string', nullable: true },
+          txHash: { type: 'string', nullable: true },
+          amount: { type: 'string', nullable: true },
+          status: { type: 'string', nullable: true },
         },
       },
       OraclePayment: {
