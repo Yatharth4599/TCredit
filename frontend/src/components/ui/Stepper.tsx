@@ -10,6 +10,8 @@ interface StepperProps extends HTMLAttributes<HTMLDivElement> {
   backButtonText?: string
   nextButtonText?: string
   disableStepIndicators?: boolean
+  /** Callback that returns true when Next should be disabled for the given step (1-based) */
+  isNextDisabled?: (step: number) => boolean
 }
 
 export default function Stepper({
@@ -20,6 +22,7 @@ export default function Stepper({
   backButtonText = 'Back',
   nextButtonText = 'Continue',
   disableStepIndicators = false,
+  isNextDisabled,
   ...rest
 }: StepperProps) {
   const [currentStep, setCurrentStep] = useState(initialStep)
@@ -35,9 +38,10 @@ export default function Stepper({
     else onStepChange(n)
   }
 
+  const nextBlocked = isNextDisabled ? isNextDisabled(currentStep) : false
   const handleBack = () => { if (currentStep > 1) { setDirection(-1); updateStep(currentStep - 1) } }
-  const handleNext = () => { if (!isLastStep) { setDirection(1); updateStep(currentStep + 1) } }
-  const handleComplete = () => { setDirection(1); updateStep(totalSteps + 1) }
+  const handleNext = () => { if (!isLastStep && !nextBlocked) { setDirection(1); updateStep(currentStep + 1) } }
+  const handleComplete = () => { if (!nextBlocked) { setDirection(1); updateStep(totalSteps + 1) } }
 
   return (
     <div className={css.outer} {...rest}>
@@ -51,7 +55,15 @@ export default function Stepper({
                   step={step}
                   currentStep={currentStep}
                   disabled={disableStepIndicators}
-                  onClickStep={(s) => { setDirection(s > currentStep ? 1 : -1); updateStep(s) }}
+                  onClickStep={(s) => {
+                    // Block jumping forward past a step that requires completion
+                    if (s > currentStep && isNextDisabled) {
+                      for (let check = currentStep; check < s; check++) {
+                        if (isNextDisabled(check)) return
+                      }
+                    }
+                    setDirection(s > currentStep ? 1 : -1); updateStep(s)
+                  }}
                 />
                 {i < totalSteps - 1 && <StepConnector isComplete={currentStep > step} />}
               </React.Fragment>

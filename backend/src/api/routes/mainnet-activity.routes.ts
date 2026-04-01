@@ -1,5 +1,7 @@
 import { Router } from 'express';
+import { PublicKey } from '@solana/web3.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { requireApiKey } from '../middleware/apiKeyAuth.js';
 import { env } from '../../config/env.js';
 
 const router = Router();
@@ -59,11 +61,14 @@ async function rpcCallFallback(method: string, params: unknown[]): Promise<unkno
   throw lastErr ?? new Error('All RPC endpoints failed');
 }
 
-router.get('/:address', async (req, res, next) => {
+router.get('/:address', requireApiKey as never, async (req, res, next) => {
   try {
     const { address } = req.params;
-    if (!address || address.length < 32) {
-      throw new AppError(400, 'Invalid address');
+    // BUG-122: Proper Solana base58 address validation via PublicKey constructor
+    try {
+      new PublicKey(address);
+    } catch {
+      throw new AppError(400, 'Invalid Solana address — must be a valid base58-encoded public key');
     }
     const detailed = req.query.detailed === 'true';
 
@@ -83,9 +88,9 @@ router.get('/:address', async (req, res, next) => {
     if (sigsResult.status === 'fulfilled' && Array.isArray(sigsResult.value)) {
       allSigs = sigsResult.value as Sig[];
 
-      // Paginate to find true wallet age (up to 10 pages x 200 = 2,000 txs)
+      // BUG-121: Paginate to find wallet age (max 3 pages x 200 = 600 sigs to limit RPC abuse)
       let page = 0;
-      while (allSigs.length === (page + 1) * 200 && page < 9) {
+      while (allSigs.length === (page + 1) * 200 && page < 2) {
         const cursor = allSigs[allSigs.length - 1].signature;
         try {
           const older = await rpcCallBest('getSignaturesForAddress', [

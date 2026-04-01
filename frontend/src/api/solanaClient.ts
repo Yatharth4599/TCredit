@@ -2,6 +2,19 @@ import axios from 'axios'
 
 const KREXA_API_URL = import.meta.env.VITE_KREXA_API_URL || 'http://localhost:3001'
 
+// Prevent mixed-content requests in production: block http:// API URLs on https:// pages
+if (
+  typeof window !== 'undefined' &&
+  window.location.protocol === 'https:' &&
+  KREXA_API_URL.startsWith('http://') &&
+  !KREXA_API_URL.startsWith('https://')
+) {
+  throw new Error(
+    `Refusing to use insecure API URL (${KREXA_API_URL}) on an HTTPS page. ` +
+    'Set VITE_KREXA_API_URL to an https:// endpoint.'
+  )
+}
+
 export const solanaApi = axios.create({
   baseURL: KREXA_API_URL,
   timeout: 15000,
@@ -11,7 +24,7 @@ export const solanaApi = axios.create({
 solanaApi.interceptors.response.use(
   (res) => res,
   (err) => {
-    console.error('[Solana API Error]', err.response?.status, err.config?.url)
+    if (import.meta.env.DEV) console.error('[Solana API Error]', err.response?.status, err.config?.url)
     return Promise.reject(err)
   }
 )

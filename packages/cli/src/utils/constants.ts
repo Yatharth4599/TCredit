@@ -85,7 +85,18 @@ export const CREDIT_LEVELS = [
 
 export const AGENT_TYPES = ["Trader", "Service", "Hybrid"] as const;
 
-// Devnet oracle keypair — used for auto-KYA during init
-export const ORACLE_KEYPAIR = Keypair.fromSecretKey(
-  bs58.decode("Ze7TW5NvzQmj92YpZgXsGVk13Gr8Y98UbWKLQroNLwkhy7vA2UesFzSTFDJHMRoPCeuES9mERe9FQP9NnE3jMMY")
-);
+/**
+ * Load oracle keypair from environment variable.
+ * NEVER hardcode private keys — this reads from SOLANA_ORACLE_PRIVATE_KEY env var.
+ * Only needed for local test scripts; production commands use backend oracle co-signature.
+ */
+export function getOracleKeypair(): Keypair {
+  const key = process.env.SOLANA_ORACLE_PRIVATE_KEY;
+  if (!key) {
+    throw new Error(
+      "SOLANA_ORACLE_PRIVATE_KEY env var required for oracle operations. " +
+      "Set it to the base58-encoded private key, or use the backend API for oracle co-signatures."
+    );
+  }
+  return Keypair.fromSecretKey(bs58.decode(key));
+}

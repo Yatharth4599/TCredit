@@ -5,6 +5,8 @@ import { verifyWalletSignature } from "../middleware/auth.js";
 import { lamportsToUsdc } from "@krexa/solana-sdk";
 
 export async function agentRoutes(server: FastifyInstance): Promise<void> {
+  server.addHook('preHandler', verifyWalletSignature);
+
   // GET /agent/:address/profile
   server.get("/:address/profile", async (request, reply) => {
     const { address } = request.params as { address: string };

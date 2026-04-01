@@ -9,6 +9,7 @@ import {
   AdminCreateWebhookSchema, AdminUpdateWebhookSchema,
 } from '../schemas.js';
 import { prisma } from '../../config/prisma.js';
+import { AppError } from '../middleware/errorHandler.js';
 const router = Router();
 
 // BUG-113 fix: prevent CSV injection / DDE attacks in exported fields
@@ -20,6 +21,9 @@ function sanitizeCsvField(val: string): string {
   }
   return `"${escaped}"`;
 }
+
+// BUG-141 fix: enforce IP allowlist BEFORE auth — reject non-allowlisted IPs early
+router.use(ipAllowlist);
 
 // All admin routes require an admin-tier API key (BUG-029)
 router.use(requireAdmin as never);

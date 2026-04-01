@@ -229,6 +229,8 @@ pub enum RegistryError {
     WalletAlreadyLinked,
     #[msg("Address cannot be the zero/default pubkey")]
     InvalidAddress,
+    #[msg("Invalid agent type")]
+    InvalidAgentType,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -9,6 +9,7 @@
 
 import { Router, type Request, type Response } from 'express';
 import { getIdleCapitalManager } from '../../services/idle-capital-manager.js';
+import { requireApiKey } from '../middleware/apiKeyAuth.js';
 import { env } from '../../config/env.js';
 import { createLogger } from '../../utils/logger.js';
 
@@ -19,7 +20,7 @@ const router = Router();
 // GET /idle-capital — current allocation snapshot
 // ---------------------------------------------------------------------------
 
-router.get('/idle-capital', async (_req: Request, res: Response) => {
+router.get('/idle-capital', requireApiKey as never, async (_req: Request, res: Response) => {
   try {
     const mgr = getIdleCapitalManager();
     if (!mgr) {
@@ -53,7 +54,7 @@ router.get('/idle-capital', async (_req: Request, res: Response) => {
 // GET /meteora-yield — Meteora vault details
 // ---------------------------------------------------------------------------
 
-router.get('/meteora-yield', async (_req: Request, res: Response) => {
+router.get('/meteora-yield', requireApiKey as never, async (_req: Request, res: Response) => {
   try {
     const vaultData = await fetchMeteoraVaultDetails();
     return res.json(vaultData);

@@ -4,6 +4,8 @@ import { getKrexaClient } from "../services/krexa.js";
 import { verifyWalletSignature } from "../middleware/auth.js";
 
 export async function creditRoutes(server: FastifyInstance): Promise<void> {
+  server.addHook('preHandler', verifyWalletSignature);
+
   // GET /credit/:address/line
   server.get("/:address/line", async (request, reply) => {
     const { address } = request.params as { address: string };

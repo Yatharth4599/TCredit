@@ -94,6 +94,18 @@ export async function submitBasicKya(params: KyaSubmitBasicBasicParams): Promise
   const profile = await readAgentProfile(agentPubkey);
   if (!profile) throw new AppError(404, 'Agent not registered on-chain');
   if (!profile.isActive) throw new AppError(400, 'Agent profile is deactivated');
+
+  // BUG-138 fix: verify ownerPubkey matches the on-chain profile owner to prevent
+  // an attacker from submitting KYA on behalf of an agent they don't own
+  const onChainOwner = profile.owner?.toBase58?.() ?? null;
+  if (onChainOwner && onChainOwner !== ownerPubkey) {
+    console.warn(
+      `[kya] SECURITY: Owner binding mismatch for agent ${agentPubkeyStr}. ` +
+      `Claimed owner: ${ownerPubkey}, on-chain owner: ${onChainOwner}`
+    );
+    throw new AppError(403, 'Owner pubkey does not match on-chain agent owner');
+  }
+
   if (profile.kyaTier >= 1) {
     return { status: 'approved', tier: profile.kyaTier, verificationId: 'already-verified', reason: 'Already at tier 1+' };
   }
@@ -149,11 +161,23 @@ export async function submitBasicKya(params: KyaSubmitBasicBasicParams): Promise
  */
 export async function submitEnhancedKya(params: KyaSubmitEnhancedParams): Promise<KyaResult> {
   ensureOracleReady();
-  const { agentPubkey: agentPubkeyStr, sumsubApplicantId } = params;
+  const { agentPubkey: agentPubkeyStr, ownerPubkey, sumsubApplicantId } = params;
 
   let agentPubkey: PublicKey;
   try { agentPubkey = new PublicKey(agentPubkeyStr); }
   catch { throw new AppError(400, 'Invalid agentPubkey'); }
+
+  // BUG-138 fix: verify owner binding for enhanced KYA too
+  const profile = await readAgentProfile(agentPubkey);
+  if (!profile) throw new AppError(404, 'Agent not registered on-chain');
+  const onChainOwner = profile.owner?.toBase58?.() ?? null;
+  if (onChainOwner && onChainOwner !== ownerPubkey) {
+    console.warn(
+      `[kya] SECURITY: Enhanced KYA owner binding mismatch for agent ${agentPubkeyStr}. ` +
+      `Claimed owner: ${ownerPubkey}, on-chain owner: ${onChainOwner}`
+    );
+    throw new AppError(403, 'Owner pubkey does not match on-chain agent owner');
+  }
 
   // Create pending record first
   const record = await prisma.kyaVerification.create({
@@ -194,8 +218,12 @@ export async function submitEnhancedKya(params: KyaSubmitEnhancedParams): Promis
 async function checkSumsubReview(applicantId: string): Promise<'approved' | 'rejected' | 'pending'> {
   const apiKey = env.SUMSUB_API_KEY;
   if (!apiKey) {
-    console.warn('[KYA] SUMSUB_API_KEY not set — treating as approved for dev');
-    return 'approved';
+    // BUG-139 fix: fail closed — missing Sumsub key must NOT auto-approve
+    console.warn(
+      '[KYA] SECURITY: SUMSUB_API_KEY not set — returning pending (not approved). ' +
+      'Enhanced KYA verification is unavailable until the key is configured.'
+    );
+    return 'pending';
   }
 
   try {

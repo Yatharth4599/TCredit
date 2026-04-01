@@ -40,15 +40,21 @@ export function ipAllowlist(req: Request, res: Response, next: NextFunction): vo
     return next();
   }
 
+  // NOTE: req.ip relies on Express "trust proxy" setting. When trust-proxy is
+  // enabled, req.ip is derived from X-Forwarded-For which can be spoofed by
+  // upstream hops. We also check req.socket.remoteAddress as a fallback so
+  // that the real TCP peer address is evaluated even if the proxy header is
+  // forged or trust-proxy is misconfigured.
   const clientIP = normalizeIP(req.ip);
+  const socketIP = normalizeIP(req.socket.remoteAddress);
 
-  // Check allowlist
-  if (allowedIPs.includes(clientIP)) {
+  // Check allowlist against both the proxy-reported IP and the raw socket IP
+  if (allowedIPs.includes(clientIP) || allowedIPs.includes(socketIP)) {
     return next();
   }
 
   // Allow loopback in non-production even if allowlist is set
-  if (!isProduction && LOOPBACK.has(clientIP)) {
+  if (!isProduction && (LOOPBACK.has(clientIP) || LOOPBACK.has(socketIP))) {
     return next();
   }
 

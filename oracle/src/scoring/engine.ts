@@ -1,5 +1,8 @@
 import type { AgentData, ScoreResult } from "./types.js";
 
+/** Cap on event arrays to prevent unbounded iteration (DoS protection). */
+const MAX_EVENTS = 1000;
+
 const SCORE_MIN = 200;
 const SCORE_MAX = 850;
 const SCORE_RANGE = SCORE_MAX - SCORE_MIN;
@@ -50,7 +53,7 @@ function calculateSharpeRatio(dailyPnl: number[]): number {
   const mean = dailyPnl.reduce((a, b) => a + b, 0) / dailyPnl.length;
   const variance = dailyPnl.reduce((sum, v) => sum + (v - mean) ** 2, 0) / dailyPnl.length;
   const stddev = Math.sqrt(variance);
-  if (stddev === 0) return mean > 0 ? 3.0 : 0;
+  if (stddev === 0) return mean > 0 ? 1.0 : 0;
   return (mean / stddev) * Math.sqrt(365);
 }
 
@@ -74,7 +77,7 @@ function computeC1(data: AgentData, now: number): number {
   let score = 0.70;
   if (data.repaymentEvents.length === 0) return score;
 
-  for (const event of data.repaymentEvents) {
+  for (const event of data.repaymentEvents.slice(-MAX_EVENTS)) {
     const recency = getRecencyWeight(now - event.timestamp);
     let delta: number;
     switch (event.type) {
@@ -133,7 +136,8 @@ function computeC2(data: AgentData, _now: number): number {
 // ── C3: Behavioral Health (20%) ──────────────────────────────────────────────
 
 function computeC3(data: AgentData, now: number): number {
-  const history = data.agentType === "Trader" ? data.navHistory : data.revenueHealthHistory;
+  const rawHistory = data.agentType === "Trader" ? data.navHistory : data.revenueHealthHistory;
+  const history = rawHistory.slice(-MAX_EVENTS);
   if (history.length === 0) return 0.5;
 
   const cutoff = now - 90 * SECONDS_PER_DAY;
@@ -184,7 +188,7 @@ function computeC4(data: AgentData, now: number): number {
   if (data.transactions.length === 0) return 0.0;
 
   const cutoff = now - 90 * SECONDS_PER_DAY;
-  const recentTxs = data.transactions.filter(t => t.timestamp >= cutoff);
+  const recentTxs = data.transactions.slice(-MAX_EVENTS).filter(t => t.timestamp >= cutoff);
   if (recentTxs.length === 0) return 0.0;
 
   if (data.agentType === "Trader") {
@@ -249,8 +253,8 @@ function computeC5(data: AgentData, now: number): number {
 
 // ── Level Determination ──────────────────────────────────────────────────────
 
-function determineLevel(score: number, data: AgentData): number {
-  const ageDays = (Date.now() / 1000 - data.registeredAt) / SECONDS_PER_DAY;
+function determineLevel(score: number, data: AgentData, now: number): number {
+  const ageDays = (now - data.registeredAt) / SECONDS_PER_DAY;
   const ageMonths = ageDays / 30;
   if (score >= 750 && ageMonths >= 6) return 4;
   if (score >= 650 && ageMonths >= 3) return 3;
@@ -278,7 +282,7 @@ export function computeKrexitScore(data: AgentData): ScoreResult {
 
   const score = Math.round(SCORE_MIN + SCORE_RANGE * composite);
   const clampedScore = Math.max(SCORE_MIN, Math.min(SCORE_MAX, score));
-  const level = determineLevel(clampedScore, data);
+  const level = determineLevel(clampedScore, data, now);
 
   return {
     score: clampedScore,

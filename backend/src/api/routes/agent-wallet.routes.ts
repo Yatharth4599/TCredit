@@ -19,6 +19,7 @@ import {
 import { walletUsdcPda } from '../../chain/solana/programs.js';
 import { prisma } from '../../config/prisma.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { requireApiKey } from '../middleware/apiKeyAuth.js';
 import { validate } from '../middleware/validate.js';
 import {
   SolanaWalletCreateSchema, SolanaWalletProposeTransferSchema,
@@ -151,7 +152,8 @@ router.get('/:agent/trades', async (req, res, next) => {
 
 // POST /solana/wallets/:agent/trade  — proxy to trading routes for backward compat
 // The SDK's agent.trade() calls this path. Delegate to the trading swap handler.
-router.post('/:agent/trade', async (req, res, next) => {
+// BUG-137 fix: require API key auth — this is a write route that executes trades
+router.post('/:agent/trade', requireApiKey as never, async (req, res, next) => {
   try {
     const { resolveToken, getQuote, buildSwapTx } = await import('../../services/dex-aggregator.js');
 
@@ -182,7 +184,7 @@ router.post('/:agent/trade', async (req, res, next) => {
 
     const outAmountHuman = Number(quote.outAmount) / Math.pow(10, toToken.decimals);
 
-    // Record in DB
+    // BUG-137 fix: record trade as 'pending' — only finalized after user signs & submits
     await prisma.solanaAgentTrade.create({
       data: {
         agentPubkey: agentPk.toBase58(),
@@ -190,6 +192,7 @@ router.post('/:agent/trade', async (req, res, next) => {
         amount: BigInt(amountRaw),
         direction: fromToken.symbol === 'USDC' ? 'buy' : 'sell',
         txSignature: `pending-${Date.now()}`,
+        status: 'pending',
         executedAt: new Date(),
       },
     });

@@ -26,7 +26,7 @@ async function main() {
   console.log(`[Oracle] Registry Program: ${REGISTRY_PROGRAM_ID.toBase58()}`);
   console.log(`[Oracle] Wallet Program: ${WALLET_PROGRAM_ID.toBase58()}`);
   console.log(`[Oracle] Vault Program: ${VAULT_PROGRAM_ID.toBase58()}`);
-  console.log(`[Oracle] Keypair source: ${ORACLE_KEYPAIR_BASE58 ? "env var (SOLANA_ORACLE_PRIVATE_KEY)" : `file (${ORACLE_KEYPAIR_PATH})`}`);
+  console.log('[Oracle] Oracle keypair loaded successfully');
 
   await startScoringOracle(
     RPC_URL,

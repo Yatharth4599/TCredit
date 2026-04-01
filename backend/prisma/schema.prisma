@@ -216,9 +216,11 @@ model SolanaAgentTrade {
   direction    String             // "buy" | "sell"
   txSignature  String             @unique
   executedAt   DateTime
+  status       String             @default("confirmed") // "pending" | "confirmed" | "failed"
 
   @@index([agentPubkey])
   @@index([executedAt])
+  @@index([status])
 }
 
 /// Periodic health factor snapshots stored by the keeper

@@ -53,9 +53,8 @@ export function resolveToken(input: string): ResolvedToken {
     return { mint: mainnetEntry.mint, symbol: upper, decimals: mainnetEntry.decimals };
   }
 
-  // Treat as raw mint address — assume 6 decimals (USDC standard)
-  // Caller should handle decimals properly for non-standard tokens
-  return { mint: input, symbol: input.slice(0, 6) + '...', decimals: 6 };
+  // Unknown token — refuse to guess decimals to prevent silent precision errors
+  throw new Error(`Unknown token: ${input}. Provide a known token symbol or add it to the registry.`);
 }
 
 // ---------------------------------------------------------------------------

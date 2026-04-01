@@ -1,10 +1,21 @@
 import { useState, useCallback } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
+import { Transaction } from '@solana/web3.js'
 import { oracleApi } from '../../api/solanaClient'
 import { useSolanaTx } from '../../hooks/useSolanaTx'
-import { txUrl } from '../../config/solana'
+import { txUrl, PROGRAM_IDS } from '../../config/solana'
 import toast from 'react-hot-toast'
 import s from './RequestCreditCard.module.css'
+
+/** Convert a USDC decimal string to base units (6 decimals) without float math */
+function usdcToBaseUnits(amount: string): number {
+  const parts = amount.split('.')
+  const whole = parts[0] || '0'
+  const frac = (parts[1] || '').padEnd(6, '0').slice(0, 6)
+  return parseInt(whole + frac, 10)
+}
+
+const KNOWN_PROGRAM_IDS = new Set<string>(Object.values(PROGRAM_IDS))
 
 interface Props {
   agentPubkey: string
@@ -23,9 +34,9 @@ export default function RequestCreditCard({ agentPubkey, maxAmount, creditLevel,
   const { execute: executeTx } = useSolanaTx()
 
   const amountNum = Number(amount) || 0
-  const amountBaseUnits = Math.round(amountNum * 1_000_000)
+  const amountBaseUnits = usdcToBaseUnits(amount)
   const dailyRate = (interestRateBps / 10000 / 365) * amountNum
-  const isValid = amountNum > 0 && amountNum <= maxAmount && !!publicKey
+  const isValid = amountBaseUnits > 0 && amountNum <= maxAmount && !!publicKey
 
   const handleRequest = useCallback(async () => {
     if (!isValid || !publicKey) return
@@ -42,7 +53,15 @@ export default function RequestCreditCard({ agentPubkey, maxAmount, creditLevel,
         rateBps: interestRateBps,
       })
 
-      // Step 2: User signs the oracle-signed transaction
+      // Step 2: Verify the oracle transaction targets a known Krexa program
+      const txBytes = Buffer.from(res.data.transaction, 'base64')
+      const oracleTx = Transaction.from(txBytes)
+      const firstIx = oracleTx.instructions[0]
+      if (!firstIx || !KNOWN_PROGRAM_IDS.has(firstIx.programId.toBase58())) {
+        throw new Error('Oracle returned transaction with unknown program — refusing to sign')
+      }
+
+      // Step 3: User signs the oracle-signed transaction
       setStatus('signing')
       const txSig = await executeTx(res.data.transaction)
       setSig(txSig)

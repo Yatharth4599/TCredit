@@ -255,7 +255,10 @@ export default function LaunchpadPage() {
         const statusRes = await kyaApi.getStatus(state.agentPubkey)
         verified = statusRes.data.onChainTier >= 1
       } catch {
-        verified = state.registerStatus === 'done'
+        // Status endpoint failed — do NOT auto-approve; require explicit verification.
+        update({ kyaStatus: 'error', kyaError: 'Could not verify KYA status. Please retry.' })
+        toast.error('Could not verify KYA status. Please retry.')
+        return
       }
       if (verified) {
         update({ kyaStatus: 'done' })

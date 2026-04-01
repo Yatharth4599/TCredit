@@ -16,6 +16,7 @@ import {
   type TransactionSignature,
 } from '@solana/web3.js';
 import { getAccount, getAssociatedTokenAddress } from '@solana/spl-token';
+import { readVaultConfig } from '../chain/solana/reader.js';
 import { createLogger } from '../utils/logger.js';
 import { env } from '../config/env.js';
 
@@ -55,6 +56,7 @@ export class IdleCapitalManager {
   private meteoraVault: any | null = null;
   private intervalHandle: ReturnType<typeof setInterval> | null = null;
   private lastRebalance: Date | null = null;
+  private isRebalancing = false; // BUG-132: concurrency guard
 
   constructor(config: IdleCapitalConfig) {
     this.config = config;
@@ -190,25 +192,36 @@ export class IdleCapitalManager {
   }
 
   async rebalance(): Promise<void> {
-    const allocation = await this.calculateOptimalAllocation();
-
-    log.info('Allocation snapshot', {
-      totalDeposits: allocation.totalDeposits,
-      deployedCredit: allocation.deployedCredit,
-      idle: allocation.currentIdle,
-      inMeteora: allocation.currentInMeteora,
-      optimalMeteora: allocation.optimalInMeteora,
-      action: allocation.action,
-      amount: allocation.amount,
-    });
-
-    if (allocation.action === 'deposit' && allocation.amount > 1) {
-      await this.depositToMeteora(allocation.amount);
-    } else if (allocation.action === 'withdraw' && allocation.amount > 1) {
-      await this.withdrawFromMeteora(allocation.amount);
+    // BUG-132: Prevent concurrent rebalance runs — interval ticks or manual
+    // calls can overlap if a previous run is still awaiting RPC/tx confirmation.
+    if (this.isRebalancing) {
+      log.info('Rebalance already in progress — skipping');
+      return;
     }
+    this.isRebalancing = true;
+    try {
+      const allocation = await this.calculateOptimalAllocation();
 
-    this.lastRebalance = new Date();
+      log.info('Allocation snapshot', {
+        totalDeposits: allocation.totalDeposits,
+        deployedCredit: allocation.deployedCredit,
+        idle: allocation.currentIdle,
+        inMeteora: allocation.currentInMeteora,
+        optimalMeteora: allocation.optimalInMeteora,
+        action: allocation.action,
+        amount: allocation.amount,
+      });
+
+      if (allocation.action === 'deposit' && allocation.amount > 1) {
+        await this.depositToMeteora(allocation.amount);
+      } else if (allocation.action === 'withdraw' && allocation.amount > 1) {
+        await this.withdrawFromMeteora(allocation.amount);
+      }
+
+      this.lastRebalance = new Date();
+    } finally {
+      this.isRebalancing = false;
+    }
   }
 
   async emergencyWithdrawAll(): Promise<TransactionSignature | null> {
@@ -257,14 +270,14 @@ export class IdleCapitalManager {
     }
   }
 
+  // BUG-123: Direct on-chain read instead of HTTP self-call to localhost.
+  // The old approach bypassed auth, was fragile (port mismatch, circular dep),
+  // and wouldn't work behind a reverse proxy.
   private async getDeployedCredit(): Promise<number> {
     try {
-      const res = await fetch(
-        `http://localhost:${env.PORT}/api/solana/vault/stats`,
-      );
-      if (!res.ok) return 0;
-      const data = (await res.json()) as any;
-      return Number(data.totalDeployed ?? data.deployed ?? 0);
+      const vault = await readVaultConfig();
+      if (!vault) return 0;
+      return Number(vault.totalDeployed) / 1e6; // bigint lamports → human USDC
     } catch {
       return 0;
     }

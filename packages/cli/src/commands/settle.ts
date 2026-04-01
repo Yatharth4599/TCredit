@@ -4,10 +4,9 @@ import ora from "ora";
 import { Connection } from "@solana/web3.js";
 import { loadKeypair, getRpcUrl } from "../utils/config.js";
 import { success } from "../utils/display.js";
-import { findSettlement, findAgentWallet, findCreditLine } from "../utils/pda.js";
+import { findSettlement } from "../utils/pda.js";
 import { deserializeMerchantSettlement } from "../utils/deserialize.js";
-import { buildActivateSettlement } from "../utils/transactions.js";
-import { ORACLE_KEYPAIR } from "../utils/constants.js";
+import * as api from "../utils/api.js";
 
 export const settleCommand = new Command("settle")
   .description("Activate Revenue Router settlement for your agent")
@@ -30,33 +29,44 @@ export const settleCommand = new Command("settle")
       return;
     }
 
-    // Check if agent has active credit
-    const [clPda] = findCreditLine(agent);
-    const clInfo = await connection.getAccountInfo(clPda);
-    const hasActiveCredit = clInfo !== null;
-
-    const [agentWalletPda] = findAgentWallet(agent);
     const splitBps = parseInt(opts.split) || 4000;
 
-    spinner.text = "Activating settlement...";
+    // Settlement activation requires oracle co-signature via the backend API,
+    // following the same pattern as borrow (api.signCredit).
+    spinner.text = "Requesting settlement activation from backend...";
 
     try {
-      const tx = buildActivateSettlement(
-        ORACLE_KEYPAIR.publicKey,
-        agent,
-        agentWalletPda,
+      const result = await api.activateSettlement({
+        agentPubkey: agent.toBase58(),
         splitBps,
-        hasActiveCredit,
-      );
-      tx.feePayer = ORACLE_KEYPAIR.publicKey;
-      tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-      tx.sign(ORACLE_KEYPAIR);
-      const sig = await connection.sendRawTransaction(tx.serialize());
-      await connection.confirmTransaction(sig, "confirmed");
-      spinner.succeed(`Settlement activated (${(splitBps / 100).toFixed(0)}% auto-repay)`);
-      success("Revenue Router is now active for your agent");
-      console.log(chalk.dim("  Incoming x402 payments will auto-repay your credit line."));
+      });
+
+      if (result.transaction) {
+        spinner.text = "Sending transaction to Solana...";
+        const { Transaction } = await import("@solana/web3.js");
+        const txBuf = Buffer.from(result.transaction, "base64");
+        const tx = Transaction.from(txBuf);
+        tx.partialSign(keypair);
+        const sig = await connection.sendRawTransaction(tx.serialize());
+        await connection.confirmTransaction(sig, "confirmed");
+        spinner.succeed(`Settlement activated (${(splitBps / 100).toFixed(0)}% auto-repay)`);
+        success("Revenue Router is now active for your agent");
+        console.log(chalk.dim("  Incoming x402 payments will auto-repay your credit line."));
+      } else {
+        // Backend acknowledged but no transaction returned — endpoint may not be deployed yet
+        spinner.fail(
+          "Settlement activation requires backend oracle co-signature. " +
+          "Use the API directly: POST /api/v1/solana/oracle/activate-settlement"
+        );
+      }
     } catch (err: any) {
-      spinner.fail(`Settlement activation failed: ${err.message?.slice(0, 100) ?? "unknown"}`);
+      if (err.message?.includes("404") || err.message?.includes("not found")) {
+        spinner.fail(
+          "Settlement activation endpoint not yet deployed on backend. " +
+          "Use the API directly when available: POST /api/v1/solana/oracle/activate-settlement"
+        );
+      } else {
+        spinner.fail(`Settlement activation failed: ${err.message?.slice(0, 100) ?? "unknown"}`);
+      }
     }
   });

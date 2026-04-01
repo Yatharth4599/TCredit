@@ -136,9 +136,11 @@ export default function Onboard() {
         const statusRes = await kyaApi.getStatus(agentPubkey)
         alreadyVerified = statusRes.data.onChainTier >= 1
       } catch {
-        // Status endpoint may fail (DB/deserialization) — if registration
-        // succeeded with bundled KYA, tier 1 is already set on-chain.
-        alreadyVerified = registerStatus === 'done'
+        // Status endpoint failed — do NOT auto-approve; require explicit verification.
+        setKyaStatus('error')
+        setKyaError('Could not verify KYA status. Please retry.')
+        toast.error('Could not verify KYA status. Please retry.')
+        return
       }
 
       if (alreadyVerified) {
@@ -206,6 +208,12 @@ export default function Onboard() {
               onFinalStepCompleted={() => navigate('/app/solana/credit')}
               nextButtonText="Next"
               backButtonText="Back"
+              isNextDisabled={(step) => {
+                if (step === 1) return !connected || !publicKey
+                if (step === 2) return registerStatus !== 'done'
+                if (step === 3) return kyaStatus !== 'done'
+                return false
+              }}
             >
               {/* ── Step 1: Connect Wallet ── */}
               <Step>

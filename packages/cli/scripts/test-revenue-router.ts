@@ -14,7 +14,7 @@
 import { Connection, PublicKey, Transaction, TransactionInstruction } from "@solana/web3.js";
 import BN from "bn.js";
 import { loadKeypair, getRpcUrl } from "../src/utils/config.js";
-import { ORACLE_KEYPAIR, USDC_MINT, TOKEN_PROGRAM_ID, PROGRAM_IDS } from "../src/utils/constants.js";
+import { getOracleKeypair, USDC_MINT, TOKEN_PROGRAM_ID, PROGRAM_IDS } from "../src/utils/constants.js";
 import * as pda from "../src/utils/pda.js";
 import { deserializeCreditLine, deserializeMerchantSettlement, deserializeVaultConfig, formatUsdc } from "../src/utils/deserialize.js";
 import { buildExecutePayment } from "../src/utils/transactions.js";
@@ -23,7 +23,7 @@ async function main() {
   const keypair = loadKeypair();
   const connection = new Connection(getRpcUrl(), "confirmed");
   const agent = keypair.publicKey;
-  const oracle = ORACLE_KEYPAIR;
+  const oracle = getOracleKeypair();
 
   console.log("=== Revenue Router E2E Test ===\n");
   console.log("Agent:", agent.toBase58());

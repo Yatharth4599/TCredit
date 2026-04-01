@@ -2,12 +2,27 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { PublicKey } from "@solana/web3.js";
 import nacl from "tweetnacl";
 import bs58 from "bs58";
+import { createHash } from "crypto";
 
 declare module "fastify" {
   interface FastifyRequest {
     walletAddress?: PublicKey;
   }
 }
+
+// Anti-replay: Map<signatureHash, timestampMs> — entries expire after 5 minutes
+const usedSignatures = new Map<string, number>();
+const REPLAY_WINDOW_MS = 300_000;
+
+// Periodically clean expired entries every 60 seconds
+setInterval(() => {
+  const cutoff = Date.now() - REPLAY_WINDOW_MS;
+  for (const [hash, ts] of usedSignatures) {
+    if (ts < cutoff) {
+      usedSignatures.delete(hash);
+    }
+  }
+}, 60_000);
 
 export async function verifyWalletSignature(
   request: FastifyRequest,
@@ -40,6 +55,14 @@ export async function verifyWalletSignature(
       reply.code(401).send({ error: "Invalid wallet signature" });
       return;
     }
+
+    // Anti-replay: reject if this exact signature was already used
+    const sigHash = createHash("sha256").update(sig).digest("hex");
+    if (usedSignatures.has(sigHash)) {
+      reply.code(401).send({ error: "Signature already used" });
+      return;
+    }
+    usedSignatures.set(sigHash, Date.now());
 
     request.walletAddress = new PublicKey(publicKey);
   } catch {

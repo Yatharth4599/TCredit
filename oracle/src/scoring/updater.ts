@@ -134,8 +134,12 @@ export class ScoreUpdater {
         const result = computeKrexitScore(agentData);
 
         console.log(
-          `[ScoreUpdater] Computed score for ${agentData.agentPubkey.toBase58()}: ` +
-            `${result.score} (L${result.level}) [C1=${result.c1} C2=${result.c2} C3=${result.c3} C4=${result.c4} C5=${result.c5}]`
+          `[ScoreUpdater] Computed score for ${agentData.agentPubkey.toBase58().slice(0, 8)}...: ` +
+            `${result.score} (L${result.level})`
+        );
+        console.debug(
+          `[ScoreUpdater] Components for ${agentData.agentPubkey.toBase58().slice(0, 8)}...: ` +
+            `[C1=${result.c1} C2=${result.c2} C3=${result.c3} C4=${result.c4} C5=${result.c5}]`
         );
 
         // Write score on-chain

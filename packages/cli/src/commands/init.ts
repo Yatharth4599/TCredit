@@ -13,8 +13,8 @@ import {
   shortenAddress,
 } from "../utils/config.js";
 import { showBanner, success, warn, info, header, field, divider } from "../utils/display.js";
-import { buildRegisterAgent, buildCreateWallet, buildUpdateKya } from "../utils/transactions.js";
-import { AGENT_TYPES, CREDIT_LEVELS, ORACLE_KEYPAIR } from "../utils/constants.js";
+import { buildRegisterAgent, buildCreateWallet } from "../utils/transactions.js";
+import { AGENT_TYPES, CREDIT_LEVELS } from "../utils/constants.js";
 import * as api from "../utils/api.js";
 
 export const initCommand = new Command("init")
@@ -150,18 +150,24 @@ export const initCommand = new Command("init")
         }
       }
 
-      // Step 5b: Auto-KYA (set tier 1 so agent qualifies for L1 credit)
-      spinner.start("Setting KYA Basic tier...");
+      // Step 5b: KYA verification via backend API
+      // KYA requires oracle co-signature — request it from the backend instead of
+      // signing client-side. The backend register/onboard flow handles KYA bundled
+      // into agent registration when available.
+      spinner.start("Requesting KYA Basic verification from backend...");
       try {
-        const kyaTx = buildUpdateKya(keypair.publicKey, ORACLE_KEYPAIR.publicKey, 1);
-        kyaTx.feePayer = keypair.publicKey;
-        kyaTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-        kyaTx.sign(keypair, ORACLE_KEYPAIR);
-        const sig = await connection.sendRawTransaction(kyaTx.serialize());
-        await connection.confirmTransaction(sig, "confirmed");
+        await api.requestKyaVerification(keypair.publicKey.toBase58(), 1);
         spinner.succeed("KYA Basic verified (L1 credit unlocked)");
       } catch (err: any) {
-        spinner.warn(`KYA: ${err.message?.slice(0, 80) ?? "failed"}`);
+        // KYA may already be set, or the endpoint may not be deployed yet
+        if (err.message?.includes("already verified") || err.message?.includes("409")) {
+          spinner.succeed("KYA already verified");
+        } else {
+          spinner.warn(
+            "KYA auto-verify unavailable — complete KYA manually via the dashboard or API. " +
+            `(${err.message?.slice(0, 60) ?? "unknown error"})`
+          );
+        }
       }
 
       // Step 6: Create PDA wallet

@@ -734,17 +734,33 @@ export default function DemoPage() {
   const [st, setSt] = useState<DemoState>(INITIAL)
   const wsRef = useRef<WebSocket | null>(null)
   const rcRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const retryCountRef = useRef(0)
+  const MAX_WS_RETRIES = 15
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
+    if (retryCountRef.current >= MAX_WS_RETRIES) return
     try {
       const ws = new WebSocket(WS_URL)
       wsRef.current = ws
-      ws.onopen  = () => setSt(p => ({ ...p, connected: true }))
-      ws.onclose = () => { setSt(p => ({ ...p, connected: false })); rcRef.current = setTimeout(connect, 3000) }
+      ws.onopen  = () => { retryCountRef.current = 0; setSt(p => ({ ...p, connected: true })) }
+      ws.onclose = () => {
+        setSt(p => ({ ...p, connected: false }))
+        if (retryCountRef.current < MAX_WS_RETRIES) {
+          const delay = Math.min(1000 * Math.pow(2, retryCountRef.current), 60000) + Math.random() * 1000
+          retryCountRef.current += 1
+          rcRef.current = setTimeout(connect, delay)
+        }
+      }
       ws.onerror = () => ws.close()
       ws.onmessage = (e: MessageEvent<string>) => { try { handle(JSON.parse(e.data)) } catch { /* skip */ } }
-    } catch { rcRef.current = setTimeout(connect, 3000) }
+    } catch {
+      if (retryCountRef.current < MAX_WS_RETRIES) {
+        const delay = Math.min(1000 * Math.pow(2, retryCountRef.current), 60000) + Math.random() * 1000
+        retryCountRef.current += 1
+        rcRef.current = setTimeout(connect, delay)
+      }
+    }
   }, []) // eslint-disable-line
 
   function addLog(e: LogEntry) { setSt(p => ({ ...p, log: [...p.log, e] })) }
@@ -790,12 +806,21 @@ export default function DemoPage() {
 
   useEffect(() => { connect(); return () => { if (rcRef.current) clearTimeout(rcRef.current); wsRef.current?.close() } }, [connect])
 
+  const [triggerDisabled, setTriggerDisabled] = useState(false)
+  const triggerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   async function start() {
+    if (triggerDisabled) return
+    setTriggerDisabled(true)
+    triggerTimerRef.current = setTimeout(() => setTriggerDisabled(false), 30000)
     try {
       const r = await fetch(`${API_URL}/trigger`, { method: 'POST' })
-      if (!r.ok) console.error('Trigger failed')
-    } catch (e) { console.error('Could not reach demo server:', e) }
+      if (!r.ok && import.meta.env.DEV) console.error('Trigger failed')
+    } catch (e) { if (import.meta.env.DEV) console.error('Could not reach demo server:', e) }
   }
+
+  // Clean up trigger cooldown timer on unmount
+  useEffect(() => () => { if (triggerTimerRef.current) clearTimeout(triggerTimerRef.current) }, [])
 
   const done = STEPS.filter(x => st.steps[x.num] === 'done').length
   const running = st.runState === 'running'
@@ -845,11 +870,11 @@ export default function DemoPage() {
                   Demo hit an error (devnet can be flaky). Tap below to retry.
                 </div>
               )}
-              <button className={s.heroBtn} disabled={!st.connected} onClick={start}>
+              <button className={s.heroBtn} disabled={!st.connected || triggerDisabled} onClick={start}>
                 <svg className={s.heroBtnIcon} fill="currentColor" viewBox="0 0 20 20">
                   <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
                 </svg>
-                {st.runState === 'error' ? 'Retry Demo' : st.connected ? 'Start the Live Demo' : 'Connecting\u2026'}
+                {triggerDisabled ? 'Please wait\u2026' : st.runState === 'error' ? 'Retry Demo' : st.connected ? 'Start the Live Demo' : 'Connecting\u2026'}
               </button>
             </>
           )}
@@ -862,8 +887,8 @@ export default function DemoPage() {
           {finished && (
             <div className={s.heroDoneWrap}>
               <div className={s.heroCompleteMsg}>Story complete {'\u2014'} the agent repaid everything</div>
-              <button className={s.heroDoneBtn} onClick={start}>
-                {'\u21BB'} Watch Again
+              <button className={s.heroDoneBtn} disabled={triggerDisabled} onClick={start}>
+                {triggerDisabled ? 'Please wait\u2026' : '\u21BB Watch Again'}
               </button>
             </div>
           )}

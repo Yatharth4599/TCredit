@@ -15,6 +15,7 @@ import { readAgentWallet } from '../../chain/solana/reader.js';
 import { agentWalletPda, walletUsdcPda } from '../../chain/solana/programs.js';
 import { prisma } from '../../config/prisma.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { requireApiKey } from '../middleware/apiKeyAuth.js';
 import { validate } from '../middleware/validate.js';
 import { SolanaQuoteSchema, SolanaSwapSchema } from '../schemas.js';
 
@@ -29,7 +30,7 @@ function parsePubkey(raw: string): PublicKey {
 // POST /solana/trading/:agent/quote — get swap quote
 // ---------------------------------------------------------------------------
 
-router.post('/:agent/quote', validate(SolanaQuoteSchema), async (req, res, next) => {
+router.post('/:agent/quote', requireApiKey as never, validate(SolanaQuoteSchema), async (req, res, next) => {
   try {
     const agentPk = parsePubkey(req.params.agent as string);
 
@@ -67,7 +68,7 @@ router.post('/:agent/quote', validate(SolanaQuoteSchema), async (req, res, next)
 // POST /solana/trading/:agent/swap — build unsigned swap transaction
 // ---------------------------------------------------------------------------
 
-router.post('/:agent/swap', validate(SolanaSwapSchema), async (req, res, next) => {
+router.post('/:agent/swap', requireApiKey as never, validate(SolanaSwapSchema), async (req, res, next) => {
   try {
     const agentPk = parsePubkey(req.params.agent as string);
     const ownerPk = parsePubkey(req.body.ownerAddress);
@@ -95,7 +96,10 @@ router.post('/:agent/swap', validate(SolanaSwapSchema), async (req, res, next) =
     // Build unsigned transaction
     const swapResult = await buildSwapTx(quote, ownerPk.toBase58());
 
-    // Record trade in DB
+    // BUG-119: Record trade as 'pending' — the tx hasn't been signed/confirmed yet.
+    // A separate confirmation webhook or polling job should update status to 'confirmed'
+    // and set the real txSignature once the user signs and the tx lands on-chain.
+    // TODO: Add a cleanup job to expire stale pending trades after 15 minutes.
     const amountForDb = BigInt(amountBaseUnits);
     const isUsdcInput = fromToken.symbol === 'USDC';
     await prisma.solanaAgentTrade.create({
@@ -106,6 +110,7 @@ router.post('/:agent/swap', validate(SolanaSwapSchema), async (req, res, next) =
         direction: isUsdcInput ? 'buy' : 'sell',
         txSignature: `pending-${Date.now()}`,
         executedAt: new Date(),
+        status: 'pending',
       },
     });
 

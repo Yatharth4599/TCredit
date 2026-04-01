@@ -6,6 +6,14 @@ import { txUrl } from '../../config/solana'
 import toast from 'react-hot-toast'
 import s from './RepayCard.module.css'
 
+/** Convert a USDC decimal string to base units (6 decimals) without float math */
+function usdcToBaseUnits(amount: string): number {
+  const parts = amount.split('.')
+  const whole = parts[0] || '0'
+  const frac = (parts[1] || '').padEnd(6, '0').slice(0, 6)
+  return parseInt(whole + frac, 10)
+}
+
 interface Props {
   agentPubkey: string
   principal: number
@@ -23,8 +31,8 @@ export default function RepayCard({ agentPubkey, principal, accruedInterest, tot
   const { execute: executeTx } = useSolanaTx()
 
   const amountNum = Number(amount) || 0
-  const amountBaseUnits = Math.round(amountNum * 1_000_000)
-  const isValid = amountNum > 0 && amountNum <= totalOwed && !!publicKey
+  const amountBaseUnits = usdcToBaseUnits(amount)
+  const isValid = amountBaseUnits > 0 && amountNum <= totalOwed && !!publicKey
 
   const handleRepay = useCallback(async () => {
     if (!isValid || !publicKey) return

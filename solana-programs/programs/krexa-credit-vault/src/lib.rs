@@ -312,6 +312,8 @@ pub enum VaultError {
     InvalidAddress,
     #[msg("Parameter out of valid range")]
     InvalidParam,
+    #[msg("Invalid tranche")]
+    InvalidTranche,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

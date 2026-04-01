@@ -28,6 +28,8 @@ export class CircuitBreaker {
   private state: CircuitState = 'closed';
   private failures = 0;
   private lastFailureAt = 0;
+  /** Guards half-open state so only one probe request runs at a time. */
+  private probeInFlight = false;
   private readonly threshold: number;
   private readonly resetMs: number;
   private readonly onStateChange?: CircuitBreakerOptions['onStateChange'];
@@ -51,6 +53,16 @@ export class CircuitBreaker {
       }
     }
 
+    // In half-open state, only allow one probe request at a time.
+    // Concurrent callers get a circuit-open error instead of all hammering
+    // the recovering service simultaneously.
+    if (this.state === 'half_open') {
+      if (this.probeInFlight) {
+        throw new CircuitOpenError(this.label, this.resetMs);
+      }
+      this.probeInFlight = true;
+    }
+
     try {
       const result = await fn();
       this.onSuccess();
@@ -58,6 +70,8 @@ export class CircuitBreaker {
     } catch (err) {
       this.onFailure();
       throw err;
+    } finally {
+      this.probeInFlight = false;
     }
   }
 

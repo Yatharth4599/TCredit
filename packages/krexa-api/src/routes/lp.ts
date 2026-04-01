@@ -12,6 +12,8 @@ const TRANCHE_MAP: Record<string, Tranche> = {
 };
 
 export async function lpRoutes(server: FastifyInstance): Promise<void> {
+  server.addHook('preHandler', verifyWalletSignature);
+
   // GET /lp/:address/positions
   server.get("/:address/positions", async (request, reply) => {
     const { address } = request.params as { address: string };

@@ -101,6 +101,27 @@ export interface X402Challenge {
 }
 
 // ---------------------------------------------------------------------------
+// BUG-142 fix: In-memory replay protection for payment tokens
+// ---------------------------------------------------------------------------
+
+/** Tracks consumed payment token IDs to prevent replay attacks. */
+const consumedTokens = new Map<string, number>(); // paymentId -> timestamp (ms)
+
+/** Maximum age before a token entry is evicted (1 hour). */
+const TOKEN_MAX_AGE_MS = 60 * 60 * 1000;
+
+/** Cleanup interval (60 seconds). */
+const TOKEN_CLEANUP_INTERVAL_MS = 60 * 1000;
+
+// Periodic cleanup of expired entries
+setInterval(() => {
+  const cutoff = Date.now() - TOKEN_MAX_AGE_MS;
+  for (const [id, ts] of consumedTokens) {
+    if (ts < cutoff) consumedTokens.delete(id);
+  }
+}, TOKEN_CLEANUP_INTERVAL_MS).unref(); // unref so the timer doesn't keep the process alive
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -249,6 +270,16 @@ export function krexaPaywall(options: KrexaPaywallOptions): RequestHandler {
 
     // Decode and surface payment info to downstream handlers
     const info = decodePaymentToken(token);
+
+    // BUG-142 fix: reject replayed payment tokens
+    if (info && info.paymentId) {
+      if (consumedTokens.has(info.paymentId)) {
+        res.status(402).json({ error: 'Payment token already consumed' });
+        return;
+      }
+      consumedTokens.set(info.paymentId, Date.now());
+    }
+
     if (info && onPayment) {
       try {
         await onPayment(info, req);

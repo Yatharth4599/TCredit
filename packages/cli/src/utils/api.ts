@@ -92,6 +92,23 @@ export async function getPortfolio(agent: string): Promise<any> {
   return fetchJson(`/solana/trading/${agent}/portfolio`);
 }
 
+export async function requestKyaVerification(agentPubkey: string, tier: number): Promise<any> {
+  return fetchJson(`/solana/oracle/kya-verify`, {
+    method: "POST",
+    body: JSON.stringify({ agentPubkey, tier }),
+  });
+}
+
+export async function activateSettlement(params: {
+  agentPubkey: string;
+  splitBps: number;
+}): Promise<any> {
+  return fetchJson(`/solana/oracle/activate-settlement`, {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+}
+
 export async function scanYields(params?: {
   limit?: number; minTvl?: number; token?: string;
 }): Promise<any> {

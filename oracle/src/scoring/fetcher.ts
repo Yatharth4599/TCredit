@@ -173,9 +173,9 @@ export async function fetchAgentData(
     console.warn(`[Fetcher] Failed to fetch signatures for ${agentPubkey.toBase58()}:`, err);
   }
 
-  // If registeredAt is still 0, set it to ~3 months ago as default
+  // If registeredAt is still 0, default to NOW (new agents start with zero maturity credit)
   if (registeredAt === 0) {
-    registeredAt = Math.floor(Date.now() / 1000) - 90 * 86400;
+    registeredAt = Math.floor(Date.now() / 1000);
   }
 
   return {

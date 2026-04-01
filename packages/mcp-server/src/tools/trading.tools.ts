@@ -8,12 +8,12 @@ export function registerTradingTools(server: McpServer) {
     'krexa_swap',
     'Execute a token swap via Jupiter aggregator (best route across all Solana DEXs). Returns unsigned transaction.',
     {
-      agentAddress: z.string().describe('Agent wallet public key'),
+      agentAddress: z.string().regex(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/, 'Invalid Solana address').describe('Agent wallet public key'),
       from: z.string().describe('Source token symbol or mint (e.g. "USDC")'),
       to: z.string().describe('Destination token symbol or mint (e.g. "SOL")'),
-      amount: z.number().describe('Amount in human units (e.g. 50 for 50 USDC)'),
-      slippageBps: z.number().optional().describe('Slippage tolerance in bps (default 50)'),
-      ownerAddress: z.string().describe('Public key that will sign the transaction'),
+      amount: z.number().positive().max(1_000_000).describe('Amount in human units (e.g. 50 for 50 USDC)'),
+      slippageBps: z.number().min(0).max(10000).optional().describe('Slippage tolerance in bps (default 50)'),
+      ownerAddress: z.string().regex(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/, 'Invalid Solana address').describe('Public key that will sign the transaction'),
     },
     async ({ agentAddress, from, to, amount, slippageBps, ownerAddress }) => {
       const data = await executeSwap(agentAddress, { from, to, amount, slippageBps, ownerAddress });
@@ -38,11 +38,11 @@ export function registerTradingTools(server: McpServer) {
     'krexa_quote',
     'Get a swap quote without executing. Preview best route, output amount, and price impact.',
     {
-      agentAddress: z.string().describe('Agent wallet public key'),
+      agentAddress: z.string().regex(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/, 'Invalid Solana address').describe('Agent wallet public key'),
       from: z.string().describe('Source token symbol or mint'),
       to: z.string().describe('Destination token symbol or mint'),
-      amount: z.number().describe('Amount in human units'),
-      slippageBps: z.number().optional().describe('Slippage tolerance in bps (default 50)'),
+      amount: z.number().positive().max(1_000_000).describe('Amount in human units'),
+      slippageBps: z.number().min(0).max(10000).optional().describe('Slippage tolerance in bps (default 50)'),
     },
     async ({ agentAddress, from, to, amount, slippageBps }) => {
       const data = await getSwapQuote(agentAddress, { from, to, amount, slippageBps });
@@ -66,7 +66,7 @@ export function registerTradingTools(server: McpServer) {
     'krexa_portfolio',
     'Get the agent\'s full token portfolio with USD values — all balances, prices, and total value.',
     {
-      agentAddress: z.string().describe('Agent wallet public key'),
+      agentAddress: z.string().regex(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/, 'Invalid Solana address').describe('Agent wallet public key'),
     },
     async ({ agentAddress }) => {
       const data = await getPortfolio(agentAddress);

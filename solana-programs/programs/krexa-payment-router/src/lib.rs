@@ -364,6 +364,30 @@ pub enum RouterError {
     InvalidAddress,
     #[msg("Platform fee exceeds maximum (20%)")]
     InvalidFee,
+    #[msg("Fee too high")]
+    FeeTooHigh,
+    #[msg("Blocklist is full")]
+    BlocklistFull,
+    #[msg("Whitelist is full")]
+    WhitelistFull,
+    #[msg("Validator is not active")]
+    ValidatorNotActive,
+    #[msg("Maximum registered sources reached")]
+    MaxSourcesReached,
+    #[msg("Source already registered")]
+    SourceAlreadyRegistered,
+    #[msg("Source not found")]
+    SourceNotFound,
+    #[msg("Maximum associated wallets reached")]
+    MaxAssociatedWalletsReached,
+    #[msg("Wallet already associated")]
+    WalletAlreadyAssociated,
+    #[msg("Invalid decision")]
+    InvalidDecision,
+    #[msg("Payment index out of bounds")]
+    PaymentIndexOutOfBounds,
+    #[msg("Payment is not quarantined")]
+    NotQuarantined,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

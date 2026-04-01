@@ -22,6 +22,7 @@ import {
 } from '../schemas.js';
 import { env } from '../../config/env.js';
 import { prisma } from '../../config/prisma.js';
+import { requireApiKey } from '../middleware/apiKeyAuth.js';
 import { initiateAgreement, getAgreementStatus, confirmAgreementSigned } from '../../services/legal-agreement.js';
 
 const router = Router();
@@ -320,9 +321,19 @@ router.post('/:agent/sign-agreement', validate(SolanaSignAgreementSchema), async
 });
 
 // POST /solana/credit/:agent/confirm-agreement — confirm after on-chain tx
-router.post('/:agent/confirm-agreement', validate(SolanaConfirmAgreementSchema), async (req, res, next) => {
+// BUG-140 fix: require API key auth + validate txSignature format
+router.post('/:agent/confirm-agreement', requireApiKey as never, validate(SolanaConfirmAgreementSchema), async (req, res, next) => {
   try {
     const { agreementId, txSignature, onChainHash } = req.body;
+
+    // BUG-140 fix: validate txSignature is a valid base58 string (Solana tx sigs are 64-88 chars)
+    if (txSignature) {
+      const base58Regex = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
+      if (!base58Regex.test(txSignature)) {
+        throw new AppError(400, 'Invalid txSignature: must be a valid base58 string (64-88 characters)');
+      }
+    }
+
     await confirmAgreementSigned(agreementId, txSignature, onChainHash);
     res.json({ success: true, message: 'Agreement confirmed' });
   } catch (err) { next(err); }
