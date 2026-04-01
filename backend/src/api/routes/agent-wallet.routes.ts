@@ -149,6 +149,60 @@ router.get('/:agent/trades', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// POST /solana/wallets/:agent/trade  — proxy to trading routes for backward compat
+// The SDK's agent.trade() calls this path. Delegate to the trading swap handler.
+router.post('/:agent/trade', async (req, res, next) => {
+  try {
+    const { resolveToken, getQuote, buildSwapTx } = await import('../../services/dex-aggregator.js');
+
+    const agentPk = parsePubkey(req.params.agent);
+    const wallet = await readAgentWallet(agentPk);
+    if (!wallet) throw new AppError(404, 'Agent wallet not found on-chain');
+    if (wallet.isFrozen) throw new AppError(403, 'Agent wallet is frozen');
+
+    // SDK sends: { venue, from, to, amount (base units string) }
+    const fromInput = (req.body.from as string) ?? 'USDC';
+    const toInput = (req.body.to as string) ?? 'SOL';
+    const amountRaw = req.body.amount as string;
+
+    const fromToken = resolveToken(fromInput);
+    const toToken = resolveToken(toInput);
+
+    // amount comes in base units from SDK — pass directly
+    const quote = await getQuote({
+      inputMint: fromToken.mint,
+      outputMint: toToken.mint,
+      amount: amountRaw,
+      slippageBps: 50,
+    });
+
+    // Use wallet owner as the signer for the swap tx
+    const ownerPk = wallet.owner.toBase58();
+    const swapResult = await buildSwapTx(quote, ownerPk);
+
+    const outAmountHuman = Number(quote.outAmount) / Math.pow(10, toToken.decimals);
+
+    // Record in DB
+    await prisma.solanaAgentTrade.create({
+      data: {
+        agentPubkey: agentPk.toBase58(),
+        venue: req.body.venue ?? 'jupiter',
+        amount: BigInt(amountRaw),
+        direction: fromToken.symbol === 'USDC' ? 'buy' : 'sell',
+        txSignature: `pending-${Date.now()}`,
+        executedAt: new Date(),
+      },
+    });
+
+    res.json({
+      success: true,
+      transaction: swapResult.swapTransaction,
+      encoding: 'base64',
+      description: `Swap ${fromToken.symbol} → ${outAmountHuman.toFixed(6)} ${toToken.symbol} via Jupiter`,
+    });
+  } catch (err) { next(err); }
+});
+
 // POST /solana/wallets/create  — returns partially-signed transaction
 // Bundles register_agent + update_kya + create_wallet in one atomic tx.
 // Oracle signs update_kya server-side; user's wallet signs the rest.

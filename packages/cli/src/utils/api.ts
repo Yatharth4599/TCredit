@@ -68,3 +68,37 @@ export async function getScoreBreakdown(agent: string): Promise<any> {
 export async function getLpPosition(depositor: string): Promise<any> {
   return fetchJson(`/solana/vault/lp/${depositor}`);
 }
+
+// Trading
+export async function getSwapQuote(agent: string, body: {
+  from: string; to: string; amount: number; slippageBps?: number;
+}): Promise<any> {
+  return fetchJson(`/solana/trading/${agent}/quote`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function executeSwap(agent: string, body: {
+  from: string; to: string; amount: number; slippageBps?: number; ownerAddress: string;
+}): Promise<any> {
+  return fetchJson(`/solana/trading/${agent}/swap`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getPortfolio(agent: string): Promise<any> {
+  return fetchJson(`/solana/trading/${agent}/portfolio`);
+}
+
+export async function scanYields(params?: {
+  limit?: number; minTvl?: number; token?: string;
+}): Promise<any> {
+  const qs = new URLSearchParams();
+  if (params?.limit) qs.set("limit", String(params.limit));
+  if (params?.minTvl) qs.set("minTvl", String(params.minTvl));
+  if (params?.token) qs.set("token", params.token);
+  const query = qs.toString();
+  return fetchJson(`/solana/trading/yield${query ? `?${query}` : ""}`);
+}

@@ -4,6 +4,7 @@ import { registerCreditTools } from './tools/credit.tools.js';
 import { registerMerchantTools } from './tools/merchant.tools.js';
 import { registerWalletTools } from './tools/wallet.tools.js';
 import { registerKickstartTools } from './tools/kickstart.tools.js';
+import { registerTradingTools } from './tools/trading.tools.js';
 
 export function createServer(): McpServer {
   const server = new McpServer({
@@ -16,6 +17,7 @@ export function createServer(): McpServer {
   registerMerchantTools(server);
   registerWalletTools(server);
   registerKickstartTools(server);
+  registerTradingTools(server);
 
   return server;
 }

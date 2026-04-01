@@ -435,3 +435,23 @@ export const KyaEnhancedSchema = z.object({
   ownerPubkey: solanaPubkey,
   sumsubApplicantId: z.string().min(1, 'sumsubApplicantId required'),
 });
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Solana — Trading
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const SolanaQuoteSchema = z.object({
+  from: z.string().min(1, 'from token required'),
+  to: z.string().min(1, 'to token required'),
+  amount: z.coerce.number().positive('amount must be positive'),
+  slippageBps: z.coerce.number().int().min(1).max(5000).optional(),
+});
+
+export const SolanaSwapSchema = z.object({
+  from: z.string().min(1, 'from token required'),
+  to: z.string().min(1, 'to token required'),
+  amount: z.coerce.number().positive('amount must be positive'),
+  slippageBps: z.coerce.number().int().min(1).max(5000).optional(),
+  ownerAddress: solanaPubkey,
+});

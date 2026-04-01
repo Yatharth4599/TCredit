@@ -14,6 +14,9 @@ import { mcpCommand } from "./commands/mcp.js";
 import { docsCommand } from "./commands/docs.js";
 import { revenueCommand } from "./commands/revenue.js";
 import { settleCommand } from "./commands/settle.js";
+import { swapCommand } from "./commands/swap.js";
+import { portfolioCommand } from "./commands/portfolio.js";
+import { yieldCommand } from "./commands/yield.js";
 
 const program = new Command();
 
@@ -35,5 +38,8 @@ program.addCommand(mcpCommand);
 program.addCommand(docsCommand);
 program.addCommand(revenueCommand);
 program.addCommand(settleCommand);
+program.addCommand(swapCommand);
+program.addCommand(portfolioCommand);
+program.addCommand(yieldCommand);
 
 program.parse();

@@ -61,6 +61,9 @@ const envSchema = z.object({
   // KYA — Sumsub integration (optional for dev)
   SUMSUB_API_KEY: z.string().optional().default(''),
 
+  // Jupiter DEX aggregator (Solana swaps)
+  JUPITER_API_URL: z.string().url().optional().default('https://quote-api.jup.ag/v6'),
+
   // CORS
   CORS_ORIGIN: z.string().optional().default(''),
 

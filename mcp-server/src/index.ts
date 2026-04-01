@@ -183,6 +183,103 @@ const TOOLS: Tool[] = [
   },
 
   {
+    name: 'krexa_swap',
+    description:
+      'Execute a token swap via Jupiter aggregator (best route across all Solana DEXs). ' +
+      'Returns an unsigned transaction. Supports SOL, USDC, BONK, JUP, and any Solana token mint.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        from: {
+          type: 'string',
+          description: 'Source token symbol or mint address, e.g. "USDC" or "SOL".',
+        },
+        to: {
+          type: 'string',
+          description: 'Destination token symbol or mint address, e.g. "SOL" or "USDC".',
+        },
+        amount: {
+          type: 'number',
+          description: 'Amount of the source token to swap (in human units, e.g. 50 for 50 USDC).',
+        },
+        slippageBps: {
+          type: 'number',
+          description: 'Slippage tolerance in basis points (default: 50 = 0.5%).',
+        },
+        ownerAddress: {
+          type: 'string',
+          description: 'The Solana public key that will sign the swap transaction.',
+        },
+      },
+      required: ['from', 'to', 'amount', 'ownerAddress'],
+    },
+  },
+
+  {
+    name: 'krexa_quote',
+    description:
+      'Get a swap quote without executing. Shows best route, output amount, and price impact. ' +
+      'Use this to preview a trade before committing.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        from: {
+          type: 'string',
+          description: 'Source token symbol or mint address.',
+        },
+        to: {
+          type: 'string',
+          description: 'Destination token symbol or mint address.',
+        },
+        amount: {
+          type: 'number',
+          description: 'Amount of the source token (human units).',
+        },
+        slippageBps: {
+          type: 'number',
+          description: 'Slippage tolerance in basis points (default: 50).',
+        },
+      },
+      required: ['from', 'to', 'amount'],
+    },
+  },
+
+  {
+    name: 'krexa_portfolio',
+    description:
+      'Get the agent\'s full token portfolio with USD values. ' +
+      'Shows all token balances, prices, and total portfolio value.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+
+  {
+    name: 'krexa_yield_scan',
+    description:
+      'Scan for the best yield opportunities on Solana. ' +
+      'Returns top DeFi protocols sorted by APY with TVL data.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: {
+          type: 'number',
+          description: 'Number of results to return (default: 20, max: 100).',
+        },
+        minTvl: {
+          type: 'number',
+          description: 'Minimum TVL in USD to filter by.',
+        },
+        token: {
+          type: 'string',
+          description: 'Filter by token symbol (e.g. "SOL", "USDC").',
+        },
+      },
+    },
+  },
+
+  {
     name: 'krexa_get_score',
     description:
       'Retrieve the agent\'s current credit score, level, and score history. ' +
@@ -243,6 +340,37 @@ async function handleTrade(args: Args) {
   });
 }
 
+async function handleSwap(args: Args) {
+  return sdk.agent.swap({
+    from:         args.from         as string,
+    to:           args.to           as string,
+    amount:       args.amount       as number,
+    slippageBps:  args.slippageBps  as number | undefined,
+    ownerAddress: args.ownerAddress as string,
+  });
+}
+
+async function handleQuote(args: Args) {
+  return sdk.agent.quote({
+    from:        args.from        as string,
+    to:          args.to          as string,
+    amount:      args.amount      as number,
+    slippageBps: args.slippageBps as number | undefined,
+  });
+}
+
+async function handlePortfolio() {
+  return sdk.agent.portfolio();
+}
+
+async function handleYieldScan(args: Args) {
+  return sdk.agent.yieldScan({
+    limit:  args.limit  as number | undefined,
+    minTvl: args.minTvl as number | undefined,
+    token:  args.token  as string | undefined,
+  });
+}
+
 async function handleDrawCredit(args: Args) {
   return sdk.agent.requestCredit({
     amount:   args.amount   as number,
@@ -289,6 +417,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'krexa_check_balance': result = await handleCheckBalance(args); break;
       case 'krexa_pay':           result = await handlePay(args);          break;
       case 'krexa_trade':         result = await handleTrade(args);        break;
+      case 'krexa_swap':          result = await handleSwap(args);          break;
+      case 'krexa_quote':         result = await handleQuote(args);         break;
+      case 'krexa_portfolio':     result = await handlePortfolio();         break;
+      case 'krexa_yield_scan':    result = await handleYieldScan(args);     break;
       case 'krexa_draw_credit':   result = await handleDrawCredit(args);   break;
       case 'krexa_repay':         result = await handleRepay(args);        break;
       case 'krexa_get_score':     result = await handleGetScore(args);     break;
