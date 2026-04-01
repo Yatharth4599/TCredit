@@ -5,7 +5,6 @@ import type { AgentData } from "./types.js";
 const REGISTRY_PROGRAM = new PublicKey("ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG");
 const WALLET_PROGRAM = new PublicKey("35t8yWLsUZNTLT71ej7DF59P81HrtZTx2uZeMhwuhhf6");
 const VAULT_PROGRAM = new PublicKey("26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N");
-const SCORE_PROGRAM = new PublicKey("2GwtAXnjY5LehfZfT77ZH3XSshwbni8LP9zXeA84WUqh");
 
 // PDA finders
 function findPda(seeds: Buffer[], programId: PublicKey): PublicKey {
@@ -46,47 +45,70 @@ export async function fetchAgentData(
   const walletId = programIds?.wallet ?? WALLET_PROGRAM;
   const vaultId = programIds?.vault ?? VAULT_PROGRAM;
 
-  // 1. Read KrexitScore PDA to get agent pubkey
+  // 1. Read KrexitScore PDA to get agent_profile PDA (score.agent stores profile PDA)
   const scoreInfo = await connection.getAccountInfo(scorePda);
   if (!scoreInfo) {
     console.warn(`[Fetcher] Score PDA not found: ${scorePda.toBase58()}`);
     return null;
   }
-
-  const scoreBuf = scoreInfo.data;
-  // Skip 8-byte discriminator
-  const [agentPubkey] = readPubkey(Buffer.from(scoreBuf), 8);
-  // owner is at offset 8+32=40
-  // agentType is much further in the struct. For now read what we need:
-  // After all the score fields, agentType is at a known offset.
-  // Let's just read the first few critical fields.
+  const scoreBuf = Buffer.from(scoreInfo.data);
+  if (scoreBuf.length < 8 + 32) {
+    console.warn(`[Fetcher] Invalid score account size for ${scorePda.toBase58()}`);
+    return null;
+  }
+  const [agentProfilePda] = readPubkey(scoreBuf, 8);
 
   // 2. Read AgentProfile PDA from registry
-  const profilePda = findPda([Buffer.from("agent_profile"), agentPubkey.toBuffer()], registryId);
-  const profileInfo = await connection.getAccountInfo(profilePda);
+  const profileInfo = await connection.getAccountInfo(agentProfilePda);
+  if (!profileInfo) {
+    console.warn(`[Fetcher] Agent profile not found: ${agentProfilePda.toBase58()}`);
+    return null;
+  }
+  if (!profileInfo.owner.equals(registryId)) {
+    console.warn(
+      `[Fetcher] Agent profile owner mismatch for ${agentProfilePda.toBase58()}: ${profileInfo.owner.toBase58()}`
+    );
+    return null;
+  }
 
+  let agentPubkey: PublicKey | null = null;
   let agentType: "Trader" | "Service" | "Hybrid" = "Trader";
   let registeredAt = 0;
   let totalVolume = 0;
-  let totalTrades = 0;
-  let creditScore = 0;
-
-  if (profileInfo) {
+  try {
     const buf = Buffer.from(profileInfo.data);
     let off = 8; // skip discriminator
     // agent: Pubkey (32)
-    off += 32;
+    [agentPubkey, off] = readPubkey(buf, off);
     // owner: Pubkey (32)
     off += 32;
-    // ownerType: u8
-    off += 1;
     // name: [u8;32]
     off += 32;
     // creditScore: u16
-    [creditScore, off] = readU16(buf, off);
+    off += 2;
     // creditLevel: u8
     off += 1;
     // kyaTier: u8
+    off += 1;
+    // kyaVerifiedAt: i64
+    off += 8;
+    // scoreUpdatedAt: i64
+    off += 8;
+    // totalVolume: u64
+    const [vol] = readU64(buf, off);
+    totalVolume = Number(vol);
+    off += 8;
+    // totalTrades: u64
+    off += 8;
+    // totalRepaid: u64
+    off += 8;
+    // totalBorrowed: u64
+    off += 8;
+    // liquidationCount: u8
+    off += 1;
+    // walletPda: Pubkey
+    off += 32;
+    // hasWallet: bool
     off += 1;
     // isActive: bool
     off += 1;
@@ -94,23 +116,17 @@ export async function fetchAgentData(
     const [regAt] = readI64(buf, off);
     registeredAt = Number(regAt);
     off += 8;
-    // skip: lastScoreUpdate(8) + legalAgreementHash(32) + legalAgreementSignedAt(8) + attestationHash(32) + attestationAt(8) + walletPda(32) + liquidationCount(2)
-    off += 8 + 32 + 8 + 32 + 8 + 32 + 2;
-    // totalVolume: u64
-    const [vol] = readU64(buf, off);
-    totalVolume = Number(vol);
-    off += 8;
-    // totalTrades: u64
-    const [trades] = readU64(buf, off);
-    totalTrades = Number(trades);
-    off += 8;
-    // totalRepaid: u64
-    off += 8;
-    // totalBorrowed: u64
-    off += 8;
+    // bump: u8
+    off += 1;
     // agentType: u8
     const [at] = readU8(buf, off);
     agentType = at === 0 ? "Trader" : at === 1 ? "Service" : "Hybrid";
+  } catch (err) {
+    console.warn(`[Fetcher] Failed to decode profile ${agentProfilePda.toBase58()}:`, err);
+    return null;
+  }
+  if (!agentPubkey) {
+    return null;
   }
 
   // 3. Read AgentWallet PDA
@@ -149,8 +165,8 @@ export async function fetchAgentData(
   if (creditLineInfo) {
     const buf = Buffer.from(creditLineInfo.data);
     let off = 8; // skip disc
-    // agent: Pubkey (32)
-    off += 32;
+    // agent: Pubkey (32) + agentWalletPda: Pubkey (32)
+    off += 32 + 32;
     // creditLimit: u64
     const [limit] = readU64(buf, off);
     originalCredit = Number(limit);

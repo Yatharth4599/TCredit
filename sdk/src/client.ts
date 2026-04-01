@@ -187,7 +187,13 @@ export interface KrexaSDKConfig {
  *
  * await krexa.agent.getStatus();
  * await krexa.credit.checkEligibility();
- * await krexa.agent.trade({ venue: 'jupiter', from: 'USDC', to: 'SOL', amount: 100 });
+ * await krexa.agent.trade({
+ *   venue: 'jupiter',
+ *   from: 'USDC',
+ *   to: 'SOL',
+ *   amount: 100,
+ *   ownerAddress: process.env.OWNER_PUBKEY!,
+ * });
  * ```
  */
 export class KrexaSDK {

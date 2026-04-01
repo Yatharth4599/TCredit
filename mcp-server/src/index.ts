@@ -24,7 +24,7 @@ import {
   type Tool,
 } from '@modelcontextprotocol/sdk/types.js';
 import { KrexaSDK, KrexaError } from '@krexa/sdk';
-import type { Chain } from '@krexa/sdk';
+import type { Chain, TradeParams } from '@krexa/sdk';
 
 // ---------------------------------------------------------------------------
 // SDK initialisation
@@ -155,8 +155,12 @@ const TOOLS: Tool[] = [
           minimum: 0.001,
           maximum: 500000,
         },
+        ownerAddress: {
+          type: 'string',
+          description: 'Owner wallet public key (must match on-chain agent wallet owner).',
+        },
       },
-      required: ['venue', 'from', 'to', 'amount'],
+      required: ['venue', 'from', 'to', 'amount', 'ownerAddress'],
     },
   },
 
@@ -366,12 +370,14 @@ async function handlePay(args: Args) {
 }
 
 async function handleTrade(args: Args) {
-  return sdk.agent.trade({
+  const params: TradeParams = {
     venue:  requireString(args.venue, 'venue'),
     from:   requireString(args.from, 'from'),
     to:     requireString(args.to, 'to'),
     amount: requireNumber(args.amount, 'amount'),
-  });
+    ownerAddress: requireString(args.ownerAddress, 'ownerAddress'),
+  };
+  return sdk.agent.trade(params);
 }
 
 async function handleSwap(args: Args) {

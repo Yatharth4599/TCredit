@@ -235,8 +235,9 @@ export async function getAgentHistory(
   ]);
 
   // Also include trade history as credit events
+  // BUG-137 fix: exclude pending trades from credit history
   const trades = await prisma.solanaAgentTrade.findMany({
-    where: { agentPubkey },
+    where: { agentPubkey, status: { not: 'pending' } },
     orderBy: { executedAt: 'desc' },
     skip,
     take: pageSize,

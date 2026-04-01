@@ -183,12 +183,14 @@ export function createAgentNamespace(
     async trade(params: TradeParams): Promise<OperationResult> {
       validateAmount(params.amount, 'trade');
       validateVenue(params.venue);
+      validateAddress(params.ownerAddress, 'solana', 'ownerAddress');
       const agent = encodePathSegment(requireAgent(), 'agentAddress');
       return post<OperationResult>(b, `/solana/wallets/${agent}/trade`, apiKey, {
         venue: params.venue,
         from: params.from,
         to: params.to,
         amount: toBase(params.amount),
+        ownerPubkey: params.ownerAddress,
       });
     },
 

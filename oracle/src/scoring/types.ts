@@ -37,7 +37,7 @@ export interface AgentData {
   creditCyclesCompleted: number;
   lifetimeVolume: number;
 
-  // Computed metrics (set by engine)
+  // Computed metrics (set by engine — legacy, no longer computed)
   pnlRatio?: number;
   maxDrawdown?: number;
   sharpeRatio?: number;
@@ -53,11 +53,9 @@ export interface AgentData {
 }
 
 export interface ScoreResult {
-  score: number;
-  level: number;
-  c1: number;
-  c2: number;
-  c3: number;
-  c4: number;
-  c5: number;
+  score: number;            // 200-850 final Krexit Score
+  level: number;            // 1-4 credit level
+  fairscaleBase: number;    // FairScale-derived base (200-850) or 400 default
+  modifierTotal: number;    // sum of on-chain Krexa adjustments
+  attestationHash: string;  // FairScale payload_hash for audit trail
 }

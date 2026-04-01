@@ -278,7 +278,10 @@ router.get('/:agent/activity', async (req, res, next) => {
         select: { healthFactorBps: true, creditDrawn: true, totalDebt: true, snapshotAt: true },
       }),
       prisma.solanaAgentTrade.findMany({
-        where: { agentPubkey: req.params.agent },
+        where: {
+          agentPubkey: req.params.agent,
+          status: { not: 'pending' }, // BUG-137 fix: exclude unsigned/pending trades from history
+        },
         orderBy: { executedAt: 'desc' },
         take: limit,
         select: { venue: true, amount: true, direction: true, txSignature: true, executedAt: true },
@@ -334,7 +337,10 @@ router.post('/:agent/confirm-agreement', requireApiKey as never, validate(Solana
       }
     }
 
-    await confirmAgreementSigned(agreementId, txSignature, onChainHash);
+    // BUG-140 fix: pass agent pubkey for ownership binding
+    const agentPubkey = req.params.agent as string;
+    parsePubkey(agentPubkey); // validate it's a real pubkey
+    await confirmAgreementSigned(agreementId, txSignature, onChainHash, agentPubkey);
     res.json({ success: true, message: 'Agreement confirmed' });
   } catch (err) { next(err); }
 });

@@ -9,6 +9,7 @@ import {
 import { createHash } from "crypto";
 import { computeKrexitScore, LIQUIDATION_PENALTY } from "./engine.js";
 import { fetchAgentData } from "./fetcher.js";
+import { fetchQuickReport, fetchFullReport } from "./fairscale.js";
 import type { AgentData, ScoreResult } from "./types.js";
 
 // ── Encoding helpers ─────────────────────────────────────────────────────────
@@ -50,13 +51,11 @@ function encodeU64(v: bigint): Buffer {
   b.writeBigUInt64LE(v);
   return b;
 }
-function encodePubkey(pk: PublicKey): Buffer {
-  return Buffer.from(pk.toBytes());
-}
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const DAILY_UPDATE_INTERVAL = 24 * 60 * 60 * 1000;
+const KREXIT_SCORE_DATA_SIZE = 648;
 
 const DEFAULT_REGISTRY_PROGRAM = new PublicKey(
   "ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG"
@@ -84,6 +83,8 @@ export class ScoreUpdater {
   private registryProgramId: PublicKey;
   private walletProgramId: PublicKey;
   private vaultProgramId: PublicKey;
+  private criticalSubscriptionId: number | null = null;
+  private seenCriticalSigs = new Map<string, number>();
 
   constructor(
     rpcUrl: string,
@@ -112,7 +113,7 @@ export class ScoreUpdater {
     const allAccounts = await this.connection.getProgramAccounts(
       this.programId,
       {
-        filters: [{ dataSize: 1100 }], // Approximate KrexitScore size
+        filters: [{ dataSize: KREXIT_SCORE_DATA_SIZE }],
       }
     );
 
@@ -131,15 +132,29 @@ export class ScoreUpdater {
         );
         if (!agentData) continue;
 
-        const result = computeKrexitScore(agentData);
+        const [agentProfilePda] = PublicKey.findProgramAddressSync(
+          [Buffer.from("agent_profile"), agentData.agentPubkey.toBuffer()],
+          this.registryProgramId
+        );
+        if (!agentProfilePda.equals(account.pubkey)) {
+          console.warn(
+            `[ScoreUpdater] Skipping mismatched score PDA ${account.pubkey.toBase58()} for agent ${agentData.agentPubkey.toBase58()}`
+          );
+          continue;
+        }
+
+        // FairScale — quick report for daily batch
+        const pubkey58 = agentData.agentPubkey.toBase58();
+        const fsReport = await fetchQuickReport(
+          pubkey58,
+          agentData.originalCredit || 10_000,
+        );
+
+        const result = computeKrexitScore(agentData, fsReport);
 
         console.log(
-          `[ScoreUpdater] Computed score for ${agentData.agentPubkey.toBase58().slice(0, 8)}...: ` +
-            `${result.score} (L${result.level})`
-        );
-        console.debug(
-          `[ScoreUpdater] Components for ${agentData.agentPubkey.toBase58().slice(0, 8)}...: ` +
-            `[C1=${result.c1} C2=${result.c2} C3=${result.c3} C4=${result.c4} C5=${result.c5}]`
+          `[ScoreUpdater] ${pubkey58.slice(0, 8)}...: ${result.score} (L${result.level}) ` +
+            `[base=${result.fairscaleBase} mod=${result.modifierTotal > 0 ? "+" : ""}${result.modifierTotal}]`
         );
 
         // Write score on-chain
@@ -159,6 +174,84 @@ export class ScoreUpdater {
     }
   }
 
+  private pruneSeenCriticalSigs(nowMs: number): void {
+    const cutoff = nowMs - 24 * 60 * 60 * 1000;
+    for (const [sig, ts] of this.seenCriticalSigs.entries()) {
+      if (ts < cutoff) this.seenCriticalSigs.delete(sig);
+    }
+  }
+
+  private async getCurrentScore(scorePda: PublicKey): Promise<number> {
+    const info = await this.connection.getAccountInfo(scorePda, "confirmed");
+    if (!info || info.data.length < 74) return 350;
+    return info.data.readUInt16LE(72); // 8 disc + 32 agentProfile + 32 owner
+  }
+
+  private async handleLiquidationSignature(signature: string): Promise<void> {
+    const tx = await this.connection.getTransaction(signature, {
+      commitment: "confirmed",
+      maxSupportedTransactionVersion: 0,
+    });
+    if (!tx || tx.meta?.err) return;
+
+    const maybeAccountKeys =
+      "getAccountKeys" in tx.transaction.message
+        ? tx.transaction.message.getAccountKeys({ accountKeysFromLookups: tx.meta?.loadedAddresses })
+        : null;
+    if (!maybeAccountKeys) return;
+    const accountKeys: PublicKey[] = maybeAccountKeys
+      ? Array.from({ length: maybeAccountKeys.length }, (_, i) => maybeAccountKeys.get(i))
+          .filter((k): k is PublicKey => !!k)
+      : [];
+
+    const liquidateDisc = disc("liquidate");
+    for (const ix of tx.transaction.message.compiledInstructions) {
+      const programId = accountKeys[ix.programIdIndex];
+      if (!programId || !programId.equals(this.walletProgramId)) continue;
+      if (ix.accountKeyIndexes.length < 2) continue;
+
+      const data = typeof ix.data === "string" ? Buffer.from(ix.data, "base64") : Buffer.from(ix.data);
+      if (data.length < 8 || !data.subarray(0, 8).equals(liquidateDisc)) continue;
+
+      const agentWalletPda = accountKeys[ix.accountKeyIndexes[1]];
+      if (!agentWalletPda) continue;
+      const walletInfo = await this.connection.getAccountInfo(agentWalletPda, "confirmed");
+      if (!walletInfo || walletInfo.data.length < 40) continue;
+      const agentPubkey = new PublicKey(walletInfo.data.subarray(8, 40)); // AgentWallet.agent
+
+      const scorePda = this.findScorePda(agentPubkey);
+      const currentScore = await this.getCurrentScore(scorePda);
+      await this.handleCriticalEvent(agentPubkey, 5, currentScore); // score_event_type::LIQUIDATION
+      return;
+    }
+  }
+
+  startCriticalEventListener(): void {
+    if (this.criticalSubscriptionId !== null) return;
+
+    this.criticalSubscriptionId = this.connection.onLogs(
+      this.walletProgramId,
+      async (logInfo) => {
+        const isLiquidation = logInfo.logs.some(
+          (l) => l.includes("Instruction: liquidate") || l.includes("Instruction: Liquidate")
+        );
+        if (!isLiquidation) return;
+
+        const nowMs = Date.now();
+        this.pruneSeenCriticalSigs(nowMs);
+        if (this.seenCriticalSigs.has(logInfo.signature)) return;
+        this.seenCriticalSigs.set(logInfo.signature, nowMs);
+
+        try {
+          await this.handleLiquidationSignature(logInfo.signature);
+        } catch (error) {
+          console.error(`[ScoreUpdater] Liquidation listener failed for ${logInfo.signature}:`, error);
+        }
+      },
+      "confirmed"
+    );
+  }
+
   async handleCriticalEvent(
     agentPubkey: PublicKey,
     eventType: number,
@@ -176,7 +269,13 @@ export class ScoreUpdater {
     });
     if (!agentData) throw new Error("Agent data not found");
 
-    const result = computeKrexitScore(agentData);
+    // FairScale — full report for critical events
+    const fsReport = await fetchFullReport(
+      agentPubkey.toBase58(),
+      agentData.originalCredit || 10_000,
+    );
+
+    const result = computeKrexitScore(agentData, fsReport);
 
     // Enforce -40 penalty for liquidation/winddown
     if (eventType === 5 || eventType === 12) {
@@ -199,8 +298,12 @@ export class ScoreUpdater {
   }
 
   findScorePda(agentPubkey: PublicKey): PublicKey {
+    const [agentProfilePda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("agent_profile"), agentPubkey.toBuffer()],
+      this.registryProgramId
+    );
     const [pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("krexit_score"), agentPubkey.toBuffer()],
+      [Buffer.from("krexit_score"), agentProfilePda.toBuffer()],
       this.programId
     );
     return pda;
@@ -223,87 +326,42 @@ export class ScoreUpdater {
       this.programId
     );
 
-    // Compute derived metrics with safe defaults
-    const pnlRatioBps = Math.round((agentData.pnlRatio ?? 0) * 10000);
-    const maxDrawdownBps = Math.min(
-      65535,
-      Math.round((agentData.maxDrawdown ?? 0) * 10000)
-    );
-    const sharpeRatioBps = Math.max(
-      -32768,
-      Math.min(32767, Math.round((agentData.sharpeRatio ?? 0) * 100))
-    );
-    const greenTimeBps = Math.round((agentData.greenTimePct ?? 0) * 10000);
-    const yellowTimeBps = Math.round((agentData.yellowTimePct ?? 0) * 10000);
-    const orangeTimeBps = Math.round((agentData.orangeTimePct ?? 0) * 10000);
-    const redTimeBps = Math.round((agentData.redTimePct ?? 0) * 10000);
-    const venueEntropyBps = Math.round(
-      (agentData.venueEntropy ?? 0) * 10000
-    );
-    const uniqueVenues = agentData.uniqueVenues ?? 0;
-
-    const onTimeRepayments = agentData.repaymentEvents.filter(
-      (e) => e.type === "on_time" || e.type === "early"
-    ).length;
-    const lateRepayments = agentData.repaymentEvents.filter(
-      (e) => e.type === "late"
-    ).length;
-    const missedRepayments = agentData.repaymentEvents.filter(
-      (e) => e.type === "missed"
-    ).length;
-    const liquidations = agentData.repaymentEvents.filter(
-      (e) => e.type === "liquidation"
-    ).length;
-    const defaults = agentData.repaymentEvents.filter(
-      (e) => e.type === "default"
-    ).length;
-
-    const totalTransactions = agentData.transactions.length;
-    const avgDailyVolume =
-      agentData.avgDailyVolume ??
-      (totalTransactions > 0
-        ? agentData.lifetimeVolume / Math.max(1, totalTransactions)
-        : 0);
+    // Pack FairScale base + modifier into legacy c1/c2 slots.
+    // Program requires c1..c5 <= 10000.
+    const fairscaleBaseBps = Math.max(0, Math.min(10_000, result.fairscaleBase));
+    const modifierAsBps = Math.max(0, Math.min(10_000, Math.round((result.modifierTotal + 200) * 25)));
 
     const updateScoreData = Buffer.concat([
       disc("update_score"),
       encodeU16(result.score),
       encodeU8(result.level),
-      encodeU16(result.c1),
-      encodeU16(result.c2),
-      encodeU16(result.c3),
-      encodeU16(result.c4),
-      encodeU16(result.c5),
-      encodeU32(onTimeRepayments),
-      encodeU16(lateRepayments),
-      encodeU16(missedRepayments),
-      encodeU16(liquidations),
-      encodeU16(defaults),
-      encodeU32(agentData.creditCyclesCompleted),
-      encodeU64(BigInt(Math.max(0, agentData.currentDebt))), // cumulative_borrowed approx
-      encodeU64(BigInt(0)), // cumulative_repaid
-      encodeU64(BigInt(Math.max(0, agentData.currentDebt))),
-      encodeI32(pnlRatioBps),
-      encodeU16(maxDrawdownBps),
-      encodeI16(sharpeRatioBps),
-      encodeU16(greenTimeBps),
-      encodeU16(yellowTimeBps),
-      encodeU16(orangeTimeBps),
-      encodeU16(redTimeBps),
-      encodeU16(venueEntropyBps),
-      encodeU8(uniqueVenues),
-      encodeU32(totalTransactions),
-      encodeU64(BigInt(Math.round(avgDailyVolume))),
+      encodeU16(fairscaleBaseBps),    // legacy c1 slot → fairscale base
+      encodeU16(modifierAsBps),       // legacy c2 slot → modifier proxy
+      encodeU16(0),                   // legacy c3 slot → unused
+      encodeU16(0),                   // legacy c4 slot → unused
+      encodeU16(0),                   // legacy c5 slot → unused
       encodeU8(eventType),
+      encodeI32(0),                   // legacy pnlRatio → unused
+      encodeU16(0),                   // legacy maxDrawdown → unused
+      encodeI16(0),                   // legacy sharpeRatio → unused
+      encodeU16(0),                   // legacy greenTime → unused
+      encodeU16(0),                   // legacy yellowTime → unused
+      encodeU16(0),                   // legacy orangeTime → unused
+      encodeU16(0),                   // legacy redTime → unused
+      encodeU16(0),                   // legacy venueEntropy → unused
+      encodeU8(0),                    // legacy uniqueVenues → unused
+      encodeU64(BigInt(0)),           // legacy avgDailyVolume → unused
+      encodeU16(0),                   // revenueHealthBps
+      encodeU16(0),                   // milestoneCompletionRateBps
     ]);
 
     instructions.push(
       new TransactionInstruction({
         programId: this.programId,
         keys: [
-          { pubkey: scoreConfigPda, isSigner: false, isWritable: true },
-          { pubkey: scorePda, isSigner: false, isWritable: true },
+          { pubkey: scoreConfigPda, isSigner: false, isWritable: false },
           { pubkey: this.oracleKeypair.publicKey, isSigner: true, isWritable: false },
+          { pubkey: scorePda, isSigner: false, isWritable: true },
         ],
         data: updateScoreData,
       })
@@ -322,14 +380,13 @@ export class ScoreUpdater {
     const updateCreditScoreData = Buffer.concat([
       disc("update_credit_score"),
       encodeU16(result.score),
-      encodeU8(result.level),
     ]);
 
     instructions.push(
       new TransactionInstruction({
         programId: this.registryProgramId,
         keys: [
-          { pubkey: registryConfigPda, isSigner: false, isWritable: true },
+          { pubkey: registryConfigPda, isSigner: false, isWritable: false },
           { pubkey: agentProfilePda, isSigner: false, isWritable: true },
           { pubkey: this.oracleKeypair.publicKey, isSigner: true, isWritable: false },
         ],
@@ -408,9 +465,10 @@ export async function startScoringOracle(
   };
 
   await runDaily();
+  updater.startCriticalEventListener();
   setInterval(runDaily, DAILY_UPDATE_INTERVAL);
 
   console.log(
-    "[ScoreOracle] Scoring oracle started. Running daily + critical event listener."
+    "[ScoreOracle] Scoring oracle started. Running daily updates + liquidation critical-event listener."
   );
 }

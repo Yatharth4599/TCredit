@@ -10,7 +10,11 @@
  */
 
 import { createHash } from 'crypto';
+import { PublicKey } from '@solana/web3.js';
 import { prisma } from '../config/prisma.js';
+import { solanaConnection } from '../chain/solana/connection.js';
+import { PROGRAM_IDS, DISCRIMINATORS, agentProfilePda } from '../chain/solana/programs.js';
+import { AppError } from '../api/middleware/errorHandler.js';
 
 // ---------------------------------------------------------------------------
 // Agreement template
@@ -101,13 +105,78 @@ export async function confirmAgreementSigned(
   agreementId: string,
   txSignature: string,
   onChainHash: string,
+  agentPubkey: string,
 ): Promise<void> {
+  // BUG-140 fix: verify agreement exists AND belongs to the agent in the URL
+  const agreement = await prisma.legalAgreement.findUnique({
+    where: { id: agreementId },
+  });
+
+  if (!agreement) {
+    throw new Error('Agreement not found');
+  }
+  if (agreement.agentPubkey !== agentPubkey) {
+    throw new Error('Agreement does not belong to this agent');
+  }
+  if (agreement.status === 'signed') {
+    throw new Error('Agreement already confirmed');
+  }
+
+  // BUG-140 fix: verify onChainHash matches the agreement's hash
+  if (onChainHash && onChainHash !== agreement.agreementHash) {
+    throw new Error('On-chain hash does not match agreement hash');
+  }
+
+  // BUG-140 fix: verify the provided tx actually executed sign_legal_agreement
+  // for this agent profile and agreement hash on the registry program.
+  const tx = await solanaConnection.getTransaction(txSignature, {
+    commitment: 'confirmed',
+    maxSupportedTransactionVersion: 0,
+  });
+  if (!tx) {
+    throw new AppError(400, 'Transaction not found on-chain');
+  }
+
+  const maybeAccountKeys =
+    'getAccountKeys' in tx.transaction.message
+      ? tx.transaction.message.getAccountKeys({ accountKeysFromLookups: tx.meta?.loadedAddresses })
+      : null;
+  if (!maybeAccountKeys) {
+    throw new AppError(400, 'Unsupported transaction message format');
+  }
+  const accountKeys: PublicKey[] = maybeAccountKeys
+    ? Array.from({ length: maybeAccountKeys.length }, (_, i) => maybeAccountKeys.get(i))
+        .filter((k): k is PublicKey => !!k)
+    : [];
+
+  const expectedProfile = agentProfilePda(new PublicKey(agentPubkey)).toBase58();
+  const expectedHash = Buffer.from(agreement.agreementHash, 'hex');
+  const expectedDisc = Buffer.from(DISCRIMINATORS.signLegalAgreement);
+  let matched = false;
+
+  for (const ix of tx.transaction.message.compiledInstructions) {
+    const programId = accountKeys[ix.programIdIndex];
+    if (!programId || !programId.equals(PROGRAM_IDS.agentRegistry)) continue;
+    const data = typeof ix.data === 'string' ? Buffer.from(ix.data, 'base64') : Buffer.from(ix.data);
+    if (data.length < 40) continue;
+    if (!data.subarray(0, 8).equals(expectedDisc)) continue;
+    if (!data.subarray(8, 40).equals(expectedHash)) continue;
+
+    const accountList = ix.accountKeyIndexes.map((i) => accountKeys[i]?.toBase58()).filter(Boolean);
+    if (!accountList.includes(expectedProfile)) continue;
+    matched = true;
+    break;
+  }
+  if (!matched) {
+    throw new AppError(400, 'Transaction does not contain a valid sign_legal_agreement instruction for this agent/hash');
+  }
+
   await prisma.legalAgreement.update({
     where: { id: agreementId },
     data: {
       status: 'signed',
       txSignature,
-      onChainHash,
+      onChainHash: onChainHash || agreement.agreementHash,
       signedAt: new Date(),
     },
   });

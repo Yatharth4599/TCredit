@@ -45,5 +45,8 @@
     "@types/node": "^20.0.0",
     "@types/inquirer": "^9.0.0",
     "@types/bn.js": "^5.1.0"
+  },
+  "overrides": {
+    "bigint-buffer": "npm:@cardanosolutions/bigint-buffer@^1.0.2"
   }
 }

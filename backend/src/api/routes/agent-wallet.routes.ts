@@ -130,7 +130,8 @@ router.get('/:agent/trades', async (req, res, next) => {
 
     const limit = Math.min(Number(req.query.limit ?? 20), 100);
     const trades = await prisma.solanaAgentTrade.findMany({
-      where: { agentPubkey },
+      // BUG-137 fix: hide unsigned/pending placeholder trades from API responses
+      where: { agentPubkey, status: { not: 'pending' } },
       orderBy: { executedAt: 'desc' },
       take: limit,
     });
@@ -183,19 +184,6 @@ router.post('/:agent/trade', requireApiKey as never, async (req, res, next) => {
     const swapResult = await buildSwapTx(quote, ownerPk);
 
     const outAmountHuman = Number(quote.outAmount) / Math.pow(10, toToken.decimals);
-
-    // BUG-137 fix: record trade as 'pending' — only finalized after user signs & submits
-    await prisma.solanaAgentTrade.create({
-      data: {
-        agentPubkey: agentPk.toBase58(),
-        venue: req.body.venue ?? 'jupiter',
-        amount: BigInt(amountRaw),
-        direction: fromToken.symbol === 'USDC' ? 'buy' : 'sell',
-        txSignature: `pending-${Date.now()}`,
-        status: 'pending',
-        executedAt: new Date(),
-      },
-    });
 
     res.json({
       success: true,

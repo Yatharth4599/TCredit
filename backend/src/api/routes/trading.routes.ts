@@ -13,7 +13,6 @@ import { resolveToken, getQuote, buildSwapTx, getTokenPrices } from '../../servi
 import { scanYields } from '../../services/yield-scanner.js';
 import { readAgentWallet } from '../../chain/solana/reader.js';
 import { agentWalletPda, walletUsdcPda } from '../../chain/solana/programs.js';
-import { prisma } from '../../config/prisma.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { requireApiKey } from '../middleware/apiKeyAuth.js';
 import { validate } from '../middleware/validate.js';
@@ -95,24 +94,6 @@ router.post('/:agent/swap', requireApiKey as never, validate(SolanaSwapSchema), 
 
     // Build unsigned transaction
     const swapResult = await buildSwapTx(quote, ownerPk.toBase58());
-
-    // BUG-119: Record trade as 'pending' — the tx hasn't been signed/confirmed yet.
-    // A separate confirmation webhook or polling job should update status to 'confirmed'
-    // and set the real txSignature once the user signs and the tx lands on-chain.
-    // TODO: Add a cleanup job to expire stale pending trades after 15 minutes.
-    const amountForDb = BigInt(amountBaseUnits);
-    const isUsdcInput = fromToken.symbol === 'USDC';
-    await prisma.solanaAgentTrade.create({
-      data: {
-        agentPubkey: agentPk.toBase58(),
-        venue: 'jupiter',
-        amount: amountForDb,
-        direction: isUsdcInput ? 'buy' : 'sell',
-        txSignature: `pending-${Date.now()}`,
-        executedAt: new Date(),
-        status: 'pending',
-      },
-    });
 
     const outAmountHuman = Number(quote.outAmount) / Math.pow(10, toToken.decimals);
 

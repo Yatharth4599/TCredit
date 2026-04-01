@@ -393,7 +393,7 @@ export const SolanaSignAgreementSchema = z.object({
 export const SolanaConfirmAgreementSchema = z.object({
   agreementId: z.string().uuid(),
   txSignature: z.string().min(1, 'txSignature required'),
-  onChainHash: z.string().min(1, 'onChainHash required'),
+  onChainHash: z.string().regex(/^[a-fA-F0-9]{64}$/, 'onChainHash must be 64-char hex'),
 });
 
 

@@ -27,6 +27,7 @@ async function main() {
   console.log(`[Oracle] Wallet Program: ${WALLET_PROGRAM_ID.toBase58()}`);
   console.log(`[Oracle] Vault Program: ${VAULT_PROGRAM_ID.toBase58()}`);
   console.log('[Oracle] Oracle keypair loaded successfully');
+  console.log(`[Oracle] FairScale: ${process.env.FAIRSCALE_API_URL ? 'configured' : 'disabled'}`);
 
   await startScoringOracle(
     RPC_URL,

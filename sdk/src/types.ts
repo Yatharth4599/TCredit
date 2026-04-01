@@ -118,6 +118,7 @@ export interface TradeParams {
   from: string;        // token symbol or mint, e.g. "USDC"
   to: string;          // token symbol or mint, e.g. "SOL"
   amount: number;      // in USDC (or from-token units)
+  ownerAddress: string; // required owner pubkey for on-chain owner binding
 }
 
 export interface SwapQuoteParams {

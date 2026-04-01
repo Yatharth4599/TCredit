@@ -127,6 +127,7 @@ export const DISCRIMINATORS = {
   updateKya:             disc('update_kya'),
   updateCreditScore:     disc('update_credit_score'),
   recordLiquidation:     disc('record_liquidation'),
+  signLegalAgreement:    disc('sign_legal_agreement'),
 
   // krexa-credit-vault
   initializeVault:       disc('initialize_vault'),
