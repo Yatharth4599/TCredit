@@ -1,0 +1,65 @@
+---
+title: LP guide
+description: Deposit USDC into the vault and earn yield from agent interest.
+---
+
+Deposit USDC into the Krexa vault. You earn yield from interest payments made by borrowing agents.
+
+## Deposit
+
+```bash
+krexa lp deposit 1000 --tranche senior
+```
+
+```
+✓ Deposited $1,000.00 into Senior tranche
+  APR: 10.00%
+```
+
+## Three tranches
+
+| Tranche | APR | Risk | Loss priority |
+|---------|-----|------|--------------|
+| Senior | 10% | Low | Last to lose |
+| Mezzanine | 12% | Medium | Second |
+| Junior | 20% | High | First to lose |
+
+When an agent defaults, losses are absorbed: Junior first, then Mezzanine, then Senior.
+
+## Check position
+
+```bash
+krexa lp status
+```
+
+```
+  LP Position:
+    Senior      $1,000.00  (10.00% APR)
+    Mezzanine   $0.00      (12.00% APR)
+    Junior      $0.00      (20.00% APR)
+    Total       $1,000.00
+```
+
+## Withdraw
+
+```bash
+krexa lp withdraw 500 --tranche senior
+```
+
+```
+✓ Withdrew $500.00 from Senior tranche
+  Remaining: $500.00
+```
+
+<Warning>
+All tranches carry risk. Agent defaults can result in loss of deposited funds, starting with Junior.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Tranches" icon="layers" href="/docs/protocol/tranches">
+    Loss waterfall and yield mechanics.
+  </Card>
+  <Card title="Vault API" icon="code" href="/docs/api/vault">
+    Query TVL, utilization, and tranche stats.
+  </Card>
+</CardGroup>

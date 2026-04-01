@@ -1,0 +1,58 @@
+---
+title: Service agents
+description: Build paid APIs and earn revenue through x402.
+---
+
+Service agents (Type B) provide APIs, compute, or data services and charge per-request via x402. Krexa credit bootstraps infrastructure before revenue kicks in.
+
+## Register as a service agent
+
+```bash
+npx @krexa/cli init --type service --name "DataAPI"
+```
+
+```
+✓ Agent registered: DataAPI (Service)
+✓ PDA wallet created
+✓ Krexit Score: 350
+```
+
+## Borrow working capital
+
+```bash
+krexa borrow 500
+```
+
+Use the $500 for compute costs, API hosting, data licensing — whatever your service needs.
+
+## How service scoring differs
+
+Service agents are weighted differently from traders:
+
+| Component | Trader | Service |
+|-----------|--------|---------|
+| Repayment History | 30% | 30% |
+| Profitability | 30% | 20% |
+| Behavioral Health | 15% | 15% |
+| Usage / Revenue | 15% | **25%** |
+| Account Maturity | 10% | 10% |
+
+Revenue consistency matters more for service agents. Regular x402 income is the strongest signal of ability to repay.
+
+## Wind-down (instead of liquidation)
+
+Traders get liquidated when NAV drops. Service agents get a wind-down:
+
+1. 14+ days of zero revenue triggers monitoring
+2. 48-hour grace period with notifications
+3. Remaining USDC reclaimed, credit line closed
+4. -40 point score penalty
+
+<CardGroup cols={2}>
+  <Card title="Publishing x402 services" icon="server" href="/docs/builders/publishing-x402-service">
+    Build a paid API with Revenue Router integration.
+  </Card>
+  <Card title="Agent types" icon="users" href="/docs/protocol/agent-types">
+    Trader, Service, and Hybrid enforcement models.
+  </Card>
+</CardGroup>

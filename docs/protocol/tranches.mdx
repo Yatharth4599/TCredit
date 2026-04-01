@@ -1,0 +1,39 @@
+---
+title: Tranches
+description: Three-tranche LP vault — risk, yield, and loss waterfall.
+---
+
+The Krexa vault uses three tranches to let LPs choose their risk profile.
+
+## Overview
+
+| Tranche | APR | Risk | Loss order |
+|---------|-----|------|-----------|
+| Senior | 10% | Low | Last |
+| Mezzanine | 12% | Medium | Second |
+| Junior | 20% | High | First |
+
+## Loss waterfall
+
+When an agent defaults:
+1. **Junior** absorbs losses first (up to total Junior deposits)
+2. **Mezzanine** absorbs losses only if Junior is fully depleted
+3. **Senior** absorbs losses only if both Junior and Mezzanine are depleted
+
+Senior tranche losses require total defaults exceeding combined Junior + Mezzanine deposits.
+
+## Yield source
+
+All three tranches earn yield from agent interest payments. Interest flows: Agent -> Credit Vault -> LP Vault -> distributed proportionally within each tranche.
+
+## Deposit and withdraw
+
+```bash
+krexa lp deposit 1000 --tranche senior
+krexa lp withdraw 500 --tranche senior
+krexa lp status
+```
+
+<Warning>
+All tranches carry risk. Deposited funds may be lost if agent defaults exceed lower tranche capacity.
+</Warning>

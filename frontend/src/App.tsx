@@ -3,7 +3,6 @@ import { lazy, Suspense, useEffect } from 'react'
 import { Toaster } from 'react-hot-toast'
 import ErrorBoundary from './components/ErrorBoundary'
 import Navbar from './components/layout/Navbar'
-import WrongNetworkBanner from './components/layout/WrongNetworkBanner'
 import styles from './App.module.css'
 
 const LandingPage = lazy(() => import('./pages/LandingPage'))
@@ -14,6 +13,14 @@ const SolanaLPDashboard = lazy(() => import('./pages/SolanaLPDashboard'))
 const KrexitScoreDashboard = lazy(() => import('./pages/KrexitScoreDashboard'))
 const MyAgents = lazy(() => import('./pages/MyAgents'))
 const NotFound = lazy(() => import('./pages/NotFound'))
+const SolanaCreditDashboard = lazy(() => import('./pages/SolanaCreditDashboard'))
+const SolanaVaultDashboard = lazy(() => import('./pages/SolanaVaultDashboard'))
+const SolanaLPDashboard = lazy(() => import('./pages/SolanaLPDashboard'))
+const KrexitScoreDashboard = lazy(() => import('./pages/KrexitScoreDashboard'))
+const WaitlistAdmin = lazy(() => import('./pages/WaitlistAdmin'))
+const DemoPage = lazy(() => import('./pages/DemoPage'))
+const Onboard = lazy(() => import('./pages/Onboard'))
+const LaunchpadPage = lazy(() => import('./pages/launchpad/LaunchpadPage'))
 
 function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation()
@@ -36,11 +43,11 @@ function AppShell() {
   const { pathname } = useLocation()
   const isLanding = pathname === '/'
   const isDemo = pathname === '/demo'
+  const isLaunch = pathname === '/launch'
 
   return (
     <div className={styles.app}>
-      {!isLanding && !isDemo && <WrongNetworkBanner />}
-      {!isLanding && !isDemo && <Navbar />}
+      {!isLanding && !isDemo && !isLaunch && <Navbar />}
       <Toaster
         position="bottom-right"
         toastOptions={{

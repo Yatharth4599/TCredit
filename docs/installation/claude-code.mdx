@@ -1,0 +1,116 @@
+---
+title: "Claude Code"
+sidebarTitle: "Claude Code"
+description: "Install Krexa as an MCP server in Claude Code."
+icon: "terminal"
+---
+
+## Getting Started
+
+Set up Krexa in Claude Code in under a minute.
+
+<Steps>
+  <Step title="Install the MCP server">
+    Run this single command to register Krexa with Claude Code:
+
+    ```bash
+    claude mcp add krexa --scope user -- npx -y @krexa/cli mcp
+    ```
+
+    <Tip>
+      Use `--scope user` to make Krexa available in **all** Claude Code sessions, not just the current project.
+    </Tip>
+  </Step>
+
+  <Step title="Initialize your agent (if needed)">
+    If you haven't set up your Krexa agent yet, run the init wizard:
+
+    ```bash
+    npx @krexa/cli init
+    ```
+
+    This creates your Solana keypair and registers your agent on-chain.
+  </Step>
+
+  <Step title="Verify the connection">
+    In Claude Code, ask:
+
+    ```text
+    "Check my Krexa balance"
+    ```
+
+    Claude should call the `check_balance` tool and return your USDC balance.
+
+    <Check>
+      If you see a USDC balance (even `0.00`), the MCP server is working correctly.
+    </Check>
+  </Step>
+</Steps>
+
+---
+
+## Configuration File
+
+The MCP config is stored at `~/.claude/mcp.json`. Here is what the Krexa entry looks like:
+
+```json
+{
+  "mcpServers": {
+    "krexa": {
+      "command": "npx",
+      "args": ["-y", "@krexa/cli", "mcp"],
+      "env": {
+        "KREXA_NETWORK": "devnet"
+      }
+    }
+  }
+}
+```
+
+<Info>
+  You can edit this file directly if you need to change environment variables or point to a different keypair.
+</Info>
+
+---
+
+## Example Usage
+
+Once installed, you can ask Claude Code things like:
+
+<CardGroup cols={2}>
+  <Card title="Borrow funds" icon="hand-holding-dollar">
+    *"Borrow 500 USDC from Krexa"*
+  </Card>
+  <Card title="Check your score" icon="chart-line">
+    *"What's my Krexit Score?"*
+  </Card>
+  <Card title="Repay debt" icon="money-bill-transfer">
+    *"Repay all my Krexa debt"*
+  </Card>
+  <Card title="Check balance" icon="wallet">
+    *"Check my wallet balance"*
+  </Card>
+</CardGroup>
+
+Claude will automatically detect and call the appropriate Krexa MCP tool for each request.
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Claude doesn't recognize Krexa tools">
+    - Re-run the install command: `claude mcp add krexa --scope user -- npx -y @krexa/cli mcp`
+    - Restart Claude Code completely
+    - Verify the MCP entry exists in `~/.claude/mcp.json`
+  </Accordion>
+  <Accordion title="Balance check returns an error">
+    - Make sure you ran `npx @krexa/cli init` first
+    - Check that `~/.krexa/keypair.json` exists
+    - Confirm you're on the correct network (`devnet` by default)
+  </Accordion>
+  <Accordion title="Tools are slow to respond">
+    - Consider setting a custom `KREXA_RPC_URL` with a dedicated RPC provider
+    - Devnet can be slow during peak hours; this is normal
+  </Accordion>
+</AccordionGroup>

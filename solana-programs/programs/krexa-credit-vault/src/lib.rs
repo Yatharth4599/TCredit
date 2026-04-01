@@ -1,9 +1,12 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 use krexa_common::constants::{
-    BPS_DENOMINATOR, INSURANCE_FEE_BPS, LEVEL_1_MAX_CREDIT, LEVEL_2_LEVERAGE_DEN,
+    BPS_DENOMINATOR, PROTOCOL_FEE_BPS, LEVEL_1_MAX_CREDIT, LEVEL_2_LEVERAGE_DEN,
     LEVEL_2_LEVERAGE_NUM, LEVEL_2_MAX_CREDIT, LEVEL_3_LEVERAGE_DEN, LEVEL_3_LEVERAGE_NUM,
     LEVEL_3_MAX_CREDIT, LEVEL_4_MAX_CREDIT, SECONDS_PER_YEAR,
+    INSURANCE_TARGET_BPS, INSURANCE_SURPLUS_BPS, TREASURY_SURPLUS_BPS,
+    INSURANCE_POST_TARGET_BPS, TREASURY_POST_TARGET_BPS,
+    SENIOR_APR_BPS, MEZZANINE_APR_BPS, JUNIOR_APR_BPS,
 };
 
 declare_id!("26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N");
@@ -16,21 +19,21 @@ declare_id!("26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N");
 pub struct VaultConfig {
     pub admin: Pubkey,
     pub oracle: Pubkey,
-    pub wallet_program: Pubkey,          // authorised to call receive_repayment
+    pub wallet_program: Pubkey,          // authorised to call receive_repayment (wallet program ID)
     pub usdc_mint: Pubkey,
     pub vault_token_account: Pubkey,     // PDA token acct holding LP + collateral USDC
     pub insurance_token_account: Pubkey, // PDA token acct holding insurance fund
 
-    // Pool accounting
+    // Pool accounting (aggregate — sum of all tranches)
     pub total_deposits: u64,           // sum of all USDC deposited (excl insurance)
-    pub total_shares: u64,             // shares outstanding
+    pub total_shares: u64,             // shares outstanding (aggregate)
     pub total_deployed: u64,           // credit currently live in agent wallets
     pub total_interest_earned: u64,    // cumulative net interest added to pool
     pub total_defaults: u64,           // cumulative bad debt written off
     pub insurance_balance: u64,        // USDC in insurance_token_account
 
     // Parameters
-    pub utilization_cap_bps: u16,      // max pool % lent out (e.g. 8500 = 85%)
+    pub utilization_cap_bps: u16,      // max pool % lent out (e.g. 8000 = 80%)
     pub base_interest_rate_bps: u16,   // annual rate used when no custom rate given
     pub lockup_seconds: i64,           // LP withdrawal lockup (0 = no lockup)
 
@@ -38,11 +41,27 @@ pub struct VaultConfig {
     pub bump: u8,
     pub vault_token_bump: u8,
     pub insurance_token_bump: u8,
+    pub router_program: Pubkey,        // payment-router program ID
+
+    // ── Tranche accounting (canonical: Senior 50%, Mezzanine 30%, Junior 20%) ──
+    pub senior_deposits: u64,          // USDC deposited into senior tranche
+    pub senior_shares: u64,
+    pub mezz_deposits: u64,            // USDC deposited into mezzanine tranche
+    pub mezz_shares: u64,
+    pub junior_deposits: u64,          // USDC deposited into junior tranche
+    pub junior_shares: u64,
+
+    pub treasury_account: Pubkey,      // receives protocol fees + surplus
+    pub last_yield_timestamp: i64,     // last time tranche yields were distributed
+
+    // v2: service plan program — authorized to disburse milestone funds
+    pub service_plan_program: Pubkey,
 }
 
 impl VaultConfig {
-    // 8 + 6*32 + 6*8 + 3*2 + 8 + 1 + 3 bumps + 32 pad
-    pub const LEN: usize = 8 + 192 + 48 + 6 + 8 + 1 + 3 + 32;
+    // 8 disc + 7*32 keys + 6*8 pool + 3*2 params + 8 lockup + 1 pause + 3 bumps + 32 router
+    // + 6*8 tranche + 32 treasury + 8 yield_ts + 32 service_plan_program
+    pub const LEN: usize = 8 + 224 + 48 + 6 + 8 + 1 + 3 + 32 + 48 + 32 + 8 + 32;
     pub const SEED: &'static [u8] = b"vault_config";
     pub const VAULT_TOKEN_SEED: &'static [u8] = b"vault_usdc";
     pub const INSURANCE_TOKEN_SEED: &'static [u8] = b"insurance_usdc";
@@ -59,6 +78,29 @@ impl VaultConfig {
         }
         (self.total_deployed as u128 * 10_000 / self.total_deposits as u128) as u64
     }
+
+    /// Whether the insurance fund has reached target (20% of deployed capital).
+    pub fn insurance_at_target(&self) -> bool {
+        if self.total_deployed == 0 {
+            return true;
+        }
+        let target = (self.total_deployed as u128
+            * INSURANCE_TARGET_BPS as u128
+            / BPS_DENOMINATOR as u128) as u64;
+        self.insurance_balance >= target
+    }
+
+    /// Compute yield owed to a tranche for `days` elapsed.
+    /// yield_owed = tranche_deposits × tranche_apr / 365 × days
+    pub fn tranche_yield_owed(deposits: u64, apr_bps: u16, seconds_elapsed: i64) -> u64 {
+        if deposits == 0 || seconds_elapsed <= 0 {
+            return 0;
+        }
+        (deposits as u128
+            * apr_bps as u128
+            * seconds_elapsed as u128
+            / (BPS_DENOMINATOR as u128 * SECONDS_PER_YEAR as u128)) as u64
+    }
 }
 
 #[account]
@@ -69,12 +111,13 @@ pub struct DepositPosition {
     pub deposit_timestamp: i64,
     pub is_collateral: bool,
     pub agent_pubkey: Pubkey,      // which agent (Pubkey::default() for pure LPs)
+    pub tranche: u8,               // 0=Senior, 1=Mezzanine, 2=Junior (for LP deposits)
     pub bump: u8,
 }
 
 impl DepositPosition {
-    // 8 + 32 + 8 + 8 + 8 + 1 + 32 + 1 + 16 pad
-    pub const LEN: usize = 8 + 32 + 8 + 8 + 8 + 1 + 32 + 1 + 16;
+    // 8 + 32 + 8 + 8 + 8 + 1 + 32 + 1 + 1 + 15 pad
+    pub const LEN: usize = 8 + 32 + 8 + 8 + 8 + 1 + 32 + 1 + 1 + 15;
     pub const DEPOSIT_SEED: &'static [u8] = b"deposit";
     pub const COLLATERAL_SEED: &'static [u8] = b"collateral";
 }
@@ -290,14 +333,15 @@ pub mod krexa_credit_vault {
         utilization_cap_bps: u16,
         base_interest_rate_bps: u16,
         lockup_seconds: i64,
+        treasury_account: Pubkey,
     ) -> Result<()> {
         let cfg = &mut ctx.accounts.config;
         cfg.admin = ctx.accounts.admin.key();
         cfg.oracle = oracle;
         cfg.wallet_program = wallet_program;
         cfg.usdc_mint = ctx.accounts.usdc_mint.key();
-        cfg.vault_token_account = Pubkey::default();   // set by create_vault_pools
-        cfg.insurance_token_account = Pubkey::default(); // set by create_vault_pools
+        cfg.vault_token_account = Pubkey::default();
+        cfg.insurance_token_account = Pubkey::default();
         cfg.total_deposits = 0;
         cfg.total_shares = 0;
         cfg.total_deployed = 0;
@@ -311,6 +355,17 @@ pub mod krexa_credit_vault {
         cfg.bump = ctx.bumps.config;
         cfg.vault_token_bump = 0;
         cfg.insurance_token_bump = 0;
+        cfg.router_program = Pubkey::default();
+        // Tranche accounting
+        cfg.senior_deposits = 0;
+        cfg.senior_shares = 0;
+        cfg.mezz_deposits = 0;
+        cfg.mezz_shares = 0;
+        cfg.junior_deposits = 0;
+        cfg.junior_shares = 0;
+        cfg.treasury_account = treasury_account;
+        cfg.last_yield_timestamp = Clock::get()?.unix_timestamp;
+        cfg.service_plan_program = Pubkey::default();
         Ok(())
     }
 
@@ -336,9 +391,10 @@ pub mod krexa_credit_vault {
 
     // ── 2. deposit_liquidity ───────────────────────────────────────────────
 
-    pub fn deposit_liquidity(ctx: Context<DepositLiquidity>, amount: u64) -> Result<()> {
+    pub fn deposit_liquidity(ctx: Context<DepositLiquidity>, amount: u64, tranche: u8) -> Result<()> {
         require!(!ctx.accounts.config.is_paused, VaultError::Paused);
         require!(amount > 0, VaultError::ZeroAmount);
+        require!(tranche <= 2, VaultError::InvalidTranche);
 
         let cfg = &ctx.accounts.config;
         let shares = calculate_shares(amount, cfg.total_shares, cfg.total_deposits)?;
@@ -359,15 +415,13 @@ pub mod krexa_credit_vault {
         let pos = &mut ctx.accounts.deposit_position;
         let now = Clock::get()?.unix_timestamp;
         if pos.depositor == Pubkey::default() {
-            // First deposit — initialise position
             pos.depositor = ctx.accounts.depositor.key();
             pos.deposited_amount = 0;
             pos.is_collateral = false;
             pos.agent_pubkey = Pubkey::default();
+            pos.tranche = tranche;
             pos.bump = ctx.bumps.deposit_position;
         }
-        // SOL-029 fix: Update timestamp on every deposit (not just first).
-        // Prevents bypassing lockup by depositing after lockup expires and immediately withdrawing all.
         pos.deposit_timestamp = now;
         pos.shares = pos.shares.saturating_add(shares);
         pos.deposited_amount = pos.deposited_amount.saturating_add(amount);
@@ -375,6 +429,23 @@ pub mod krexa_credit_vault {
         let cfg = &mut ctx.accounts.config;
         cfg.total_deposits = cfg.total_deposits.saturating_add(amount);
         cfg.total_shares = cfg.total_shares.saturating_add(shares);
+
+        // Update per-tranche accounting
+        match tranche {
+            0 => {
+                cfg.senior_deposits = cfg.senior_deposits.saturating_add(amount);
+                cfg.senior_shares = cfg.senior_shares.saturating_add(shares);
+            }
+            1 => {
+                cfg.mezz_deposits = cfg.mezz_deposits.saturating_add(amount);
+                cfg.mezz_shares = cfg.mezz_shares.saturating_add(shares);
+            }
+            2 => {
+                cfg.junior_deposits = cfg.junior_deposits.saturating_add(amount);
+                cfg.junior_shares = cfg.junior_shares.saturating_add(shares);
+            }
+            _ => unreachable!(),
+        }
 
         emit!(LiquidityDeposited {
             depositor: ctx.accounts.depositor.key(),
@@ -419,6 +490,7 @@ pub mod krexa_credit_vault {
             pos.deposit_timestamp = now;
             pos.is_collateral = true;
             pos.agent_pubkey = agent;
+            pos.tranche = 0; // Collateral goes into Senior tranche (earns Senior APR × utilization)
             pos.bump = ctx.bumps.collateral_position;
         }
         pos.shares = pos.shares.saturating_add(shares);
@@ -427,6 +499,9 @@ pub mod krexa_credit_vault {
         let cfg = &mut ctx.accounts.config;
         cfg.total_deposits = cfg.total_deposits.saturating_add(amount);
         cfg.total_shares = cfg.total_shares.saturating_add(shares);
+        // Collateral counts toward Senior tranche
+        cfg.senior_deposits = cfg.senior_deposits.saturating_add(amount);
+        cfg.senior_shares = cfg.senior_shares.saturating_add(shares);
 
         emit!(CollateralDeposited {
             agent,
@@ -474,6 +549,7 @@ pub mod krexa_credit_vault {
             amount,
         )?;
 
+        let tranche = ctx.accounts.deposit_position.tranche;
         let pos = &mut ctx.accounts.deposit_position;
         pos.shares = pos.shares.saturating_sub(shares);
         pos.deposited_amount = pos.deposited_amount.saturating_sub(amount);
@@ -481,6 +557,23 @@ pub mod krexa_credit_vault {
         let cfg = &mut ctx.accounts.config;
         cfg.total_deposits = cfg.total_deposits.saturating_sub(amount);
         cfg.total_shares = cfg.total_shares.saturating_sub(shares);
+
+        // Update per-tranche accounting
+        match tranche {
+            0 => {
+                cfg.senior_deposits = cfg.senior_deposits.saturating_sub(amount);
+                cfg.senior_shares = cfg.senior_shares.saturating_sub(shares);
+            }
+            1 => {
+                cfg.mezz_deposits = cfg.mezz_deposits.saturating_sub(amount);
+                cfg.mezz_shares = cfg.mezz_shares.saturating_sub(shares);
+            }
+            2 => {
+                cfg.junior_deposits = cfg.junior_deposits.saturating_sub(amount);
+                cfg.junior_shares = cfg.junior_shares.saturating_sub(shares);
+            }
+            _ => {}
+        }
 
         emit!(LiquidityWithdrawn {
             depositor: ctx.accounts.depositor.key(),
@@ -538,6 +631,9 @@ pub mod krexa_credit_vault {
         let cfg = &mut ctx.accounts.config;
         cfg.total_deposits = cfg.total_deposits.saturating_sub(amount);
         cfg.total_shares = cfg.total_shares.saturating_sub(shares);
+        // Collateral is in Senior tranche
+        cfg.senior_deposits = cfg.senior_deposits.saturating_sub(amount);
+        cfg.senior_shares = cfg.senior_shares.saturating_sub(shares);
 
         emit!(CollateralWithdrawn {
             agent: ctx.accounts.collateral_position.agent_pubkey,
@@ -630,6 +726,12 @@ pub mod krexa_credit_vault {
     // The krexa-agent-wallet program has already transferred USDC to vault_token.
     // This instruction: accrues interest, splits insurance, updates accounting.
 
+    /// Canonical repayment waterfall:
+    ///   1. Accrue all outstanding interest to current second
+    ///   2. Protocol fee (10%) → treasury (via insurance_token for now)
+    ///   3. Interest waterfall: Senior yield owed → Mezz owed → Junior owed → Surplus
+    ///   4. Surplus → 40% insurance / 60% treasury (pre-target), 10%/90% (post-target)
+    ///   5. Principal → reduces total_deployed (available for new lending)
     pub fn receive_repayment(
         ctx: Context<ReceiveRepayment>,
         agent: Pubkey,
@@ -637,7 +739,7 @@ pub mod krexa_credit_vault {
     ) -> Result<()> {
         require!(amount > 0, VaultError::ZeroAmount);
 
-        // Accrue interest up to now
+        // Step 1: Accrue interest up to now
         let now = Clock::get()?.unix_timestamp;
         let cl = &mut ctx.accounts.credit_line;
         require!(cl.is_active, VaultError::NoCreditLine);
@@ -649,33 +751,58 @@ pub mod krexa_credit_vault {
         let total_debt = cl.credit_drawn.saturating_add(cl.accrued_interest);
         require!(amount <= total_debt, VaultError::RepayExceedsDebt);
 
-        // Split: interest first, then principal
+        // Split payment: interest first, then principal
         let interest_portion = amount.min(cl.accrued_interest);
         let principal_portion = amount.saturating_sub(interest_portion);
 
-        // Insurance cut from interest only
-        let insurance_cut = (interest_portion as u128
-            * INSURANCE_FEE_BPS as u128
+        // Step 2: Protocol fee (10%) from interest portion
+        let protocol_fee = (interest_portion as u128
+            * PROTOCOL_FEE_BPS as u128
             / BPS_DENOMINATOR as u128) as u64;
-        let net_interest = interest_portion.saturating_sub(insurance_cut);
+        let distributable_interest = interest_portion.saturating_sub(protocol_fee);
 
-        // Move insurance_cut from vault_token → insurance_token (vault signs)
-        if insurance_cut > 0 {
-            let bump = ctx.accounts.config.bump;
-            let seeds: &[&[&[u8]]] = &[&[VaultConfig::SEED, &[bump]]];
-            token::transfer(
-                CpiContext::new_with_signer(
-                    ctx.accounts.token_program.to_account_info(),
-                    Transfer {
-                        from: ctx.accounts.vault_token.to_account_info(),
-                        to: ctx.accounts.insurance_token.to_account_info(),
-                        authority: ctx.accounts.config.to_account_info(),
-                    },
-                    seeds,
-                ),
-                insurance_cut,
-            )?;
+        // Step 3: Tranche yield waterfall — each tranche gets what it's OWED at its APR
+        let cfg = &ctx.accounts.config;
+        let yield_elapsed = now.saturating_sub(cfg.last_yield_timestamp);
+
+        let senior_owed = VaultConfig::tranche_yield_owed(
+            cfg.senior_deposits, SENIOR_APR_BPS, yield_elapsed);
+        let mezz_owed = VaultConfig::tranche_yield_owed(
+            cfg.mezz_deposits, MEZZANINE_APR_BPS, yield_elapsed);
+        let junior_owed = VaultConfig::tranche_yield_owed(
+            cfg.junior_deposits, JUNIOR_APR_BPS, yield_elapsed);
+
+        // Distribute interest through waterfall (Senior first)
+        let senior_paid = distributable_interest.min(senior_owed);
+        let after_senior = distributable_interest.saturating_sub(senior_paid);
+
+        let mezz_paid = after_senior.min(mezz_owed);
+        let after_mezz = after_senior.saturating_sub(mezz_paid);
+
+        let junior_paid = after_mezz.min(junior_owed);
+        let surplus = after_mezz.saturating_sub(junior_paid);
+
+        // Step 4: Surplus split — insurance vs treasury
+        let insurance_from_surplus;
+        let _treasury_from_surplus;
+        if cfg.insurance_at_target() {
+            // Post-target: 10% insurance / 90% treasury
+            insurance_from_surplus = (surplus as u128
+                * INSURANCE_POST_TARGET_BPS as u128
+                / BPS_DENOMINATOR as u128) as u64;
+            _treasury_from_surplus = surplus.saturating_sub(insurance_from_surplus);
+        } else {
+            // Pre-target: 40% insurance / 60% treasury
+            insurance_from_surplus = (surplus as u128
+                * INSURANCE_SURPLUS_BPS as u128
+                / BPS_DENOMINATOR as u128) as u64;
+            _treasury_from_surplus = surplus.saturating_sub(insurance_from_surplus);
         }
+
+        // Total to move to insurance: protocol_fee + insurance portion of surplus
+        let total_insurance = protocol_fee.saturating_add(insurance_from_surplus);
+
+        // ── Effects first (checks-effects-interactions) ──
 
         // Update credit line
         cl.accrued_interest = cl.accrued_interest.saturating_sub(interest_portion);
@@ -688,14 +815,39 @@ pub mod krexa_credit_vault {
         }
 
         // Update vault accounting
+        // Net interest that stays in the pool (tranche yields + treasury surplus)
+        let net_pool_interest = interest_portion.saturating_sub(total_insurance);
         let cfg = &mut ctx.accounts.config;
-        cfg.total_deposits = cfg.total_deposits.saturating_add(net_interest);
-        cfg.total_interest_earned = cfg.total_interest_earned.saturating_add(net_interest);
-        cfg.insurance_balance = cfg.insurance_balance.saturating_add(insurance_cut);
-        if credit_cleared {
-            cfg.total_deployed = cfg.total_deployed.saturating_sub(principal_portion);
-        } else {
-            cfg.total_deployed = cfg.total_deployed.saturating_sub(principal_portion);
+        cfg.total_deposits = cfg.total_deposits.saturating_add(net_pool_interest);
+        cfg.total_interest_earned = cfg.total_interest_earned.saturating_add(net_pool_interest);
+        cfg.insurance_balance = cfg.insurance_balance.saturating_add(total_insurance);
+        cfg.total_deployed = cfg.total_deployed.saturating_sub(principal_portion);
+
+        // Credit tranche deposits with their earned yield
+        cfg.senior_deposits = cfg.senior_deposits.saturating_add(senior_paid);
+        cfg.mezz_deposits = cfg.mezz_deposits.saturating_add(mezz_paid);
+        cfg.junior_deposits = cfg.junior_deposits.saturating_add(junior_paid);
+
+        cfg.last_yield_timestamp = now;
+
+        // ── Interactions (token transfer after state updates) ──
+
+        // Move total_insurance from vault_token → insurance_token
+        if total_insurance > 0 {
+            let bump = ctx.accounts.config.bump;
+            let seeds: &[&[&[u8]]] = &[&[VaultConfig::SEED, &[bump]]];
+            token::transfer(
+                CpiContext::new_with_signer(
+                    ctx.accounts.token_program.to_account_info(),
+                    Transfer {
+                        from: ctx.accounts.vault_token.to_account_info(),
+                        to: ctx.accounts.insurance_token.to_account_info(),
+                        authority: ctx.accounts.config.to_account_info(),
+                    },
+                    seeds,
+                ),
+                total_insurance,
+            )?;
         }
 
         emit!(RepaymentReceived {
@@ -703,7 +855,7 @@ pub mod krexa_credit_vault {
             total_amount: amount,
             principal_portion,
             interest_portion,
-            insurance_cut,
+            insurance_cut: total_insurance,
             credit_cleared,
         });
         Ok(())
@@ -739,28 +891,61 @@ pub mod krexa_credit_vault {
 
     // ── 9. write_off_bad_debt ──────────────────────────────────────────────
 
+    /// Canonical loss waterfall (opposite of repayment):
+    ///   1. Insurance reserve absorbs first
+    ///   2. Junior tranche absorbs (if insurance exhausted)
+    ///   3. Mezzanine tranche absorbs (if Junior exhausted)
+    ///   4. Senior tranche absorbs (LAST RESORT)
     pub fn write_off_bad_debt(ctx: Context<WriteBadDebt>, _agent: Pubkey) -> Result<()> {
         let cl = &mut ctx.accounts.credit_line;
         require!(cl.is_active, VaultError::NoCreditLine);
 
+        // Accrue interest to current second before computing loss
+        let now = Clock::get()?.unix_timestamp;
+        let elapsed = now.saturating_sub(cl.last_accrual_timestamp);
+        cl.accrue(elapsed);
+        cl.last_accrual_timestamp = now;
+
         let principal_loss = cl.credit_drawn;
         let interest_loss = cl.accrued_interest;
         let total_loss = principal_loss.saturating_add(interest_loss);
-        let insurance_covered = total_loss.min(ctx.accounts.config.insurance_balance);
-        let lp_absorbed = total_loss.saturating_sub(insurance_covered);
 
         cl.is_active = false;
         cl.credit_drawn = 0;
         cl.accrued_interest = 0;
 
         let cfg = &mut ctx.accounts.config;
-        // SOL-027 fix: Only subtract the principal from total_deployed (interest was never "deployed")
-        // Previously subtracted full loss including accrued interest, causing underflow
         cfg.total_deployed = cfg.total_deployed.saturating_sub(principal_loss);
-        cfg.insurance_balance = cfg.insurance_balance.saturating_sub(insurance_covered);
-        // LP share price drops by absorbing the uninsured portion
-        cfg.total_deposits = cfg.total_deposits.saturating_sub(lp_absorbed);
         cfg.total_defaults = cfg.total_defaults.saturating_add(total_loss);
+
+        // Loss waterfall: Insurance → Junior → Mezzanine → Senior
+        let mut remaining_loss = total_loss;
+
+        // 1. Insurance absorbs first
+        let insurance_absorbed = remaining_loss.min(cfg.insurance_balance);
+        cfg.insurance_balance = cfg.insurance_balance.saturating_sub(insurance_absorbed);
+        remaining_loss = remaining_loss.saturating_sub(insurance_absorbed);
+
+        // 2. Junior absorbs next (first LP tranche to lose)
+        let junior_absorbed = remaining_loss.min(cfg.junior_deposits);
+        cfg.junior_deposits = cfg.junior_deposits.saturating_sub(junior_absorbed);
+        cfg.total_deposits = cfg.total_deposits.saturating_sub(junior_absorbed);
+        remaining_loss = remaining_loss.saturating_sub(junior_absorbed);
+
+        // 3. Mezzanine absorbs next
+        let mezz_absorbed = remaining_loss.min(cfg.mezz_deposits);
+        cfg.mezz_deposits = cfg.mezz_deposits.saturating_sub(mezz_absorbed);
+        cfg.total_deposits = cfg.total_deposits.saturating_sub(mezz_absorbed);
+        remaining_loss = remaining_loss.saturating_sub(mezz_absorbed);
+
+        // 4. Senior absorbs last (LAST RESORT)
+        let senior_absorbed = remaining_loss.min(cfg.senior_deposits);
+        cfg.senior_deposits = cfg.senior_deposits.saturating_sub(senior_absorbed);
+        cfg.total_deposits = cfg.total_deposits.saturating_sub(senior_absorbed);
+
+        let lp_absorbed = junior_absorbed
+            .saturating_add(mezz_absorbed)
+            .saturating_add(senior_absorbed);
 
         emit!(BadDebtWrittenOff {
             agent: cl.agent,
@@ -786,9 +971,11 @@ pub mod krexa_credit_vault {
         new_admin: Option<Pubkey>,
         new_oracle: Option<Pubkey>,
         new_wallet_program: Option<Pubkey>,
+        new_router_program: Option<Pubkey>,
         new_utilization_cap_bps: Option<u16>,
         new_base_interest_rate_bps: Option<u16>,
         new_lockup_seconds: Option<i64>,
+        new_service_plan_program: Option<Pubkey>,
     ) -> Result<()> {
         let cfg = &mut ctx.accounts.config;
         // SOL-075 fix: prevent permanent lockout via zero-address
@@ -815,6 +1002,67 @@ pub mod krexa_credit_vault {
         if let Some(lockup) = new_lockup_seconds {
             cfg.lockup_seconds = lockup;
         }
+        if let Some(sp) = new_service_plan_program {
+            cfg.service_plan_program = sp;
+        }
+        Ok(())
+    }
+
+    // ── 12. migrate_config_v2 ─────────────────────────────────────────────
+    // Resize stale VaultConfig PDA from an older, smaller layout to the
+    // current VaultConfig::LEN.  New bytes are zero-filled, which is safe
+    // because all appended fields are u64 / Pubkey / i64 (default = 0).
+    //
+    // Only the admin can call this (validated via first 40 bytes of data).
+
+    pub fn migrate_config_v2(ctx: Context<MigrateConfigV2>) -> Result<()> {
+        let info = ctx.accounts.config.to_account_info();
+        let current_len = info.data_len();
+        let target_len = VaultConfig::LEN;
+        if current_len >= target_len {
+            msg!("Config already at target size ({} >= {})", current_len, target_len);
+            return Ok(());
+        }
+
+        // Verify caller is the admin stored in the account (offset 8, 32 bytes)
+        {
+            let data = info.try_borrow_data()?;
+            let stored_admin = Pubkey::try_from(&data[8..40])
+                .map_err(|_| error!(VaultError::NotAdmin))?;
+            require!(
+                stored_admin == ctx.accounts.admin.key(),
+                VaultError::NotAdmin
+            );
+        }
+
+        // Resize — transfer extra rent from admin
+        let rent = anchor_lang::prelude::Rent::get()?;
+        let new_min = rent.minimum_balance(target_len);
+        let current_lamports = info.lamports();
+        if new_min > current_lamports {
+            let diff = new_min - current_lamports;
+            anchor_lang::system_program::transfer(
+                CpiContext::new(
+                    ctx.accounts.system_program.to_account_info(),
+                    anchor_lang::system_program::Transfer {
+                        from: ctx.accounts.admin.to_account_info(),
+                        to: info.clone(),
+                    },
+                ),
+                diff,
+            )?;
+        }
+
+        info.realloc(target_len, false)?;
+
+        // Zero-fill only the newly appended bytes
+        {
+            let mut data = info.try_borrow_mut_data()?;
+            for byte in data[current_len..target_len].iter_mut() {
+                *byte = 0;
+            }
+        }
+        msg!("Migrated vault config: {} → {} bytes", current_len, target_len);
         Ok(())
     }
 }
@@ -1143,8 +1391,17 @@ pub struct ReceiveRepayment<'info> {
     )]
     pub credit_line: Account<'info, CreditLine>,
 
-    /// krexa-agent-wallet program authority — ensures only wallet program calls this
-    #[account(address = config.wallet_program @ VaultError::NotWalletProgram)]
+    /// Caller program authority — either the wallet config PDA (from krexa-agent-wallet)
+    /// or the router config PDA (from krexa-payment-router). Both sign their CPIs via
+    /// their respective config PDAs, so we verify the address matches one of them.
+    #[account(
+        constraint = {
+            let (wallet_config_pda, _) = Pubkey::find_program_address(&[b"wallet_config"], &config.wallet_program);
+            let (router_config_pda, _) = Pubkey::find_program_address(&[b"router_config"], &config.router_program);
+            wallet_program_authority.key() == wallet_config_pda
+                || wallet_program_authority.key() == router_config_pda
+        } @ VaultError::NotWalletProgram
+    )]
     pub wallet_program_authority: Signer<'info>,
 
     pub token_program: Program<'info, Token>,
@@ -1215,4 +1472,20 @@ pub struct UpdateVaultConfig<'info> {
     pub config: Account<'info, VaultConfig>,
 
     pub admin: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct MigrateConfigV2<'info> {
+    /// CHECK: Cannot deserialize old layout — validated manually via stored admin pubkey.
+    #[account(
+        mut,
+        seeds = [VaultConfig::SEED],
+        bump,
+    )]
+    pub config: UncheckedAccount<'info>,
+
+    #[account(mut)]
+    pub admin: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
 }

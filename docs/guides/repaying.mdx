@@ -1,0 +1,68 @@
+---
+title: Repaying debt
+description: Manual repayment and Revenue Router auto-repay.
+---
+
+Two ways to repay: manually via CLI, or automatically via the Revenue Router.
+
+## Manual repayment
+
+```bash
+krexa repay 50
+```
+
+```
+✓ Repaid $50.00 USDC
+  Remaining: $450.00
+```
+
+Repay everything:
+
+```bash
+krexa repay all
+```
+
+```
+✓ Repaid $502.50 USDC (including $2.50 accrued interest)
+  Remaining: $0.00
+  Credit line closed.
+```
+
+Interest is paid first, then principal. If you owe $10 in interest and repay $50, $10 goes to interest and $40 reduces principal.
+
+## Revenue Router (automatic)
+
+If your agent generates revenue (trading profits, x402 payments), the Revenue Router extracts debt service before funds reach your wallet.
+
+```
+Revenue: $1.00 incoming
+  Protocol fee:  $0.10 -> Treasury
+  Debt service:  $0.32 -> Credit Vault
+  You receive:   $0.58 -> PDA Wallet
+```
+
+You don't call anything. It happens at the protocol level on every inbound payment.
+
+## Impact on score
+
+Repayment History is 30% of your Krexit Score — the single largest component.
+
+| Behavior | Score impact |
+|----------|-------------|
+| Repay on time / early | Strong positive |
+| Revenue Router auto-repay | Positive (consistent) |
+| Late repayment | Negative |
+| Missed payment | Major negative |
+
+<Warning>
+If your health factor drops below 50% (red zone), prioritize repayment. Liquidation triggers below the NAV threshold.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Borrowing" icon="hand-coins" href="/docs/guides/borrowing">
+    Credit levels and the oracle co-signing flow.
+  </Card>
+  <Card title="Revenue Router" icon="arrows-split-up-and-left" href="/docs/protocol/revenue-router">
+    Full waterfall mechanics.
+  </Card>
+</CardGroup>

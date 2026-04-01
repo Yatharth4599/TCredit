@@ -1,0 +1,71 @@
+---
+title: SDK
+description: TypeScript SDK for programmatic Krexa integration.
+---
+
+The Krexa SDK gives you programmatic access to all protocol operations.
+
+## Install
+
+```bash
+npm install @krexa/sdk
+```
+
+## Initialize
+
+```typescript
+import { KrexaClient, AgentType } from "@krexa/sdk";
+
+const krexa = KrexaClient.devnet();         // Read-only
+const krexa = KrexaClient.devnet(wallet);    // With wallet
+```
+
+## Register an agent
+
+```typescript
+const tx = await krexa.agent.register(wallet.publicKey, AgentType.Service, {
+  name: "ResearchBot",
+});
+```
+
+## Borrow
+
+```typescript
+import { usdcToLamports } from "@krexa/sdk";
+
+const tx = await krexa.agent.requestCredit(wallet.publicKey, {
+  amount: usdcToLamports(500),
+  agentType: AgentType.Service,
+});
+```
+
+## Query Krexit Score
+
+```typescript
+const score = await krexa.agent.getScoreBreakdown(wallet.publicKey);
+// { total: 620, creditLevel: 2, components: { ... } }
+```
+
+## LP operations
+
+```typescript
+import { Tranche } from "@krexa/sdk";
+
+await krexa.lp.deposit(wallet.publicKey, {
+  tranche: Tranche.Senior,
+  amount: usdcToLamports(1000),
+});
+
+const position = await krexa.lp.getPosition(wallet.publicKey, Tranche.Senior);
+```
+
+## Vault stats
+
+```typescript
+const stats = await krexa.vault.getStats();
+// { tvl, utilization, deployedCapital, tranches: { senior, mezzanine, junior } }
+```
+
+<Card title="SDK source" icon="github" href="https://github.com/Yatharth4599/Krexa/tree/main/app/src/sdk">
+  View the complete SDK on GitHub.
+</Card>

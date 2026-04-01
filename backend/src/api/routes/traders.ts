@@ -5,6 +5,8 @@ import { publicClient } from '../../chain/client.js';
 import { addresses, AgentRegistryABI } from '../../config/contracts.js';
 import { env } from '../../config/env.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { validate } from '../middleware/validate.js';
+import { TraderRegisterSchema, TraderDrawSchema, TraderRepaySchema } from '../schemas.js';
 import { getTraderStats } from '../../services/polymarket.service.js';
 
 const router = Router();
@@ -89,7 +91,7 @@ const TraderVaultABI = [
 ] as const;
 
 function getTraderVaultFactoryAddress(): Address {
-  const addr = process.env.TRADER_VAULT_FACTORY_ADDRESS;
+  const addr = env.TRADER_VAULT_FACTORY_ADDRESS;
   if (!addr) throw new AppError(503, 'TraderVaultFactory not deployed yet');
   return addr as Address;
 }
@@ -214,7 +216,7 @@ router.get('/:address/vault', async (req, res, next) => {
 
 // ─── POST /api/v1/traders/register ─────────────────────────────────────────────
 // Build unsigned registerAgent tx (same as merchants — reuse AgentRegistry)
-router.post('/register', async (req, res, next) => {
+router.post('/register', validate(TraderRegisterSchema), async (req, res, next) => {
   try {
     const { metadataURI = 'ipfs://krexa-trader' } = req.body;
 
@@ -258,12 +260,10 @@ router.post('/create-vault', async (req, res, next) => {
 
 // ─── POST /api/v1/traders/:address/draw ────────────────────────────────────────
 // Build unsigned draw tx on TraderVault
-router.post('/:address/draw', async (req, res, next) => {
+router.post('/:address/draw', validate(TraderDrawSchema), async (req, res, next) => {
   try {
     const vaultAddr = req.params.address as Address;
     const { amount } = req.body;
-
-    if (!amount) throw new AppError(400, 'amount is required (USDC, 6 decimals)');
 
     const data = encodeFunctionData({
       abi: TraderVaultABI,
@@ -284,12 +284,10 @@ router.post('/:address/draw', async (req, res, next) => {
 
 // ─── POST /api/v1/traders/:address/repay ───────────────────────────────────────
 // Build unsigned repay tx on TraderVault
-router.post('/:address/repay', async (req, res, next) => {
+router.post('/:address/repay', validate(TraderRepaySchema), async (req, res, next) => {
   try {
     const vaultAddr = req.params.address as Address;
     const { amount } = req.body;
-
-    if (!amount) throw new AppError(400, 'amount is required (USDC, 6 decimals)');
 
     const data = encodeFunctionData({
       abi: TraderVaultABI,

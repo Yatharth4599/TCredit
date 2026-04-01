@@ -6,6 +6,8 @@ import { MerchantVaultABI } from '../../config/abis.js';
 import { encodeFunctionData } from 'viem';
 import { publicClient } from '../../chain/client.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { validate } from '../middleware/validate.js';
+import { InvestSchema, ClaimSchema, RefundSchema } from '../schemas.js';
 
 const router = Router();
 
@@ -65,10 +67,9 @@ router.get('/portfolio/:address', async (req, res, next) => {
 });
 
 // POST /api/v1/invest — build unsigned invest tx
-router.post('/invest', async (req, res, next) => {
+router.post('/invest', validate(InvestSchema), async (req, res, next) => {
   try {
     const { vaultAddress, amount } = req.body;
-    if (!vaultAddress || !amount) throw new AppError(400, 'vaultAddress and amount required');
 
     const data = encodeFunctionData({
       abi: MerchantVaultABI,
@@ -87,10 +88,9 @@ router.post('/invest', async (req, res, next) => {
 });
 
 // POST /api/v1/claim — build unsigned claimReturns tx
-router.post('/claim', async (req, res, next) => {
+router.post('/claim', validate(ClaimSchema), async (req, res, next) => {
   try {
     const { vaultAddress } = req.body;
-    if (!vaultAddress) throw new AppError(400, 'vaultAddress required');
 
     const data = encodeFunctionData({
       abi: MerchantVaultABI,
@@ -104,10 +104,9 @@ router.post('/claim', async (req, res, next) => {
 });
 
 // POST /api/v1/refund — build unsigned claimRefund tx (cancelled vaults)
-router.post('/refund', async (req, res, next) => {
+router.post('/refund', validate(RefundSchema), async (req, res, next) => {
   try {
     const { vaultAddress } = req.body;
-    if (!vaultAddress) throw new AppError(400, 'vaultAddress required');
 
     const data = encodeFunctionData({
       abi: MerchantVaultABI,

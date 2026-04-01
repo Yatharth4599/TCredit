@@ -1,6 +1,6 @@
 //! # krexa-payment-router
 //!
-//! **Program 5 — x402 Revenue Routing for Earning Agents**
+//! **Program 5 — x402 Revenue Routing + Revenue Source Validation**
 //!
 //! When an agent sells services via x402, buyers pay through this router.
 //! The router splits incoming revenue across three destinations atomically:
@@ -9,22 +9,23 @@
 //!   2. Repayment cut → krexa-credit-vault (CPI `receive_repayment`)
 //!   3. Net amount    → merchant (agent's wallet or agent wallet PDA)
 //!
-//! This enables the **Revenue Router model** for Level 3-4 agents who
-//! have revenue streams and want under-collateralised credit: outstanding
-//! debt is continuously paid down from earned revenue automatically.
+//! For Type B (service) agents, the router also runs a three-layer revenue
+//! source validation system to prevent wash trading:
+//!   - Layer 1: Source classification (on-chain Pubkey checks)
+//!   - Layer 2: Pattern detection (on-chain round-trip + amount anomaly)
+//!   - Layer 3: Economic validation (on-chain payment size checks)
 //!
 //! ## PDA layout
-//! - `RouterConfig`         [`router_config`]
-//! - `MerchantSettlement`   [`settlement`, merchant]
-//!
-//! ## Security
-//! - `oracle` must sign every `execute_payment` call (prevents spoofed payments).
-//! - Nonce monotonicity guards against transaction replay.
-//! - `split_bps` is capped at 5000 (50%) to protect merchant liquidity.
+//! - `RouterConfig`           [`router_config`]
+//! - `MerchantSettlement`     [`settlement`, merchant]
+//! - `RevenueValidator`       [`rev_validator`, merchant]
+//! - `PaymentHistory`         [`payment_history`, merchant]
+//! - `GlobalBlocklist`        [`global_blocklist`]
+//! - `PlatformWhitelist`      [`platform_whitelist`]
 
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
-use krexa_common::constants::BPS_DENOMINATOR;
+use krexa_common::constants::*;
 
 declare_id!("2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8");
 
@@ -34,9 +35,15 @@ declare_id!("2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8");
 
 /// Maximum repayment split a merchant can configure (50 %).
 pub const MAX_SPLIT_BPS: u16 = 5_000;
+/// Maximum platform fee (10 %).
+pub const MAX_PLATFORM_FEE_BPS: u16 = 1_000;
+/// Maximum entries in global blocklist PDA
+pub const MAX_BLOCKLIST_SIZE: usize = 50;
+/// Maximum entries in platform whitelist PDA
+pub const MAX_PLATFORM_WHITELIST_SIZE: usize = 20;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Accounts
+// Accounts — original
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[account]
@@ -77,7 +84,142 @@ impl MerchantSettlement {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Events
+// Accounts — Revenue Source Validation
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Per-agent payment record stored in the ring buffer.
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default)]
+pub struct PaymentRecord {
+    /// Who sent the payment
+    pub source: Pubkey,
+    /// USDC amount (6 decimals)
+    pub amount: u64,
+    /// Unix timestamp
+    pub timestamp: i64,
+    /// 0=Verified, 1=Rejected, 2=Quarantined, 3=PendingKeeper
+    pub classification: u8,
+    /// Was this an x402 payment?
+    pub is_x402: bool,
+    /// Layer 2 pattern score (0 = not yet checked by keeper)
+    pub pattern_score: u16,
+}
+
+impl PaymentRecord {
+    pub const LEN: usize = 32 + 8 + 8 + 1 + 1 + 2; // 52 bytes
+}
+
+/// Per-agent outflow record for round-trip detection.
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default)]
+pub struct OutflowRecord {
+    /// Where the money went
+    pub destination: Pubkey,
+    /// Amount sent
+    pub amount: u64,
+    /// When sent
+    pub timestamp: i64,
+}
+
+impl OutflowRecord {
+    pub const LEN: usize = 32 + 8 + 8; // 48 bytes
+}
+
+/// Revenue validation state per merchant. Holds registered sources,
+/// associated wallets, and validation parameters.
+/// Seeds: ["rev_validator", merchant]
+#[account]
+pub struct RevenueValidator {
+    pub merchant: Pubkey,
+    /// Agent's PDA wallet — self-transfers are rejected
+    pub agent_wallet_pda: Pubkey,
+    /// Agent owner — owner transfers are rejected
+    pub agent_owner: Pubkey,
+
+    /// Oracle-approved customer addresses (auto-verified)
+    pub registered_sources: [Pubkey; 30],  // MAX_REVENUE_SOURCES
+    pub num_registered_sources: u8,
+
+    /// Known associated wallets of the agent owner (auto-rejected)
+    pub associated_wallets: [Pubkey; 10],  // MAX_ASSOCIATED_WALLETS
+    pub num_associated_wallets: u8,
+
+    /// Expected daily revenue in USDC (set during plan creation)
+    pub expected_daily_revenue: u64,
+    /// Total credit line (for economic checks)
+    pub total_credit: u64,
+    /// Cumulative validated revenue (only counts Verified payments)
+    pub cumulative_validated_revenue: u64,
+    /// Total disbursed from milestones
+    pub total_disbursed: u64,
+    /// Plan creation timestamp
+    pub plan_created_at: i64,
+
+    /// Revenue integrity violations (retroactive rejections of credited payments)
+    pub revenue_integrity_violations: u8,
+    /// Whether this validator is active
+    pub is_active: bool,
+    pub bump: u8,
+}
+
+impl RevenueValidator {
+    // 8 disc + 3*32 keys + 30*32 sources + 1 + 10*32 assoc + 1
+    // + 5*8 financials + 1 + 1 + 1 = 8 + 96 + 960 + 1 + 320 + 1 + 40 + 3 = 1429
+    pub const LEN: usize = 8 + 96 + 960 + 1 + 320 + 1 + 40 + 3;
+    pub const SEED: &'static [u8] = b"rev_validator";
+}
+
+/// Ring buffer of recent payments and outflows for pattern detection.
+/// Seeds: ["payment_history", merchant]
+#[account]
+pub struct PaymentHistory {
+    pub merchant: Pubkey,
+    /// Ring buffer of last 50 incoming payments
+    pub payments: [PaymentRecord; 50],  // PAYMENT_HISTORY_SIZE
+    pub payment_head: u8,              // next write position
+    pub payment_count: u8,             // entries filled (max 50)
+    /// Ring buffer of last 20 outflows (for round-trip detection)
+    pub outflows: [OutflowRecord; 20],
+    pub outflow_head: u8,
+    pub outflow_count: u8,
+    pub bump: u8,
+}
+
+impl PaymentHistory {
+    // 8 disc + 32 merchant + 50*52 payments + 1 + 1 + 20*48 outflows + 1 + 1 + 1
+    // = 8 + 32 + 2600 + 2 + 960 + 3 = 3605
+    pub const LEN: usize = 8 + 32 + (50 * PaymentRecord::LEN) + 2 + (20 * OutflowRecord::LEN) + 3;
+    pub const SEED: &'static [u8] = b"payment_history";
+}
+
+/// Global blocklist of known bad actor wallets (shared across all agents).
+/// Seeds: ["global_blocklist"]
+#[account]
+pub struct GlobalBlocklist {
+    pub entries: [Pubkey; 50],  // MAX_BLOCKLIST_SIZE
+    pub count: u8,
+    pub bump: u8,
+}
+
+impl GlobalBlocklist {
+    pub const LEN: usize = 8 + 50 * 32 + 1 + 1; // 1610
+    pub const SEED: &'static [u8] = b"global_blocklist";
+}
+
+/// Platform whitelist of known payment aggregators / commerce platforms.
+/// Seeds: ["platform_whitelist"]
+#[account]
+pub struct PlatformWhitelist {
+    pub entries: [Pubkey; 20],  // MAX_PLATFORM_WHITELIST_SIZE
+    pub count: u8,
+    pub bump: u8,
+}
+
+impl PlatformWhitelist {
+    pub const LEN: usize = 8 + 20 * 32 + 1 + 1; // 650
+    pub const SEED: &'static [u8] = b"platform_whitelist";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Events — original
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[event]
@@ -115,6 +257,77 @@ pub struct SplitUpdated {
 #[event]
 pub struct SettlementDeactivated {
     pub merchant: Pubkey,
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Events — Revenue Validation
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[event]
+pub struct RevenueClassified {
+    pub merchant: Pubkey,
+    pub source: Pubkey,
+    pub amount: u64,
+    /// 0=Verified, 1=Rejected, 2=Quarantined, 3=PendingKeeper
+    pub classification: u8,
+    /// Rejection reason code (0=none, 1=self, 2=owner, 3=associated, 4=krexa_pda, 5=blocklist, 6=pattern, 7=economic)
+    pub reason: u8,
+    pub pattern_score: u16,
+}
+
+#[event]
+pub struct RevenueSourceRegistered {
+    pub merchant: Pubkey,
+    pub source: Pubkey,
+}
+
+#[event]
+pub struct RevenueSourceRemoved {
+    pub merchant: Pubkey,
+    pub source: Pubkey,
+}
+
+#[event]
+pub struct AssociatedWalletAdded {
+    pub merchant: Pubkey,
+    pub wallet: Pubkey,
+}
+
+#[event]
+pub struct QuarantineReviewed {
+    pub merchant: Pubkey,
+    pub payment_index: u8,
+    /// 0=Approve, 1=Reject, 2=ApproveAndWhitelist, 3=RejectAndBlocklist
+    pub decision: u8,
+    pub amount: u64,
+}
+
+#[event]
+pub struct RetroactiveRejection {
+    pub merchant: Pubkey,
+    pub amount: u64,
+    pub old_cumulative: u64,
+    pub new_cumulative: u64,
+    pub violations: u8,
+}
+
+#[event]
+pub struct OutflowRecorded {
+    pub merchant: Pubkey,
+    pub destination: Pubkey,
+    pub amount: u64,
+}
+
+#[event]
+pub struct BlocklistUpdated {
+    pub wallet: Pubkey,
+    pub added: bool,
+}
+
+#[event]
+pub struct PlatformWhitelistUpdated {
+    pub wallet: Pubkey,
+    pub added: bool,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -164,6 +377,7 @@ pub mod krexa_payment_router {
     // ── 1. initialize ──────────────────────────────────────────────────────
 
     pub fn initialize(ctx: Context<Initialize>, platform_fee_bps: u16) -> Result<()> {
+        require!(platform_fee_bps <= MAX_PLATFORM_FEE_BPS, RouterError::FeeTooHigh);
         let cfg = &mut ctx.accounts.config;
         cfg.admin = ctx.accounts.admin.key();
         cfg.oracle = ctx.accounts.oracle.key();
@@ -182,8 +396,6 @@ pub mod krexa_payment_router {
     }
 
     // ── 2. activate_settlement ─────────────────────────────────────────────
-    // Oracle creates a MerchantSettlement PDA for a merchant/agent.
-    // `agent_wallet_pda` = Pubkey::default() if the agent has no wallet yet.
 
     pub fn activate_settlement(
         ctx: Context<ActivateSettlement>,
@@ -218,26 +430,6 @@ pub mod krexa_payment_router {
     }
 
     // ── 3. execute_payment ─────────────────────────────────────────────────
-    //
-    // Oracle-signed. Buyer has pre-approved `payer_usdc` via SPL token delegation
-    // (or the oracle holds the payer's funds in escrow). The instruction atomically:
-    //
-    //   a) Validates nonce > settlement.nonce (replay protection).
-    //   b) If has_active_credit && split_bps > 0:
-    //        platform_fee = amount * platform_fee_bps / BPS_DENOMINATOR
-    //        remainder    = amount - platform_fee
-    //        repayment    = remainder * split_bps / BPS_DENOMINATOR
-    //        merchant_amt = remainder - repayment
-    //        Transfer platform_fee  → platform_treasury (payer signs)
-    //        Transfer repayment     → vault token account, then CPI receive_repayment
-    //        Transfer merchant_amt  → merchant_usdc (payer signs)
-    //   c) Else (no credit or split_bps == 0):
-    //        platform_fee = amount * platform_fee_bps / BPS_DENOMINATOR
-    //        merchant_amt = amount - platform_fee
-    //        Transfer platform_fee  → platform_treasury
-    //        Transfer merchant_amt  → merchant_usdc
-    //   d) Update nonce, totals.
-    //   e) Emit PaymentRouted.
 
     pub fn execute_payment(
         ctx: Context<ExecutePayment>,
@@ -291,7 +483,6 @@ pub mod krexa_payment_router {
 
         // ── b) repayment → vault + CPI receive_repayment ─────────────────
         if repayment > 0 {
-            // Move USDC from payer → vault token account first.
             token::transfer(
                 CpiContext::new(
                     ctx.accounts.token_program.to_account_info(),
@@ -304,10 +495,6 @@ pub mod krexa_payment_router {
                 repayment,
             )?;
 
-            // Notify vault of the repayment so it updates its accounting.
-            // The router config PDA acts as `wallet_program_authority`
-            // (vault was initialised with `wallet_program = routerConfigPda`
-            //  OR we pass the config PDA and sign with its seeds).
             let bump = ctx.accounts.config.bump;
             let config_seeds: &[&[&[u8]]] = &[&[RouterConfig::SEED, &[bump]]];
 
@@ -324,7 +511,7 @@ pub mod krexa_payment_router {
                     },
                     config_seeds,
                 ),
-                merchant, // agent key used as credit_line seed
+                merchant,
                 repayment,
             )?;
         }
@@ -364,18 +551,17 @@ pub mod krexa_payment_router {
     }
 
     // ── 4. update_split ────────────────────────────────────────────────────
-    // Oracle can dynamically adjust repayment split (e.g. as credit risk changes).
 
     pub fn update_split(
         ctx: Context<OracleAction>,
         merchant: Pubkey,
         new_split_bps: u16,
     ) -> Result<()> {
+        require!(!ctx.accounts.config.is_paused, RouterError::Paused);
         require!(new_split_bps <= MAX_SPLIT_BPS, RouterError::SplitTooHigh);
         let s = &mut ctx.accounts.settlement;
         let old_bps = s.split_bps;
         s.split_bps = new_split_bps;
-        // If split goes to 0, effectively pause credit repayment.
         s.has_active_credit = s.agent_wallet_pda != Pubkey::default() && new_split_bps > 0;
         emit!(SplitUpdated { merchant, old_bps, new_bps: new_split_bps });
         Ok(())
@@ -393,8 +579,7 @@ pub mod krexa_payment_router {
         Ok(())
     }
 
-    // ── 5b. reactivate_settlement ───────────────────────────────────────────
-    // SOL-033 fix: Allow reactivating previously deactivated settlements.
+    // ── 5b. reactivate_settlement ─────────────────────────────────────────
 
     pub fn reactivate_settlement(
         ctx: Context<OracleAction>,
@@ -413,8 +598,7 @@ pub mod krexa_payment_router {
         Ok(())
     }
 
-    // ── 7. update_config ─────────────────────────────────────────────────
-    // Admin can rotate oracle, treasury, and fee params.
+    // ── 7. update_config ───────────────────────────────────────────────────
 
     pub fn update_config(
         ctx: Context<AdminConfig>,
@@ -443,10 +627,488 @@ pub mod krexa_payment_router {
         }
         Ok(())
     }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // REVENUE SOURCE VALIDATION INSTRUCTIONS
+    // ═════════════════════════════════════════════════════════════════════════
+
+    // ── 8. create_revenue_validator ────────────────────────────────────────
+    /// Oracle creates a RevenueValidator PDA for a Type B agent.
+
+    pub fn create_revenue_validator(
+        ctx: Context<CreateRevenueValidator>,
+        merchant: Pubkey,
+        agent_wallet_pda: Pubkey,
+        agent_owner: Pubkey,
+        expected_daily_revenue: u64,
+        total_credit: u64,
+    ) -> Result<()> {
+        require!(!ctx.accounts.config.is_paused, RouterError::Paused);
+
+        let now = Clock::get()?.unix_timestamp;
+        let v = &mut ctx.accounts.validator;
+        v.merchant = merchant;
+        v.agent_wallet_pda = agent_wallet_pda;
+        v.agent_owner = agent_owner;
+        v.registered_sources = [Pubkey::default(); 30];
+        v.num_registered_sources = 0;
+        v.associated_wallets = [Pubkey::default(); 10];
+        v.num_associated_wallets = 0;
+        v.expected_daily_revenue = expected_daily_revenue;
+        v.total_credit = total_credit;
+        v.cumulative_validated_revenue = 0;
+        v.total_disbursed = 0;
+        v.plan_created_at = now;
+        v.revenue_integrity_violations = 0;
+        v.is_active = true;
+        v.bump = ctx.bumps.validator;
+        Ok(())
+    }
+
+    // ── 9. create_payment_history ──────────────────────────────────────────
+    /// Oracle creates a PaymentHistory PDA for a Type B agent.
+
+    pub fn create_payment_history(
+        ctx: Context<CreatePaymentHistory>,
+        merchant: Pubkey,
+    ) -> Result<()> {
+        require!(!ctx.accounts.config.is_paused, RouterError::Paused);
+
+        let h = &mut ctx.accounts.history;
+        h.merchant = merchant;
+        h.payments = [PaymentRecord::default(); 50];
+        h.payment_head = 0;
+        h.payment_count = 0;
+        h.outflows = [OutflowRecord::default(); 20];
+        h.outflow_head = 0;
+        h.outflow_count = 0;
+        h.bump = ctx.bumps.history;
+        Ok(())
+    }
+
+    // ── 10. initialize_blocklist ───────────────────────────────────────────
+
+    pub fn initialize_blocklist(ctx: Context<InitBlocklist>) -> Result<()> {
+        let b = &mut ctx.accounts.blocklist;
+        b.entries = [Pubkey::default(); 50];
+        b.count = 0;
+        b.bump = ctx.bumps.blocklist;
+        Ok(())
+    }
+
+    // ── 11. initialize_platform_whitelist ──────────────────────────────────
+
+    pub fn initialize_platform_whitelist(ctx: Context<InitPlatformWhitelist>) -> Result<()> {
+        let w = &mut ctx.accounts.whitelist;
+        w.entries = [Pubkey::default(); 20];
+        w.count = 0;
+        w.bump = ctx.bumps.whitelist;
+        Ok(())
+    }
+
+    // ── 12. add_to_blocklist ──────────────────────────────────────────────
+
+    pub fn add_to_blocklist(ctx: Context<AdminBlocklist>, wallet: Pubkey) -> Result<()> {
+        let b = &mut ctx.accounts.blocklist;
+        require!((b.count as usize) < MAX_BLOCKLIST_SIZE, RouterError::BlocklistFull);
+        let idx = b.count as usize;
+        b.entries[idx] = wallet;
+        b.count += 1;
+        emit!(BlocklistUpdated { wallet, added: true });
+        Ok(())
+    }
+
+    // ── 13. add_to_platform_whitelist ─────────────────────────────────────
+
+    pub fn add_to_platform_whitelist(ctx: Context<AdminPlatformWhitelist>, wallet: Pubkey) -> Result<()> {
+        let w = &mut ctx.accounts.whitelist;
+        require!((w.count as usize) < MAX_PLATFORM_WHITELIST_SIZE, RouterError::WhitelistFull);
+        let idx = w.count as usize;
+        w.entries[idx] = wallet;
+        w.count += 1;
+        emit!(PlatformWhitelistUpdated { wallet, added: true });
+        Ok(())
+    }
+
+    // ── 14. register_revenue_source ───────────────────────────────────────
+    /// Oracle adds a verified customer address to the agent's registered sources.
+
+    pub fn register_revenue_source(
+        ctx: Context<ManageRevenueSource>,
+        _merchant: Pubkey,
+        source: Pubkey,
+    ) -> Result<()> {
+        require!(!ctx.accounts.config.is_paused, RouterError::Paused);
+        let v = &mut ctx.accounts.validator;
+        require!(v.is_active, RouterError::ValidatorNotActive);
+        require!(
+            (v.num_registered_sources as usize) < MAX_REVENUE_SOURCES,
+            RouterError::MaxSourcesReached
+        );
+
+        // Check for duplicates
+        for i in 0..v.num_registered_sources as usize {
+            require!(v.registered_sources[i] != source, RouterError::SourceAlreadyRegistered);
+        }
+
+        let idx = v.num_registered_sources as usize;
+        v.registered_sources[idx] = source;
+        v.num_registered_sources += 1;
+
+        emit!(RevenueSourceRegistered {
+            merchant: v.merchant,
+            source,
+        });
+        Ok(())
+    }
+
+    // ── 15. remove_revenue_source ─────────────────────────────────────────
+
+    pub fn remove_revenue_source(
+        ctx: Context<ManageRevenueSource>,
+        _merchant: Pubkey,
+        source: Pubkey,
+    ) -> Result<()> {
+        require!(!ctx.accounts.config.is_paused, RouterError::Paused);
+        let v = &mut ctx.accounts.validator;
+        require!(v.is_active, RouterError::ValidatorNotActive);
+
+        let mut found = false;
+        for i in 0..v.num_registered_sources as usize {
+            if v.registered_sources[i] == source {
+                // Swap with last and decrement
+                let last_idx = (v.num_registered_sources - 1) as usize;
+                v.registered_sources[i] = v.registered_sources[last_idx];
+                v.registered_sources[last_idx] = Pubkey::default();
+                v.num_registered_sources -= 1;
+                found = true;
+                break;
+            }
+        }
+        require!(found, RouterError::SourceNotFound);
+
+        emit!(RevenueSourceRemoved {
+            merchant: v.merchant,
+            source,
+        });
+        Ok(())
+    }
+
+    // ── 16. add_associated_wallet ─────────────────────────────────────────
+    /// Oracle adds a known associated wallet of the agent owner (auto-rejected).
+
+    pub fn add_associated_wallet(
+        ctx: Context<ManageRevenueSource>,
+        _merchant: Pubkey,
+        wallet: Pubkey,
+    ) -> Result<()> {
+        require!(!ctx.accounts.config.is_paused, RouterError::Paused);
+        let v = &mut ctx.accounts.validator;
+        require!(v.is_active, RouterError::ValidatorNotActive);
+        require!(
+            (v.num_associated_wallets as usize) < MAX_ASSOCIATED_WALLETS,
+            RouterError::MaxAssociatedWalletsReached
+        );
+
+        for i in 0..v.num_associated_wallets as usize {
+            require!(v.associated_wallets[i] != wallet, RouterError::WalletAlreadyAssociated);
+        }
+
+        let idx = v.num_associated_wallets as usize;
+        v.associated_wallets[idx] = wallet;
+        v.num_associated_wallets += 1;
+
+        emit!(AssociatedWalletAdded {
+            merchant: v.merchant,
+            wallet,
+        });
+        Ok(())
+    }
+
+    // ── 17. validate_revenue ──────────────────────────────────────────────
+    /// Run on-chain revenue validation for an incoming payment.
+    /// Called by oracle alongside or after execute_payment.
+    /// Classifies the payment, records it in history, and updates cumulative revenue.
+
+    pub fn validate_revenue(
+        ctx: Context<ValidateRevenue>,
+        _merchant: Pubkey,
+        source: Pubkey,
+        amount: u64,
+        is_x402: bool,
+    ) -> Result<()> {
+        require!(!ctx.accounts.config.is_paused, RouterError::Paused);
+        require!(amount > 0, RouterError::ZeroAmount);
+
+        let now = Clock::get()?.unix_timestamp;
+
+        // Run combined on-chain validation
+        let (classification, reason, pattern_score) = validate_revenue_on_chain(
+            &source,
+            amount,
+            now,
+            is_x402,
+            &ctx.accounts.validator,
+            &ctx.accounts.history,
+            &ctx.accounts.blocklist,
+            &ctx.accounts.platform_whitelist,
+        );
+
+        // Record in payment history ring buffer
+        let history = &mut ctx.accounts.history;
+        let head = history.payment_head as usize;
+        history.payments[head] = PaymentRecord {
+            source,
+            amount,
+            timestamp: now,
+            classification,
+            is_x402,
+            pattern_score,
+        };
+        history.payment_head = ((head + 1) % PAYMENT_HISTORY_SIZE) as u8;
+        if (history.payment_count as usize) < PAYMENT_HISTORY_SIZE {
+            history.payment_count += 1;
+        }
+
+        // Update cumulative revenue ONLY for verified payments
+        let validator = &mut ctx.accounts.validator;
+        if classification == 0 {
+            // Verified — credit immediately
+            validator.cumulative_validated_revenue = validator
+                .cumulative_validated_revenue
+                .saturating_add(amount);
+        }
+        // Rejected (1): not credited
+        // Quarantined (2): not credited yet, awaiting oracle
+        // PendingKeeper (3): tentatively credited (keeper can revoke)
+        if classification == 3 {
+            validator.cumulative_validated_revenue = validator
+                .cumulative_validated_revenue
+                .saturating_add(amount);
+        }
+
+        emit!(RevenueClassified {
+            merchant: validator.merchant,
+            source,
+            amount,
+            classification,
+            reason,
+            pattern_score,
+        });
+
+        Ok(())
+    }
+
+    // ── 18. record_outflow ────────────────────────────────────────────────
+    /// Record an outflow from the agent's PDA for round-trip detection.
+    /// Called by keeper or oracle when the agent sends money out.
+
+    pub fn record_outflow(
+        ctx: Context<RecordOutflow>,
+        _merchant: Pubkey,
+        destination: Pubkey,
+        amount: u64,
+    ) -> Result<()> {
+        require!(!ctx.accounts.config.is_paused, RouterError::Paused);
+
+        let now = Clock::get()?.unix_timestamp;
+        let history = &mut ctx.accounts.history;
+
+        let head = history.outflow_head as usize;
+        history.outflows[head] = OutflowRecord {
+            destination,
+            amount,
+            timestamp: now,
+        };
+        history.outflow_head = ((head + 1) % 20) as u8;
+        if history.outflow_count < 20 {
+            history.outflow_count += 1;
+        }
+
+        emit!(OutflowRecorded {
+            merchant: history.merchant,
+            destination,
+            amount,
+        });
+        Ok(())
+    }
+
+    // ── 19. review_quarantined ─────────────────────────────────────────────
+    /// Oracle reviews a quarantined payment and makes a decision.
+
+    pub fn review_quarantined(
+        ctx: Context<ReviewQuarantined>,
+        _merchant: Pubkey,
+        payment_index: u8,
+        decision: u8,
+    ) -> Result<()> {
+        require!(!ctx.accounts.config.is_paused, RouterError::Paused);
+        require!(decision <= 3, RouterError::InvalidDecision);
+        require!(
+            (payment_index as usize) < PAYMENT_HISTORY_SIZE,
+            RouterError::PaymentIndexOutOfBounds
+        );
+
+        let history = &mut ctx.accounts.history;
+        let payment = &mut history.payments[payment_index as usize];
+
+        require!(
+            payment.classification == 2 || payment.classification == 3,
+            RouterError::NotQuarantined
+        );
+
+        let amount = payment.amount;
+        let was_pending_keeper = payment.classification == 3;
+
+        match decision {
+            DECISION_APPROVE => {
+                payment.classification = 0; // Verified
+                if !was_pending_keeper {
+                    // Was quarantined (not tentatively credited) → credit now
+                    let v = &mut ctx.accounts.validator;
+                    v.cumulative_validated_revenue = v
+                        .cumulative_validated_revenue
+                        .saturating_add(amount);
+                }
+            }
+            DECISION_REJECT => {
+                payment.classification = 1; // Rejected
+                if was_pending_keeper {
+                    // Was tentatively credited → must decrement
+                    let v = &mut ctx.accounts.validator;
+                    v.cumulative_validated_revenue = v
+                        .cumulative_validated_revenue
+                        .saturating_sub(amount);
+                    v.revenue_integrity_violations = v
+                        .revenue_integrity_violations
+                        .saturating_add(1);
+                }
+            }
+            DECISION_APPROVE_AND_WHITELIST => {
+                payment.classification = 0; // Verified
+                if !was_pending_keeper {
+                    let v = &mut ctx.accounts.validator;
+                    v.cumulative_validated_revenue = v
+                        .cumulative_validated_revenue
+                        .saturating_add(amount);
+                }
+                // Add source to registered_revenue_sources
+                let source = payment.source;
+                let v = &mut ctx.accounts.validator;
+                if (v.num_registered_sources as usize) < MAX_REVENUE_SOURCES {
+                    let idx = v.num_registered_sources as usize;
+                    v.registered_sources[idx] = source;
+                    v.num_registered_sources += 1;
+                }
+            }
+            DECISION_REJECT_AND_BLOCKLIST => {
+                payment.classification = 1; // Rejected
+                if was_pending_keeper {
+                    let v = &mut ctx.accounts.validator;
+                    v.cumulative_validated_revenue = v
+                        .cumulative_validated_revenue
+                        .saturating_sub(amount);
+                    v.revenue_integrity_violations = v
+                        .revenue_integrity_violations
+                        .saturating_add(1);
+                }
+                // Add to global blocklist
+                let source = payment.source;
+                let b = &mut ctx.accounts.blocklist;
+                if (b.count as usize) < MAX_BLOCKLIST_SIZE {
+                    let idx = b.count as usize;
+                    b.entries[idx] = source;
+                    b.count += 1;
+                }
+            }
+            _ => unreachable!(),
+        }
+
+        emit!(QuarantineReviewed {
+            merchant: ctx.accounts.validator.merchant,
+            payment_index,
+            decision,
+            amount,
+        });
+        Ok(())
+    }
+
+    // ── 20. retroactive_reject ─────────────────────────────────────────────
+    /// Keeper/oracle retroactively rejects a previously credited payment.
+    /// Decrements cumulative_validated_revenue and increments violation counter.
+
+    pub fn retroactive_reject(
+        ctx: Context<RetroactiveReject>,
+        _merchant: Pubkey,
+        payment_index: u8,
+    ) -> Result<()> {
+        require!(!ctx.accounts.config.is_paused, RouterError::Paused);
+        require!(
+            (payment_index as usize) < PAYMENT_HISTORY_SIZE,
+            RouterError::PaymentIndexOutOfBounds
+        );
+
+        let history = &mut ctx.accounts.history;
+        let payment = &mut history.payments[payment_index as usize];
+
+        // Can only retroactively reject Verified or PendingKeeper payments
+        require!(
+            payment.classification == 0 || payment.classification == 3,
+            RouterError::NotQuarantined
+        );
+
+        let amount = payment.amount;
+        payment.classification = 1; // Rejected
+
+        let validator = &mut ctx.accounts.validator;
+        let old_cumulative = validator.cumulative_validated_revenue;
+        validator.cumulative_validated_revenue = validator
+            .cumulative_validated_revenue
+            .saturating_sub(amount);
+        validator.revenue_integrity_violations = validator
+            .revenue_integrity_violations
+            .saturating_add(1);
+
+        emit!(RetroactiveRejection {
+            merchant: validator.merchant,
+            amount,
+            old_cumulative,
+            new_cumulative: validator.cumulative_validated_revenue,
+            violations: validator.revenue_integrity_violations,
+        });
+
+        Ok(())
+    }
+
+    // ── 21. update_validator_params ────────────────────────────────────────
+    /// Oracle updates validator parameters (expected revenue, disbursed, etc.)
+
+    pub fn update_validator_params(
+        ctx: Context<ManageRevenueSource>,
+        _merchant: Pubkey,
+        expected_daily_revenue: Option<u64>,
+        total_credit: Option<u64>,
+        total_disbursed: Option<u64>,
+    ) -> Result<()> {
+        require!(!ctx.accounts.config.is_paused, RouterError::Paused);
+        let v = &mut ctx.accounts.validator;
+        require!(v.is_active, RouterError::ValidatorNotActive);
+
+        if let Some(edr) = expected_daily_revenue {
+            v.expected_daily_revenue = edr;
+        }
+        if let Some(tc) = total_credit {
+            v.total_credit = tc;
+        }
+        if let Some(td) = total_disbursed {
+            v.total_disbursed = td;
+        }
+        Ok(())
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Contexts
+// Contexts — original
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[derive(Accounts)]
@@ -462,11 +1124,9 @@ pub struct Initialize<'info> {
 
     pub usdc_mint: Account<'info, Mint>,
 
-    /// Krexa treasury — pre-existing account, admin-controlled externally.
     #[account(token::mint = usdc_mint)]
     pub platform_treasury: Account<'info, TokenAccount>,
 
-    /// The oracle pubkey that will sign payments. Stored in config; not required to sign init.
     /// CHECK: pubkey only stored, no signature needed at init time.
     pub oracle: UncheckedAccount<'info>,
 
@@ -504,20 +1164,19 @@ pub struct ActivateSettlement<'info> {
 #[derive(Accounts)]
 #[instruction(merchant: Pubkey, amount: u64, nonce: u64)]
 pub struct ExecutePayment<'info> {
-    // ── Router state ──────────────────────────────────────────────────────
     #[account(
         seeds = [RouterConfig::SEED],
         bump = config.bump,
         has_one = oracle @ RouterError::NotOracle,
     )]
-    pub config: Account<'info, RouterConfig>,
+    pub config: Box<Account<'info, RouterConfig>>,
 
     #[account(
         mut,
         seeds = [MerchantSettlement::SEED, merchant.as_ref()],
         bump = settlement.bump,
     )]
-    pub settlement: Account<'info, MerchantSettlement>,
+    pub settlement: Box<Account<'info, MerchantSettlement>>,
 
     // ── Payment accounts ──────────────────────────────────────────────────
     /// Buyer's USDC — oracle must have delegate authority (or hold in escrow).
@@ -527,10 +1186,8 @@ pub struct ExecutePayment<'info> {
         token::mint = config.usdc_mint,
         constraint = payer_usdc.owner == oracle.key() @ RouterError::InvalidPayerAccount,
     )]
-    pub payer_usdc: Account<'info, TokenAccount>,
+    pub payer_usdc: Box<Account<'info, TokenAccount>>,
 
-    /// SOL-007 fix: Merchant's USDC account — must belong to settlement merchant or their wallet PDA.
-    /// Previously had no owner validation — oracle could accidentally/maliciously route to wrong account.
     #[account(
         mut,
         token::mint = config.usdc_mint,
@@ -538,39 +1195,31 @@ pub struct ExecutePayment<'info> {
             || merchant_usdc.owner == settlement.agent_wallet_pda
             @ RouterError::InvalidMerchantAccount,
     )]
-    pub merchant_usdc: Account<'info, TokenAccount>,
+    pub merchant_usdc: Box<Account<'info, TokenAccount>>,
 
-    /// Krexa treasury USDC.
     #[account(
         mut,
         address = config.platform_treasury,
     )]
-    pub platform_treasury_token: Account<'info, TokenAccount>,
+    pub platform_treasury_token: Box<Account<'info, TokenAccount>>,
 
-    // ── Vault CPI accounts (only used when repayment > 0) ────────────────
-    /// SOL-008 fix: vault_config must be owned by the vault program (defense-in-depth).
-    /// CHECK: Account data is validated by vault program via PDA seeds during CPI.
-    /// We additionally verify the owner to prevent passing a spoofed account.
+    /// CHECK: validated by vault program via PDA seeds during CPI.
     #[account(
         mut,
         constraint = *vault_config.owner == vault_program.key() @ RouterError::InvalidVaultConfig,
     )]
     pub vault_config: UncheckedAccount<'info>,
 
-    /// Vault's USDC pool token account — receives repayment.
     #[account(mut)]
-    pub vault_token: Account<'info, TokenAccount>,
+    pub vault_token: Box<Account<'info, TokenAccount>>,
 
-    /// Vault's insurance USDC token account.
     #[account(mut)]
-    pub insurance_token: Account<'info, TokenAccount>,
+    pub insurance_token: Box<Account<'info, TokenAccount>>,
 
-    /// Agent's CreditLine PDA in the vault program.
     /// CHECK: validated by vault program (seeds = [b"credit_line", merchant])
     #[account(mut)]
     pub credit_line: UncheckedAccount<'info>,
 
-    // ── Signers and programs ──────────────────────────────────────────────
     #[account(mut)]
     pub oracle: Signer<'info>,
 
@@ -578,7 +1227,6 @@ pub struct ExecutePayment<'info> {
     pub token_program: Program<'info, Token>,
 }
 
-/// Oracle-signed actions on an existing MerchantSettlement.
 #[derive(Accounts)]
 #[instruction(merchant: Pubkey)]
 pub struct OracleAction<'info> {
@@ -599,7 +1247,6 @@ pub struct OracleAction<'info> {
     pub oracle: Signer<'info>,
 }
 
-/// Admin-only actions on an existing MerchantSettlement.
 #[derive(Accounts)]
 #[instruction(merchant: Pubkey)]
 pub struct AdminAction<'info> {
@@ -620,7 +1267,6 @@ pub struct AdminAction<'info> {
     pub admin: Signer<'info>,
 }
 
-/// Admin-only actions on RouterConfig itself (e.g. pause).
 #[derive(Accounts)]
 pub struct AdminConfig<'info> {
     #[account(
@@ -632,4 +1278,284 @@ pub struct AdminConfig<'info> {
     pub config: Account<'info, RouterConfig>,
 
     pub admin: Signer<'info>,
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Contexts — Revenue Validation
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[derive(Accounts)]
+#[instruction(merchant: Pubkey)]
+pub struct CreateRevenueValidator<'info> {
+    #[account(
+        seeds = [RouterConfig::SEED],
+        bump = config.bump,
+        has_one = oracle @ RouterError::NotOracle,
+    )]
+    pub config: Account<'info, RouterConfig>,
+
+    #[account(
+        init,
+        payer = oracle,
+        space = RevenueValidator::LEN,
+        seeds = [RevenueValidator::SEED, merchant.as_ref()],
+        bump,
+    )]
+    pub validator: Account<'info, RevenueValidator>,
+
+    #[account(mut)]
+    pub oracle: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(merchant: Pubkey)]
+pub struct CreatePaymentHistory<'info> {
+    #[account(
+        seeds = [RouterConfig::SEED],
+        bump = config.bump,
+        has_one = oracle @ RouterError::NotOracle,
+    )]
+    pub config: Account<'info, RouterConfig>,
+
+    #[account(
+        init,
+        payer = oracle,
+        space = PaymentHistory::LEN,
+        seeds = [PaymentHistory::SEED, merchant.as_ref()],
+        bump,
+    )]
+    pub history: Account<'info, PaymentHistory>,
+
+    #[account(mut)]
+    pub oracle: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct InitBlocklist<'info> {
+    #[account(
+        seeds = [RouterConfig::SEED],
+        bump = config.bump,
+        has_one = admin @ RouterError::NotAdmin,
+    )]
+    pub config: Account<'info, RouterConfig>,
+
+    #[account(
+        init,
+        payer = admin,
+        space = GlobalBlocklist::LEN,
+        seeds = [GlobalBlocklist::SEED],
+        bump,
+    )]
+    pub blocklist: Account<'info, GlobalBlocklist>,
+
+    #[account(mut)]
+    pub admin: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct InitPlatformWhitelist<'info> {
+    #[account(
+        seeds = [RouterConfig::SEED],
+        bump = config.bump,
+        has_one = admin @ RouterError::NotAdmin,
+    )]
+    pub config: Account<'info, RouterConfig>,
+
+    #[account(
+        init,
+        payer = admin,
+        space = PlatformWhitelist::LEN,
+        seeds = [PlatformWhitelist::SEED],
+        bump,
+    )]
+    pub whitelist: Account<'info, PlatformWhitelist>,
+
+    #[account(mut)]
+    pub admin: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct AdminBlocklist<'info> {
+    #[account(
+        seeds = [RouterConfig::SEED],
+        bump = config.bump,
+        has_one = admin @ RouterError::NotAdmin,
+    )]
+    pub config: Account<'info, RouterConfig>,
+
+    #[account(
+        mut,
+        seeds = [GlobalBlocklist::SEED],
+        bump = blocklist.bump,
+    )]
+    pub blocklist: Account<'info, GlobalBlocklist>,
+
+    pub admin: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct AdminPlatformWhitelist<'info> {
+    #[account(
+        seeds = [RouterConfig::SEED],
+        bump = config.bump,
+        has_one = admin @ RouterError::NotAdmin,
+    )]
+    pub config: Account<'info, RouterConfig>,
+
+    #[account(
+        mut,
+        seeds = [PlatformWhitelist::SEED],
+        bump = whitelist.bump,
+    )]
+    pub whitelist: Account<'info, PlatformWhitelist>,
+
+    pub admin: Signer<'info>,
+}
+
+#[derive(Accounts)]
+#[instruction(merchant: Pubkey)]
+pub struct ManageRevenueSource<'info> {
+    #[account(
+        seeds = [RouterConfig::SEED],
+        bump = config.bump,
+        has_one = oracle @ RouterError::NotOracle,
+    )]
+    pub config: Account<'info, RouterConfig>,
+
+    #[account(
+        mut,
+        seeds = [RevenueValidator::SEED, merchant.as_ref()],
+        bump = validator.bump,
+    )]
+    pub validator: Account<'info, RevenueValidator>,
+
+    pub oracle: Signer<'info>,
+}
+
+#[derive(Accounts)]
+#[instruction(merchant: Pubkey)]
+pub struct ValidateRevenue<'info> {
+    #[account(
+        seeds = [RouterConfig::SEED],
+        bump = config.bump,
+        has_one = oracle @ RouterError::NotOracle,
+    )]
+    pub config: Account<'info, RouterConfig>,
+
+    #[account(
+        mut,
+        seeds = [RevenueValidator::SEED, merchant.as_ref()],
+        bump = validator.bump,
+    )]
+    pub validator: Account<'info, RevenueValidator>,
+
+    #[account(
+        mut,
+        seeds = [PaymentHistory::SEED, merchant.as_ref()],
+        bump = history.bump,
+    )]
+    pub history: Account<'info, PaymentHistory>,
+
+    #[account(
+        seeds = [GlobalBlocklist::SEED],
+        bump = blocklist.bump,
+    )]
+    pub blocklist: Account<'info, GlobalBlocklist>,
+
+    #[account(
+        seeds = [PlatformWhitelist::SEED],
+        bump = platform_whitelist.bump,
+    )]
+    pub platform_whitelist: Account<'info, PlatformWhitelist>,
+
+    pub oracle: Signer<'info>,
+}
+
+#[derive(Accounts)]
+#[instruction(merchant: Pubkey)]
+pub struct RecordOutflow<'info> {
+    #[account(
+        seeds = [RouterConfig::SEED],
+        bump = config.bump,
+        has_one = oracle @ RouterError::NotOracle,
+    )]
+    pub config: Account<'info, RouterConfig>,
+
+    #[account(
+        mut,
+        seeds = [PaymentHistory::SEED, merchant.as_ref()],
+        bump = history.bump,
+    )]
+    pub history: Account<'info, PaymentHistory>,
+
+    pub oracle: Signer<'info>,
+}
+
+#[derive(Accounts)]
+#[instruction(merchant: Pubkey)]
+pub struct ReviewQuarantined<'info> {
+    #[account(
+        seeds = [RouterConfig::SEED],
+        bump = config.bump,
+        has_one = oracle @ RouterError::NotOracle,
+    )]
+    pub config: Account<'info, RouterConfig>,
+
+    #[account(
+        mut,
+        seeds = [RevenueValidator::SEED, merchant.as_ref()],
+        bump = validator.bump,
+    )]
+    pub validator: Account<'info, RevenueValidator>,
+
+    #[account(
+        mut,
+        seeds = [PaymentHistory::SEED, merchant.as_ref()],
+        bump = history.bump,
+    )]
+    pub history: Account<'info, PaymentHistory>,
+
+    #[account(
+        mut,
+        seeds = [GlobalBlocklist::SEED],
+        bump = blocklist.bump,
+    )]
+    pub blocklist: Account<'info, GlobalBlocklist>,
+
+    pub oracle: Signer<'info>,
+}
+
+#[derive(Accounts)]
+#[instruction(merchant: Pubkey)]
+pub struct RetroactiveReject<'info> {
+    #[account(
+        seeds = [RouterConfig::SEED],
+        bump = config.bump,
+        has_one = oracle @ RouterError::NotOracle,
+    )]
+    pub config: Account<'info, RouterConfig>,
+
+    #[account(
+        mut,
+        seeds = [RevenueValidator::SEED, merchant.as_ref()],
+        bump = validator.bump,
+    )]
+    pub validator: Account<'info, RevenueValidator>,
+
+    #[account(
+        mut,
+        seeds = [PaymentHistory::SEED, merchant.as_ref()],
+        bump = history.bump,
+    )]
+    pub history: Account<'info, PaymentHistory>,
+
+    pub oracle: Signer<'info>,
 }

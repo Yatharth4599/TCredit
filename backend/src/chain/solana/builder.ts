@@ -291,7 +291,6 @@ export function buildLiquidate(params: LiquidateParams): TransactionInstruction 
 export interface RepayParams {
   agent: PublicKey;
   caller: PublicKey;
-  callerUsdc: PublicKey;  // caller's USDC ATA
   amount: bigint;
   vaultToken?: PublicKey;
   insuranceToken?: PublicKey;
@@ -299,7 +298,7 @@ export interface RepayParams {
 }
 
 export function buildRepay(params: RepayParams): TransactionInstruction {
-  const { agent, caller, callerUsdc, amount } = params;
+  const { agent, caller, amount } = params;
   const config = walletConfigPda();
   const wallet = agentWalletPda(agent);
   const walletUsdc = walletUsdcPda(agent);
@@ -315,6 +314,7 @@ export function buildRepay(params: RepayParams): TransactionInstruction {
     encodeU64(amount),
   ]);
 
+  // Account order must match on-chain Repay struct exactly (13 accounts)
   return ix(PROGRAM_IDS.agentWallet, [
     { pubkey: config,         isSigner: false, isWritable: false },
     { pubkey: wallet,         isSigner: false, isWritable: true  },
@@ -325,12 +325,32 @@ export function buildRepay(params: RepayParams): TransactionInstruction {
     { pubkey: creditLine,     isSigner: false, isWritable: true  },
     { pubkey: registryConfig, isSigner: false, isWritable: false },
     { pubkey: agentProfile,   isSigner: false, isWritable: true  },
-    { pubkey: callerUsdc,     isSigner: false, isWritable: true  },
     { pubkey: caller,         isSigner: true,  isWritable: false },
     { pubkey: PROGRAM_IDS.creditVault,    isSigner: false, isWritable: false },
     { pubkey: PROGRAM_IDS.agentRegistry,  isSigner: false, isWritable: false },
     { pubkey: TOKEN_PROGRAM_ID,           isSigner: false, isWritable: false },
   ], data);
+}
+
+// ---------------------------------------------------------------------------
+// Registry: migrate_profile_v3 (realloc old profile to current size)
+// ---------------------------------------------------------------------------
+
+export interface MigrateProfileParams {
+  agent: PublicKey;
+  payer: PublicKey; // also signs — can be same as agent
+}
+
+export function buildMigrateProfile(params: MigrateProfileParams): TransactionInstruction {
+  const { agent, payer } = params;
+  const profile = agentProfilePda(agent);
+
+  return ix(PROGRAM_IDS.agentRegistry, [
+    { pubkey: profile,                  isSigner: false, isWritable: true  },
+    { pubkey: agent,                    isSigner: true,  isWritable: false },
+    { pubkey: payer,                    isSigner: true,  isWritable: true  },
+    { pubkey: SystemProgram.programId,  isSigner: false, isWritable: false },
+  ], Buffer.from(DISCRIMINATORS.migrateProfileV3));
 }
 
 // ---------------------------------------------------------------------------
@@ -497,6 +517,90 @@ export function buildCancelOwnershipTransfer(params: CancelOwnershipTransferPara
     { pubkey: transferRequest, isSigner: false, isWritable: true  },
     { pubkey: owner,           isSigner: true,  isWritable: true  },
   ], Buffer.from(DISCRIMINATORS.cancelOwnershipTransfer));
+}
+
+// ---------------------------------------------------------------------------
+// Credit Vault: request_credit (via agent-wallet program, oracle must co-sign)
+// ---------------------------------------------------------------------------
+
+export interface RequestCreditParams {
+  agent: PublicKey;
+  oracle: PublicKey;
+  agentOrOwner: PublicKey;   // agent or owner pubkey (second required signer from browser)
+  amount: bigint;            // USDC base units
+  rateBps: number;           // annual interest rate in BPS
+  creditLevel: number;       // u8
+  collateralValueUsdc: bigint;
+}
+
+export function buildRequestCredit(params: RequestCreditParams): TransactionInstruction {
+  const { agent, oracle, agentOrOwner, amount, rateBps, creditLevel, collateralValueUsdc } = params;
+  const config       = walletConfigPda();
+  const wallet       = agentWalletPda(agent);
+  const walletUsdc   = walletUsdcPda(agent);
+  const vaultConfig  = vaultConfigPda();
+  const vaultToken   = vaultUsdcPda();
+  const collateral   = collateralPositionPda(agent);
+  const agentProfile = agentProfilePda(agent);
+  const creditLine   = creditLinePda(agent);
+
+  const data = Buffer.concat([
+    DISCRIMINATORS.requestCredit,
+    encodeU64(amount),
+    encodeU16(rateBps),
+    encodeU8(creditLevel),
+    encodeU64(collateralValueUsdc),
+  ]);
+
+  return ix(PROGRAM_IDS.agentWallet, [
+    { pubkey: config,              isSigner: false, isWritable: false },
+    { pubkey: wallet,              isSigner: false, isWritable: true  },
+    { pubkey: walletUsdc,          isSigner: false, isWritable: true  },
+    { pubkey: vaultConfig,         isSigner: false, isWritable: true  },
+    { pubkey: vaultToken,          isSigner: false, isWritable: true  },
+    { pubkey: collateral,          isSigner: false, isWritable: false },
+    { pubkey: agentProfile,        isSigner: false, isWritable: false },
+    { pubkey: creditLine,          isSigner: false, isWritable: true  },
+    { pubkey: oracle,              isSigner: true,  isWritable: true  },
+    { pubkey: agentOrOwner,        isSigner: true,  isWritable: false },
+    { pubkey: PROGRAM_IDS.creditVault, isSigner: false, isWritable: false },
+    { pubkey: TOKEN_PROGRAM_ID,    isSigner: false, isWritable: false },
+    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+  ], data);
+}
+
+// ---------------------------------------------------------------------------
+// Credit Vault: deposit_collateral (init collateral position PDA)
+// ---------------------------------------------------------------------------
+
+export interface DepositCollateralParams {
+  agent: PublicKey;
+  owner: PublicKey;          // signer + payer for init_if_needed
+  ownerUsdc: PublicKey;      // owner's USDC ATA
+  amount: bigint;            // USDC base units (minimum 10_000 = $0.01)
+}
+
+export function buildDepositCollateral(params: DepositCollateralParams): TransactionInstruction {
+  const { agent, owner, ownerUsdc, amount } = params;
+  const vaultConfig = vaultConfigPda();
+  const vaultToken  = vaultUsdcPda();
+  const collateral  = collateralPositionPda(agent);
+
+  const data = Buffer.concat([
+    DISCRIMINATORS.depositCollateral,
+    encodePubkey(agent),
+    encodeU64(amount),
+  ]);
+
+  return ix(PROGRAM_IDS.creditVault, [
+    { pubkey: vaultConfig,  isSigner: false, isWritable: true  },
+    { pubkey: vaultToken,   isSigner: false, isWritable: true  },
+    { pubkey: collateral,   isSigner: false, isWritable: true  },
+    { pubkey: ownerUsdc,    isSigner: false, isWritable: true  },
+    { pubkey: owner,        isSigner: true,  isWritable: true  },
+    { pubkey: TOKEN_PROGRAM_ID,        isSigner: false, isWritable: false },
+    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+  ], data);
 }
 
 // ---------------------------------------------------------------------------

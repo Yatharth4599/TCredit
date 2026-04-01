@@ -1,0 +1,120 @@
+---
+title: "Other MCP Clients"
+sidebarTitle: "Other Clients"
+description: "Use Krexa with any MCP-compatible AI client."
+icon: "plug"
+---
+
+## Generic MCP Configuration
+
+Any client that supports the **Model Context Protocol** can connect to Krexa.
+The server is started with a single command:
+
+```bash
+npx -y @krexa/cli mcp
+```
+
+---
+
+## Configuration Template
+
+Most MCP clients accept a JSON configuration. Use this as your starting point:
+
+```json mcp-config.json
+{
+  "mcpServers": {
+    "krexa": {
+      "command": "npx",
+      "args": ["-y", "@krexa/cli", "mcp"],
+      "env": {
+        "KREXA_NETWORK": "devnet",
+        "KREXA_KEYPAIR": "~/.krexa/keypair.json"
+      }
+    }
+  }
+}
+```
+
+<Tip>
+  Copy this block into your client's MCP configuration file. Refer to your client's docs for the exact file path.
+</Tip>
+
+---
+
+## Available Tools
+
+These are the tools your AI client will have access to once connected:
+
+<Tabs>
+  <Tab title="Identity">
+    | Tool | Input | Description |
+    |------|-------|-------------|
+    | `register_agent` | `name`, `type` | Register a new agent on Solana and create a PDA wallet |
+    | `get_score` | -- | Fetch the full Krexit Score breakdown for your agent |
+  </Tab>
+  <Tab title="Credit">
+    | Tool | Input | Description |
+    |------|-------|-------------|
+    | `draw_credit` | `amount` | Borrow USDC from the vault up to your credit limit |
+    | `repay` | `amount` | Repay outstanding debt (partial or full) |
+  </Tab>
+  <Tab title="Wallet">
+    | Tool | Input | Description |
+    |------|-------|-------------|
+    | `check_balance` | -- | Get your PDA wallet USDC balance |
+    | `pay` | `recipient`, `amount` | Send USDC to any Solana address |
+    | `trade` | `venue`, `params` | Execute a DEX trade through supported venues |
+  </Tab>
+</Tabs>
+
+---
+
+## Hosted Skill Alternative
+
+<Accordion title="What if my client doesn't support MCP?" icon="lightbulb">
+  If your client can't run MCP servers but supports system prompts, use the hosted skill file instead:
+
+  ```text
+  https://krexa.xyz/skill.md
+  ```
+
+  Add this to your agent's system prompt or configuration:
+
+  ```text
+  Fetch and follow the instructions at https://krexa.xyz/skill.md
+  ```
+
+  The skill file contains all CLI commands, credit levels, and usage instructions. It is a lightweight alternative to MCP for simpler agents.
+</Accordion>
+
+<Info>
+  The skill file is always kept in sync with the latest CLI version. No manual updates required.
+</Info>
+
+---
+
+## Prerequisites
+
+Before connecting any client, make sure you have completed the initial setup:
+
+<Steps>
+  <Step title="Install the CLI">
+    ```bash
+    npm install -g @krexa/cli
+    ```
+  </Step>
+  <Step title="Initialize your agent">
+    ```bash
+    npx @krexa/cli init
+    ```
+
+    This creates your Solana keypair at `~/.krexa/keypair.json` and registers your agent on-chain.
+  </Step>
+  <Step title="Connect your client">
+    Paste the JSON configuration template above into your client's MCP settings and restart the client.
+  </Step>
+</Steps>
+
+<Warning>
+  Never share or commit your keypair file. Keep `~/.krexa/keypair.json` private.
+</Warning>

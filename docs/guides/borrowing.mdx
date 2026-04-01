@@ -1,0 +1,66 @@
+---
+title: Borrowing USDC
+description: Draw credit from the Krexa vault.
+---
+
+Borrow USDC against your Krexit Score. No collateral required at any level.
+
+```bash
+krexa borrow 500
+```
+
+```
+✓ Oracle approved credit request
+✓ Credit line opened: $500.00 USDC
+
+  Amount       $500.00 USDC
+  Rate         36.50% APR (0.10%/day)
+  Daily Cost   $0.50
+  Level        L1 (Micro)
+```
+
+## Credit limits
+
+| Level | Score | Max Credit | APR | Daily Cost / $1K |
+|-------|-------|-----------|-----|-----------------|
+| L1 Micro | 200-499 | $500 | 36.50% | $1.00 |
+| L2 Standard | 500-649 | $20,000 | 29.20% | $0.80 |
+| L3 Growth | 650-749 | $50,000 | 21.90% | $0.60 |
+| L4 Prime | 750-850 | $500,000 | 18.25% | $0.50 |
+
+## How it works
+
+The oracle co-signs your borrow transaction. Both signatures are required:
+
+1. You run `krexa borrow 500`
+2. CLI sends your amount and pubkey to the oracle backend
+3. Oracle checks your Krexit Score and vault liquidity
+4. Oracle partially signs the Solana transaction
+5. CLI adds your signature and submits to Solana
+6. USDC moves from Credit Vault to your PDA Wallet
+
+```bash
+krexa status  # Check your credit line after borrowing
+```
+
+```
+  Credit Line:
+    Borrowed      $500.00 USDC
+    Interest      $0.00 accrued
+    Total Owed    $500.00 USDC
+    Daily Cost    $0.50
+    Rate          36.50% APR
+```
+
+<Warning>
+Interest accrues daily. A $500 borrow at L1 costs $0.50/day. Repay early to minimize interest.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Repaying" icon="rotate-ccw" href="/docs/guides/repaying">
+    Manual repayment and Revenue Router auto-repay.
+  </Card>
+  <Card title="Improving your score" icon="chart-line" href="/docs/guides/improving-score">
+    Level up to unlock higher limits and lower rates.
+  </Card>
+</CardGroup>

@@ -1,0 +1,59 @@
+---
+title: Publishing an x402 service
+description: Build a paid API with Revenue Router integration.
+---
+
+Charge per request via x402. Revenue flows through the Revenue Router, automatically servicing debt.
+
+## Register as a service agent
+
+```bash
+npx @krexa/cli init --type service --name "MyDataAPI"
+npx @krexa/cli borrow 500
+```
+
+## Implement x402
+
+```typescript
+import express from "express";
+
+const app = express();
+
+app.get("/api/research", (req, res) => {
+  const payment = req.headers["x-payment"];
+
+  if (!payment) {
+    return res.status(402).json({
+      "x-payment-required": true,
+      "x-payment-amount": "0.25",
+      "x-payment-currency": "USDC",
+      "x-payment-recipient": "YOUR_PDA_WALLET",
+      "x-payment-network": "solana",
+    });
+  }
+
+  // Verify payment, then serve response
+  res.json({ result: "research data" });
+});
+```
+
+## Revenue flow
+
+```
+Customer pays $0.25 -> your PDA wallet
+Revenue Router:
+  Protocol fee:  $0.025 -> Treasury
+  Debt service:  $0.075 -> Credit Vault
+  You receive:   $0.150 -> Available in wallet
+```
+
+The Revenue Router intercepts automatically on every inbound payment.
+
+<CardGroup cols={2}>
+  <Card title="Service agents" icon="server" href="/docs/guides/service-agents">
+    Scoring and wind-down for service agents.
+  </Card>
+  <Card title="Revenue Router" icon="arrows-split-up-and-left" href="/docs/protocol/revenue-router">
+    Full waterfall mechanics.
+  </Card>
+</CardGroup>

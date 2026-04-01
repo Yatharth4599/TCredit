@@ -51,11 +51,10 @@ async function callVaultFunction(vault: Address, functionName: 'autoCancelExpire
 // ---------------------------------------------------------------------------
 
 async function cancelExpiredVaults(vaults: Address[]): Promise<void> {
-  // Only check fundraising vaults
-  const fundraising = vaults.filter(async (v) => {
-    // Fast path: filter by DB state if available
-    return true; // check all; autoCancelExpired() will revert if not eligible
-  });
+  // Check all vaults; autoCancelExpired() will revert on-chain if not eligible.
+  // Note: async functions must not be used inside .filter() — they always return a truthy
+  // Promise. State filtering happens inside the loop below via getVaultState().
+  const fundraising = vaults;
 
   for (const vault of fundraising) {
     const state = await getVaultState(vault);

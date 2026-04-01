@@ -265,6 +265,61 @@ export async function getAgentHistory(
 }
 
 // ---------------------------------------------------------------------------
+// Quick Credit Check (free — for third-party integration)
+// ---------------------------------------------------------------------------
+
+const TIER_NAMES = ['none', 'starter', 'established', 'trusted', 'elite'] as const;
+const MAX_CREDITS = ['$0', '$500', '$20,000', '$50,000', '$500,000'] as const;
+
+export interface CreditCheck {
+  agent: string;
+  pass: boolean;
+  score: number;
+  tier: string;
+  maxCredit: string;
+  riskFlags: string[];
+  checkedAt: string;
+}
+
+export async function getAgentCheck(agentPubkey: string): Promise<CreditCheck> {
+  const agentPk = new PublicKey(agentPubkey);
+
+  const [profile, wallet, latestSnapshot] = await Promise.all([
+    readAgentProfile(agentPk).catch(() => null),
+    readAgentWallet(agentPk).catch(() => null),
+    prisma.scoreSnapshot.findFirst({
+      where: { agentPubkey },
+      orderBy: { snapshotAt: 'desc' },
+    }),
+  ]);
+
+  const score = latestSnapshot?.score ?? profile?.creditScore ?? 0;
+  const level = profile?.creditLevel ?? 0;
+
+  // Risk flags
+  const riskFlags: string[] = [];
+  if (!profile) riskFlags.push('AGENT_NOT_FOUND');
+  if (profile && !profile.isActive) riskFlags.push('AGENT_DEACTIVATED');
+  if (wallet?.isFrozen) riskFlags.push('WALLET_FROZEN');
+  if (wallet?.isLiquidating) riskFlags.push('LIQUIDATION_IN_PROGRESS');
+  if (profile && profile.liquidationCount > 0) riskFlags.push('HAS_LIQUIDATION_HISTORY');
+  if (wallet && wallet.healthFactorBps < 12000) riskFlags.push('LOW_HEALTH_FACTOR');
+
+  // Pass = agent exists, is active, has score >= 300, no active liquidation
+  const pass = !!profile && profile.isActive && score >= 300 && !wallet?.isLiquidating;
+
+  return {
+    agent: agentPubkey,
+    pass,
+    score,
+    tier: TIER_NAMES[level] ?? 'none',
+    maxCredit: MAX_CREDITS[level] ?? '$0',
+    riskFlags,
+    checkedAt: new Date().toISOString(),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Inquiry logging
 // ---------------------------------------------------------------------------
 

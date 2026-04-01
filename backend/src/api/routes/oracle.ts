@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import type { Address } from 'viem';
-import { z } from 'zod';
 import { processPayment, getOracleHealth } from '../../services/oracle.service.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { requireApiKey, requireAdmin } from '../middleware/apiKeyAuth.js';
@@ -54,10 +53,10 @@ router.post('/payment', requireAdmin, async (req, res, next) => {
     );
 
     const result = await processPayment({
-      from: parsed.data.from as Address,
-      to: parsed.data.to as Address,
-      amount: parsed.data.amount,
-      paymentId: parsed.data.paymentId,
+      from: req.body.from as Address,
+      to: req.body.to as Address,
+      amount: req.body.amount,
+      paymentId: req.body.paymentId,
     });
 
     res.status(result.status === 'confirmed' ? 200 : 202).json(result);
@@ -126,10 +125,13 @@ router.get('/payments', requireApiKey, async (req, res, next) => {
     if (status && typeof status === 'string') where.status = status;
     if (vault && typeof vault === 'string') where.vault = vault.toLowerCase();
 
+    const limitNum = limit !== undefined ? parseInt(String(limit), 10) : 50;
+    const take = Number.isFinite(limitNum) && limitNum > 0 ? Math.min(limitNum, 100) : 50;
+
     const payments = await prisma.oraclePayment.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      take: Math.min(Number(limit) || 50, 100),
+      take,
     });
 
     res.json({

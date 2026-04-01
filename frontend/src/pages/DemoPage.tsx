@@ -1,10 +1,12 @@
 /**
  * DemoPage — /demo
  *
- * Story-driven live demo with narrative UI.
- * Tells the Krexa hackathon story step by step.
+ * Full protocol showcase + story-driven live demo.
+ * Educates visitors on the Krexa credit system, then runs it live on Solana devnet.
  */
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { TRANCHE_CONFIG } from '../utils/dashboardHelpers'
+import { PROGRAM_IDS, accountUrl } from '../config/solana'
 import s from './DemoPage.module.css'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -34,6 +36,7 @@ interface DemoState {
 type WsEvent =
   | { event: 'step_active';   data: { step: number } }
   | { event: 'step_complete'; data: { step: number; tx: string } }
+  | { event: 'step_error';    data: { step: number; error: string } }
   | { event: 'wallet_state';  data: { balance: number; debt: number; score: number; level: number; collateral: number; creditUsed: number } }
   | { event: 'safety_check';  data: { check: string; passed: boolean } }
   | { event: 'payment_split'; data: { total: number; lp: number; fee: number; agent: number; callCount: number } }
@@ -49,7 +52,7 @@ const STEPS: StepInfo[] = [
   { num: 1, label: 'Register',  plain: 'On-chain identity' },
   { num: 2, label: 'KYA',       plain: 'Trust verification' },
   { num: 3, label: 'Wallet',    plain: 'Smart wallet + limits' },
-  { num: 4, label: 'Credit',    plain: '$50 zero-collateral' },
+  { num: 4, label: 'Credit',    plain: 'Zero-collateral credit' },
   { num: 5, label: 'Earn',      plain: '10 paid API calls' },
   { num: 6, label: 'Repay',     plain: 'Loan clears, score up' },
 ]
@@ -58,9 +61,9 @@ const STEP_LOG: Record<number, { active: string; done: string; sub: string }> = 
   1: { active: 'Registering agent on-chain\u2026',      done: 'Agent identity created on Solana',          sub: 'krexa-agent-registry' },
   2: { active: 'Running KYA verification\u2026',         done: 'KYA Tier 1 passed \u2014 agent is trusted',      sub: 'Automated compliance check' },
   3: { active: 'Initializing smart wallet\u2026',        done: 'PDA wallet live with spending controls',    sub: 'Per-trade and daily limits' },
-  4: { active: 'Requesting $50 credit line\u2026',       done: '$50 zero-collateral credit extended',       sub: 'Underwritten by vault' },
-  5: { active: 'Agent making paid API calls\u2026',      done: '10 \u00d7 $0.25 API calls completed',            sub: 'PaymentRouter auto-splits' },
-  6: { active: 'Repaying loan from earnings\u2026',      done: 'Loan fully repaid \u2014 score increased',       sub: 'On-chain credit history' },
+  4: { active: 'Requesting L1 Starter credit\u2026',     done: '$50 L1 Starter credit extended',            sub: 'Underwritten by vault tranches' },
+  5: { active: 'Agent making paid API calls\u2026',      done: '10 \u00d7 $0.25 API calls completed',            sub: 'PaymentRouter auto-splits via waterfall' },
+  6: { active: 'Repaying loan from earnings\u2026',      done: 'Loan fully repaid \u2014 Krexit Score increased', sub: 'On-chain credit history updated' },
 }
 
 const INITIAL: DemoState = {
@@ -78,7 +81,68 @@ const mkLog = (text: string, type: LogEntry['type'], sub?: string, tx?: string):
 
 const usd = (n: number, d = 2) => `$${n.toFixed(d)}`
 const sig = (s: string) => `${s.slice(0, 6)}\u2026${s.slice(-4)}`
-const scan = (s: string) => `https://solscan.io/tx/${s}?cluster=devnet`
+const CLUSTER = import.meta.env.VITE_SOLANA_CLUSTER || 'devnet'
+const scan = (s: string) => `https://solscan.io/tx/${s}${CLUSTER !== 'mainnet-beta' ? `?cluster=${CLUSTER}` : ''}`
+
+// ─── Protocol Data ──────────────────────────────────────────────────────────
+
+const PROTOCOL_FLOW = [
+  { num: 1, title: 'Earn Revenue', desc: 'Agents earn via x402 payments, DeFi trading, or API services', icon: '\u26A1' },
+  { num: 2, title: 'Build Score', desc: 'On-chain history creates a Krexit Score (200\u2013850)', icon: '\uD83D\uDCCA' },
+  { num: 3, title: 'Get Credit', desc: 'Score + KYA tier unlocks zero-collateral credit lines', icon: '\uD83C\uDFE6' },
+  { num: 4, title: 'Auto-Repay', desc: 'Every payment auto-splits via waterfall to repay lenders', icon: '\uD83D\uDD04' },
+]
+
+const AGENT_TYPE_DETAILS = [
+  { type: 'Trader', badge: 'Type A', icon: '\uD83D\uDCC8', desc: 'DeFi bots that execute swaps, arbitrage, and LP strategies across whitelisted venues.', venues: 'Jupiter, Raydium, Orca, Pump.fun', drivers: 'C1 Repayment (30%) + C2 Profitability (25%)' },
+  { type: 'Service', badge: 'Type B', icon: '\uD83D\uDD0C', desc: 'API-serving agents that earn via x402 HTTP Payment Required protocol. Pay-per-call monetization.', venues: 'Any HTTP endpoint', drivers: 'C1 Repayment (30%) + C3 Behavioral (20%)' },
+  { type: 'Hybrid', badge: 'Type C', icon: '\u26A1', desc: 'Agents that both trade on DeFi venues and serve paid APIs. Dual revenue streams, highest credit ceiling.', venues: 'All venues + HTTP', drivers: 'All 5 components balanced' },
+]
+
+const SCORE_COMPONENTS = [
+  { name: 'Repayment',     code: 'C1', weight: 30, desc: 'On-time loan repayments vs late/missed', color: '#3B82F6' },
+  { name: 'Profitability', code: 'C2', weight: 25, desc: 'Revenue consistency and margin health',  color: '#22C55E' },
+  { name: 'Behavioral',    code: 'C3', weight: 20, desc: 'Spending patterns, venue diversity',     color: '#8B5CF6' },
+  { name: 'Usage',         code: 'C4', weight: 15, desc: 'Credit utilization and trade frequency', color: '#F59E0B' },
+  { name: 'Maturity',      code: 'C5', weight: 10, desc: 'Account age and completed credit cycles', color: '#06B6D4' },
+]
+
+const HEALTH_ZONES = [
+  { label: 'Healthy',     threshold: '\u2265 1.50x', color: '#10B981', desc: 'Full operations, score increases' },
+  { label: 'Warning',     threshold: '\u2265 1.30x', color: '#F59E0B', desc: 'Reduced limits, monitoring active' },
+  { label: 'Danger',      threshold: '\u2265 1.20x', color: '#F97316', desc: 'Credit frozen, repayment priority' },
+  { label: 'Liquidation', threshold: '< 1.05x', color: '#EF4444', desc: 'Automatic wind-down triggered' },
+]
+
+const CREDIT_LEVEL_DETAILS = [
+  { level: 1, name: 'Starter',      limit: '$500',     apr: '36.5%', daily: '0.10%', minScore: 400, minKya: 'Tier 1', color: '#F97316' },
+  { level: 2, name: 'Established',  limit: '$20,000',  apr: '29.2%', daily: '0.08%', minScore: 500, minKya: 'Tier 2', color: '#F59E0B' },
+  { level: 3, name: 'Trusted',      limit: '$50,000',  apr: '21.9%', daily: '0.06%', minScore: 650, minKya: 'Tier 2', color: '#10B981' },
+  { level: 4, name: 'Elite',        limit: '$500,000', apr: '18.25%', daily: '0.05%', minScore: 750, minKya: 'Tier 3', color: '#3B82F6' },
+]
+
+const TRANCHE_DETAILS = [
+  { name: 'Senior',    apr: '10%',  risk: 'Low',    priority: '1st repaid', color: TRANCHE_CONFIG.senior.color,    riskBg: '#EFF6FF', riskColor: '#2563EB', desc: 'Institutional capital. First to be repaid, lowest yield. Protected by junior and mezzanine buffers.' },
+  { name: 'Mezzanine', apr: '12%', risk: 'Medium', priority: '2nd repaid', color: TRANCHE_CONFIG.mezzanine.color, riskBg: '#FAF5FF', riskColor: '#7C3AED', desc: 'LP deposits. Middle priority in the waterfall. Moderate yield with partial loss protection.' },
+  { name: 'Junior',    apr: '20%', risk: 'High',   priority: 'Last repaid', color: TRANCHE_CONFIG.junior.color,   riskBg: '#FFF7ED', riskColor: '#EA580C', desc: 'Protocol treasury. Absorbs first losses, highest yield. Protocol-managed capital only.' },
+]
+
+const KYA_TIER_DETAILS = [
+  { tier: 0, name: 'None',          verification: 'No verification',                 access: 'Read-only, no credit' },
+  { tier: 1, name: 'Basic',         verification: 'Wallet signature + agent metadata', access: 'L1 credit (up to $500)' },
+  { tier: 2, name: 'Enhanced',      verification: 'KYC provider (Sumsub)',            access: 'L2\u2013L3 credit (up to $50K)' },
+  { tier: 3, name: 'Institutional', verification: 'Full institutional due diligence',  access: 'L4 credit (up to $500K)' },
+]
+
+const PROGRAMS_FULL = [
+  { name: 'krexa-agent-registry',  desc: 'Agent identity & KYA tiers',              addr: PROGRAM_IDS.agentRegistry,  icon: '\uD83C\uDD94', cls: 'registry' },
+  { name: 'krexa-credit-vault',    desc: 'Zero-collateral credit underwriting',      addr: PROGRAM_IDS.creditVault,    icon: '\uD83C\uDFE6', cls: 'vault'    },
+  { name: 'krexa-agent-wallet',    desc: 'Smart wallets with spend controls',        addr: PROGRAM_IDS.agentWallet,    icon: '\uD83D\uDC5B', cls: 'wallet'   },
+  { name: 'krexa-venue-whitelist', desc: 'Approved venue registry',                  addr: PROGRAM_IDS.venueWhitelist, icon: '\u2705', cls: 'venue'    },
+  { name: 'krexa-payment-router',  desc: 'Automatic revenue split per call',         addr: PROGRAM_IDS.paymentRouter,  icon: '\uD83D\uDD00', cls: 'router'   },
+  { name: 'krexa-service-plan',    desc: 'x402 service subscription management',     addr: PROGRAM_IDS.servicePlan,    icon: '\uD83D\uDCCB', cls: 'service'  },
+  { name: 'krexa-krexit-score',    desc: 'On-chain credit scoring (200\u2013850)',   addr: PROGRAM_IDS.score,          icon: '\uD83D\uDCCA', cls: 'scoreProg' },
+]
 
 // ─── Story Data ─────────────────────────────────────────────────────────────
 
@@ -97,8 +161,8 @@ const STORY_CHAPTERS = [
     icon: '\uD83D\uDD0D',
     title: 'Trust Verification',
     headline: 'Can this agent be trusted with money?',
-    body: 'Before anyone lends money to an AI, its capabilities and safety need to be verified. Krexa runs an automated Know-Your-Agent (KYA) check \u2014 the AI equivalent of a bank\'s KYC process.',
-    what: 'The oracle verifies the agent\'s code, behavior patterns, and safety guarantees. It passes KYA Tier 1, unlocking access to credit.',
+    body: 'Before anyone lends money to an AI, its capabilities and safety need to be verified. Krexa runs an automated Know-Your-Agent (KYA) check \u2014 the AI equivalent of a bank\'s KYC process. This gives the agent KYA Tier 1, unlocking L1 Starter credit.',
+    what: 'The oracle verifies the agent\'s code, behavior patterns, and safety guarantees. It passes KYA Tier 1 \u2014 the minimum requirement for L1 credit ($500 max).',
     program: 'krexa-agent-registry',
   },
   {
@@ -113,10 +177,10 @@ const STORY_CHAPTERS = [
   {
     num: 4,
     icon: '\uD83D\uDCB0',
-    title: 'Zero-Collateral Credit',
+    title: 'L1 Starter Credit',
     headline: 'The agent borrows $50 \u2014 with nothing locked up.',
-    body: 'This is the breakthrough. Traditional DeFi requires 150% collateral to borrow. Krexa extends credit based purely on the agent\'s KYA trust score \u2014 no collateral, no locked assets. The Credit Vault underwrites the loan from LP deposits.',
-    what: 'The Credit Vault program extends a $50 USDC credit line. The agent can now spend up to $50 without depositing anything first.',
+    body: 'This is the breakthrough. Traditional DeFi requires 150% collateral to borrow. Krexa extends L1 Starter credit (up to $500, 36.5% APR) based purely on the agent\'s KYA trust tier \u2014 no collateral, no locked assets. The Credit Vault underwrites the loan from LP deposits across Senior, Mezzanine, and Junior tranches.',
+    what: 'The Credit Vault program extends a $50 USDC credit line at L1 rates. Interest accrues daily at 0.10%. The waterfall ensures lenders get repaid in priority order.',
     program: 'krexa-credit-vault',
   },
   {
@@ -124,28 +188,315 @@ const STORY_CHAPTERS = [
     icon: '\u26A1',
     title: 'Earning Revenue',
     headline: 'The agent goes to work and earns money.',
-    body: 'With credit in hand, the agent deploys a paid research API. Every time someone calls the API, the Payment Router automatically splits the $0.25 fee: part goes to repay the loan, part is a protocol fee, and the rest is the agent\'s profit.',
-    what: 'The Payment Router processes 10 API calls at $0.25 each. Each payment is split on-chain in real time \u2014 LP repayment happens automatically.',
+    body: 'With credit in hand, the agent deploys a paid research API. Every time someone calls the API, the Payment Router automatically splits the $0.25 fee through the waterfall: Senior tranche first, then Mezzanine, then Junior, with the remainder going to the agent.',
+    what: 'The Payment Router processes 10 API calls at $0.25 each. Each payment is split on-chain in real time \u2014 tranche-priority repayment happens automatically.',
     program: 'krexa-payment-router',
   },
   {
     num: 6,
     icon: '\u2728',
     title: 'Full Repayment',
-    headline: 'Loan repaid. Credit score goes up. Cycle complete.',
-    body: 'After earning enough revenue, the agent\'s loan is fully repaid through automatic splits. Its on-chain credit score increases, unlocking higher credit limits for future operations. The full lifecycle \u2014 from zero to credit to revenue to repayment \u2014 happened entirely on-chain.',
-    what: 'The Credit Vault records full repayment, and the agent\'s credit score increases. Next time, it can borrow more.',
+    headline: 'Loan repaid. Krexit Score goes up. Cycle complete.',
+    body: 'After earning enough revenue, the agent\'s loan is fully repaid through automatic waterfall splits. Its on-chain Krexit Score increases based on all 5 components \u2014 repayment (30%), profitability (25%), behavioral (20%), usage (15%), and maturity (10%) \u2014 unlocking higher credit limits for future operations.',
+    what: 'The Credit Vault records full repayment. The Krexit Score program recalculates: score = 200 + 650 \u00d7 weighted_average. Next time, the agent can reach L2 Established ($20K) with a higher score.',
     program: 'krexa-credit-vault',
   },
 ]
 
-// ─── External link icon ─────────────────────────────────────────────────────
+const TX_LABELS: Record<number, string> = {
+  1: 'Register Agent',
+  2: 'KYA Verification',
+  3: 'Create Wallet',
+  4: 'Extend Credit',
+  5: 'API Payments',
+  6: 'Full Repayment',
+}
+
+// ─── Shared Components ──────────────────────────────────────────────────────
 
 function ExtIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
     </svg>
+  )
+}
+
+// ─── Educational Sections ───────────────────────────────────────────────────
+
+function ProtocolOverview() {
+  return (
+    <section className={s.eduSection}>
+      <div className={s.eduInner}>
+        <div className={s.eduLabel}>How It Works</div>
+        <h2 className={s.eduTitle}>The Credit Lifecycle</h2>
+        <p className={s.eduSub}>
+          Krexa turns future revenue into present-day credit. The entire lifecycle is automated, on-chain, and enforced by code.
+        </p>
+        <div className={s.flowGrid}>
+          {PROTOCOL_FLOW.map((step, i) => (
+            <div key={step.num} style={{ display: 'contents' }}>
+              <div className={s.flowStep}>
+                <div className={s.flowStepNum}>{step.icon}</div>
+                <div className={s.flowStepTitle}>{step.title}</div>
+                <div className={s.flowStepDesc}>{step.desc}</div>
+              </div>
+              {i < PROTOCOL_FLOW.length - 1 && <span className={s.flowArrow}>{'\u2192'}</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function AgentTypesSection() {
+  return (
+    <section className={s.eduSection}>
+      <div className={s.eduInner}>
+        <div className={s.eduLabel}>Agent Types</div>
+        <h2 className={s.eduTitle}>Three Paths to Credit</h2>
+        <p className={s.eduSub}>
+          Each agent type has unique score drivers and revenue patterns. Choose the type that matches your agent's business model.
+        </p>
+        <div className={s.eduGrid3}>
+          {AGENT_TYPE_DETAILS.map((a) => (
+            <div key={a.type} className={s.eduCard}>
+              <div className={s.eduCardIcon}>{a.icon}</div>
+              <div className={s.eduCardBadge}>{a.badge}</div>
+              <div className={s.eduCardTitle}>{a.type} Agent</div>
+              <div className={s.eduCardBody}>{a.desc}</div>
+              <div className={s.eduCardMeta}>
+                <strong>Venues:</strong> {a.venues}<br />
+                <strong>Key drivers:</strong> {a.drivers}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function KrexitScoreSection() {
+  return (
+    <section className={s.eduSection}>
+      <div className={s.eduInner}>
+        <div className={s.eduLabel}>Credit Scoring</div>
+        <h2 className={s.eduTitle}>The Krexit Score (200{'\u2013'}850)</h2>
+        <p className={s.eduSub}>
+          A FICO-like on-chain credit score calculated daily from 5 behavioral components. Higher scores unlock larger credit lines at lower rates.
+        </p>
+
+        <div className={s.formulaBox}>
+          <div className={s.formulaLabel}>Score Formula</div>
+          <span className={s.formulaHighlight}>score</span> = 200 + 650 {'\u00d7'} (0.30{'\u00d7'}C1 + 0.25{'\u00d7'}C2 + 0.20{'\u00d7'}C3 + 0.15{'\u00d7'}C4 + 0.10{'\u00d7'}C5)
+        </div>
+
+        <div className={s.weightBar}>
+          {SCORE_COMPONENTS.map((c) => (
+            <div key={c.code} className={s.weightSegment} style={{ width: `${c.weight}%`, background: c.color }} title={`${c.name} ${c.weight}%`} />
+          ))}
+        </div>
+
+        <div className={s.eduGrid2}>
+          <div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {SCORE_COMPONENTS.map((c) => (
+                <div key={c.code} className={s.componentRow}>
+                  <div className={s.componentDot} style={{ background: c.color }} />
+                  <div className={s.componentWeight}>{c.weight}%</div>
+                  <div className={s.componentName}>{c.code} {c.name}</div>
+                  <div className={s.componentDesc}>{c.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className={s.eduLabel} style={{ marginBottom: 14 }}>Health Factor Zones</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {HEALTH_ZONES.map((z) => (
+                <div key={z.label} className={s.zoneCard}>
+                  <div className={s.zoneDot} style={{ background: z.color }} />
+                  <div>
+                    <div className={s.zoneLabel}>{z.label}</div>
+                    <div className={s.zoneThreshold}>{z.threshold}</div>
+                  </div>
+                  <div className={s.zoneDesc} style={{ marginLeft: 'auto' }}>{z.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function CreditLevelsSection() {
+  return (
+    <section className={s.eduSection}>
+      <div className={s.eduInner}>
+        <div className={s.eduLabel}>Credit Levels</div>
+        <h2 className={s.eduTitle}>Four Tiers of Credit Access</h2>
+        <p className={s.eduSub}>
+          Credit limits and interest rates are determined by your Krexit Score and KYA verification tier. Higher scores mean more credit at lower rates.
+        </p>
+        <div className={s.eduTableWrap}>
+          <table className={s.eduTable}>
+            <thead>
+              <tr>
+                <th className={s.eduTh}>Level</th>
+                <th className={s.eduTh}>Name</th>
+                <th className={s.eduTh}>Max Credit</th>
+                <th className={s.eduTh}>APR</th>
+                <th className={s.eduTh}>Daily Rate</th>
+                <th className={s.eduTh}>Min Score</th>
+                <th className={s.eduTh}>Min KYA</th>
+              </tr>
+            </thead>
+            <tbody>
+              {CREDIT_LEVEL_DETAILS.map((l) => (
+                <tr key={l.level}>
+                  <td className={s.eduTd}>
+                    <span className={s.levelBadge} style={{ background: l.color }}>L{l.level}</span>
+                  </td>
+                  <td className={`${s.eduTd} ${s.eduTdBold}`}>{l.name}</td>
+                  <td className={`${s.eduTd} ${s.eduTdMono}`}>{l.limit}</td>
+                  <td className={`${s.eduTd} ${s.eduTdMono}`}>{l.apr}</td>
+                  <td className={`${s.eduTd} ${s.eduTdMono}`}>{l.daily}</td>
+                  <td className={`${s.eduTd} ${s.eduTdMono}`}>{l.minScore}</td>
+                  <td className={s.eduTd}>{l.minKya}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function TrancheSection() {
+  return (
+    <section className={s.eduSection}>
+      <div className={s.eduInner}>
+        <div className={s.eduLabel}>Vault Structure</div>
+        <h2 className={s.eduTitle}>Three Tranches, One Waterfall</h2>
+        <p className={s.eduSub}>
+          The credit vault uses a structured tranche system. Senior capital is protected by junior buffers. Every payment flows through the waterfall in priority order.
+        </p>
+        <div className={s.eduGrid3}>
+          {TRANCHE_DETAILS.map((t) => (
+            <div key={t.name} className={s.trancheCard} style={{ borderTopColor: t.color }}>
+              <div className={s.trancheHeader}>
+                <div className={s.trancheName}>{t.name}</div>
+                <div className={s.trancheApr} style={{ color: t.color }}>{t.apr}</div>
+              </div>
+              <div className={s.trancheRisk} style={{ background: t.riskBg, color: t.riskColor }}>
+                {t.risk} Risk
+              </div>
+              <div className={s.trancheDesc}>{t.desc}</div>
+              <div className={s.tranchePriority}>{t.priority}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className={s.waterfallWrap}>
+          <div className={s.waterfallTitle}>Payment Waterfall</div>
+          <div className={s.waterfallFlow}>
+            {[
+              { label: 'Payment In', bg: '#F1F5F9', color: '#334155' },
+              { label: 'Platform Fee', bg: '#FEF3C7', color: '#92400E' },
+              { label: 'Senior', bg: '#DBEAFE', color: '#1E40AF' },
+              { label: 'Mezzanine', bg: '#EDE9FE', color: '#5B21B6' },
+              { label: 'Junior', bg: '#FFEDD5', color: '#9A3412' },
+              { label: 'Agent', bg: '#D1FAE5', color: '#065F46' },
+            ].map((step, i, arr) => (
+              <div key={step.label} style={{ display: 'contents' }}>
+                <span className={s.waterfallStep} style={{ background: step.bg, color: step.color }}>{step.label}</span>
+                {i < arr.length - 1 && <span className={s.waterfallArrow}>{'\u2192'}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function KyaTiersSection() {
+  return (
+    <section className={s.eduSection}>
+      <div className={s.eduInner}>
+        <div className={s.eduLabel}>Identity</div>
+        <h2 className={s.eduTitle}>Know Your Agent (KYA)</h2>
+        <p className={s.eduSub}>
+          KYA is Krexa's identity layer. Both score and KYA tier must meet minimum requirements for each credit level.
+        </p>
+        <div className={s.eduTableWrap}>
+          <table className={s.eduTable}>
+            <thead>
+              <tr>
+                <th className={s.eduTh}>Tier</th>
+                <th className={s.eduTh}>Name</th>
+                <th className={s.eduTh}>Verification Method</th>
+                <th className={s.eduTh}>Credit Access</th>
+              </tr>
+            </thead>
+            <tbody>
+              {KYA_TIER_DETAILS.map((k) => (
+                <tr key={k.tier}>
+                  <td className={`${s.eduTd} ${s.eduTdMono}`}>{k.tier}</td>
+                  <td className={`${s.eduTd} ${s.eduTdBold}`}>{k.name}</td>
+                  <td className={s.eduTd}>{k.verification}</td>
+                  <td className={s.eduTd}>{k.access}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function InterestSection() {
+  return (
+    <section className={s.eduSection}>
+      <div className={s.eduInner}>
+        <div className={s.eduLabel}>Interest Mechanics</div>
+        <h2 className={s.eduTitle}>How Interest Works</h2>
+        <p className={s.eduSub}>
+          Interest accrues daily on outstanding credit. Lower credit levels have higher rates to compensate for risk. Health factor determines account status.
+        </p>
+        <div className={s.interestGrid}>
+          <div className={s.interestCard}>
+            <div className={s.interestLabel}>Daily Accrual</div>
+            <div className={s.interestFormula}>daily = principal {'\u00d7'} APR / 365</div>
+            <div className={s.interestExample}>
+              <strong>L1 Example:</strong> $500 at 36.5% APR<br />
+              = $500 {'\u00d7'} 0.365 / 365 = <strong>$0.50/day</strong>
+            </div>
+          </div>
+          <div className={s.interestCard}>
+            <div className={s.interestLabel}>Health Factor</div>
+            <div className={s.interestFormula}>health = value / debt</div>
+            <div className={s.interestExample}>
+              If health drops below <strong>1.05x</strong>, the account is automatically frozen. No new draws allowed until debt is repaid.
+            </div>
+          </div>
+          <div className={s.interestCard}>
+            <div className={s.interestLabel}>Waterfall Repayment</div>
+            <div className={s.interestFormula}>auto-split on every payment</div>
+            <div className={s.interestExample}>
+              Every incoming payment is split by smart contract: platform fee first, then Senior {'\u2192'} Mezzanine {'\u2192'} Junior {'\u2192'} Agent keeps the rest.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -320,25 +671,6 @@ function Metrics({ wallet, payments, scoreboard }: {
 
 // ─── On-Chain Proof ────────────────────────────────────────────────────────
 
-const PROGRAMS = [
-  { name: 'krexa-agent-registry',  desc: 'Agent identity & KYA tiers',         addr: 'ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG', icon: '\uD83C\uDD94', cls: 'registry' },
-  { name: 'krexa-credit-vault',    desc: 'Zero-collateral credit underwriting', addr: '26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N', icon: '\uD83C\uDFE6', cls: 'vault'    },
-  { name: 'krexa-agent-wallet',    desc: 'Smart wallets with spend controls',   addr: '35t8yWLsUZNTLT71ej7DF59P81HrtZTx2uZeMhwuhhf6', icon: '\uD83D\uDC5B', cls: 'wallet'   },
-  { name: 'krexa-venue-whitelist', desc: 'Approved venue registry',             addr: 'HyWQrHG14Sw6KpKYSMiBDmVj5u7PXfLWvim6FHbBLmua', icon: '\u2705', cls: 'venue'    },
-  { name: 'krexa-payment-router',  desc: 'Automatic revenue split per call',    addr: '2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8', icon: '\uD83D\uDD00', cls: 'router'   },
-]
-
-const TX_LABELS: Record<number, string> = {
-  1: 'Register Agent',
-  2: 'KYA Verification',
-  3: 'Create Wallet',
-  4: 'Extend Credit',
-  5: 'API Payments',
-  6: 'Full Repayment',
-}
-
-function progScan(addr: string) { return `https://solscan.io/account/${addr}?cluster=devnet` }
-
 function OnChainProof({ txs }: { txs: DemoState['txs'] }) {
   const txEntries = Object.entries(txs).map(([k, v]) => ({ step: Number(k), tx: v }))
 
@@ -348,7 +680,7 @@ function OnChainProof({ txs }: { txs: DemoState['txs'] }) {
         <p className={s.proofTitle}>On-chain proof</p>
         <span className={s.proofBadge}>
           <span className={s.proofBadgeDot} />
-          5 programs deployed
+          7 programs deployed
         </span>
       </div>
 
@@ -361,14 +693,14 @@ function OnChainProof({ txs }: { txs: DemoState['txs'] }) {
         </div>
 
         <div className={s.proofPrograms}>
-          {PROGRAMS.map((p) => (
+          {PROGRAMS_FULL.map((p) => (
             <div key={p.addr} className={s.proofRow}>
               <div className={`${s.proofIcon} ${s[p.cls]}`}>{p.icon}</div>
               <div className={s.proofInfo}>
                 <p className={s.proofName}>{p.name}</p>
                 <p className={s.proofDesc}>{p.desc}</p>
               </div>
-              <a href={progScan(p.addr)} target="_blank" rel="noopener noreferrer" className={s.proofAddr}>
+              <a href={accountUrl(p.addr)} target="_blank" rel="noopener noreferrer" className={s.proofAddr}>
                 {sig(p.addr)} <ExtIcon className={s.proofAddrIcon} />
               </a>
             </div>
@@ -442,10 +774,16 @@ export default function DemoPage() {
       }
       case 'demo_complete':
         setSt(p => ({ ...p, scoreboard: msg.data.scoreboard, runState: 'done' }))
-        addLog(mkLog('Demo complete \u2014 loan fully repaid, credit score increased', 'complete', 'Every step is a real on-chain Solana transaction'))
+        addLog(mkLog('Demo complete \u2014 loan fully repaid, Krexit Score increased', 'complete', 'Every step is a real on-chain Solana transaction'))
         break
+      case 'step_error': {
+        setSt(p => ({ ...p, runState: 'error' }))
+        addLog(mkLog(`Step ${msg.data.step} failed: ${msg.data.error}`, 'info'))
+        break
+      }
       case 'demo_status':
         if (msg.data.status === 'running') { _id = 0; setSt({ ...INITIAL, connected: true, runState: 'running' }) }
+        if (msg.data.status === 'error') { setSt(p => ({ ...p, runState: 'error' })); addLog(mkLog(`Demo error: ${msg.data.error ?? 'unknown'}`, 'info')) }
         break
     }
   }
@@ -470,7 +808,7 @@ export default function DemoPage() {
         <div className={s.navLeft}>
           <span className={s.navLogo}>KREXA</span>
           <span className={s.navSep} />
-          <span className={s.navTitle}>Live Demo</span>
+          <span className={s.navTitle}>Protocol Demo</span>
         </div>
         <div className={s.navRight}>
           <span className={s.statusDot}>
@@ -489,37 +827,43 @@ export default function DemoPage() {
         <div className={s.heroInner}>
           <div className={s.heroBadge}>
             <span className={s.heroBadgeDot} />
-            Live on Solana \u2014 every transaction is real
+            Live on Solana {'\u2014'} every transaction is real
           </div>
           <h1 className={s.heroTitle}>
-            The Story of an AI Agent<br />
-            That <span className={s.heroAccent}>Borrowed $50</span> and Paid It Back
+            The Complete <span className={s.heroAccent}>Credit Lifecycle</span><br />
+            for AI Agents
           </h1>
           <p className={s.heroSub}>
-            Follow along as a brand-new AI agent gets an on-chain identity, receives
-            zero-collateral credit, earns revenue, and fully repays its loan \u2014 all
-            live on Solana devnet.
+            3 agent types. 5-component credit scoring. 4 credit levels. 3-tranche waterfall.
+            See how an AI agent goes from zero to credit to revenue to full repayment {'\u2014'} entirely on-chain.
           </p>
 
           {!running && !finished && (
-            <button className={s.heroBtn} disabled={!st.connected} onClick={start}>
-              <svg className={s.heroBtnIcon} fill="currentColor" viewBox="0 0 20 20">
-                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-              </svg>
-              {st.connected ? 'Start the Story' : 'Connecting\u2026'}
-            </button>
+            <>
+              {st.runState === 'error' && (
+                <div style={{ marginBottom: 12, padding: '10px 16px', borderRadius: 8, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#F87171', fontSize: 13 }}>
+                  Demo hit an error (devnet can be flaky). Tap below to retry.
+                </div>
+              )}
+              <button className={s.heroBtn} disabled={!st.connected} onClick={start}>
+                <svg className={s.heroBtnIcon} fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                </svg>
+                {st.runState === 'error' ? 'Retry Demo' : st.connected ? 'Start the Live Demo' : 'Connecting\u2026'}
+              </button>
+            </>
           )}
           {running && (
             <div className={s.heroRunning}>
               <span className={s.heroSpinner} />
-              Chapter {Math.max(1, ...Object.entries(st.steps).filter(([, v]) => v !== 'pending').map(([k]) => Number(k)))} of 6 \u2014 Running live\u2026
+              Chapter {Math.max(1, ...Object.entries(st.steps).filter(([, v]) => v !== 'pending').map(([k]) => Number(k)))} of 6 {'\u2014'} Running live{'\u2026'}
             </div>
           )}
           {finished && (
             <div className={s.heroDoneWrap}>
-              <div className={s.heroCompleteMsg}>Story complete \u2014 the agent repaid everything</div>
+              <div className={s.heroCompleteMsg}>Story complete {'\u2014'} the agent repaid everything</div>
               <button className={s.heroDoneBtn} onClick={start}>
-                \u21BB Watch Again
+                {'\u21BB'} Watch Again
               </button>
             </div>
           )}
@@ -527,6 +871,24 @@ export default function DemoPage() {
           <p className={s.heroProgress}>{done} / 6 chapters complete</p>
         </div>
       </section>
+
+      {/* ── Educational Sections ── */}
+      <ProtocolOverview />
+      <AgentTypesSection />
+      <KrexitScoreSection />
+      <CreditLevelsSection />
+      <TrancheSection />
+      <KyaTiersSection />
+      <InterestSection />
+
+      {/* ── Live Demo Section Header ── */}
+      <div className={s.liveDemoHeader}>
+        <div className={s.eduLabel}>Live Demo</div>
+        <h2 className={s.liveDemoHeaderTitle}>See It In Action</h2>
+        <p className={s.liveDemoHeaderSub}>
+          Every step below is a real Solana devnet transaction. Watch an AI agent go through the full credit lifecycle {'\u2014'} register, verify, borrow, earn, and repay.
+        </p>
+      </div>
 
       {/* Story + Live Panel Layout */}
       <div className={s.storyLayout}>

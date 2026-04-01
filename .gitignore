@@ -64,3 +64,4 @@ skills-lock.json
 
 # Playwright MCP screenshots (dev tool artifacts)
 .playwright-mcp/
+*.docx

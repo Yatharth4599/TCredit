@@ -1,4 +1,5 @@
 import express from 'express';
+import type { RequestHandler } from 'express';
 import helmet from 'helmet';
 import { corsMiddleware } from './api/middleware/cors.js';
 import { requestLogger } from './api/middleware/requestLogger.js';
@@ -22,18 +23,18 @@ app.use(helmet());
 // CORS
 app.use(corsMiddleware);
 
-// Body parsing
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Body parsing — cap at 1 MB to prevent payload abuse
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Request logging
 app.use(requestLogger);
 
 // API key auth (optional — sets req.apiKey if valid key provided)
-app.use(apiKeyAuth as never);
+app.use(apiKeyAuth as RequestHandler);
 
 // Rate limiting (30 req/min anonymous, per-key limit for authenticated)
-app.use(rateLimit as never);
+app.use(rateLimit as RequestHandler);
 
 // API routes — canonical path
 app.use('/api/v1', apiRoutes);

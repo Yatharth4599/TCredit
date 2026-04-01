@@ -9,19 +9,18 @@
 import { Router } from 'express';
 import { submitBasicKya, submitEnhancedKya, getKyaStatus } from '../../services/kya.service.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { validate } from '../middleware/validate.js';
+import { KyaBasicSchema, KyaEnhancedSchema } from '../schemas.js';
 
 const router = Router();
 
 // POST /solana/kya/:agent/basic
-router.post('/:agent/basic', async (req, res, next) => {
+router.post('/:agent/basic', validate(KyaBasicSchema), async (req, res, next) => {
   try {
     const { ownerPubkey, ownerSignature, codeRepoUrl } = req.body;
-    if (!ownerPubkey || !ownerSignature) {
-      throw new AppError(400, 'ownerPubkey and ownerSignature are required');
-    }
 
     const result = await submitBasicKya({
-      agentPubkey: req.params.agent,
+      agentPubkey: req.params.agent as string,
       ownerPubkey,
       ownerSignature,
       codeRepoUrl,
@@ -33,15 +32,12 @@ router.post('/:agent/basic', async (req, res, next) => {
 });
 
 // POST /solana/kya/:agent/enhanced
-router.post('/:agent/enhanced', async (req, res, next) => {
+router.post('/:agent/enhanced', validate(KyaEnhancedSchema), async (req, res, next) => {
   try {
     const { ownerPubkey, sumsubApplicantId } = req.body;
-    if (!ownerPubkey || !sumsubApplicantId) {
-      throw new AppError(400, 'ownerPubkey and sumsubApplicantId are required');
-    }
 
     const result = await submitEnhancedKya({
-      agentPubkey: req.params.agent,
+      agentPubkey: req.params.agent as string,
       ownerPubkey,
       sumsubApplicantId,
     });

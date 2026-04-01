@@ -50,6 +50,9 @@ export default function Navbar() {
           {isConnected ? truncateAddress(address!, 4) : 'CONNECT'}
         </button>
       </div>
+      <div style={{ position: 'fixed', top: 16, right: 20, pointerEvents: 'all' }}>
+        <WalletButton />
+      </div>
     </nav>
   )
 }

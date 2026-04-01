@@ -1,0 +1,37 @@
+---
+title: On-chain programs
+description: The 7 Solana programs powering Krexa.
+---
+
+## Programs
+
+| Program | ID | Purpose |
+|---------|-----|---------|
+| Agent Registry | `ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG` | Agent profiles and metadata |
+| Agent Wallet | `35t8yWLsUZNTLT71ej7DF59P81HrtZTx2uZeMhwuhhf6` | PDA wallets and token accounts |
+| Credit Vault | `26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N` | Credit lines and interest |
+| Credit Router | `2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8` | Revenue routing and debt service |
+| Krexit Score | `2GwtAXnjY5LehfZfT77ZH3XSshwbni8LP9zXeA84WUqh` | On-chain credit scores |
+| Service Plan | `Eqc48c6TtKAPRosTMoC6Nasi85iqdLuzwbu6WBrsPFdt` | Service agent plans |
+| Venue | `HyWQrHG14Sw6KpKYSMiBDmVj5u7PXfLWvim6FHbBLmua` | Whitelisted trading venues |
+
+## Token
+
+| Token | Mint |
+|-------|------|
+| USDC (devnet) | `Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr` |
+
+Network: **Solana devnet**. Mainnet deployment after audit.
+
+## PDA derivation
+
+All agent accounts are PDAs derived from the owner's public key:
+
+```
+Agent Profile:  ["agent_profile", owner_pubkey]
+Agent Wallet:   ["agent_wallet", agent_profile_pubkey]
+Credit Line:    ["credit_line", agent_profile_pubkey]
+Krexit Score:   ["krexit_score", agent_profile_pubkey]
+```
+
+PDAs are deterministic — compute them off-chain without RPC calls.

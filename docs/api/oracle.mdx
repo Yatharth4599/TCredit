@@ -1,0 +1,62 @@
+---
+title: Oracle API
+description: Credit eligibility and transaction co-signing.
+---
+
+## GET /solana/credit/:agent/eligibility
+
+Check if an agent qualifies for credit.
+
+```bash
+curl https://tcredit-backend.onrender.com/api/v1/solana/credit/AGENT_PUBKEY/eligibility
+```
+
+```json
+{
+  "eligible": true,
+  "creditLevel": 2,
+  "maxCredit": 20000,
+  "currentDebt": 500,
+  "availableCredit": 19500,
+  "rateBps": 2920
+}
+```
+
+## POST /solana/oracle/sign-credit
+
+Oracle verifies the agent's score and co-signs a borrow transaction.
+
+```bash
+curl -X POST https://tcredit-backend.onrender.com/api/v1/solana/oracle/sign-credit \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agentPubkey": "AGENT_PUBKEY",
+    "agentOrOwnerPubkey": "AGENT_PUBKEY",
+    "amount": "500000000",
+    "rateBps": 3650,
+    "creditLevel": 1,
+    "collateralValueUsdc": "0"
+  }'
+```
+
+```json
+{
+  "transaction": "base64-encoded-partially-signed-tx",
+  "message": "Credit approved"
+}
+```
+
+## Request body
+
+| Field | Type | Required | Description |
+|-------|------|----------|------------|
+| `agentPubkey` | string | Yes | Agent's public key |
+| `agentOrOwnerPubkey` | string | Yes | Signer's public key |
+| `amount` | string | Yes | USDC lamports as string (e.g., `"500000000"` = $500) |
+| `rateBps` | number | No | Interest rate in basis points |
+| `creditLevel` | number | No | Credit level (1-4) |
+| `collateralValueUsdc` | string | No | Usually `"0"` |
+
+<Warning>
+`amount` must be a **string of digits**, not a number. Sending `500000000` (number) instead of `"500000000"` (string) will fail validation.
+</Warning>

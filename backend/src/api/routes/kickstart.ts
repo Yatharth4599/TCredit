@@ -6,6 +6,11 @@ import { KickstartFactoryABI, BondingCurveABI, ERC20ABI } from '../../config/kic
 import { formatUnits } from 'viem';
 import { publicClientMainnet } from '../../chain/client.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { validate } from '../middleware/validate.js';
+import {
+  KickstartUploadMetadataSchema, KickstartCreateTokenSchema,
+  KickstartBuyTokenSchema, KickstartCreditAndLaunchSchema,
+} from '../schemas.js';
 import { addresses, MerchantVaultABI } from '../../config/contracts.js';
 import { lookup } from 'dns/promises';
 import { isIP } from 'net';
@@ -93,13 +98,9 @@ async function validateExternalImageUrl(rawUrl: string): Promise<URL> {
 
 // POST /api/v1/kickstart/upload-metadata
 // Proxy metadata upload to EasyA Kickstart API
-router.post('/upload-metadata', async (req, res, next) => {
+router.post('/upload-metadata', validate(KickstartUploadMetadataSchema), async (req, res, next) => {
   try {
     const { name, ticker, description, imageUrl, imageBase64, imageMime, twitter, telegram, website } = req.body;
-
-    if (!name || !ticker || !description) {
-      throw new AppError(400, 'name, ticker, and description are required');
-    }
 
     // Append social links to description if provided
     let fullDescription = description;
@@ -166,13 +167,9 @@ router.post('/upload-metadata', async (req, res, next) => {
 
 // POST /api/v1/kickstart/create-token
 // Build unsigned createToken tx for Base mainnet
-router.post('/create-token', async (req, res, next) => {
+router.post('/create-token', validate(KickstartCreateTokenSchema), async (req, res, next) => {
   try {
     const { name, symbol, uri, deadlineSeconds, initialBuyEth } = req.body;
-
-    if (!name || !symbol || !uri) {
-      throw new AppError(400, 'name, symbol, and uri are required');
-    }
 
     const deadline = BigInt(Math.floor(Date.now() / 1000) + (deadlineSeconds ?? 86400));
 
@@ -196,13 +193,9 @@ router.post('/create-token', async (req, res, next) => {
 
 // POST /api/v1/kickstart/buy-token
 // Build unsigned buy tx for an existing Kickstart bonding curve token
-router.post('/buy-token', async (req, res, next) => {
+router.post('/buy-token', validate(KickstartBuyTokenSchema), async (req, res, next) => {
   try {
     const { curveAddress, ethAmount, minTokensOut } = req.body;
-
-    if (!curveAddress || !ethAmount) {
-      throw new AppError(400, 'curveAddress and ethAmount are required');
-    }
 
     const data = encodeFunctionData({
       abi: BondingCurveABI,
@@ -225,7 +218,7 @@ router.post('/buy-token', async (req, res, next) => {
 // POST /api/v1/kickstart/credit-and-launch
 // Combined flow: draw credit on Sepolia + create token on mainnet
 // Returns ordered steps for the agent to execute
-router.post('/credit-and-launch', async (req, res, next) => {
+router.post('/credit-and-launch', validate(KickstartCreditAndLaunchSchema), async (req, res, next) => {
   try {
     const {
       vaultAddress,
@@ -236,10 +229,6 @@ router.post('/credit-and-launch', async (req, res, next) => {
       initialBuyEth,
       deadlineSeconds,
     } = req.body;
-
-    if (!name || !symbol) {
-      throw new AppError(400, 'name and symbol are required');
-    }
 
     const steps: Array<{
       step: number;

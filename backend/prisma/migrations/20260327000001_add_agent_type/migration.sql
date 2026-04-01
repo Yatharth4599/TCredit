@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "SolanaAgentWallet" ADD COLUMN IF NOT EXISTS "agentType" INTEGER NOT NULL DEFAULT 0;

@@ -1,0 +1,55 @@
+---
+title: Troubleshooting
+description: Common issues and fixes.
+---
+
+<AccordionGroup>
+  <Accordion title="krexa init fails with 'airdrop failed'">
+    Solana devnet faucet is rate-limited. Fund manually:
+    ```bash
+    solana airdrop 2 YOUR_ADDRESS --url devnet
+    ```
+    Or use [faucet.solana.com](https://faucet.solana.com).
+  </Accordion>
+
+  <Accordion title="krexa borrow returns 'oracle signing failed'">
+    The backend on Render free tier may be sleeping. Wait 30-60 seconds and retry. Check health:
+    ```bash
+    curl https://tcredit-backend.onrender.com/api/v1/health
+    ```
+  </Accordion>
+
+  <Accordion title="krexa status shows 'Agent not found'">
+    Agent not registered. Re-run:
+    ```bash
+    npx @krexa/cli init
+    ```
+    If you have a keypair at `~/.krexa/keypair.json`, it reuses it.
+  </Accordion>
+
+  <Accordion title="Transaction fails with 'insufficient SOL'">
+    Need SOL for fees:
+    ```bash
+    solana airdrop 2 YOUR_ADDRESS --url devnet
+    ```
+  </Accordion>
+
+  <Accordion title="MCP not working in Claude Code">
+    Verify registration:
+    ```bash
+    claude mcp list
+    ```
+    If krexa isn't listed:
+    ```bash
+    claude mcp add krexa --scope user -- npx -y @krexa/cli mcp
+    ```
+    Restart Claude Code after adding.
+  </Accordion>
+
+  <Accordion title="Score shows 0 or unexpected value">
+    New agents start at 350. If score shows 0, the oracle may not have processed registration yet. Wait 60 seconds:
+    ```bash
+    krexa score
+    ```
+  </Accordion>
+</AccordionGroup>

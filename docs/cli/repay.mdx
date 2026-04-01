@@ -1,0 +1,48 @@
+---
+title: krexa repay
+description: Repay outstanding credit line debt.
+---
+
+Repays your credit line. Interest is paid first, then principal.
+
+## Usage
+
+```bash
+krexa repay <amount|all>
+```
+
+## Arguments
+
+| Argument | Required | Description |
+|----------|----------|------------|
+| `amount` | Yes | USDC amount or `all` for full repayment |
+
+## Example
+
+```bash
+krexa repay 50
+```
+
+```
+✓ Repaid $50.00 USDC
+  Remaining: $450.00
+```
+
+Full repayment:
+
+```bash
+krexa repay all
+```
+
+```
+✓ Repaid $502.50 USDC (including $2.50 interest)
+  Remaining: $0.00
+  Credit line closed.
+```
+
+## Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `No active credit line` | Nothing to repay | Check with `krexa status` |
+| `Insufficient balance` | Not enough USDC | Get more via `krexa faucet` (devnet) |

@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Transfer};
 use crate::{Repay, AgentWallet, WalletConfig, WalletError};
 use crate::events::Repaid;
-use crate::utils::compute_health;
+use crate::utils::health::compute_nav;
 
 pub fn handle(ctx: Context<Repay>, amount: u64) -> Result<()> {
     // SOL-066 fix: gate repay behind pause check
@@ -73,12 +73,19 @@ pub fn handle(ctx: Context<Repay>, amount: u64) -> Result<()> {
 
     let vault_cfg = &ctx.accounts.vault_config;
     let new_wallet_balance = ctx.accounts.wallet_usdc.amount.saturating_sub(amount);
-    let hf = compute_health(
+    // NAV = V(t) / C₀ — use credit_limit (original credit) as denominator
+    // After repayment, credit_limit may have been cleared — use the reloaded value
+    let nav_denominator = if cl.is_active {
+        ctx.accounts.agent_wallet.credit_limit
+    } else {
+        1 // credit cleared — NAV is infinite, will clamp to u16::MAX
+    };
+    let hf = compute_nav(
         new_wallet_balance,
         ctx.accounts.agent_wallet.collateral_shares,
         vault_cfg.total_deposits,
         vault_cfg.total_shares,
-        new_total_debt,
+        nav_denominator,
     );
 
     let wallet = &mut ctx.accounts.agent_wallet;

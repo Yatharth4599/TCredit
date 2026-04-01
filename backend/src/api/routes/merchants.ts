@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import type { RequestHandler } from 'express';
 import type { Address } from 'viem';
 import { getAgent, getCreditTier, isCreditValid } from '../../chain/agentRegistry.js';
 import { listAllVaults } from '../../services/vault.service.js';
@@ -184,10 +185,7 @@ router.post('/:address/repay', requireAdmin as never, async (req: AuthenticatedR
   try {
     const addr = validateEvmAddress(req.params.address);
     const { repaymentAmount } = req.body;
-    if (!repaymentAmount) throw new AppError(400, 'repaymentAmount (wei string) required');
-
     const repayBigInt = BigInt(repaymentAmount);
-    if (repayBigInt <= 0n) throw new AppError(400, 'repaymentAmount must be positive');
 
     // Get settlement to calculate gross amount
     const settlement = await getSettlement(addr);
@@ -222,7 +220,7 @@ router.post('/:address/repay', requireAdmin as never, async (req: AuthenticatedR
 });
 
 // POST /api/v1/merchants/register — build unsigned registerAgent tx
-router.post('/register', async (req, res, next) => {
+router.post('/register', validate(MerchantRegisterSchema), async (req, res, next) => {
   try {
     const { metadataURI = '' } = req.body;
 
@@ -248,8 +246,6 @@ router.post('/register', async (req, res, next) => {
 router.post('/:address/credit-score', requireAdmin as never, async (req: AuthenticatedRequest, res, next) => {
   try {
     const { score } = req.body;
-    if (score === undefined) throw new AppError(400, 'score (0-1000) required');
-    if (score < 0 || score > 1000) throw new AppError(400, 'score must be 0-1000');
 
     const data = encodeFunctionData({
       abi: AgentRegistryABI,

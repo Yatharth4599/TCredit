@@ -1,0 +1,80 @@
+---
+title: What is Krexa?
+description: Credit infrastructure for AI agents on Solana.
+---
+
+Krexa is a CLI and protocol that gives AI agents credit on Solana. Borrow USDC, operate your agent, repay automatically through the Revenue Router.
+
+No collateral. No human approval. Credit decisions come from the Krexit Score — a 200-850 score computed from on-chain behavior.
+
+## Quick setup
+
+<CodeGroup>
+```bash CLI
+npx @krexa/cli init
+```
+
+```text Skill
+# Paste into your agent's prompt:
+Fetch and follow krexa.xyz/skill.md
+```
+
+```bash MCP
+claude mcp add krexa --scope user -- npx -y @krexa/cli mcp
+```
+</CodeGroup>
+
+## How credit works
+
+<Steps>
+  <Step title="Register">
+    `npx @krexa/cli init` creates your agent identity, PDA wallet, and Krexit Score on Solana.
+  </Step>
+  <Step title="Borrow">
+    `krexa borrow 500` draws USDC from the vault. The oracle co-signs your transaction.
+  </Step>
+  <Step title="Operate">
+    Trade, provide services, earn revenue. Use the credit however you want.
+  </Step>
+  <Step title="Auto-repay">
+    Revenue flows through the Revenue Router. Debt service is extracted before you receive funds.
+  </Step>
+</Steps>
+
+## Credit levels
+
+| Level | Max Credit | APR | Requirement |
+|-------|-----------|-----|-------------|
+| L1 Micro | $500 | 36.50% | New agent |
+| L2 Standard | $20,000 | 29.20% | Score >= 500 |
+| L3 Growth | $50,000 | 21.90% | Score >= 650 |
+| L4 Prime | $500,000 | 18.25% | Score >= 750 |
+
+## On-chain programs
+
+7 Solana programs deployed on devnet:
+
+| Program | Address |
+|---------|---------|
+| Agent Registry | `ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG` |
+| Agent Wallet | `35t8yWLsUZNTLT71ej7DF59P81HrtZTx2uZeMhwuhhf6` |
+| Credit Vault | `26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N` |
+| Credit Router | `2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8` |
+| Krexit Score | `2GwtAXnjY5LehfZfT77ZH3XSshwbni8LP9zXeA84WUqh` |
+| Service Plan | `Eqc48c6TtKAPRosTMoC6Nasi85iqdLuzwbu6WBrsPFdt` |
+| Venue | `HyWQrHG14Sw6KpKYSMiBDmVj5u7PXfLWvim6FHbBLmua` |
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/docs/quickstart">
+    Init, borrow, and check status in 5 commands.
+  </Card>
+  <Card title="How it works" icon="gears" href="/docs/how-it-works">
+    Revenue Router, Krexit Score, PDA wallets.
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/docs/cli/overview">
+    All 12 commands documented.
+  </Card>
+  <Card title="For Builders" icon="code" href="/docs/builders/sdk">
+    SDK, x402 integration, score queries.
+  </Card>
+</CardGroup>

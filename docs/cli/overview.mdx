@@ -1,0 +1,46 @@
+---
+title: CLI Overview
+description: All Krexa CLI commands at a glance.
+---
+
+```bash
+npx @krexa/cli <command>
+```
+
+Or install globally:
+
+```bash
+npm install -g @krexa/cli
+krexa <command>
+```
+
+## Commands
+
+| Command | Description |
+|---------|------------|
+| `init` | Register agent, create PDA wallet, get initial score |
+| `status` | Agent profile, score, debt, wallet, health |
+| `score [wallet]` | Krexit Score breakdown |
+| `borrow <amount>` | Borrow USDC from the vault |
+| `repay <amount\|all>` | Repay outstanding debt |
+| `wallet` | PDA wallet balance |
+| `faucet` | Get 100 test USDC (devnet) |
+| `lp <deposit\|withdraw\|status>` | LP tranche operations |
+| `config [key] [value]` | View or update config |
+| `mcp` | Start MCP server mode |
+| `docs` | Open docs in browser |
+
+## Configuration
+
+```
+~/.krexa/
+  keypair.json    # Agent keypair (Ed25519)
+  config.json     # Network, RPC URL, API URL
+```
+
+Default network: Solana devnet.
+
+```bash
+krexa config set network mainnet
+krexa config set rpcUrl https://your-rpc.com
+```

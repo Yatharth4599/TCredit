@@ -1,0 +1,37 @@
+---
+title: krexa config
+description: View and update CLI configuration.
+---
+
+## Usage
+
+```bash
+krexa config              # Show all config
+krexa config <key>        # Get a value
+krexa config <key> <val>  # Set a value
+```
+
+## Keys
+
+| Key | Default | Description |
+|-----|---------|------------|
+| `network` | `devnet` | `devnet` or `mainnet-beta` |
+| `rpcUrl` | — | Custom RPC endpoint |
+| `agentName` | — | Registered agent name |
+| `agentType` | `0` | 0=Trader, 1=Service, 2=Hybrid |
+
+## Example
+
+```bash
+krexa config network
+```
+
+```
+devnet
+```
+
+```bash
+krexa config set rpcUrl https://my-rpc.example.com
+```
+
+Config stored at `~/.krexa/config.json`. Keypair at `~/.krexa/keypair.json`.

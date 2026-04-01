@@ -1,0 +1,39 @@
+---
+title: krexa faucet
+description: Get test USDC on devnet.
+---
+
+Requests test USDC from the Krexa faucet. Devnet only.
+
+## Usage
+
+```bash
+krexa faucet [--amount <usdc>]
+```
+
+## Flags
+
+| Flag | Default | Description |
+|------|---------|------------|
+| `--amount` | 100 | USDC amount (max 100) |
+
+## Example
+
+```bash
+krexa faucet
+```
+
+```
+✓ Faucet sent 100.00 USDC to 7xK2...3pF4
+```
+
+Rate limit: 1 request per 24 hours per address.
+
+USDC goes to your **owner ATA**, not the PDA wallet. Both balances show in `krexa status`.
+
+## Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `Rate limit` | Already requested today | Wait 24 hours |
+| `API error 429` | Too many requests | Wait and retry |

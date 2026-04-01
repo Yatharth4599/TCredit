@@ -9,7 +9,7 @@ import type {
   Chain, AgentWalletState, CreditLineState, CreditEligibility, KyaStatus, KyaSubmitResult,
   CreditScore, AgentStatus, TradeParams, PayX402Params, WithdrawParams,
   RepayParams, DepositParams, RequestCreditParams, OperationResult,
-  SolanaVaultStats,
+  SolanaVaultStats, SwapQuoteParams, SwapQuoteResult, PortfolioResult, YieldOpportunity,
 } from './types.js';
 
 export class KrexaError extends Error {
@@ -127,6 +127,7 @@ export function createAgentNamespace(
     async createWallet(params: {
       ownerAddress: string;
       dailySpendLimitUsdc?: number;
+      agentType?: number;
       chain?: Chain;
     }): Promise<OperationResult> {
       const c = params.chain ?? chain;
@@ -135,6 +136,7 @@ export function createAgentNamespace(
           agent: params.ownerAddress,  // agent = owner in simple case
           owner: params.ownerAddress,
           dailySpendLimitUsdc: params.dailySpendLimitUsdc ?? 500,
+          agentType: params.agentType,
         });
       }
       return post<OperationResult>(b, '/wallets/create', apiKey, {
@@ -188,6 +190,45 @@ export function createAgentNamespace(
         to: params.to,
         amount: toBase(params.amount),
       });
+    },
+
+    /** Get a swap quote without executing. */
+    async quote(params: SwapQuoteParams): Promise<SwapQuoteResult> {
+      const agent = requireAgent();
+      return post<SwapQuoteResult>(b, `/solana/trading/${agent}/quote`, apiKey, {
+        from: params.from,
+        to: params.to,
+        amount: params.amount,
+        slippageBps: params.slippageBps,
+      });
+    },
+
+    /** Execute a swap and get unsigned transaction. */
+    async swap(params: SwapQuoteParams & { ownerAddress: string }): Promise<OperationResult> {
+      const agent = requireAgent();
+      return post<OperationResult>(b, `/solana/trading/${agent}/swap`, apiKey, {
+        from: params.from,
+        to: params.to,
+        amount: params.amount,
+        slippageBps: params.slippageBps,
+        ownerAddress: params.ownerAddress,
+      });
+    },
+
+    /** Get token portfolio with USD values. */
+    async portfolio(): Promise<PortfolioResult> {
+      const agent = requireAgent();
+      return get<PortfolioResult>(b, `/solana/trading/${agent}/portfolio`, apiKey);
+    },
+
+    /** Scan for top yield opportunities on Solana. */
+    async yieldScan(params?: { limit?: number; minTvl?: number; token?: string }): Promise<{ opportunities: YieldOpportunity[]; count: number }> {
+      const qs = new URLSearchParams();
+      if (params?.limit) qs.set('limit', String(params.limit));
+      if (params?.minTvl) qs.set('minTvl', String(params.minTvl));
+      if (params?.token) qs.set('token', params.token);
+      const query = qs.toString();
+      return get(b, `/solana/trading/yield${query ? `?${query}` : ''}`, apiKey);
     },
 
     /** Make an x402 payment to a merchant. */

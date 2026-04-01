@@ -10,14 +10,20 @@
 
 import { Router } from 'express';
 import { PublicKey } from '@solana/web3.js';
-import { readAgentWallet, readTokenBalance } from '../../chain/solana/reader.js';
+import { readAgentWallet, readAgentProfile, readTokenBalance } from '../../chain/solana/reader.js';
+import { agentProfilePda, agentWalletPda } from '../../chain/solana/programs.js';
 import {
-  buildCreateWallet, instructionToUnsignedTx,
+  buildCreateWallet, buildRegisterAgent, buildUpdateKya, instructionToUnsignedTx,
   buildProposeOwnershipTransfer, buildAcceptOwnershipTransfer, buildCancelOwnershipTransfer,
 } from '../../chain/solana/builder.js';
 import { walletUsdcPda } from '../../chain/solana/programs.js';
 import { prisma } from '../../config/prisma.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { validate } from '../middleware/validate.js';
+import {
+  SolanaWalletCreateSchema, SolanaWalletProposeTransferSchema,
+  SolanaWalletAcceptTransferSchema, SolanaWalletCancelTransferSchema,
+} from '../schemas.js';
 
 const router = Router();
 
@@ -143,38 +149,144 @@ router.get('/:agent/trades', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// POST /solana/wallets/create  — returns unsigned transaction
-router.post('/create', async (req, res, next) => {
+// POST /solana/wallets/:agent/trade  — proxy to trading routes for backward compat
+// The SDK's agent.trade() calls this path. Delegate to the trading swap handler.
+router.post('/:agent/trade', async (req, res, next) => {
   try {
-    const { agent, owner, dailySpendLimitUsdc } = req.body;
-    if (!agent || !owner) throw new AppError(400, 'agent and owner required');
+    const { resolveToken, getQuote, buildSwapTx } = await import('../../services/dex-aggregator.js');
+
+    const agentPk = parsePubkey(req.params.agent);
+    const wallet = await readAgentWallet(agentPk);
+    if (!wallet) throw new AppError(404, 'Agent wallet not found on-chain');
+    if (wallet.isFrozen) throw new AppError(403, 'Agent wallet is frozen');
+
+    // SDK sends: { venue, from, to, amount (base units string) }
+    const fromInput = (req.body.from as string) ?? 'USDC';
+    const toInput = (req.body.to as string) ?? 'SOL';
+    const amountRaw = req.body.amount as string;
+
+    const fromToken = resolveToken(fromInput);
+    const toToken = resolveToken(toInput);
+
+    // amount comes in base units from SDK — pass directly
+    const quote = await getQuote({
+      inputMint: fromToken.mint,
+      outputMint: toToken.mint,
+      amount: amountRaw,
+      slippageBps: 50,
+    });
+
+    // Use wallet owner as the signer for the swap tx
+    const ownerPk = wallet.owner.toBase58();
+    const swapResult = await buildSwapTx(quote, ownerPk);
+
+    const outAmountHuman = Number(quote.outAmount) / Math.pow(10, toToken.decimals);
+
+    // Record in DB
+    await prisma.solanaAgentTrade.create({
+      data: {
+        agentPubkey: agentPk.toBase58(),
+        venue: req.body.venue ?? 'jupiter',
+        amount: BigInt(amountRaw),
+        direction: fromToken.symbol === 'USDC' ? 'buy' : 'sell',
+        txSignature: `pending-${Date.now()}`,
+        executedAt: new Date(),
+      },
+    });
+
+    res.json({
+      success: true,
+      transaction: swapResult.swapTransaction,
+      encoding: 'base64',
+      description: `Swap ${fromToken.symbol} → ${outAmountHuman.toFixed(6)} ${toToken.symbol} via Jupiter`,
+    });
+  } catch (err) { next(err); }
+});
+
+// POST /solana/wallets/create  — returns partially-signed transaction
+// Bundles register_agent + update_kya + create_wallet in one atomic tx.
+// Oracle signs update_kya server-side; user's wallet signs the rest.
+router.post('/create', validate(SolanaWalletCreateSchema), async (req, res, next) => {
+  try {
+    const { agent, owner, dailySpendLimitUsdc, agentType } = req.body;
 
     const agentPk = parsePubkey(agent);
     const ownerPk = parsePubkey(owner);
     const dailySpendLimit = BigInt(Math.round((dailySpendLimitUsdc ?? 500) * 1_000_000));
 
-    const ixn = buildCreateWallet({ agent: agentPk, owner: ownerPk, dailySpendLimit });
-    const tx = await instructionToUnsignedTx(ixn, ownerPk);
+    const { solanaConnection, oracleSolanaKeypair } = await import('../../chain/solana/connection.js');
+    const { Transaction } = await import('@solana/web3.js');
+
+    // Raw existence checks (no deserialization — avoids stale struct issues)
+    const [profileAcct, walletAcct] = await Promise.all([
+      solanaConnection.getAccountInfo(agentProfilePda(agentPk)),
+      solanaConnection.getAccountInfo(agentWalletPda(agentPk)),
+    ]);
+
+    // If wallet already exists, nothing to do
+    if (walletAcct) {
+      res.json({ transaction: null, description: 'Agent wallet already exists', agentPubkey: agent });
+      return;
+    }
+
+    const needsRegister = !profileAcct;
+    // If profile exists, try to read credit_level; default to needing KYA if read fails
+    let needsKya = true;
+    if (profileAcct) {
+      const profile = await readAgentProfile(agentPk).catch(() => null);
+      needsKya = !profile || profile.creditLevel < 1;
+    }
+
+    const { blockhash } = await solanaConnection.getLatestBlockhash('confirmed');
+    const tx = new Transaction({ recentBlockhash: blockhash, feePayer: ownerPk });
+
+    // 1. Register agent if needed (user signs as agent + owner)
+    if (needsRegister) {
+      tx.add(buildRegisterAgent({ agent: agentPk, owner: ownerPk, name: 'krexa-agent' }));
+    }
+
+    // 2. Update KYA to tier 1 if needed (oracle signs — sets credit_level to 1)
+    if (needsKya && oracleSolanaKeypair) {
+      tx.add(buildUpdateKya({ oracle: oracleSolanaKeypair.publicKey, agent: agentPk, newTier: 1 }));
+    }
+
+    // 3. Create wallet (user signs as agent + owner, requires credit_level >= 1)
+    tx.add(buildCreateWallet({ agent: agentPk, owner: ownerPk, dailySpendLimit }));
+
+    // Partially sign with oracle if KYA instruction was added
+    if (needsKya && oracleSolanaKeypair) {
+      tx.partialSign(oracleSolanaKeypair);
+    }
+
+    const serialized = tx.serialize({ requireAllSignatures: false, verifySignatures: false }).toString('base64');
+
+    // Upsert DB record with agentType if provided
+    if (agentType !== undefined) {
+      await prisma.solanaAgentWallet.upsert({
+        where: { agentPubkey: agent },
+        update: { agentType },
+        create: { agentPubkey: agent, ownerPubkey: owner, agentType },
+      });
+    }
 
     res.json({
-      transaction: tx,
+      transaction: serialized,
       encoding: 'base64',
-      description: `Create krexa agent wallet for ${agent}`,
+      agentPubkey: agent,
+      description: `Register and create krexa agent wallet for ${agent}`,
     });
   } catch (err) { next(err); }
 });
 
 // POST /solana/wallets/:agent/propose-transfer
 // Body: { owner, newOwner, newOwnerType }
-router.post('/:agent/propose-transfer', async (req, res, next) => {
+router.post('/:agent/propose-transfer', validate(SolanaWalletProposeTransferSchema), async (req, res, next) => {
   try {
-    const agentPk = parsePubkey(req.params.agent);
+    const agentPk = parsePubkey(req.params.agent as string);
     const { owner, newOwner, newOwnerType } = req.body;
-    if (!owner || !newOwner) throw new AppError(400, 'owner and newOwner required');
     const ownerPk = parsePubkey(owner);
     const newOwnerPk = parsePubkey(newOwner);
     const ownerTypeParsed = Number(newOwnerType ?? 0);
-    if (ownerTypeParsed < 0 || ownerTypeParsed > 1) throw new AppError(400, 'newOwnerType must be 0 or 1');
 
     const ixn = buildProposeOwnershipTransfer({
       agent: agentPk,
@@ -194,11 +306,10 @@ router.post('/:agent/propose-transfer', async (req, res, next) => {
 
 // POST /solana/wallets/:agent/accept-transfer
 // Body: { newOwner, rentReceiver? }
-router.post('/:agent/accept-transfer', async (req, res, next) => {
+router.post('/:agent/accept-transfer', validate(SolanaWalletAcceptTransferSchema), async (req, res, next) => {
   try {
-    const agentPk = parsePubkey(req.params.agent);
+    const agentPk = parsePubkey(req.params.agent as string);
     const { newOwner, rentReceiver } = req.body;
-    if (!newOwner) throw new AppError(400, 'newOwner required');
     const newOwnerPk = parsePubkey(newOwner);
     const rentReceiverPk = rentReceiver ? parsePubkey(rentReceiver) : newOwnerPk;
 
@@ -219,11 +330,10 @@ router.post('/:agent/accept-transfer', async (req, res, next) => {
 
 // POST /solana/wallets/:agent/cancel-transfer
 // Body: { owner }
-router.post('/:agent/cancel-transfer', async (req, res, next) => {
+router.post('/:agent/cancel-transfer', validate(SolanaWalletCancelTransferSchema), async (req, res, next) => {
   try {
-    const agentPk = parsePubkey(req.params.agent);
+    const agentPk = parsePubkey(req.params.agent as string);
     const { owner } = req.body;
-    if (!owner) throw new AppError(400, 'owner required');
     const ownerPk = parsePubkey(owner);
 
     const ixn = buildCancelOwnershipTransfer({ agent: agentPk, owner: ownerPk });
@@ -254,6 +364,7 @@ router.get('/', async (req, res, next) => {
         agentPubkey: w.agentPubkey,
         ownerPubkey: w.ownerPubkey,
         ownerType: w.ownerType,
+        agentType: w.agentType,
         pendingOwner: w.pendingOwner ?? null,
         creditLevel: w.creditLevel,
         healthFactorBps: w.healthFactorBps,

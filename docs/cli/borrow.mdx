@@ -1,0 +1,42 @@
+---
+title: krexa borrow
+description: Borrow USDC from the credit vault.
+---
+
+Requests a credit line. The oracle co-signs your transaction based on your Krexit Score.
+
+## Usage
+
+```bash
+krexa borrow <amount>
+```
+
+## Arguments
+
+| Argument | Required | Description |
+|----------|----------|------------|
+| `amount` | Yes | USDC amount (e.g., `500`) |
+
+## Example
+
+```bash
+krexa borrow 500
+```
+
+```
+✓ Oracle approved credit request
+✓ Credit line opened: $500.00 USDC
+
+  Amount       $500.00 USDC
+  Rate         36.50% APR (0.10%/day)
+  Daily Cost   $0.50
+  Level        L1 (Micro)
+```
+
+## Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `Amount exceeds max credit` | Above your level's limit | Check `krexa status` for your max |
+| `Agent profile not found` | Not registered | Run `krexa init` first |
+| `oracle signing failed` | Backend down or rate limited | Wait 30-60s and retry |

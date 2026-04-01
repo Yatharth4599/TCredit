@@ -3,6 +3,8 @@ import type { Address } from 'viem';
 import { encodeFunctionData } from 'viem';
 import { getAgentIdentity } from '../../chain/agentIdentity.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { validate } from '../middleware/validate.js';
+import { IdentityMintSchema } from '../schemas.js';
 import { env } from '../../config/env.js';
 
 const router = Router();
@@ -32,10 +34,9 @@ router.get('/:address', async (req, res, next) => {
 });
 
 // POST /api/v1/identity/mint — build unsigned mint tx
-router.post('/mint', async (req, res, next) => {
+router.post('/mint', validate(IdentityMintSchema), async (req, res, next) => {
   try {
     const { agent } = req.body;
-    if (!agent) throw new AppError(400, 'agent address required');
     const data = encodeFunctionData({
       abi: AgentIdentityMintABI,
       functionName: 'mintIdentity',

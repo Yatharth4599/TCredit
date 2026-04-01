@@ -1,0 +1,75 @@
+---
+title: Integrating Krexit Score
+description: Read agent credit scores from TypeScript or Solana programs.
+---
+
+The Krexit Score is stored on-chain as a PDA. Read it without an oracle call.
+
+## From TypeScript
+
+```typescript
+import { KrexaClient } from "@krexa/sdk";
+
+const krexa = KrexaClient.devnet();
+const score = await krexa.agent.getScoreBreakdown(agentPubkey);
+
+if (score.total >= 650) {
+  // Agent qualifies for premium terms
+}
+```
+
+## From the REST API
+
+```bash
+curl https://tcredit-backend.onrender.com/api/v1/solana/score/AGENT_PUBKEY
+```
+
+```json
+{
+  "score": 620,
+  "source": "onchain",
+  "isRegistered": true,
+  "level": 2,
+  "components": {
+    "repayment": 7200,
+    "profitability": 5800,
+    "behavioral": 4500,
+    "usage": 3000,
+    "maturity": 1500
+  }
+}
+```
+
+## From a Solana program (CPI)
+
+```rust
+let (score_pda, _bump) = Pubkey::find_program_address(
+    &[b"krexit_score", agent_profile.key().as_ref()],
+    &krexit_score_program_id,
+);
+
+let score_account = KrexitScore::try_from_slice(
+    &score_pda_account.data.borrow()[8..]
+)?;
+
+require!(score_account.score >= 500, MyError::ScoreTooLow);
+```
+
+The score PDA is deterministic. Include it in your instruction's accounts list and deserialize directly.
+
+## Preview scores for unregistered wallets
+
+```bash
+curl https://tcredit-backend.onrender.com/api/v1/solana/score/ANY_WALLET
+```
+
+Returns a preview score based on wallet age, transaction count, and SOL balance. Useful for pre-screening.
+
+<CardGroup cols={2}>
+  <Card title="Score algorithm" icon="chart-line" href="/docs/protocol/krexit-score">
+    How the 5 components are computed.
+  </Card>
+  <Card title="Score API" icon="code" href="/docs/api/score">
+    Full endpoint documentation.
+  </Card>
+</CardGroup>

@@ -1061,6 +1061,501 @@
 
 .footerLink:hover { color: #1D4ED8; }
 
+/* ── Educational Sections ──────────────────────────────────── */
+
+.eduSection {
+  padding: 56px 24px;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.eduSection:nth-child(even) {
+  background: #F8FAFC;
+}
+
+.eduInner {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.eduLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #94A3B8;
+  margin-bottom: 10px;
+}
+
+.eduTitle {
+  font-size: clamp(22px, 3vw, 30px);
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+}
+
+.eduSub {
+  font-size: 15px;
+  color: #64748B;
+  line-height: 1.6;
+  margin: 0 0 32px;
+  max-width: 620px;
+}
+
+/* Protocol Overview Flow */
+.flowGrid {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  flex-wrap: wrap;
+}
+
+.flowStep {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 24px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  min-width: 160px;
+  text-align: center;
+}
+
+.flowStepNum {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #EFF6FF;
+  color: #2563EB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.flowStepTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.flowStepDesc {
+  font-size: 12px;
+  color: #64748B;
+  line-height: 1.5;
+}
+
+.flowArrow {
+  font-size: 18px;
+  color: #CBD5E1;
+  padding: 0 8px;
+  flex-shrink: 0;
+}
+
+/* Grid layouts */
+.eduGrid3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.eduGrid4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.eduGrid5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.eduGrid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+/* Card patterns */
+.eduCard {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.eduCardIcon {
+  font-size: 28px;
+  margin-bottom: 12px;
+}
+
+.eduCardBadge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #2563EB;
+  background: #EFF6FF;
+  border-radius: 6px;
+  padding: 3px 8px;
+  margin-bottom: 8px;
+}
+
+.eduCardTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 6px;
+}
+
+.eduCardBody {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.7;
+  margin: 0 0 8px;
+}
+
+.eduCardMeta {
+  font-size: 11px;
+  color: #94A3B8;
+  line-height: 1.6;
+}
+
+/* Score formula box */
+.formulaBox {
+  background: #0F172A;
+  color: #F1F5F9;
+  border-radius: 10px;
+  padding: 16px 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(11px, 1.5vw, 14px);
+  margin-bottom: 24px;
+  overflow-x: auto;
+}
+
+.formulaLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748B;
+  margin-bottom: 6px;
+  font-family: 'Inter', sans-serif;
+}
+
+.formulaHighlight {
+  color: #60A5FA;
+}
+
+/* Weight bar */
+.weightBar {
+  display: flex;
+  height: 10px;
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.weightSegment {
+  transition: width 0.3s;
+}
+
+/* Component cards */
+.componentDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.componentRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #FFFFFF;
+  border: 1px solid #F1F5F9;
+  border-radius: 8px;
+}
+
+.componentName {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0F172A;
+  min-width: 90px;
+}
+
+.componentWeight {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  color: #2563EB;
+  min-width: 32px;
+}
+
+.componentDesc {
+  font-size: 12px;
+  color: #64748B;
+  flex: 1;
+}
+
+/* Health zones */
+.zoneCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+}
+
+.zoneDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.zoneLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.zoneThreshold {
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: #64748B;
+}
+
+.zoneDesc {
+  font-size: 11px;
+  color: #94A3B8;
+}
+
+/* Tables */
+.eduTableWrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.eduTable {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+}
+
+.eduTh {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94A3B8;
+  padding: 10px 14px;
+  border-bottom: 2px solid #E2E8F0;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.eduTd {
+  font-size: 13px;
+  color: #334155;
+  padding: 12px 14px;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.eduTdMono {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+}
+
+.eduTdBold {
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.levelBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+/* Tranche cards */
+.trancheCard {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 20px;
+  border-top: 3px solid;
+}
+
+.trancheHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.trancheName {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.trancheApr {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.trancheRisk {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-radius: 6px;
+  padding: 3px 8px;
+  margin-bottom: 8px;
+}
+
+.trancheDesc {
+  font-size: 13px;
+  color: #64748B;
+  line-height: 1.6;
+}
+
+.tranchePriority {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94A3B8;
+  margin-top: 8px;
+}
+
+/* Waterfall flow */
+.waterfallWrap {
+  margin-top: 32px;
+  padding: 20px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+}
+
+.waterfallTitle {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94A3B8;
+  margin-bottom: 16px;
+}
+
+.waterfallFlow {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.waterfallStep {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.waterfallArrow {
+  color: #CBD5E1;
+  font-size: 14px;
+  padding: 0 6px;
+  flex-shrink: 0;
+}
+
+/* Interest / formula section */
+.interestGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.interestCard {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.interestLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94A3B8;
+  margin-bottom: 6px;
+}
+
+.interestFormula {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0F172A;
+  margin-bottom: 8px;
+}
+
+.interestExample {
+  font-size: 12px;
+  color: #64748B;
+  line-height: 1.6;
+}
+
+/* Section divider for live demo */
+.liveDemoHeader {
+  text-align: center;
+  padding: 56px 24px 0;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.liveDemoHeaderTitle {
+  font-size: clamp(22px, 3vw, 30px);
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+}
+
+.liveDemoHeaderSub {
+  font-size: 15px;
+  color: #64748B;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* New program icon backgrounds */
+.proofIcon.service  { background: #FFF7ED; }
+.proofIcon.scoreProg { background: #EFF6FF; }
+
 /* ── Responsive ─────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
@@ -1079,6 +1574,15 @@
   .statusDot span { display: none; }
 
   .hero { padding: 40px 20px 36px; }
+
+  .eduGrid3, .interestGrid { grid-template-columns: 1fr; }
+  .eduGrid4 { grid-template-columns: repeat(2, 1fr); }
+  .eduGrid5 { grid-template-columns: 1fr; }
+  .eduGrid2 { grid-template-columns: 1fr; }
+  .eduSection { padding: 40px 16px; }
+
+  .flowGrid { flex-direction: column; gap: 8px; }
+  .flowArrow { transform: rotate(90deg); padding: 0; }
 }
 
 @media (max-width: 600px) {
@@ -1095,4 +1599,8 @@
   .proofTxGrid { grid-template-columns: 1fr; }
 
   .footer { padding: 12px 16px; }
+
+  .eduGrid4 { grid-template-columns: 1fr; }
+  .waterfallFlow { flex-direction: column; gap: 4px; }
+  .waterfallArrow { transform: rotate(90deg); }
 }

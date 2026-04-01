@@ -1,7 +1,13 @@
 import { Router } from 'express';
+import type { RequestHandler } from 'express';
 import { randomBytes } from 'crypto';
 import { requireAdmin } from '../middleware/apiKeyAuth.js';
-import { AppError } from '../middleware/errorHandler.js';
+import { ipAllowlist } from '../middleware/ipAllowlist.js';
+import { validate } from '../middleware/validate.js';
+import {
+  AdminCreateKeySchema, AdminUpdateKeySchema,
+  AdminCreateWebhookSchema, AdminUpdateWebhookSchema,
+} from '../schemas.js';
 import { prisma } from '../../config/prisma.js';
 const router = Router();
 
@@ -18,19 +24,30 @@ function sanitizeCsvField(val: string): string {
 // All admin routes require an admin-tier API key (BUG-029)
 router.use(requireAdmin as never);
 
-// GET /api/v1/admin/keys -- list all API keys (BUG-030: keys redacted)
-router.get('/keys', async (_req, res, next) => {
+// GET /api/v1/admin/keys -- list API keys (paginated, keys redacted)
+router.get('/keys', async (req, res, next) => {
   try {
-    const keys = await prisma.apiKey.findMany({
-      orderBy: { createdAt: 'desc' },
-      select: { id: true, name: true, key: true, tier: true, rateLimit: true, active: true, createdAt: true },
-    });
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit as string) || 50, 100));
+    const skip = (page - 1) * limit;
+
+    const [keys, total] = await Promise.all([
+      prisma.apiKey.findMany({
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, name: true, key: true, tier: true, rateLimit: true, active: true, createdAt: true },
+        skip,
+        take: limit,
+      }),
+      prisma.apiKey.count(),
+    ]);
     res.json({
       keys: keys.map((k) => ({
         ...k,
         key: k.key.slice(0, 4) + '…' + k.key.slice(-4),
       })),
-      total: keys.length,
+      total,
+      page,
+      limit,
     });
   } catch (err) {
     next(err);
@@ -38,10 +55,9 @@ router.get('/keys', async (_req, res, next) => {
 });
 
 // POST /api/v1/admin/keys -- create a new API key
-router.post('/keys', async (req, res, next) => {
+router.post('/keys', validate(AdminCreateKeySchema), async (req, res, next) => {
   try {
     const { name, rateLimit: rl } = req.body;
-    if (!name) throw new AppError(400, 'name required');
 
     const key = `tck_${randomBytes(24).toString('hex')}`;
     const apiKey = await prisma.apiKey.create({
@@ -65,7 +81,7 @@ router.post('/keys', async (req, res, next) => {
 });
 
 // PATCH /api/v1/admin/keys/:id -- update key (name, rateLimit, active)
-router.patch('/keys/:id', async (req, res, next) => {
+router.patch('/keys/:id', validate(AdminUpdateKeySchema), async (req, res, next) => {
   try {
     const { name, rateLimit: rl, active } = req.body;
     const data: Record<string, unknown> = {};
@@ -73,10 +89,8 @@ router.patch('/keys/:id', async (req, res, next) => {
     if (rl !== undefined) data.rateLimit = Number(rl);
     if (active !== undefined) data.active = Boolean(active);
 
-    if (Object.keys(data).length === 0) throw new AppError(400, 'No fields to update');
-
     const apiKey = await prisma.apiKey.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data,
     });
 
@@ -108,23 +122,34 @@ router.delete('/keys/:id', async (req, res, next) => {
 // Webhook Endpoints
 // =========================================================================
 
-// GET /api/v1/admin/webhooks -- list webhook endpoints
-router.get('/webhooks', async (_req, res, next) => {
+// GET /api/v1/admin/webhooks -- list webhook endpoints (paginated)
+router.get('/webhooks', async (req, res, next) => {
   try {
-    const endpoints = await prisma.webhookEndpoint.findMany({
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true, url: true, events: true, active: true, createdAt: true,
-        _count: { select: { deliveries: true } },
-      },
-    });
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit as string) || 50, 100));
+    const skip = (page - 1) * limit;
+
+    const [endpoints, total] = await Promise.all([
+      prisma.webhookEndpoint.findMany({
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true, url: true, events: true, active: true, createdAt: true,
+          _count: { select: { deliveries: true } },
+        },
+        skip,
+        take: limit,
+      }),
+      prisma.webhookEndpoint.count(),
+    ]);
     res.json({
       endpoints: endpoints.map((ep) => ({
         ...ep,
         deliveryCount: ep._count.deliveries,
         _count: undefined,
       })),
-      total: endpoints.length,
+      total,
+      page,
+      limit,
     });
   } catch (err) {
     next(err);
@@ -159,7 +184,7 @@ function validateWebhookUrl(url: string): void {
 }
 
 // POST /api/v1/admin/webhooks -- create webhook endpoint
-router.post('/webhooks', async (req, res, next) => {
+router.post('/webhooks', validate(AdminCreateWebhookSchema), async (req, res, next) => {
   try {
     const { url, events } = req.body;
     if (!url) throw new AppError(400, 'url required');
@@ -191,7 +216,7 @@ router.post('/webhooks', async (req, res, next) => {
 });
 
 // PATCH /api/v1/admin/webhooks/:id -- update webhook endpoint
-router.patch('/webhooks/:id', async (req, res, next) => {
+router.patch('/webhooks/:id', validate(AdminUpdateWebhookSchema), async (req, res, next) => {
   try {
     const { url, events, active } = req.body;
     const data: Record<string, unknown> = {};
@@ -200,10 +225,8 @@ router.patch('/webhooks/:id', async (req, res, next) => {
     if (events !== undefined) data.events = events;
     if (active !== undefined) data.active = Boolean(active);
 
-    if (Object.keys(data).length === 0) throw new AppError(400, 'No fields to update');
-
     const endpoint = await prisma.webhookEndpoint.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data,
     });
 
@@ -253,12 +276,21 @@ router.get('/webhooks/:id/deliveries', async (req, res, next) => {
 // Waitlist
 // =========================================================================
 
-// GET /api/v1/admin/waitlist — all entries
-router.get('/waitlist', async (_req, res, next) => {
+// GET /api/v1/admin/waitlist — entries (paginated)
+router.get('/waitlist', async (req, res, next) => {
   try {
-    const entries = await prisma.waitlistEntry.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit as string) || 50, 100));
+    const skip = (page - 1) * limit;
+
+    const [entries, total] = await Promise.all([
+      prisma.waitlistEntry.findMany({
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.waitlistEntry.count(),
+    ]);
     res.json({
       entries: entries.map((e) => ({
         id: e.id,
@@ -266,7 +298,9 @@ router.get('/waitlist', async (_req, res, next) => {
         walletAddress: e.walletAddress,
         createdAt: e.createdAt.toISOString(),
       })),
-      total: entries.length,
+      total,
+      page,
+      limit,
     });
   } catch (err) {
     next(err);

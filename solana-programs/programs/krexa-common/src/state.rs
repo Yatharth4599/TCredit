@@ -122,13 +122,14 @@ impl KyaTier {
     }
 
     /// Minimum KYA tier required to access a given credit level.
+    /// Canonical: L1/L2 = Tier 1 (Basic), L3/L4 = Tier 2 (Enhanced)
     pub fn required_for(level: CreditLevel) -> KyaTier {
         match level {
             CreditLevel::KyaOnly     => KyaTier::None,
-            CreditLevel::Starter     => KyaTier::Basic,
-            CreditLevel::Established => KyaTier::Basic,
-            CreditLevel::Trusted     => KyaTier::Enhanced,
-            CreditLevel::Elite       => KyaTier::Enhanced,
+            CreditLevel::Starter     => KyaTier::Basic,     // Tier 1+
+            CreditLevel::Established => KyaTier::Basic,     // Tier 1+
+            CreditLevel::Trusted     => KyaTier::Enhanced,  // Tier 2+
+            CreditLevel::Elite       => KyaTier::Enhanced,  // Tier 2+
         }
     }
 
@@ -140,6 +141,191 @@ impl KyaTier {
 impl Default for KyaTier {
     fn default() -> Self {
         KyaTier::None
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tranche
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Tranche {
+    /// Senior — 50% of pool, 10% APR, last to absorb losses
+    Senior,
+    /// Mezzanine — 30% of pool, 12% APR, middle risk
+    Mezzanine,
+    /// Junior — 20% of pool, 20% APR, first to absorb losses (protocol capital)
+    Junior,
+}
+
+impl Tranche {
+    pub fn as_u8(self) -> u8 {
+        match self {
+            Tranche::Senior => 0,
+            Tranche::Mezzanine => 1,
+            Tranche::Junior => 2,
+        }
+    }
+
+    pub fn from_u8(v: u8) -> Option<Self> {
+        match v {
+            0 => Some(Tranche::Senior),
+            1 => Some(Tranche::Mezzanine),
+            2 => Some(Tranche::Junior),
+            _ => None,
+        }
+    }
+
+    /// Annual yield rate in BPS for this tranche.
+    pub fn apr_bps(&self) -> u16 {
+        use crate::constants::*;
+        match self {
+            Tranche::Senior => SENIOR_APR_BPS,       // 1000 = 10%
+            Tranche::Mezzanine => MEZZANINE_APR_BPS, // 1200 = 12%
+            Tranche::Junior => JUNIOR_APR_BPS,       // 2000 = 20%
+        }
+    }
+
+    /// Target share of total pool in BPS.
+    pub fn share_bps(&self) -> u16 {
+        use crate::constants::*;
+        match self {
+            Tranche::Senior => SENIOR_SHARE_BPS,       // 5000 = 50%
+            Tranche::Mezzanine => MEZZANINE_SHARE_BPS, // 3000 = 30%
+            Tranche::Junior => JUNIOR_SHARE_BPS,       // 2000 = 20%
+        }
+    }
+}
+
+impl Default for Tranche {
+    fn default() -> Self {
+        Tranche::Senior
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Agent type — determines enforcement model
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum AgentType {
+    /// Type A: NAV-based enforcement — trading agents, collateral-backed
+    Trader,
+    /// Type B: Revenue velocity enforcement — service/merchant agents,
+    /// milestone disbursement, expense whitelisting
+    Service,
+    /// Type C: Weighted blend of NAV + revenue velocity
+    Hybrid,
+}
+
+impl AgentType {
+    pub fn as_u8(self) -> u8 {
+        match self {
+            AgentType::Trader => 0,
+            AgentType::Service => 1,
+            AgentType::Hybrid => 2,
+        }
+    }
+
+    pub fn from_u8(v: u8) -> Option<Self> {
+        match v {
+            0 => Some(AgentType::Trader),
+            1 => Some(AgentType::Service),
+            2 => Some(AgentType::Hybrid),
+            _ => None,
+        }
+    }
+}
+
+impl Default for AgentType {
+    fn default() -> Self {
+        AgentType::Trader
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Service health — revenue velocity monitoring zones for Type B agents
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ServiceHealth {
+    /// On track — revenue ≥ 80% of projected
+    Green,
+    /// Slow but viable — revenue 50-80% of projected
+    Yellow,
+    /// Concerning — revenue 25-50% of projected, disbursements paused
+    Orange,
+    /// Critical — revenue < 25%, wind-down initiated
+    Red,
+}
+
+impl ServiceHealth {
+    pub fn as_u8(self) -> u8 {
+        match self {
+            ServiceHealth::Green => 0,
+            ServiceHealth::Yellow => 1,
+            ServiceHealth::Orange => 2,
+            ServiceHealth::Red => 3,
+        }
+    }
+
+    pub fn from_u8(v: u8) -> Option<Self> {
+        match v {
+            0 => Some(ServiceHealth::Green),
+            1 => Some(ServiceHealth::Yellow),
+            2 => Some(ServiceHealth::Orange),
+            3 => Some(ServiceHealth::Red),
+            _ => None,
+        }
+    }
+}
+
+impl Default for ServiceHealth {
+    fn default() -> Self {
+        ServiceHealth::Green
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Revenue source classification (Type B validation)
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum RevenueSourceClass {
+    /// Passed all checks — counts as revenue
+    Verified,
+    /// Failed classification — does NOT count as revenue
+    Rejected,
+    /// Suspicious — held for oracle review
+    Quarantined,
+    /// Tentatively credited, awaiting keeper analysis
+    PendingKeeper,
+}
+
+impl RevenueSourceClass {
+    pub fn as_u8(self) -> u8 {
+        match self {
+            RevenueSourceClass::Verified => 0,
+            RevenueSourceClass::Rejected => 1,
+            RevenueSourceClass::Quarantined => 2,
+            RevenueSourceClass::PendingKeeper => 3,
+        }
+    }
+
+    pub fn from_u8(v: u8) -> Option<Self> {
+        match v {
+            0 => Some(RevenueSourceClass::Verified),
+            1 => Some(RevenueSourceClass::Rejected),
+            2 => Some(RevenueSourceClass::Quarantined),
+            3 => Some(RevenueSourceClass::PendingKeeper),
+            _ => None,
+        }
+    }
+}
+
+impl Default for RevenueSourceClass {
+    fn default() -> Self {
+        RevenueSourceClass::PendingKeeper
     }
 }
 

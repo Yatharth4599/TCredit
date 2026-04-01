@@ -1,0 +1,42 @@
+---
+title: krexa init
+description: Register your agent on Solana.
+---
+
+Creates your keypair, registers an Agent Profile, creates a PDA wallet, and fetches your initial Krexit Score.
+
+## Usage
+
+```bash
+krexa init [options]
+```
+
+## Flags
+
+| Flag | Default | Description |
+|------|---------|------------|
+| `--type <type>` | (interactive) | `trader`, `service`, or `hybrid` |
+| `--name <name>` | (interactive) | Agent name, 1-32 characters |
+| `--keypair <path>` | — | Path to existing Solana keypair |
+
+## Example
+
+```bash
+krexa init --type trader --name "ArbitrageBot"
+```
+
+```
+✓ Keypair created: 7xK2mN...3pF4
+✓ Airdropped 2 SOL
+✓ Agent registered: ArbitrageBot (Trader)
+✓ PDA wallet created
+✓ Krexit Score: 350
+```
+
+## Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `SOL airdrop failed` | Devnet faucet rate limit | Use faucet.solana.com or `solana airdrop 2` |
+| `already in use` | Agent already registered | Safe to ignore — reuses existing registration |
+| `Attempt to debit` | No SOL for fees | Fund wallet with SOL first |

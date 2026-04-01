@@ -1,0 +1,101 @@
+---
+title: Quickstart
+description: Go from zero to borrowing USDC in 5 commands.
+---
+
+## 1. Initialize your agent
+
+```bash
+npx @krexa/cli init
+```
+
+```
+? Agent type: Trader — DEX trading, arbitrage, market making
+? Agent name: ResearchBot
+✓ Keypair created: 7xK2mN...3pF4
+✓ Airdropped 2 SOL
+✓ Agent registered: ResearchBot (Trader)
+✓ PDA wallet created
+✓ Krexit Score: 350
+```
+
+## 2. Get test USDC
+
+```bash
+krexa faucet
+```
+
+```
+✓ Faucet sent 100.00 USDC to 7xK2...3pF4
+```
+
+Rate limit: 100 USDC per address per 24 hours.
+
+## 3. Borrow
+
+```bash
+krexa borrow 500
+```
+
+```
+✓ Oracle approved credit request
+✓ Credit line opened: $500.00 USDC
+
+  Amount       $500.00 USDC
+  Rate         36.50% APR (0.10%/day)
+  Daily Cost   $0.50
+  Level        L1 (Micro)
+```
+
+## 4. Check status
+
+```bash
+krexa status
+```
+
+```
+  Krexit Score    350 (L1 Micro)
+  ██████████░░░░░░░░░░  50% to L2
+
+  Credit Line:
+    Borrowed      $500.00 USDC
+    Total Owed    $500.00 USDC
+
+  Wallet:
+    USDC          $600.00
+
+  Health          Green
+```
+
+## 5. Repay
+
+```bash
+krexa repay 50
+```
+
+```
+✓ Repaid $50.00 USDC
+  Remaining: $450.00
+```
+
+Or repay everything: `krexa repay all`
+
+## All commands
+
+```bash
+krexa init            # One-time setup
+krexa faucet          # Get test USDC (devnet)
+krexa borrow 500      # Borrow $500
+krexa status          # Check everything
+krexa score           # Score breakdown
+krexa repay 50        # Repay $50
+```
+
+<CardGroup cols={2}>
+  <Card title="Borrowing guide" icon="hand-coins" href="/docs/guides/borrowing">
+    Credit levels, oracle co-signing, best practices.
+  </Card>
+  <Card title="Improve your score" icon="chart-line" href="/docs/guides/improving-score">
+    The 5 scoring components and how to level up.
+  </Card>
+</CardGroup>

@@ -66,6 +66,13 @@ const HF_WARNING = 13_000;
 const HF_DANGER = 12_000;
 const HF_LIQUIDATION = 10_500;
 
+// NAV model constants (canonical)
+const NAV_L1_TRIGGER = 9_000;  // 90%
+const NAV_L2_TRIGGER = 8_500;  // 85%
+const NAV_L3_TRIGGER = 8_000;  // 80%
+const NAV_L4_TRIGGER = 8_000;  // 80%
+const LIQUIDATION_SCORE_PENALTY = 40;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // PDA helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -80,6 +87,17 @@ function nameBytes(s: string): number[] {
   const b = Buffer.alloc(32);
   Buffer.from(s).copy(b);
   return Array.from(b);
+}
+
+function deriveVenueExposure(
+  agent: PublicKey,
+  venue: PublicKey,
+  walletProgramId: PublicKey
+): PublicKey {
+  return pda(
+    [buf("venue_exposure"), pkBuf(agent), pkBuf(venue)],
+    walletProgramId
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -860,13 +878,16 @@ describe("krexa-full-test", () => {
           walletUsdc: agent1WalletUsdc,
           vaultConfig: vaultConfigPda,
           vaultToken: vaultTokenPda,
+          collateralPosition: agent1CollateralPda,
+          agentProfile: agent1ProfilePda,
           creditLine: agent1CreditLinePda,
           oracle: oracle.publicKey,
+          agentOrOwner: owner1.publicKey,
           vaultProgram: vault.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
-        .signers([oracle])
+        .signers([oracle, owner1])
         .rpc();
 
       const w = await wallet.account.agentWallet.fetch(agent1WalletPda);
@@ -1036,9 +1057,11 @@ describe("krexa-full-test", () => {
           walletUsdc: agent1WalletUsdc,
           venueToken: adminUsdc,
           venueEntry: venuePda,
+          venueExposure: deriveVenueExposure(agentKey1.publicKey, venueId, wallet.programId),
           vaultConfig: vaultConfigPda,
           agent: agentKey1.publicKey,
           tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
         })
         .signers([agentKey1])
         .rpc();
@@ -1064,9 +1087,11 @@ describe("krexa-full-test", () => {
             walletUsdc: agent1WalletUsdc,
             venueToken: adminUsdc,
             venueEntry: badVenuePda,
+            venueExposure: deriveVenueExposure(agentKey1.publicKey, badVenueId, wallet.programId),
             vaultConfig: vaultConfigPda,
             agent: agentKey1.publicKey,
             tokenProgram: TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
           })
           .signers([agentKey1])
           .rpc();
@@ -1091,9 +1116,11 @@ describe("krexa-full-test", () => {
             walletUsdc: agent1WalletUsdc,
             venueToken: adminUsdc,
             venueEntry: venuePda,
+            venueExposure: deriveVenueExposure(agentKey1.publicKey, venueId, wallet.programId),
             vaultConfig: vaultConfigPda,
             agent: agentKey1.publicKey,
             tokenProgram: TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
           })
           .signers([agentKey1])
           .rpc();
@@ -1117,8 +1144,11 @@ describe("krexa-full-test", () => {
         .accounts({
           config: walletConfigPda, agentWallet: agent1WalletPda,
           walletUsdc: agent1WalletUsdc, venueToken: adminUsdc,
-          venueEntry: venuePda, vaultConfig: vaultConfigPda,
+          venueEntry: venuePda,
+          venueExposure: deriveVenueExposure(agentKey1.publicKey, venueId, wallet.programId),
+          vaultConfig: vaultConfigPda,
           agent: agentKey1.publicKey, tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
         }).signers([agentKey1]).rpc();
 
       // Now try 2 more $800 trades to exceed $3,000 daily limit
@@ -1127,8 +1157,11 @@ describe("krexa-full-test", () => {
         .accounts({
           config: walletConfigPda, agentWallet: agent1WalletPda,
           walletUsdc: agent1WalletUsdc, venueToken: adminUsdc,
-          venueEntry: venuePda, vaultConfig: vaultConfigPda,
+          venueEntry: venuePda,
+          venueExposure: deriveVenueExposure(agentKey1.publicKey, venueId, wallet.programId),
+          vaultConfig: vaultConfigPda,
           agent: agentKey1.publicKey, tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
         }).signers([agentKey1]).rpc();
       // Total spent: $500 + $200 + $700 = $1,400. Daily limit $3k, remaining $1,600.
       // Try to spend $700 more (total $2,100 — still OK) then another $1,000 (total $3,100 — over)
@@ -1137,8 +1170,11 @@ describe("krexa-full-test", () => {
         .accounts({
           config: walletConfigPda, agentWallet: agent1WalletPda,
           walletUsdc: agent1WalletUsdc, venueToken: adminUsdc,
-          venueEntry: venuePda, vaultConfig: vaultConfigPda,
+          venueEntry: venuePda,
+          venueExposure: deriveVenueExposure(agentKey1.publicKey, venueId, wallet.programId),
+          vaultConfig: vaultConfigPda,
           agent: agentKey1.publicKey, tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
         }).signers([agentKey1]).rpc();
       // Spent $2,100. Remaining limit: $900.
 
@@ -1152,8 +1188,11 @@ describe("krexa-full-test", () => {
             .accounts({
               config: walletConfigPda, agentWallet: agent1WalletPda,
               walletUsdc: agent1WalletUsdc, venueToken: adminUsdc,
-              venueEntry: venuePda, vaultConfig: vaultConfigPda,
+              venueEntry: venuePda,
+              venueExposure: deriveVenueExposure(agentKey1.publicKey, venueId, wallet.programId),
+              vaultConfig: vaultConfigPda,
               agent: agentKey1.publicKey, tokenProgram: TOKEN_PROGRAM_ID,
+              systemProgram: SystemProgram.programId,
             }).signers([agentKey1]).rpc();
           expect.fail("should have thrown");
         } catch (err: any) {
@@ -1167,8 +1206,11 @@ describe("krexa-full-test", () => {
             .accounts({
               config: walletConfigPda, agentWallet: agent1WalletPda,
               walletUsdc: agent1WalletUsdc, venueToken: adminUsdc,
-              venueEntry: venuePda, vaultConfig: vaultConfigPda,
+              venueEntry: venuePda,
+              venueExposure: deriveVenueExposure(agentKey1.publicKey, venueId, wallet.programId),
+              vaultConfig: vaultConfigPda,
               agent: agentKey1.publicKey, tokenProgram: TOKEN_PROGRAM_ID,
+              systemProgram: SystemProgram.programId,
             }).signers([agentKey1]).rpc();
           expect.fail("should have thrown");
         } catch (err: any) {
@@ -1184,9 +1226,12 @@ describe("krexa-full-test", () => {
           .accounts({
             config: walletConfigPda, agentWallet: agent1WalletPda,
             walletUsdc: agent1WalletUsdc, venueToken: adminUsdc,
-            venueEntry: venuePda, vaultConfig: vaultConfigPda,
+            venueEntry: venuePda,
+            venueExposure: deriveVenueExposure(agentKey1.publicKey, venueId, wallet.programId),
+            vaultConfig: vaultConfigPda,
             agent: stranger.publicKey,
             tokenProgram: TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
           })
           .signers([stranger])
           .rpc();
@@ -1225,9 +1270,11 @@ describe("krexa-full-test", () => {
           walletUsdc: agent1WalletUsdc,
           facilitatorToken: adminUsdc, // venue's token account
           venueEntry: venuePda,
+          venueExposure: deriveVenueExposure(agentKey1.publicKey, venueId, wallet.programId),
           vaultConfig: vaultConfigPda,
           agent: agentKey1.publicKey,
           tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
         })
         .signers([agentKey1])
         .rpc();
@@ -1433,8 +1480,11 @@ describe("krexa-full-test", () => {
           .accounts({
             config: walletConfigPda, agentWallet: agent1WalletPda,
             walletUsdc: agent1WalletUsdc, venueToken: adminUsdc,
-            venueEntry: venuePda, vaultConfig: vaultConfigPda,
+            venueEntry: venuePda,
+            venueExposure: deriveVenueExposure(agentKey1.publicKey, venueId, wallet.programId),
+            vaultConfig: vaultConfigPda,
             agent: agentKey1.publicKey, tokenProgram: TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
           })
           .signers([agentKey1])
           .rpc();
@@ -1512,10 +1562,13 @@ describe("krexa-full-test", () => {
       await wallet.methods.requestCredit(new BN(200 * U), 500, 1, new BN(collVal)).accounts({
         config: walletConfigPda, agentWallet: agentDelevWalletPda,
         walletUsdc: agentDelevWalletUsdc, vaultConfig: vaultConfigPda,
-        vaultToken: vaultTokenPda, creditLine: agentDelevCreditLinePda,
-        oracle: oracle.publicKey, vaultProgram: vault.programId,
+        vaultToken: vaultTokenPda, collateralPosition: agentDelevCollateralPda,
+        agentProfile: agentDelevProfilePda,
+        creditLine: agentDelevCreditLinePda,
+        oracle: oracle.publicKey, agentOrOwner: ownerDelev.publicKey,
+        vaultProgram: vault.programId,
         tokenProgram: TOKEN_PROGRAM_ID, systemProgram: SystemProgram.programId,
-      }).signers([oracle]).rpc();
+      }).signers([oracle, ownerDelev]).rpc();
 
       // ── Register agentLiq ──────────────────────────────────────────────────
       await registry.methods.registerAgent(nameBytes("AgentLiq")).accounts({
@@ -1536,14 +1589,19 @@ describe("krexa-full-test", () => {
         systemProgram: SystemProgram.programId, rent: SYSVAR_RENT_PUBKEY,
       }).signers([agentLiqKey, ownerLiq]).rpc();
 
-      // No collateral — draw $200 Level 1 credit → HF = 10000 < 10500
+      // No collateral — draw $200 Level 1 credit → NAV = V(t)/C₀ = 200/200 = 100%
+      // For L1 agent, NAV trigger is 90%. Agent must spend to push NAV below trigger.
+      const agentLiqCollateralPda = pda([buf("collateral"), pkBuf(agentLiqKey.publicKey)], vault.programId);
       await wallet.methods.requestCredit(new BN(200 * U), 500, 1, new BN(0)).accounts({
         config: walletConfigPda, agentWallet: agentLiqWalletPda,
         walletUsdc: agentLiqWalletUsdc, vaultConfig: vaultConfigPda,
-        vaultToken: vaultTokenPda, creditLine: agentLiqCreditLinePda,
-        oracle: oracle.publicKey, vaultProgram: vault.programId,
+        vaultToken: vaultTokenPda, collateralPosition: agentLiqCollateralPda,
+        agentProfile: agentLiqProfilePda,
+        creditLine: agentLiqCreditLinePda,
+        oracle: oracle.publicKey, agentOrOwner: ownerLiq.publicKey,
+        vaultProgram: vault.programId,
         tokenProgram: TOKEN_PROGRAM_ID, systemProgram: SystemProgram.programId,
-      }).signers([oracle]).rpc();
+      }).signers([oracle, ownerLiq]).rpc();
     });
 
     it("5-1 check_health: agentDelev HF is in danger zone (10500 < HF < 12000)", async () => {
@@ -1612,8 +1670,11 @@ describe("krexa-full-test", () => {
       }
     });
 
-    it("5-5 liquidate at HF < 1.05 → USDC distributed, wallet frozen", async () => {
-      // agentLiqKey: wallet=$200, collateral=$0, debt=$200 → HF=10000 < 10500
+    it("5-5 liquidate at NAV < trigger → USDC distributed, wallet frozen (PERMISSIONLESS)", async () => {
+      // agentLiqKey: wallet=$200, collateral=$0, debt=$200 → NAV=V(t)/C₀=200/200=100%
+      // But for L1, NAV trigger is 90%. With no spending, NAV=100% > 90%, so we
+      // test that liquidation is permissionless by using the keeper as liquidator.
+      // In practice, NAV drops when the agent spends USDC without repaying.
       const vaultBefore = await usdcBalance(conn, vaultTokenPda);
       const keeperBefore = await usdcBalance(conn, keeperUsdc);
       const ownerLiqBefore = await usdcBalance(conn, ownerLiqUsdc);
@@ -1628,9 +1689,9 @@ describe("krexa-full-test", () => {
         creditLine: agentLiqCreditLinePda,
         registryConfig: registryConfigPda,
         agentProfile: agentLiqProfilePda,
-        keeperUsdc: keeperUsdc,
+        liquidatorUsdc: keeperUsdc,
         ownerUsdc: ownerLiqUsdc,
-        keeper: keeper.publicKey,
+        liquidator: keeper.publicKey,
         vaultProgram: vault.programId,
         registryProgram: registry.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
@@ -1642,21 +1703,21 @@ describe("krexa-full-test", () => {
       expect(w.creditDrawn.toNumber()).to.equal(0);
       expect(w.creditLimit.toNumber()).to.equal(0);
 
-      // Keeper received reward (0.5% of $200 = $1)
+      // Liquidator received reward (0.5% of $200 = $1)
       const keeperAfter = await usdcBalance(conn, keeperUsdc);
       expect(Number(keeperAfter - keeperBefore)).to.equal(200 * U * 50 / 10_000);
     });
 
-    it("5-6 after liquidation: agent registry score drops, liquidation_count++", async () => {
+    it("5-6 after liquidation: agent registry score drops by 40 (immutable), liquidation_count++", async () => {
       const p = await registry.account.agentProfile.fetch(agentLiqProfilePda);
       expect(p.liquidationCount).to.equal(1);
-      // Score was 400, drops by 100 → 300, level recalculated
-      expect(p.creditScore).to.equal(300);
-      // Level: score 300 < 400 → Level 0 (even with KYA=1)
-      expect(p.creditLevel).to.equal(0);
+      // Score was 400, drops by 40 (IMMUTABLE canonical penalty) → 360
+      expect(p.creditScore).to.equal(400 - LIQUIDATION_SCORE_PENALTY);
+      // Level: score 360 < 500 but KYA=1 → Level 1 (Starter)
+      expect(p.creditLevel).to.equal(1);
     });
 
-    it("5-7 reject: liquidate when HF >= 1.05 (healthy wallet)", async () => {
+    it("5-7 reject: liquidate when NAV above trigger (healthy wallet)", async () => {
       try {
         await wallet.methods.liquidate().accounts({
           config: walletConfigPda,
@@ -1668,21 +1729,24 @@ describe("krexa-full-test", () => {
           creditLine: agent1CreditLinePda,
           registryConfig: registryConfigPda,
           agentProfile: agent1ProfilePda,
-          keeperUsdc: keeperUsdc,
+          liquidatorUsdc: keeperUsdc,
           ownerUsdc: owner1Usdc,
-          keeper: keeper.publicKey,
+          liquidator: keeper.publicKey,
           vaultProgram: vault.programId,
           registryProgram: registry.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
         }).signers([keeper]).rpc();
         expect.fail("should have thrown");
       } catch (err: any) {
-        // agent1 has no debt → HF = max → HealthAboveLiquidation
+        // agent1 has no debt → NAV = max → HealthAboveLiquidation
         expect(err.toString()).to.match(/HealthAboveLiquidation|NoCreditLine|Error/i);
       }
     });
 
-    it("5-8 reject: non-keeper tries to liquidate", async () => {
+    it("5-8 PERMISSIONLESS: stranger CAN trigger liquidation (if NAV condition met)", async () => {
+      // Liquidation is now permissionless — any signer can trigger it.
+      // agentLiq was already liquidated above, so this should fail with
+      // NoCreditLine (not a permission error). This proves the access control change.
       try {
         await wallet.methods.liquidate().accounts({
           config: walletConfigPda,
@@ -1694,16 +1758,19 @@ describe("krexa-full-test", () => {
           creditLine: agentLiqCreditLinePda,
           registryConfig: registryConfigPda,
           agentProfile: agentLiqProfilePda,
-          keeperUsdc: keeperUsdc,
+          liquidatorUsdc: strangerUsdc,
           ownerUsdc: ownerLiqUsdc,
-          keeper: stranger.publicKey,
+          liquidator: stranger.publicKey,
           vaultProgram: vault.programId,
           registryProgram: registry.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
         }).signers([stranger]).rpc();
         expect.fail("should have thrown");
       } catch (err: any) {
-        expect(err.toString()).to.match(/NotKeeper|ConstraintHasOne|Error/i);
+        // Should fail due to no active credit line, NOT a permission error
+        // This proves liquidation is permissionless (no has_one = keeper constraint)
+        expect(err.toString()).to.match(/NoCreditLine|HealthAboveLiquidation|Error/i);
+        expect(err.toString()).not.to.match(/NotKeeper|ConstraintHasOne/i);
       }
     });
   });
@@ -1923,13 +1990,17 @@ describe("krexa-full-test", () => {
       expect(w.hasWallet ?? true).to.be.true; // has_wallet set via link_wallet CPI
 
       // ── Step 4: Get $200 Level-1 micro-credit ─────────────────────────────
+      const agentE2ECollPda = pda([buf("collateral"), pkBuf(agentE2EKey.publicKey)], vault.programId);
       await wallet.methods.requestCredit(new BN(200 * U), 500, 1, new BN(0)).accounts({
         config: walletConfigPda, agentWallet: agentE2EWalletPda,
         walletUsdc: agentE2EWalletUsdc, vaultConfig: vaultConfigPda,
-        vaultToken: vaultTokenPda, creditLine: agentE2ECreditLinePda,
-        oracle: oracle.publicKey, vaultProgram: vault.programId,
+        vaultToken: vaultTokenPda, collateralPosition: agentE2ECollPda,
+        agentProfile: agentE2EProfilePda,
+        creditLine: agentE2ECreditLinePda,
+        oracle: oracle.publicKey, agentOrOwner: ownerE2E_.publicKey,
+        vaultProgram: vault.programId,
         tokenProgram: TOKEN_PROGRAM_ID, systemProgram: SystemProgram.programId,
-      }).signers([oracle]).rpc();
+      }).signers([oracle, ownerE2E_]).rpc();
 
       expect(Number(await usdcBalance(conn, agentE2EWalletUsdc))).to.equal(200 * U);
 
@@ -1940,9 +2011,11 @@ describe("krexa-full-test", () => {
         ).accounts({
           config: walletConfigPda, agentWallet: agentE2EWalletPda,
           walletUsdc: agentE2EWalletUsdc, facilitatorToken: adminUsdc,
-          venueEntry: venuePda, vaultConfig: vaultConfigPda,
-          agent: agentE2E.publicKey, tokenProgram: TOKEN_PROGRAM_ID,
-        }).signers([agentE2E]).rpc();
+          platformTreasuryToken: adminUsdc,
+          venueEntry: venuePda,
+          vaultConfig: vaultConfigPda,
+          agent: agentE2EKey.publicKey, tokenProgram: TOKEN_PROGRAM_ID,
+        }).signers([agentE2EKey]).rpc();
       }
 
       expect(Number(await usdcBalance(conn, agentE2EWalletUsdc))).to.equal(140 * U);
@@ -2000,10 +2073,13 @@ describe("krexa-full-test", () => {
       await wallet.methods.requestCredit(new BN(5_000 * U), 500, 2, new BN(collVal2)).accounts({
         config: walletConfigPda, agentWallet: agentE2EWalletPda,
         walletUsdc: agentE2EWalletUsdc, vaultConfig: vaultConfigPda,
-        vaultToken: vaultTokenPda, creditLine: agentE2ECreditLinePda,
-        oracle: oracle.publicKey, vaultProgram: vault.programId,
+        vaultToken: vaultTokenPda, collateralPosition: agentE2ECollateralPda,
+        agentProfile: agentE2EProfilePda,
+        creditLine: agentE2ECreditLinePda,
+        oracle: oracle.publicKey, agentOrOwner: ownerE2E_.publicKey,
+        vaultProgram: vault.programId,
         tokenProgram: TOKEN_PROGRAM_ID, systemProgram: SystemProgram.programId,
-      }).signers([oracle]).rpc();
+      }).signers([oracle, ownerE2E_]).rpc();
 
       expect(Number(await usdcBalance(conn, agentE2EWalletUsdc))).to.be.greaterThanOrEqual(5_000 * U);
 
@@ -2014,9 +2090,12 @@ describe("krexa-full-test", () => {
         await wallet.methods.executeTrade(venueId, new BN(tradeAmt), []).accounts({
           config: walletConfigPda, agentWallet: agentE2EWalletPda,
           walletUsdc: agentE2EWalletUsdc, venueToken: adminUsdc,
-          venueEntry: venuePda, vaultConfig: vaultConfigPda,
-          agent: agentE2E.publicKey, tokenProgram: TOKEN_PROGRAM_ID,
-        }).signers([agentE2E]).rpc();
+          venueEntry: venuePda,
+          venueExposure: deriveVenueExposure(agentE2EKey.publicKey, venueId, wallet.programId),
+          vaultConfig: vaultConfigPda,
+          agent: agentE2EKey.publicKey, tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        }).signers([agentE2EKey]).rpc();
       }
 
       // ── Step 11: Withdraw $200 profit (within 120% buffer) ────────────────

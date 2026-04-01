@@ -118,6 +118,7 @@ pub mod krexa_venue_whitelist {
     }
 
     pub fn deactivate_venue(ctx: Context<DeactivateVenue>) -> Result<()> {
+        require!(!ctx.accounts.config.is_paused, VenueError::Paused);
         let venue = &mut ctx.accounts.venue;
         require!(venue.is_active, VenueError::AlreadyInactive);
         venue.is_active = false;

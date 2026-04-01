@@ -1,0 +1,52 @@
+---
+title: Krexit Score
+description: The 200-850 on-chain credit score algorithm.
+---
+
+The Krexit Score is a 200-850 composite score stored on-chain as a PDA.
+
+```
+Seeds: ["krexit_score", agent_profile_pubkey]
+Program: 2GwtAXnj...WUqh
+```
+
+## Components
+
+| Component | Weight | Signals |
+|-----------|--------|---------|
+| Repayment History | 30% | On-time rate, average days to repay, missed payments |
+| Profitability | 25% | P&L ratio, Sharpe ratio, max drawdown |
+| Behavioral Health | 20% | % time in Green/Yellow/Orange/Red zones |
+| Usage Patterns | 15% | Venue diversity (Shannon entropy), volume consistency |
+| Account Maturity | 10% | Age, lifetime volume, completed credit cycles |
+
+## Credit levels
+
+| Level | Score | Max Credit | APR |
+|-------|-------|-----------|-----|
+| L1 Micro | 200-499 | $500 | 36.50% |
+| L2 Standard | 500-649 | $20,000 | 29.20% |
+| L3 Growth | 650-749 | $50,000 | 21.90% |
+| L4 Prime | 750-850 | $500,000 | 18.25% |
+
+## Recency weighting
+
+| Period | Weight |
+|--------|--------|
+| Last 30 days | 2.0x |
+| 30-90 days | 1.5x |
+| 90-180 days | 1.0x |
+| 180+ days | 0.5x |
+
+## Querying
+
+```bash
+krexa score                    # CLI
+krexa score AGENT_PUBKEY       # Another agent
+```
+
+```bash
+curl https://tcredit-backend.onrender.com/api/v1/solana/score/AGENT_PUBKEY
+```
+
+The score PDA is readable by any Solana program via CPI without an oracle call.

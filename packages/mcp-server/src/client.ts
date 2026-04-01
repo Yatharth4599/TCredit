@@ -260,6 +260,62 @@ export async function buildCreditAndLaunch(body: {
   }>('/kickstart/credit-and-launch', { method: 'POST', body });
 }
 
+// ---------------------------------------------------------------------------
+// Trading
+// ---------------------------------------------------------------------------
+
+export async function executeSwap(agent: string, body: {
+  from: string;
+  to: string;
+  amount: number;
+  slippageBps?: number;
+  ownerAddress: string;
+}) {
+  return request<{ transaction: string; encoding: string; description: string; quote: unknown }>(
+    `/solana/trading/${agent}/swap`, { method: 'POST', body },
+  );
+}
+
+export async function getSwapQuote(agent: string, body: {
+  from: string;
+  to: string;
+  amount: number;
+  slippageBps?: number;
+}) {
+  return request<{
+    agentPubkey: string;
+    from: { symbol: string; mint: string; amount: string };
+    to: { symbol: string; mint: string; amount: string };
+    priceImpactPct: string;
+    slippageBps: number;
+  }>(`/solana/trading/${agent}/quote`, { method: 'POST', body });
+}
+
+export async function getPortfolio(agent: string) {
+  return request<{
+    agentPubkey: string;
+    tokens: Array<{ mint: string; symbol: string; balance: string; price: string; balanceUsd: string }>;
+    totalValueUsd: string;
+    lastUpdated: string;
+  }>(`/solana/trading/${agent}/portfolio`);
+}
+
+export async function scanYields(params?: { limit?: number; minTvl?: number; token?: string }) {
+  const qs = new URLSearchParams();
+  if (params?.limit) qs.set('limit', String(params.limit));
+  if (params?.minTvl) qs.set('minTvl', String(params.minTvl));
+  if (params?.token) qs.set('token', params.token);
+  const query = qs.toString();
+  return request<{
+    opportunities: Array<{ protocol: string; pool: string; apy: number; tvlUsd: number; token: string; category: string }>;
+    count: number;
+  }>(`/solana/trading/yield${query ? `?${query}` : ''}`);
+}
+
+// ---------------------------------------------------------------------------
+// Kickstart (EasyA)
+// ---------------------------------------------------------------------------
+
 export async function getKickstartTokens(start?: number, count?: number) {
   return request<{ tokens: Array<{ curve: string; token: string | null }>; total: number }>(
     '/kickstart/tokens',

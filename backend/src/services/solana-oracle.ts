@@ -49,14 +49,17 @@ export async function evaluateCredit(agentPubkeyStr: string): Promise<CreditEval
   }
 
   const [profile, vault] = await Promise.all([
-    readAgentProfile(agentPubkey),
-    readVaultConfig(),
+    readAgentProfile(agentPubkey).catch((err) => {
+      console.error(`[evaluateCredit] readAgentProfile failed for ${agentPubkeyStr}:`, err.message ?? err);
+      return null;
+    }),
+    readVaultConfig().catch(() => null),
   ]);
 
   if (!profile) {
     return {
       eligible: false, creditLevel: 0, maxCreditUsdc: 0,
-      reason: 'Agent profile not found on-chain',
+      reason: 'Agent profile not found or could not be read on-chain',
       agentPubkey: agentPubkeyStr, creditScore: 0, kyaTier: 0,
     };
   }
@@ -89,7 +92,8 @@ export async function evaluateCredit(agentPubkeyStr: string): Promise<CreditEval
   // Determine highest eligible level
   for (const threshold of CREDIT_THRESHOLDS) {
     if (profile.creditScore >= threshold.minScore && profile.kyaTier >= threshold.minKya) {
-      const maxCreditUsdc = creditLimitForLevel(threshold.level, 0);
+      const maxCreditBaseUnits = creditLimitForLevel(threshold.level, 0);
+      const maxCreditUsdc = maxCreditBaseUnits / 1_000_000;
       return {
         eligible: true,
         creditLevel: threshold.level,
@@ -111,14 +115,14 @@ export async function evaluateCredit(agentPubkeyStr: string): Promise<CreditEval
 
 /** Mirror of krexa-common constants for credit limits (in USDC base units). */
 function creditLimitForLevel(level: number, collateralValueUsdc: number): number {
-  const LEVEL_1_MAX = 200_000_000;      // $200
-  const LEVEL_2_MAX = 10_000_000_000;   // $10,000
-  const LEVEL_3_MAX = 100_000_000_000;  // $100,000
-  const LEVEL_4_MAX = 500_000_000_000;  // $500,000
+  const LEVEL_1_MAX = 500_000_000;        // $500 — no collateral needed
+  const LEVEL_2_MAX = 20_000_000_000;     // $20,000 — 1:1 leverage
+  const LEVEL_3_MAX = 50_000_000_000;     // $50,000 — 2:1 leverage
+  const LEVEL_4_MAX = 500_000_000_000;    // $500,000 — no collateral (max cap)
   switch (level) {
     case 1: return LEVEL_1_MAX;
-    case 2: return Math.min(Math.floor(collateralValueUsdc * 5 / 1), LEVEL_2_MAX);
-    case 3: return Math.min(Math.floor(collateralValueUsdc * 10 / 1), LEVEL_3_MAX);
+    case 2: return Math.min(Math.floor(collateralValueUsdc * 1), LEVEL_2_MAX);
+    case 3: return Math.min(Math.floor(collateralValueUsdc * 2), LEVEL_3_MAX);
     case 4: return LEVEL_4_MAX;
     default: return 0;
   }

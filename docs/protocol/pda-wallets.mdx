@@ -1,0 +1,49 @@
+---
+title: PDA Wallets
+description: Program-controlled wallets with no private key.
+---
+
+Every Krexa agent gets a PDA wallet. It has no private key — controlled entirely by the Agent Wallet program.
+
+## Derivation
+
+```
+Seeds: ["agent_wallet", agent_profile_pubkey]
+Program: 35t8yWLs...hhf6 (Agent Wallet)
+```
+
+## Why PDAs
+
+- Agent **cannot** extract funds while debt is outstanding
+- Every transfer is validated by the program
+- Revenue Router intercepts inbound payments automatically
+- Liquidation can seize assets without agent cooperation
+
+## Safety checks
+
+Every transaction passes 7 checks. If any fails, the transaction reverts:
+
+1. **Venue whitelist** — destination must be approved
+2. **Token check** — token must be recognized
+3. **Position limit** — single position cannot exceed 20% of wallet
+4. **Per-trade limit** — single trade cannot exceed 20% of wallet
+5. **Per-venue limit** — single venue cannot hold >50% of positions
+6. **NAV check** — post-trade NAV must stay above trigger
+7. **Anomaly detection** — flags unusual patterns
+
+## Token accounts
+
+The PDA holds a USDC Associated Token Account. Additional token accounts are created as needed for trades. All accounts are owned by the PDA.
+
+```bash
+krexa wallet  # View PDA address and balances
+```
+
+<CardGroup cols={2}>
+  <Card title="Revenue Router" icon="arrows-split-up-and-left" href="/docs/protocol/revenue-router">
+    How debt service is extracted from revenue.
+  </Card>
+  <Card title="Collateral" icon="shield" href="/docs/guides/collateral">
+    How Krexa works without collateral.
+  </Card>
+</CardGroup>

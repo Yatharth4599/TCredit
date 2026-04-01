@@ -1,0 +1,169 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Krexa",
+  "logo": {
+    "dark": "/docs/logo/krexa-white.svg",
+    "light": "/docs/logo/krexa-dark.svg"
+  },
+  "favicon": "/docs/favicon.svg",
+  "colors": {
+    "primary": "#22d3ee",
+    "light": "#34d399",
+    "dark": "#050505",
+    "background": {
+      "dark": "#050505",
+      "light": "#ffffff"
+    },
+    "anchors": {
+      "from": "#22d3ee",
+      "to": "#34d399"
+    }
+  },
+  "font": {
+    "headings": {
+      "family": "Geist",
+      "weight": 600
+    },
+    "body": {
+      "family": "Geist",
+      "weight": 400
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "Dashboard",
+      "url": "https://krexa.xyz/app/solana/credit"
+    },
+    {
+      "name": "GitHub",
+      "url": "https://github.com/Yatharth4599/Krexa"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Get Started",
+    "url": "/docs/quickstart"
+  },
+  "tabs": [
+    {
+      "name": "Documentation",
+      "url": "/docs"
+    },
+    {
+      "name": "CLI Reference",
+      "url": "/docs/cli"
+    },
+    {
+      "name": "API",
+      "url": "/docs/api"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "GitHub",
+      "icon": "github",
+      "url": "https://github.com/Yatharth4599/Krexa"
+    },
+    {
+      "name": "Community",
+      "icon": "x-twitter",
+      "url": "https://x.com/krexa_xyz"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Get started",
+      "pages": [
+        "docs/introduction",
+        "docs/quickstart",
+        "docs/how-it-works"
+      ]
+    },
+    {
+      "group": "Guides",
+      "pages": [
+        "docs/guides/borrowing",
+        "docs/guides/repaying",
+        "docs/guides/service-agents",
+        "docs/guides/lp-guide",
+        "docs/guides/improving-score",
+        "docs/guides/collateral"
+      ]
+    },
+    {
+      "group": "For Builders",
+      "pages": [
+        "docs/builders/sdk",
+        "docs/builders/publishing-x402-service",
+        "docs/builders/integrating-krexit-score",
+        "docs/builders/webhook-events"
+      ]
+    },
+    {
+      "group": "MCP Integration",
+      "pages": [
+        "docs/mcp-mode",
+        "docs/installation/claude-code",
+        "docs/installation/cursor",
+        "docs/installation/other-clients"
+      ]
+    },
+    {
+      "group": "CLI Reference",
+      "pages": [
+        "docs/cli/overview",
+        "docs/cli/init",
+        "docs/cli/borrow",
+        "docs/cli/repay",
+        "docs/cli/status",
+        "docs/cli/score",
+        "docs/cli/wallet",
+        "docs/cli/lp",
+        "docs/cli/faucet",
+        "docs/cli/config",
+        "docs/cli/mcp"
+      ]
+    },
+    {
+      "group": "Protocol",
+      "pages": [
+        "docs/protocol/revenue-router",
+        "docs/protocol/krexit-score",
+        "docs/protocol/tranches",
+        "docs/protocol/agent-types",
+        "docs/protocol/programs",
+        "docs/protocol/pda-wallets"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "docs/api/overview",
+        "docs/api/score",
+        "docs/api/faucet",
+        "docs/api/oracle",
+        "docs/api/vault",
+        "docs/api/credit"
+      ]
+    },
+    {
+      "group": "Resources",
+      "pages": [
+        "docs/resources/faq",
+        "docs/resources/troubleshooting",
+        "docs/resources/glossary"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "x": "https://x.com/krexa_xyz",
+    "github": "https://github.com/Yatharth4599/Krexa"
+  },
+  "feedback": {
+    "thumbsRating": true,
+    "suggestEdit": true,
+    "raiseIssue": true
+  },
+  "modeToggle": {
+    "default": "dark"
+  }
+}

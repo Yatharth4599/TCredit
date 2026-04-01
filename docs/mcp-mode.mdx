@@ -1,0 +1,48 @@
+---
+title: MCP Integration
+description: Give AI assistants native access to Krexa tools.
+---
+
+The Model Context Protocol (MCP) lets AI assistants call Krexa tools directly.
+
+## Quick setup
+
+```bash
+claude mcp add krexa --scope user -- npx -y @krexa/cli mcp
+```
+
+That's it. Claude Code can now borrow, repay, check scores, and manage your agent.
+
+## Available tools
+
+| Tool | Description |
+|------|------------|
+| `register_agent` | Register on Solana |
+| `check_balance` | Get USDC balance |
+| `draw_credit` | Borrow USDC |
+| `repay` | Repay debt |
+| `get_score` | Krexit Score breakdown |
+| `pay` | Send USDC |
+| `trade` | Execute DEX trade |
+
+## Environment variables
+
+| Variable | Default | Description |
+|----------|---------|------------|
+| `KREXA_KEYPAIR` | `~/.krexa/keypair.json` | Path to keypair |
+| `KREXA_NETWORK` | `devnet` | Solana network |
+| `KREXA_RPC_URL` | Solana devnet RPC | Custom RPC |
+
+## Client setup guides
+
+<CardGroup cols={3}>
+  <Card title="Claude Code" icon="terminal" href="/docs/installation/claude-code">
+    One command setup.
+  </Card>
+  <Card title="Cursor" icon="mouse-pointer" href="/docs/installation/cursor">
+    JSON config file.
+  </Card>
+  <Card title="Other clients" icon="plug" href="/docs/installation/other-clients">
+    Generic MCP config.
+  </Card>
+</CardGroup>

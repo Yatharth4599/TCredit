@@ -48,25 +48,19 @@ pub struct AgentProfile {
     pub wallet_pda: Pubkey,
     pub has_wallet: bool,
 
-    // Legal agreement (Phase 1 — required for L3-L4 credit)
-    pub legal_agreement_hash: [u8; 32],
-    pub legal_agreement_signed_at: i64,
-
-    // Score attestation (Phase 1 — on-chain proof of score issuance)
-    pub score_attestation_hash: [u8; 32],
-
     // Status
     pub is_active: bool,
     pub registered_at: i64,
     pub bump: u8,
-    pub owner_type: u8,  // 0 = EOA, 1 = Multisig
+
+    // v3: Agent enforcement type (0=Trader/TypeA, 1=Service/TypeB, 2=Hybrid/TypeC)
+    pub agent_type: u8,
 }
 
 impl AgentProfile {
-    // +72 bytes for Phase 1: legal_agreement_hash(32) + legal_agreement_signed_at(8) + score_attestation_hash(32)
-    // +1 byte for owner_type
+    // 8 discriminator + 32+32+32 identity + 2+1+1+8+8 credit + 8+8+8+8+1 stats + 32+1 links + 1+8+1 status + 1 agent_type = 201
     pub const LEN: usize = 8 + 32 + 32 + 32 + 2 + 1 + 1 + 8 + 8
-        + 8 + 8 + 8 + 8 + 1 + 32 + 1 + 32 + 8 + 32 + 1 + 8 + 1 + 1;
+        + 8 + 8 + 8 + 8 + 1 + 32 + 1 + 1 + 8 + 1 + 1;
     pub const SEED: &'static [u8] = b"agent_profile";
 }
 
@@ -95,11 +89,17 @@ impl ProfileOwnershipTransfer {
 /// Derive the correct credit level from score + KYA tier.
 /// Level can go up OR down — called on every score/KYA change.
 pub fn calculate_level(score: u16, kya_tier: u8) -> u8 {
+    // Canonical thresholds (source: Investor Memo):
+    //   L4: Score ≥ 750, KYA Tier 2+ (Enhanced), 6+ months history
+    //   L3: Score ≥ 650, KYA Tier 2+ (Enhanced), 3+ months history
+    //   L2: Score ≥ 500, KYA Tier 1+ (Basic)
+    //   L1: Score < 500 (or new agent), KYA Tier 1+ (Basic)
+    // Note: history requirements are checked elsewhere (off-chain oracle)
     match (score, kya_tier) {
-        (s, k) if s >= 750 && k >= 3 => 4, // Elite
-        (s, k) if s >= 650 && k >= 2 => 3, // Trusted
-        (s, k) if s >= 500 && k >= 2 => 2, // Established
-        (s, k) if s >= 400 && k >= 1 => 1, // Starter
+        (s, k) if s >= 750 && k >= 2 => 4, // Elite    — KYA Tier 2+ (Enhanced)
+        (s, k) if s >= 650 && k >= 2 => 3, // Trusted  — KYA Tier 2+ (Enhanced)
+        (s, k) if s >= 500 && k >= 1 => 2, // Established — KYA Tier 1+ (Basic)
+        (_, k) if k >= 1             => 1, // Starter  — any score, KYA Tier 1+ (Basic)
         _ => 0,                             // KyaOnly
     }
 }
@@ -277,13 +277,10 @@ pub mod krexa_agent_registry {
         profile.liquidation_count = 0;
         profile.wallet_pda = Pubkey::default();
         profile.has_wallet = false;
-        profile.legal_agreement_hash = [0u8; 32];
-        profile.legal_agreement_signed_at = 0;
-        profile.score_attestation_hash = [0u8; 32];
         profile.is_active = true;
         profile.registered_at = now;
         profile.bump = ctx.bumps.profile;
-        profile.owner_type = 0; // EOA by default
+        profile.agent_type = 0; // Default: Trader (Type A)
 
         ctx.accounts.config.total_agents =
             ctx.accounts.config.total_agents.saturating_add(1);
@@ -384,11 +381,12 @@ pub mod krexa_agent_registry {
         Ok(())
     }
 
-    /// Record a liquidation event. Drops score by 100 (floor 200) and recalculates level.
+    /// Record a liquidation event. Drops score by 40 (immutable, floor 200) and recalculates level.
     pub fn record_liquidation(ctx: Context<RecordLiquidation>) -> Result<()> {
         let profile = &mut ctx.accounts.profile;
         profile.liquidation_count = profile.liquidation_count.saturating_add(1);
-        profile.credit_score = profile.credit_score.saturating_sub(100).max(MIN_CREDIT_SCORE);
+        // IMMUTABLE: -40 point penalty per liquidation (canonical, cannot be changed by governance)
+        profile.credit_score = profile.credit_score.saturating_sub(40).max(MIN_CREDIT_SCORE);
         profile.credit_level = calculate_level(profile.credit_score, profile.kya_tier);
 
         emit!(LiquidationRecorded {
@@ -440,8 +438,6 @@ pub mod krexa_agent_registry {
         require!(profile.is_active, RegistryError::AgentNotActive);
 
         let now = Clock::get()?.unix_timestamp;
-        profile.legal_agreement_hash = agreement_hash;
-        profile.legal_agreement_signed_at = now;
 
         emit!(LegalAgreementSigned {
             agent: profile.agent,
@@ -466,7 +462,6 @@ pub mod krexa_agent_registry {
         require!(profile.is_active, RegistryError::AgentNotActive);
 
         let now = Clock::get()?.unix_timestamp;
-        profile.score_attestation_hash = score_hash;
 
         emit!(ScoreAttested {
             agent: profile.agent,
@@ -566,7 +561,6 @@ pub mod krexa_agent_registry {
 
         let profile = &mut ctx.accounts.profile;
         profile.owner = new_owner;
-        profile.owner_type = new_owner_type;
 
         emit!(ProfileOwnershipTransferAccepted {
             agent,
@@ -583,6 +577,54 @@ pub mod krexa_agent_registry {
             agent: ctx.accounts.profile.agent,
             cancelled_by: ctx.accounts.owner.key(),
         });
+        Ok(())
+    }
+
+    /// Admin or oracle sets the agent enforcement type (Trader/Service/Hybrid).
+    pub fn set_agent_type(ctx: Context<UpdateKya>, agent_type: u8) -> Result<()> {
+        require!(!ctx.accounts.config.is_paused, RegistryError::Paused);
+        require!(agent_type <= 2, RegistryError::InvalidAgentType);
+
+        let signer = ctx.accounts.authority.key();
+        let cfg = &ctx.accounts.config;
+        require!(
+            signer == cfg.admin || signer == cfg.oracle,
+            RegistryError::NotAdminOrOracle
+        );
+
+        let profile = &mut ctx.accounts.profile;
+        require!(profile.is_active, RegistryError::AgentNotActive);
+        profile.agent_type = agent_type;
+        Ok(())
+    }
+
+    /// Migrate a v2 AgentProfile to v3 (adds agent_type field).
+    /// Reallocs account to new size; new byte defaults to 0 (Trader).
+    pub fn migrate_profile_v3(ctx: Context<MigrateProfileV2>) -> Result<()> {
+        let profile_info = ctx.accounts.profile.to_account_info();
+        let current_len = profile_info.data_len();
+        let new_len = AgentProfile::LEN;
+
+        if current_len < new_len {
+            profile_info.realloc(new_len, false)?;
+            let rent = Rent::get()?;
+            let new_min = rent.minimum_balance(new_len);
+            let old_min = rent.minimum_balance(current_len);
+            let diff = new_min.saturating_sub(old_min);
+            if diff > 0 {
+                anchor_lang::system_program::transfer(
+                    CpiContext::new(
+                        ctx.accounts.system_program.to_account_info(),
+                        anchor_lang::system_program::Transfer {
+                            from: ctx.accounts.payer.to_account_info(),
+                            to: profile_info,
+                        },
+                    ),
+                    diff,
+                )?;
+            }
+            // New byte at end is zeroed by realloc → agent_type = 0 (Trader)
+        }
         Ok(())
     }
 }
@@ -689,7 +731,12 @@ pub struct UpdateAgentStats<'info> {
     pub profile: Account<'info, AgentProfile>,
 
     /// Must equal config.wallet_program — the only authorised caller
-    #[account(address = config.wallet_program @ RegistryError::NotWalletProgram)]
+    /// WalletConfig PDA derived from ["wallet_config"] seed and the wallet program
+    #[account(
+        seeds = [b"wallet_config"],
+        seeds::program = config.wallet_program,
+        bump,
+    )]
     pub wallet_program_authority: Signer<'info>,
 }
 
@@ -708,7 +755,12 @@ pub struct RecordLiquidation<'info> {
     )]
     pub profile: Account<'info, AgentProfile>,
 
-    #[account(address = config.wallet_program @ RegistryError::NotWalletProgram)]
+    /// WalletConfig PDA derived from ["wallet_config"] seed and the wallet program
+    #[account(
+        seeds = [b"wallet_config"],
+        seeds::program = config.wallet_program,
+        bump,
+    )]
     pub wallet_program_authority: Signer<'info>,
 }
 
@@ -727,7 +779,12 @@ pub struct LinkWallet<'info> {
     )]
     pub profile: Account<'info, AgentProfile>,
 
-    #[account(address = config.wallet_program @ RegistryError::NotWalletProgram)]
+    /// WalletConfig PDA derived from ["wallet_config"] seed and the wallet program
+    #[account(
+        seeds = [b"wallet_config"],
+        seeds::program = config.wallet_program,
+        bump,
+    )]
     pub wallet_program_authority: Signer<'info>,
 }
 

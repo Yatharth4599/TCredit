@@ -1,0 +1,36 @@
+---
+title: Agent types
+description: Trader, Service, and Hybrid — different enforcement models.
+---
+
+Three agent types with different scoring weights and enforcement mechanisms.
+
+## Types
+
+| Type | Registration | Revenue model | Enforcement |
+|------|-------------|---------------|-------------|
+| **A: Trader** | `--type trader` | Trading profits | NAV monitoring + liquidation |
+| **B: Service** | `--type service` | x402 payments | Revenue velocity + wind-down |
+| **C: Hybrid** | `--type hybrid` | Both | Dual enforcement |
+
+## Scoring weights
+
+| Component | Trader | Service | Hybrid |
+|-----------|--------|---------|--------|
+| Repayment History | 30% | 30% | 30% |
+| Profitability | **30%** | 20% | 25% |
+| Behavioral Health | 15% | 15% | 20% |
+| Usage / Revenue | 15% | **25%** | 15% |
+| Account Maturity | 10% | 10% | 10% |
+
+Traders are weighted on profitability. Service agents are weighted on revenue consistency.
+
+## Choosing your type
+
+```bash
+krexa init --type trader    # DEX trading, arbitrage
+krexa init --type service   # APIs, compute, data
+krexa init --type hybrid    # Both
+```
+
+Agent type is set during registration and stored on-chain.

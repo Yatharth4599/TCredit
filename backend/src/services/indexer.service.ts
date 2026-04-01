@@ -12,6 +12,7 @@ import {
 import { getAllVaults } from '../chain/vaultFactory.js';
 import { dispatchWebhook } from './webhook.service.js';
 import { prisma } from '../config/prisma.js';
+import { env } from '../config/env.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -19,10 +20,10 @@ import { prisma } from '../config/prisma.js';
 
 // Block just before the first contract deployment (Base Sepolia, 2026-03-02)
 const DEPLOYMENT_BLOCK = 38_200_000n;
-// Max blocks to process per poll — avoids RPC rate limits
-const MAX_BLOCKS_PER_POLL = 2000n;
-// Poll interval in ms
-const POLL_INTERVAL_MS = 15_000;
+// Max blocks to process per poll — avoids RPC rate limits (configurable via env)
+const MAX_BLOCKS_PER_POLL = BigInt(env.INDEXER_MAX_BLOCKS_PER_POLL);
+// Poll interval in ms (configurable via env)
+const POLL_INTERVAL_MS = env.INDEXER_POLL_INTERVAL_MS;
 
 // Vault state enum → string
 const VAULT_STATES: Record<number, string> = {

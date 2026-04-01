@@ -11,7 +11,6 @@ import balanceRoutes from './balance.js';
 import x402Routes from './x402.js';
 import walletRoutes from './wallets.js';
 import gatewayRoutes from './gateway.js';
-import acpRoutes from './acp.js';
 import creditRoutes from './credit.js';
 import identityRoutes from './identity.js';
 import kickstartRoutes from './kickstart.js';
@@ -23,7 +22,13 @@ import solanaWalletRoutes from './agent-wallet.routes.js';
 import solanaCreditRoutes from './agent-credit.routes.js';
 import solanaKyaRoutes from './kya.routes.js';
 import solanaVaultRoutes from './solana-vault.routes.js';
+import solanaOracleRoutes from './solana-oracle.routes.js';
+import solanaScoreRoutes from './solana-score.routes.js';
+import solanaFaucetRoutes from './solana-faucet.routes.js';
+import solanaTradingRoutes from './trading.routes.js';
 import creditBureauRoutes from './credit-bureau.routes.js';
+import mainnetActivityRoutes from './mainnet-activity.routes.js';
+import idleCapitalRoutes from './idle-capital.routes.js';
 const router = Router();
 
 // Health
@@ -46,9 +51,8 @@ router.use('/x402', x402Routes);
 // Agent Wallets
 router.use('/wallets', walletRoutes);
 
-// Gateway & ACP
+// Gateway
 router.use('/gateway', gatewayRoutes);
-router.use('/acp', acpRoutes);
 
 // Credit Lines
 router.use('/credit', creditRoutes);
@@ -65,7 +69,7 @@ router.use('/traders', traderRoutes);
 // Waitlist
 router.use('/waitlist', waitlistRoutes);
 
-// Demo endpoints (admin auth required — BUG-027/028)
+// Demo endpoints (admin auth required)
 router.use('/demo', demoRoutes);
 
 // ── Solana Agent Credit System ─────────────────────────────────────────────
@@ -73,6 +77,14 @@ router.use('/solana/wallets', solanaWalletRoutes);
 router.use('/solana/credit',  solanaCreditRoutes);
 router.use('/solana/kya',     solanaKyaRoutes);
 router.use('/solana/vault',   solanaVaultRoutes);
+router.use('/solana/vault',   idleCapitalRoutes);
+router.use('/solana/oracle',  solanaOracleRoutes);
+router.use('/solana/score',   solanaScoreRoutes);
+router.use('/solana/faucet',  solanaFaucetRoutes);
+router.use('/solana/trading', solanaTradingRoutes);
+
+// ── Mainnet RPC proxy (score preview) ─────────────────────────────────────
+router.use('/mainnet/activity', mainnetActivityRoutes);
 
 // ── Credit Bureau (Phase 2 — CIBIL moat) ─────────────────────────────────
 router.use('/credit-bureau', creditBureauRoutes);

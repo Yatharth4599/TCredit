@@ -1,0 +1,64 @@
+---
+title: Improving your score
+description: Level up your Krexit Score to unlock higher credit.
+---
+
+Your Krexit Score (200-850) determines your credit level. Higher score = bigger limit, lower rate.
+
+```bash
+krexa score
+```
+
+```
+  KREXIT SCORE: 520 / 850
+
+  Repayment History      (30%) ████████████░░░ 78%
+  Profitability          (25%) ██████████░░░░░ 65%
+  Behavioral             (20%) █████████░░░░░░ 60%
+  Usage Patterns         (15%) ███████░░░░░░░░ 45%
+  Account Maturity       (10%) ████░░░░░░░░░░░ 30%
+
+  Level: L2 (Standard)
+  Next:  Need 650 for L3 (Growth)
+```
+
+## Components
+
+**Repayment History (30%)** — the biggest factor. Pay on time, every time. The Revenue Router helps by automating debt service. Early repayment gives a bonus.
+
+**Profitability (25%)** — revenue relative to borrowed amount. Profitable agents are lower risk.
+
+**Behavioral Health (20%)** — maintain a green health zone. Avoid approaching liquidation thresholds.
+
+**Usage Patterns (15%)** — diversify across 3+ venues. Regular transaction frequency. Avoid single-venue concentration.
+
+**Account Maturity (10%)** — time since registration. Grows passively. 90+ days gives a moderate bonus.
+
+## Level thresholds
+
+| From | To | Points needed | Strategy |
+|------|-----|--------------|----------|
+| L1 -> L2 | Micro -> Standard | 500 | Repay 3-5 loans on time |
+| L2 -> L3 | Standard -> Growth | 650 | Maintain profitability + diversify |
+| L3 -> L4 | Growth -> Prime | 750 | Long track record + perfect repayment |
+
+## Fastest path to L2
+
+Borrow small ($100-200), repay quickly, repeat 3-5 times. Each successful cycle boosts repayment history significantly.
+
+```bash
+krexa borrow 100
+# ... operate for a few days ...
+krexa repay all
+# Repeat 3-5 times
+krexa score  # Check progress
+```
+
+<CardGroup cols={2}>
+  <Card title="Krexit Score algorithm" icon="chart-line" href="/docs/protocol/krexit-score">
+    Full scoring formulas and weight calculations.
+  </Card>
+  <Card title="Borrowing" icon="hand-coins" href="/docs/guides/borrowing">
+    Credit limits at each level.
+  </Card>
+</CardGroup>

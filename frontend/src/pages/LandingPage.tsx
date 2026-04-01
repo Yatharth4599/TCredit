@@ -161,7 +161,8 @@ export default function LandingPage() {
   }
 
   return (
-    <div className={styles.page}>
+    <div className="landing-root" style={{ minHeight: '100vh' }}>
+      <Navbar />
 
       {/* ── Nav ──────────────────────────────────────────────── */}
       <nav className={`${styles.nav} ${navScrolled ? styles.navScrolled : ''} ${!navVisible ? styles.navHidden : ''}`}>
@@ -177,10 +178,22 @@ export default function LandingPage() {
               KREXIT SCORE
             </button>
             <a
-              href="https://github.com/Yatharth4599/TCredit"
+              href="https://krexa.mintlify.app/docs/quickstart"
               target="_blank"
               rel="noopener noreferrer"
-              className={styles.navLink}
+              className="gradient-bg"
+              style={{
+                padding: '12px 28px',
+                color: '#050505',
+                fontSize: '15px',
+                fontWeight: 600,
+                borderRadius: '8px',
+                textDecoration: 'none',
+                fontFamily: font,
+                transition: 'opacity 0.2s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.9')}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
             >
               GITHUB
             </a>
@@ -188,8 +201,6 @@ export default function LandingPage() {
               Launch App →
             </button>
           </div>
-        </div>
-      </nav>
 
       {/* ── Hero ─────────────────────────────────────────────── */}
       <section className={styles.hero}>
@@ -721,8 +732,10 @@ export default function LandingPage() {
             <span className={styles.footerLegal}>Privacy Policy · Terms · Disclaimer</span>
           </div>
         </div>
-      </footer>
+      </section>
 
+      {/* FOOTER */}
+      <Footer />
     </div>
-  )
+  );
 }

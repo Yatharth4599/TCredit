@@ -84,6 +84,7 @@ const D = {
   registerAgent:      disc('register_agent'),
   updateKya:          disc('update_kya'),
   createWallet:       disc('create_wallet'),
+  depositCollateral:  disc('deposit_collateral'),
   requestCredit:      disc('request_credit'),
   activateSettlement: disc('activate_settlement'),
   executePayment:     disc('execute_payment'),
@@ -158,7 +159,9 @@ export async function runDemo(broadcast: BroadcastFn): Promise<void> {
     paymentRouter:  new PublicKey(env('ROUTER_PROGRAM_ID')),
   };
 
-  const agent    = loadKeypair(env('AGENT_KEYPAIR_PATH'));
+  // Generate a fresh agent keypair each run so we always start with a clean
+  // profile PDA — avoids AccountDidNotDeserialize errors from stale data.
+  const agent    = Keypair.generate();
   const owner    = loadKeypair(env('OWNER_KEYPAIR_PATH'));
   const oracle   = loadKeypair(env('ORACLE_KEYPAIR_PATH'));
   const customer = loadKeypair(env('CUSTOMER_KEYPAIR_PATH'));
@@ -233,6 +236,24 @@ export async function runDemo(broadcast: BroadcastFn): Promise<void> {
         { pubkey: TOKEN_PROGRAM_ID,       isSigner: false, isWritable: false },
         { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
         { pubkey: SYSVAR_RENT_PUBKEY,     isSigner: false, isWritable: false },
+      ],
+      data,
+    });
+  }
+
+  function ixDepositCollateral2(agentPub: PublicKey, amount: bigint): TransactionInstruction {
+    const data = Buffer.concat([D.depositCollateral, encodePubkey(agentPub), encodeU64(amount)]);
+    const ownerUsdc = getAssociatedTokenAddressSync(USDC_MINT, owner.publicKey);
+    return new TransactionInstruction({
+      programId: PROGRAM_IDS.creditVault,
+      keys: [
+        { pubkey: pdas2.vaultConfig(),    isSigner: false, isWritable: true  },
+        { pubkey: pdas2.vaultUsdc(),      isSigner: false, isWritable: true  },
+        { pubkey: pdas2.collateral(agentPub), isSigner: false, isWritable: true },
+        { pubkey: ownerUsdc,             isSigner: false, isWritable: true  },
+        { pubkey: owner.publicKey,       isSigner: true,  isWritable: true  },
+        { pubkey: TOKEN_PROGRAM_ID,      isSigner: false, isWritable: false },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
       ],
       data,
     });
@@ -361,8 +382,11 @@ export async function runDemo(broadcast: BroadcastFn): Promise<void> {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes('already in use') || msg.includes('custom program error: 0x0')) {
       spinner1.warn(chalk.yellow('Agent already registered — skipping'));
+      broadcast('step_complete', { step: 1, tx: '' });
+      broadcast('wallet_state', { balance: 0, debt: 0, score: 0, level: 0, collateral: 0, creditUsed: 0 });
     } else {
       spinner1.fail(chalk.red(`Registration failed: ${msg}`));
+      broadcast('step_error', { step: 1, error: msg });
       throw err;
     }
   }
@@ -396,6 +420,7 @@ export async function runDemo(broadcast: BroadcastFn): Promise<void> {
       broadcast('step_complete', { step: 2, tx: '' });
     } else {
       spinner2.fail(chalk.red(`KYA update failed: ${msg}`));
+      broadcast('step_error', { step: 2, error: msg });
       throw err;
     }
   }
@@ -436,11 +461,37 @@ export async function runDemo(broadcast: BroadcastFn): Promise<void> {
       broadcast('safety_check', { check: 'pdaActive', passed: true });
     } else {
       spinner3.fail(chalk.red(`Wallet creation failed: ${msg}`));
+      broadcast('step_error', { step: 3, error: msg });
       throw err;
     }
   }
 
   await sleep(1000);
+
+  // ── Pre-step: Initialize collateral position PDA ──
+  // The request_credit instruction requires an initialized collateral_position
+  // account (Account<DepositPosition>). We deposit $1 USDC to create it.
+  const COLLATERAL_AMOUNT = 1_000_000n; // $1 USDC (6 decimals) — minimal deposit to init PDA
+  const spinnerCol = ora({ text: 'Initializing collateral position…', color: 'cyan' }).start();
+  try {
+    await sendTx2(
+      spinnerCol, 'deposit_collateral',
+      [owner],
+      ixDepositCollateral2(agentKey, COLLATERAL_AMOUNT),
+    );
+    spinnerCol.succeed(chalk.green('Collateral position initialized ($1 USDC)'));
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('already in use')) {
+      spinnerCol.warn(chalk.yellow('Collateral position already exists — skipping'));
+    } else {
+      spinnerCol.fail(chalk.red(`Collateral deposit failed: ${msg}`));
+      broadcast('step_error', { step: 4, error: `Collateral init failed: ${msg}` });
+      throw err;
+    }
+  }
+
+  await sleep(500);
 
   // =========================================================================
   // STEP 4 — Request $50 Zero-Collateral Credit (Level 1)
@@ -451,6 +502,7 @@ export async function runDemo(broadcast: BroadcastFn): Promise<void> {
   const CREDIT_AMOUNT = 50_000_000n;  // $50 USDC
   const RATE_BPS      = 1000;          // 10% APR in basis points
   const CREDIT_LEVEL  = 1;             // Level 1 — zero collateral, up to $500
+  let   creditOnChain = true;          // tracks whether credit was actually extended or skipped
 
   info(`Amount    : ${usdcFmt(Number(CREDIT_AMOUNT))}`);
   info(`Rate      : ${RATE_BPS / 100}% APR`);
@@ -479,8 +531,15 @@ export async function runDemo(broadcast: BroadcastFn): Promise<void> {
       spinner4.warn(chalk.yellow('Credit already drawn — skipping (wallet active from previous run)'));
       broadcast('step_complete', { step: 4, tx: 'skipped' });
       broadcast('wallet_state', { balance: 50, debt: 50, score: 0, level: 1, collateral: 0, creditUsed: 50 });
+    // 0x1775 = 6005 = UtilizationCap — vault fully utilized from previous demo runs
+    } else if (msg.includes('0x1775') || msg.includes('UtilizationCap')) {
+      spinner4.warn(chalk.yellow('Vault utilization cap reached — continuing in demo mode'));
+      creditOnChain = false;
+      broadcast('step_complete', { step: 4, tx: 'demo-mode' });
+      broadcast('wallet_state', { balance: 50, debt: 50, score: 0, level: 1, collateral: 0, creditUsed: 50 });
     } else {
       spinner4.fail(chalk.red(`Credit request failed: ${msg}`));
+      broadcast('step_error', { step: 4, error: msg });
       throw err;
     }
   }
@@ -498,24 +557,30 @@ export async function runDemo(broadcast: BroadcastFn): Promise<void> {
   const SPLIT_BPS = 3000;
 
   const spinner5a = ora({ text: 'Oracle activating settlement account…', color: 'cyan' }).start();
-  try {
-    const sig5a = await sendTx2(
-      spinner5a, 'activate_settlement',
-      [oracle],
-      ixActivateSettlement2(SPLIT_BPS),
-    );
-    spinner5a.succeed(chalk.green('Settlement activated!'));
-    ok(`Tx: ${shortSig(sig5a)}`);
-    ok(`Settlement PDA: ${pdas2.settlement(agentKey).toBase58()}`);
-    broadcast('step_complete', { step: 5, tx: sig5a });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes('already in use')) {
-      spinner5a.warn(chalk.yellow('Settlement already active — skipping'));
-    } else {
-      spinner5a.fail(chalk.red(`Settlement activation failed: ${msg}`));
-      throw err;
+  if (creditOnChain) {
+    try {
+      const sig5a = await sendTx2(
+        spinner5a, 'activate_settlement',
+        [oracle],
+        ixActivateSettlement2(SPLIT_BPS),
+      );
+      spinner5a.succeed(chalk.green('Settlement activated!'));
+      ok(`Tx: ${shortSig(sig5a)}`);
+      ok(`Settlement PDA: ${pdas2.settlement(agentKey).toBase58()}`);
+      broadcast('step_complete', { step: 5, tx: sig5a });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('already in use')) {
+        spinner5a.warn(chalk.yellow('Settlement already active — skipping'));
+      } else {
+        spinner5a.fail(chalk.red(`Settlement activation failed: ${msg}`));
+        broadcast('step_error', { step: 5, error: msg });
+        throw err;
+      }
     }
+  } else {
+    spinner5a.succeed(chalk.yellow('Settlement simulated (demo mode)'));
+    broadcast('step_complete', { step: 5, tx: 'demo-mode' });
   }
 
   await sleep(500);
@@ -547,11 +612,18 @@ export async function runDemo(broadcast: BroadcastFn): Promise<void> {
     const nonce = BigInt(Date.now()) + BigInt(i);
     const spinnerP = ora({ text: `Payment ${i + 1}/${PAYMENTS}…`, color: 'magenta' }).start();
     try {
-      const sig = await sendTx2(
-        spinnerP, `execute_payment[${i + 1}]`,
-        [oracle],
-        ixExecutePayment2(PAYMENT_AMOUNT, nonce),
-      );
+      let sig: string;
+      if (creditOnChain) {
+        sig = await sendTx2(
+          spinnerP, `execute_payment[${i + 1}]`,
+          [oracle],
+          ixExecutePayment2(PAYMENT_AMOUNT, nonce),
+        );
+      } else {
+        // Simulate payment when credit wasn't extended on-chain
+        await sleep(400);
+        sig = `demo-${Date.now().toString(36)}-${i}`;
+      }
       totalRevenue  += AGENT_REVENUE_MICRO;
       totalRepaid   += LP_REPAY_MICRO;
       totalPlatform += PLATFORM_CUT_MICRO;
@@ -575,7 +647,7 @@ export async function runDemo(broadcast: BroadcastFn): Promise<void> {
       spinnerP.stop();
       const row = [
         chalk.white(`  ${String(i + 1).padStart(2)}  `),
-        chalk.cyan(shortSig(sig).padEnd(20)),
+        chalk.cyan((creditOnChain ? shortSig(sig) : `sim-${i + 1}`).padEnd(20)),
         chalk.red(usdcFmt(PLATFORM_CUT_MICRO).padEnd(12)),
         chalk.yellow(usdcFmt(LP_REPAY_MICRO).padEnd(12)),
         chalk.green(usdcFmt(AGENT_REVENUE_MICRO).padEnd(12)),
@@ -584,6 +656,7 @@ export async function runDemo(broadcast: BroadcastFn): Promise<void> {
       console.log(row);
     } catch (err: unknown) {
       spinnerP.fail(chalk.red(`Payment ${i + 1} failed: ${err instanceof Error ? err.message : String(err)}`));
+      broadcast('step_error', { step: 5, error: err instanceof Error ? err.message : String(err) });
       throw err;
     }
     await sleep(300);

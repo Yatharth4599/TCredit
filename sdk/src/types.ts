@@ -120,6 +120,47 @@ export interface TradeParams {
   amount: number;      // in USDC (or from-token units)
 }
 
+export interface SwapQuoteParams {
+  from: string;        // token symbol or mint
+  to: string;          // token symbol or mint
+  amount: number;      // human-readable units
+  slippageBps?: number;
+}
+
+export interface SwapQuoteResult {
+  agentPubkey: string;
+  from: { symbol: string; mint: string; amount: string };
+  to: { symbol: string; mint: string; amount: string };
+  priceImpactPct: string;
+  slippageBps: number;
+  routePlan: unknown[];
+}
+
+export interface PortfolioToken {
+  mint: string;
+  symbol: string;
+  balance: string;
+  price: string;
+  balanceUsd: string;
+}
+
+export interface PortfolioResult {
+  agentPubkey: string;
+  tokens: PortfolioToken[];
+  totalValueUsd: string;
+  lastUpdated: string;
+}
+
+export interface YieldOpportunity {
+  protocol: string;
+  pool: string;
+  apy: number;
+  tvlUsd: number;
+  token: string;
+  category: string;
+  chain: string;
+}
+
 export interface PayX402Params {
   recipient: string;   // merchant address
   amount: number;      // in USDC

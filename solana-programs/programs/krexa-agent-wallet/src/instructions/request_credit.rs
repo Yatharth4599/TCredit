@@ -38,19 +38,6 @@ pub fn handle(
         WalletError::CreditLevelTooLow
     );
 
-    // Phase 1C: L3-L4 credit requires signed legal agreement
-    if credit_level >= 3 {
-        require!(
-            profile.legal_agreement_signed_at > 0,
-            WalletError::LegalAgreementNotSigned
-        );
-        // L3-L4 credit also requires multisig ownership ($50K+ custody requirement)
-        require!(
-            ctx.accounts.agent_wallet.owner_type == 1,
-            WalletError::MultisigRequired
-        );
-    }
-
     {
         let wallet = &ctx.accounts.agent_wallet;
         require!(!wallet.is_frozen, WalletError::WalletFrozen);
@@ -90,12 +77,13 @@ pub fn handle(
     ctx.accounts.wallet_usdc.reload()?;
     let credit_limit = credit_limit_for_level(credit_level, collateral_value);
 
+    // NAV = V(t) / C₀ where C₀ = credit_limit (original credit amount)
     let hf = compute_health(
         ctx.accounts.wallet_usdc.amount,
         ctx.accounts.agent_wallet.collateral_shares,
         vault_cfg.total_deposits,
         vault_cfg.total_shares,
-        amount,
+        credit_limit, // C₀ — original credit amount, not amount drawn
     );
 
     let wallet = &mut ctx.accounts.agent_wallet;

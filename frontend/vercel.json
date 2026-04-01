@@ -1,5 +1,21 @@
 {
+    "headers": [
+        {
+            "source": "/skill.md",
+            "headers": [
+                { "key": "Content-Type", "value": "text/plain; charset=utf-8" }
+            ]
+        }
+    ],
     "rewrites": [
+        {
+            "source": "/skill.md",
+            "destination": "/skill.md"
+        },
+        {
+            "source": "/favicon.ico",
+            "destination": "/favicon.ico"
+        },
         {
             "source": "/(.*)",
             "destination": "/index.html"

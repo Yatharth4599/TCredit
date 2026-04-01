@@ -1,0 +1,104 @@
+---
+title: How it works
+description: The credit lifecycle, Revenue Router, and Krexit Score.
+---
+
+Krexa has three layers: identity, credit, and enforcement.
+
+## Identity layer
+
+Every agent gets an on-chain profile stored as a PDA on the Agent Registry program.
+
+```
+Seeds: ["agent_profile", owner_wallet_pubkey]
+Program: ChJjAXy7...78cG (Agent Registry)
+```
+
+The profile stores: agent name, type (Trader/Service/Hybrid), owner wallet, registration timestamp, and a pointer to the Krexit Score PDA.
+
+When you run `npx @krexa/cli init`, two PDAs are created:
+1. **Agent Profile** — identity and metadata
+2. **Agent Wallet** — a program-controlled USDC account with no private key
+
+The wallet PDA has no private key. It is controlled entirely by the Agent Wallet program. Your owner wallet signs transactions, but funds can only move through program-validated instructions.
+
+## Credit layer
+
+Credit requests require two signatures in the same transaction:
+
+| Signer | Role |
+|--------|------|
+| Agent (owner wallet) | Proves the agent consents to the borrow |
+| Oracle | Proves Krexa approved based on current Krexit Score |
+
+The backend handles the oracle's partial signature at `POST /api/v1/solana/oracle/sign-credit`. The CLI collects both signatures and submits the completed transaction.
+
+```
+Agent signs tx -> sends to backend -> oracle evaluates score ->
+oracle co-signs -> combined tx submitted to Solana -> credit line opens
+```
+
+The Credit Vault tracks:
+- Outstanding principal per agent
+- Accrued interest (simple interest, not compound)
+- LP deposits across three tranches (Senior, Mezzanine, Junior)
+- Utilization ratio (capped at 80%)
+
+## Enforcement layer: Revenue Router
+
+The Revenue Router is why Krexa works without collateral. Every dollar of agent revenue flows through the Credit Router program before reaching the agent.
+
+```
+Incoming payment: $1.00
+
+Revenue Router splits:
+  Protocol fee (10%):     $0.10  -> Treasury
+  Senior yield:           $0.04  -> Senior tranche LPs
+  Mezzanine yield:        $0.02  -> Mezzanine tranche LPs
+  Junior yield:           $0.02  -> Junior tranche (protocol)
+  Debt service:           $0.32  -> Reduces agent's outstanding balance
+  Agent receives:         $0.50  -> Agent's PDA wallet
+```
+
+The agent doesn't choose to repay. Repayment is extracted at the settlement layer.
+
+<Info>
+The exact split depends on the agent's interest rate, outstanding balance, and vault utilization. The example above is illustrative.
+</Info>
+
+## Krexit Score
+
+A 200-850 composite score stored on-chain, computed from 5 behavioral signals:
+
+| Component | Weight | What it measures |
+|-----------|--------|-----------------|
+| Repayment History | 30% | On-time rate, early/late/missed payments |
+| Profitability | 25% | P&L ratio, Sharpe, max drawdown |
+| Behavioral Health | 20% | Time in Green/Yellow/Orange/Red zones |
+| Usage Patterns | 15% | Venue diversity, volume consistency |
+| Account Maturity | 10% | Age, lifetime volume, completed credit cycles |
+
+The score is computed off-chain by the oracle daemon and written to an on-chain PDA. Any Solana program can read it via CPI.
+
+```
+Seeds: ["krexit_score", agent_profile_pubkey]
+Program: 2GwtAXnj...WUqh (Krexit Score)
+```
+
+Recent events carry more weight:
+
+| Recency | Weight |
+|---------|--------|
+| Last 30 days | 2.0x |
+| 30-90 days | 1.5x |
+| 90-180 days | 1.0x |
+| 180+ days | 0.5x |
+
+<CardGroup cols={2}>
+  <Card title="Revenue Router" icon="arrows-split-up-and-left" href="/docs/protocol/revenue-router">
+    Full waterfall mechanics and surplus distribution.
+  </Card>
+  <Card title="Krexit Score" icon="chart-line" href="/docs/protocol/krexit-score">
+    Scoring algorithm, formulas, and level thresholds.
+  </Card>
+</CardGroup>
