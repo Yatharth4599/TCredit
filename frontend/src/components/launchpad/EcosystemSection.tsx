@@ -22,7 +22,10 @@ const ecosystem: EcosystemItem[] = [
   { name: 'Jupiter', category: 'DEXs', color: '#22d3ee' },
   { name: 'Orca', category: 'DEXs', color: '#22d3ee' },
   { name: 'Raydium', category: 'DEXs', color: '#22d3ee' },
-  { name: 'Meteora', category: 'DEXs', color: '#22d3ee' },
+  { name: 'Meteora', category: 'DEXs', color: '#22d3ee', isNew: true },
+  // Yield Infrastructure
+  { name: 'Meteora Dynamic Vaults', category: 'Yield Infrastructure', color: '#f59e0b', isNew: true },
+  { name: 'DeFi Llama', category: 'Yield Infrastructure', color: '#f59e0b' },
   // DeFi
   { name: 'Kamino', category: 'DeFi', color: '#34d399' },
   { name: 'MarginFi', category: 'DeFi', color: '#34d399' },
@@ -40,7 +43,7 @@ const ecosystem: EcosystemItem[] = [
   { name: 'AWS Lambda', category: 'Hosting', color: '#ec4899' },
 ]
 
-const categories = ['Frameworks', 'DEXs', 'DeFi', 'LLMs', 'Hosting']
+const categories = ['Frameworks', 'DEXs', 'Yield Infrastructure', 'DeFi', 'LLMs', 'Hosting']
 
 export function EcosystemSection() {
   const { ref, isVisible } = useScrollAnimation(0.1)

@@ -8,6 +8,7 @@ import { startWebhookProcessor, stopWebhookProcessor } from './services/webhook.
 import { startSolanaKeeper, stopSolanaKeeper } from './services/solana-keeper.js';
 import { startSolanaIndexer, stopSolanaIndexer } from './indexer/solana-indexer.js';
 import { startCreditScoreJob, stopCreditScoreJob } from './services/credit-score.js';
+import { initIdleCapitalManager, getIdleCapitalManager, stopIdleCapitalManager } from './services/idle-capital-manager.js';
 import { createLogger } from './utils/logger.js';
 
 const log = createLogger('Krexa');
@@ -56,6 +57,16 @@ const server = app.listen(env.PORT, () => {
   } else {
     log.info('Solana background workers disabled', { reason: 'SOLANA_WORKERS_ENABLED=false' });
   }
+
+  // Idle capital manager — routes unused vault USDC to Meteora for yield
+  if (env.METEORA_VAULT_ADDRESS) {
+    initIdleCapitalManager().then(() => {
+      const mgr = getIdleCapitalManager();
+      if (mgr) mgr.start();
+    }).catch((err) => {
+      log.warn('Idle capital manager failed to start', { error: err instanceof Error ? err.message : String(err) });
+    });
+  }
 });
 
 const SHUTDOWN_TIMEOUT_MS = 30_000;
@@ -74,6 +85,7 @@ function shutdown() {
   stopSolanaKeeper();
   stopSolanaIndexer();
   stopCreditScoreJob();
+  stopIdleCapitalManager();
 
   // Force exit after timeout to prevent hanging
   const forceTimer = setTimeout(() => {

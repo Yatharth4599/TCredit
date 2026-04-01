@@ -64,6 +64,11 @@ const envSchema = z.object({
   // Jupiter DEX aggregator (Solana swaps)
   JUPITER_API_URL: z.string().url().optional().default('https://quote-api.jup.ag/v6'),
 
+  // Meteora idle-capital integration
+  METEORA_VAULT_ADDRESS: z.string().optional().default(''),
+  IDLE_CAPITAL_REBALANCE_MS: z.coerce.number().optional().default(60_000),
+  IDLE_CAPITAL_MIN_BUFFER: z.coerce.number().optional().default(500),
+
   // CORS
   CORS_ORIGIN: z.string().optional().default(''),
 

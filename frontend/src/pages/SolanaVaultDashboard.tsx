@@ -232,6 +232,37 @@ export default function SolanaVaultDashboard() {
               </BentoCard>
             </motion.div>
 
+            {/* ── Idle Capital Yield (Meteora) ── */}
+            <motion.div variants={cardVariants} style={{ marginTop: 16 }}>
+              <BentoCard glowColor="249, 115, 22" style={{ display: 'block' }}>
+                <p className={s.cardTitle}>Idle Capital Yield</p>
+                <p style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 16 }}>
+                  Idle vault capital (the {capPct > 0 ? `${100 - capPct}%` : '20%'} utilization buffer) is automatically routed to Meteora Dynamic Vaults for yield.
+                </p>
+                <div className={s.stats4}>
+                  <StatWidget
+                    label="Idle Buffer"
+                    value={<AnimatedNumber value={Math.max(0, Number(d.availableLiquidityUsdc ?? 0))} decimals={2} prefix="$" /> as unknown as string}
+                  />
+                  <StatWidget
+                    label="In Meteora"
+                    value="Coming soon"
+                  />
+                  <StatWidget
+                    label="Meteora APY"
+                    value="~5-10%"
+                  />
+                  <StatWidget
+                    label="Strategy"
+                    value="Dynamic Vault"
+                  />
+                </div>
+                <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.12)', fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.6 }}>
+                  Meteora rebalances every minute across Kamino, MarginFi, and Solend to find the highest yield. Funds remain withdrawable for new credit lines.
+                </div>
+              </BentoCard>
+            </motion.div>
+
             {/* ── Vault System Health ── */}
             <motion.div variants={cardVariants} style={{ marginTop: 16 }}>
               <BentoCard glowColor="52, 211, 153" style={{ display: 'block' }}>

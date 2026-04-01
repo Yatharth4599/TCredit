@@ -1266,6 +1266,7 @@ if (routes.bestRoute.outAmount > threshold) {
             { name: 'Jupiter SDK', desc: 'DEX aggregator for best swap routes', color: '#22d3ee' },
             { name: 'Olas', desc: 'Autonomous agent framework', color: '#3b82f6' },
             { name: 'ElizaOS', desc: 'AI agent with built-in DeFi plugins', color: '#a78bfa' },
+            { name: 'Meteora DLMM', desc: 'Concentrated liquidity on Solana. Zero-slippage bins. Dynamic fees. $1B+ TVL.', color: '#f59e0b', badge: 'NEW', features: ['Zero-slippage within price bins', 'Dynamic fees \u2014 earn more during volatility', 'Concentrated liquidity \u2014 10x capital efficient', 'Auto-lending of idle LP capital via Dynamic Vaults', '$1B+ TVL \u00b7 $300M+ daily volume \u00b7 Audited'] },
             { name: 'Hummingbot', desc: 'Market making and arbitrage bot', color: '#f59e0b' },
           ],
         },
@@ -1275,6 +1276,7 @@ if (routes.bestRoute.outAmount > threshold) {
             { title: 'Connect to Jupiter', desc: 'Use the Jupiter V6 API for optimal routing across all Solana DEXs.' },
             { title: 'Set up Orca whirlpools', desc: 'Connect to concentrated liquidity pools for market making strategies.' },
             { title: 'Monitor Raydium AMMs', desc: 'Track pool reserves and detect arbitrage windows in real-time.' },
+            { title: 'Provide liquidity on Meteora', desc: 'Use DLMM bins for zero-slippage concentrated LP. Dynamic fees earn more during volatile markets.' },
             { title: 'Configure slippage', desc: 'Set appropriate slippage tolerance and priority fees for fast execution.' },
           ],
           frameworks: [
@@ -1283,6 +1285,7 @@ if (routes.bestRoute.outAmount > threshold) {
             { name: 'Jupiter V6', desc: 'Best routing across 20+ DEXs', color: '#22d3ee' },
             { name: 'Orca Whirlpools', desc: 'Concentrated liquidity pools', color: '#34d399' },
             { name: 'Raydium', desc: 'AMM and CLMM pools', color: '#a78bfa' },
+            { name: 'Meteora DLMM', desc: 'Concentrated liquidity with dynamic fees', color: '#f59e0b', badge: 'NEW' },
           ],
         },
         {

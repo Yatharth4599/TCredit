@@ -28,6 +28,7 @@ import solanaFaucetRoutes from './solana-faucet.routes.js';
 import solanaTradingRoutes from './trading.routes.js';
 import creditBureauRoutes from './credit-bureau.routes.js';
 import mainnetActivityRoutes from './mainnet-activity.routes.js';
+import idleCapitalRoutes from './idle-capital.routes.js';
 const router = Router();
 
 // Health
@@ -76,6 +77,7 @@ router.use('/solana/wallets', solanaWalletRoutes);
 router.use('/solana/credit',  solanaCreditRoutes);
 router.use('/solana/kya',     solanaKyaRoutes);
 router.use('/solana/vault',   solanaVaultRoutes);
+router.use('/solana/vault',   idleCapitalRoutes);
 router.use('/solana/oracle',  solanaOracleRoutes);
 router.use('/solana/score',   solanaScoreRoutes);
 router.use('/solana/faucet',  solanaFaucetRoutes);

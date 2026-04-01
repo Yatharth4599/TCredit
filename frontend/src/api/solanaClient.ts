@@ -46,6 +46,8 @@ export const vaultApi = {
   getStats:    () => solanaApi.get('/solana/vault/stats'),
   getLpPosition: (address: string) => solanaApi.get(`/solana/vault/lp/${address}`),
   getCollateral: (address: string) => solanaApi.get(`/solana/vault/collateral/${address}`),
+  getIdleCapital: () => solanaApi.get('/solana/vault/idle-capital'),
+  getMeteoraYield: () => solanaApi.get('/solana/vault/meteora-yield'),
 }
 
 // === Score  (mounted at /solana/score) ===
