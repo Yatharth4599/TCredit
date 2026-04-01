@@ -1,7 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useAccount, useDisconnect } from 'wagmi'
-import { useConnectModal } from '@rainbow-me/rainbowkit'
-import { truncateAddress } from '../../lib/format'
+import { useWallet } from '@solana/wallet-adapter-react'
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import styles from './Navbar.module.css'
 
 const NAV_ITEMS = [
@@ -15,14 +14,15 @@ const NAV_ITEMS = [
 export default function Navbar() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const { address, isConnected } = useAccount()
-  const { disconnect } = useDisconnect()
-  const { openConnectModal } = useConnectModal()
+  const { publicKey } = useWallet()
 
   const isActive = (href: string) => {
     if (href === '/app') return pathname === '/app'
     return pathname.startsWith(href)
   }
+
+  const truncate = (key: string) =>
+    key.length > 8 ? `${key.slice(0, 4)}...${key.slice(-4)}` : key
 
   return (
     <nav className={styles.nav}>
@@ -43,15 +43,9 @@ export default function Navbar() {
           ))}
         </div>
 
-        <button
-          className={isConnected ? styles.walletConnected : styles.walletBtn}
-          onClick={() => isConnected ? disconnect() : openConnectModal?.()}
-        >
-          {isConnected ? truncateAddress(address!, 4) : 'CONNECT'}
-        </button>
-      </div>
-      <div style={{ position: 'fixed', top: 16, right: 20, pointerEvents: 'all' }}>
-        <WalletButton />
+        <WalletMultiButton className={styles.walletBtn}>
+          {publicKey ? truncate(publicKey.toBase58()) : 'CONNECT'}
+        </WalletMultiButton>
       </div>
     </nav>
   )

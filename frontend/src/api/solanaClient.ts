@@ -16,37 +16,55 @@ solanaApi.interceptors.response.use(
   }
 )
 
-// === Agent ===
+// === Agent Wallet (mounted at /solana/wallets) ===
 export const agentApi = {
-  getProfile: (address: string) => solanaApi.get(`/agent/${address}/profile`),
-  getWallet: (address: string) => solanaApi.get(`/agent/${address}/wallet`),
-  getHealth: (address: string) => solanaApi.get(`/agent/${address}/health`),
-  getScore: (address: string) => solanaApi.get(`/agent/${address}/score`),
-  getTerms: (address: string) => solanaApi.get(`/agent/${address}/terms`),
-  getServicePlan: (address: string) => solanaApi.get(`/agent/${address}/service-plan`),
+  getProfile: (address: string) => solanaApi.get(`/solana/wallets/${address}`),
+  getWallet: (address: string) => solanaApi.get(`/solana/wallets/${address}`),
+  getHealth: (address: string) => solanaApi.get(`/solana/wallets/${address}/health`),
+  getBalance: (address: string) => solanaApi.get(`/solana/wallets/${address}/balance`),
+  getScore: (address: string) => solanaApi.get(`/solana/score/${address}`),
+  getTerms: (address: string) => solanaApi.get(`/solana/credit/${address}/line`),
+  getServicePlan: (address: string) => solanaApi.get(`/solana/wallets/${address}/service-plan`),
+  createWallet: (agent: string, owner: string, dailySpendLimitUsdc?: number, agentType?: number) =>
+    solanaApi.post('/solana/wallets/create', { agent, owner, dailySpendLimitUsdc, agentType }),
 }
 
-// === Credit ===
+// === Credit (mounted at /solana/credit) ===
 export const creditApi = {
-  getCreditLine: (address: string) => solanaApi.get(`/credit/${address}/line`),
-  getRepaymentEstimate: (address: string) => solanaApi.get(`/credit/${address}/repayment-estimate`),
-  getUpgradeCheck: (address: string) => solanaApi.get(`/credit/${address}/upgrade-check`),
+  getCreditLine: (address: string) => solanaApi.get(`/solana/credit/${address}/line`),
+  getRepaymentEstimate: (address: string) => solanaApi.get(`/solana/credit/${address}/repayment-estimate`),
+  getUpgradeCheck: (address: string) => solanaApi.get(`/solana/credit/${address}/upgrade-check`),
+  getEligibility: (address: string) => solanaApi.get(`/solana/credit/${address}/eligibility`),
+  getScoreBreakdown: (address: string) => solanaApi.get(`/solana/credit/${address}/score-breakdown`),
+  getProtocolParams: () => solanaApi.get('/solana/credit/protocol-params'),
+  requestCredit: (agent: string, amount: number, creditLevel: number) =>
+    solanaApi.post(`/solana/credit/${agent}/request`, { amount, creditLevel }),
+  repay: (agent: string, amount: number | string, callerPubkey: string) =>
+    solanaApi.post(`/solana/credit/${agent}/repay`, { amount: String(amount), callerPubkey }),
+  getActivity: (agent: string) => solanaApi.get(`/solana/credit/${agent}/activity`),
+  getRequests: (agent: string) => solanaApi.get(`/solana/credit/${agent}/requests`),
+  signAgreement: (agent: string, creditLevel: number) =>
+    solanaApi.post(`/solana/credit/${agent}/sign-agreement`, { creditLevel }),
 }
 
-// === Vault ===
+// === Vault (mounted at /solana/vault) ===
 export const vaultApi = {
-  getStats: () => solanaApi.get('/vault/stats'),
-  getTrancheStats: (tranche: string) => solanaApi.get(`/vault/tranche/${tranche}`),
-  getRevenue: () => solanaApi.get('/vault/revenue'),
-  getLossBuffer: () => solanaApi.get('/vault/loss-buffer'),
+  getStats: () => solanaApi.get('/solana/vault/stats'),
+  getTrancheStats: (tranche: string) => solanaApi.get(`/solana/vault/tranche/${tranche}`),
+  getRevenue: () => solanaApi.get('/solana/vault/revenue'),
+  getLossBuffer: () => solanaApi.get('/solana/vault/loss-buffer'),
+  getLpPosition: (address: string) => solanaApi.get(`/solana/vault/lp/${address}`),
+  getCollateral: (address: string) => solanaApi.get(`/solana/vault/collateral/${address}`),
+  getIdleCapital: () => solanaApi.get('/solana/vault/idle-capital'),
+  getMeteoraYield: () => solanaApi.get('/solana/vault/meteora-yield'),
 }
 
 // === LP ===
 export const lpApi = {
-  getPositions: (address: string) => solanaApi.get(`/lp/${address}/positions`),
-  getPosition: (address: string, tranche: string) => solanaApi.get(`/lp/${address}/position/${tranche}`),
-  previewDeposit: (tranche: string, amount: string) => solanaApi.get(`/lp/preview/deposit`, { params: { tranche, amount } }),
-  previewWithdraw: (tranche: string, shares: string) => solanaApi.get(`/lp/preview/withdraw`, { params: { tranche, shares } }),
+  getPositions: (address: string) => solanaApi.get(`/solana/vault/lp/${address}`),
+  getPosition: (address: string, tranche: string) => solanaApi.get(`/solana/vault/lp/${address}/${tranche}`),
+  previewDeposit: (tranche: string, amount: string) => solanaApi.get(`/solana/vault/lp/preview/deposit`, { params: { tranche, amount } }),
+  previewWithdraw: (tranche: string, shares: string) => solanaApi.get(`/solana/vault/lp/preview/withdraw`, { params: { tranche, shares } }),
 }
 
 // === Wallet (owner-level) ===
@@ -55,15 +73,41 @@ export const walletApi = {
     solanaApi.get('/solana/wallets', { params: { owner: ownerPubkey, limit } }),
 }
 
-// === Score ===
+// === Score (mounted at /solana/score) ===
 export const scoreApi = {
-  getScore: (address: string) => solanaApi.get(`/agent/${address}/score`),
-  getProfile: (address: string) => solanaApi.get(`/agent/${address}/profile`),
-  getHealth: (address: string) => solanaApi.get(`/agent/${address}/health`),
-  getServicePlan: (address: string) => solanaApi.get(`/agent/${address}/service-plan`),
+  getScore: (address: string) => solanaApi.get(`/solana/score/${address}`),
+  getProfile: (address: string) => solanaApi.get(`/solana/wallets/${address}`),
+  getHealth: (address: string) => solanaApi.get(`/solana/wallets/${address}/health`),
+  getServicePlan: (address: string) => solanaApi.get(`/solana/wallets/${address}/service-plan`),
+}
+
+// === KYA (mounted at /solana/kya) ===
+export const kyaApi = {
+  basicVerify: (agent: string, ownerPubkey: string, ownerSignature: string) =>
+    solanaApi.post(`/solana/kya/${agent}/basic`, { ownerPubkey, ownerSignature }),
+  getStatus: (agent: string) => solanaApi.get(`/solana/kya/${agent}/status`),
+}
+
+// === Faucet (mounted at /solana/faucet) ===
+export const faucetApi = {
+  mintUsdc: (recipient: string, amountUsdc: number) =>
+    solanaApi.post('/solana/faucet/usdc', { recipient, amountUsdc }),
+}
+
+// === Oracle (mounted at /solana/oracle) ===
+export const oracleApi = {
+  signCredit: (params: {
+    agentPubkey: string
+    agentOrOwnerPubkey: string
+    amount: number | string
+    rateBps?: number
+    creditLevel?: number
+    collateralValueUsdc?: number | string
+  }) => solanaApi.post('/solana/oracle/sign-credit', params),
 }
 
 // === Health ===
 export const healthApi = {
   check: () => solanaApi.get('/health'),
+  vaultHealth: () => solanaApi.get('/solana/vault/health'),
 }

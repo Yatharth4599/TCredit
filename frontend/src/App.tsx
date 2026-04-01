@@ -13,12 +13,6 @@ const SolanaLPDashboard = lazy(() => import('./pages/SolanaLPDashboard'))
 const KrexitScoreDashboard = lazy(() => import('./pages/KrexitScoreDashboard'))
 const MyAgents = lazy(() => import('./pages/MyAgents'))
 const NotFound = lazy(() => import('./pages/NotFound'))
-const SolanaCreditDashboard = lazy(() => import('./pages/SolanaCreditDashboard'))
-const SolanaVaultDashboard = lazy(() => import('./pages/SolanaVaultDashboard'))
-const SolanaLPDashboard = lazy(() => import('./pages/SolanaLPDashboard'))
-const KrexitScoreDashboard = lazy(() => import('./pages/KrexitScoreDashboard'))
-const WaitlistAdmin = lazy(() => import('./pages/WaitlistAdmin'))
-const DemoPage = lazy(() => import('./pages/DemoPage'))
 const Onboard = lazy(() => import('./pages/Onboard'))
 const LaunchpadPage = lazy(() => import('./pages/launchpad/LaunchpadPage'))
 
@@ -74,6 +68,9 @@ function AppShell() {
           <Route path="/app/solana/lp" element={<SolanaLPDashboard />} />
           <Route path="/app/solana/score" element={<KrexitScoreDashboard />} />
           <Route path="/app/my-agents" element={<MyAgents />} />
+          {/* Onboard + Launchpad */}
+          <Route path="/onboard" element={<Onboard />} />
+          <Route path="/launch" element={<LaunchpadPage />} />
           {/* Live demo — public */}
           <Route path="/demo" element={<DemoPage />} />
           {/* 404 */}

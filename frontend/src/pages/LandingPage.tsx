@@ -161,9 +161,7 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="landing-root" style={{ minHeight: '100vh' }}>
-      <Navbar />
-
+    <div className={styles.page}>
       {/* ── Nav ──────────────────────────────────────────────── */}
       <nav className={`${styles.nav} ${navScrolled ? styles.navScrolled : ''} ${!navVisible ? styles.navHidden : ''}`}>
         <div className={styles.navInner}>
@@ -189,7 +187,7 @@ export default function LandingPage() {
                 fontWeight: 600,
                 borderRadius: '8px',
                 textDecoration: 'none',
-                fontFamily: font,
+                fontFamily: "'Space Grotesk', sans-serif",
                 transition: 'opacity 0.2s',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.9')}
@@ -201,6 +199,8 @@ export default function LandingPage() {
               Launch App →
             </button>
           </div>
+        </div>
+      </nav>
 
       {/* ── Hero ─────────────────────────────────────────────── */}
       <section className={styles.hero}>
@@ -732,10 +732,8 @@ export default function LandingPage() {
             <span className={styles.footerLegal}>Privacy Policy · Terms · Disclaimer</span>
           </div>
         </div>
-      </section>
+      </footer>
 
-      {/* FOOTER */}
-      <Footer />
     </div>
-  );
+  )
 }
