@@ -132,13 +132,22 @@ export class ScoreUpdater {
         );
         if (!agentData) continue;
 
-        const [agentProfilePda] = PublicKey.findProgramAddressSync(
+        // Verify the score PDA is correctly derived for this agent.
+        // Score PDA: ["krexit_score", agent_profile_pda] on the score program.
+        // The fetcher extracts agent_profile_pda from inside the score account,
+        // so we re-derive profile PDA from the agent pubkey and then derive
+        // the expected score PDA to compare against account.pubkey.
+        const [expectedProfilePda] = PublicKey.findProgramAddressSync(
           [Buffer.from("agent_profile"), agentData.agentPubkey.toBuffer()],
           this.registryProgramId
         );
-        if (!agentProfilePda.equals(account.pubkey)) {
+        const [expectedScorePda] = PublicKey.findProgramAddressSync(
+          [Buffer.from("krexit_score"), expectedProfilePda.toBuffer()],
+          this.programId
+        );
+        if (!expectedScorePda.equals(account.pubkey)) {
           console.warn(
-            `[ScoreUpdater] Skipping mismatched score PDA ${account.pubkey.toBase58()} for agent ${agentData.agentPubkey.toBase58()}`
+            `[ScoreUpdater] Skipping mismatched score PDA ${account.pubkey.toBase58()} for agent ${agentData.agentPubkey.toBase58()} (expected ${expectedScorePda.toBase58()})`
           );
           continue;
         }

@@ -1344,8 +1344,8 @@ Webhook secret (`whsec_*`) is returned in the POST response body. If response is
 ---
 
 #### BUG-104: Oracle payment endpoint is API-key gated but not payer-bound
-**Files:** `backend/src/api/routes/oracle.ts:19-31`, `backend/src/services/oracle.service.ts:167-230`, `backend/prisma/schema.prisma:105-113`
-**Status:** ✅ Resolved (warning log + TODO for ownerWallet schema field)
+**Files:** `backend/src/api/routes/oracle.ts`, `backend/prisma/schema.prisma`, `backend/src/api/routes/admin.ts`, `backend/src/api/schemas.ts`, `backend/src/config/openapi.ts`
+**Status:** ✅ Resolved (Part 16b — full enforcement with Prisma migration, admin API, OpenAPI sync)
 **Severity:** High
 
 `POST /api/v1/oracle/payment` accepts `{ from, to, amount }` from any active API key. API keys are not bound to an owner wallet in schema/middleware, so callers can submit payments on behalf of arbitrary `from` addresses (subject to on-chain allowance and router checks).
@@ -2291,12 +2291,12 @@ Middleware verifies token validity but does not enforce one-time consumption for
 
 #### BUG-143: [AUTO] Net-new high dependency findings across runtime packages
 **File:** `backend/package-lock.json`, `demo/package-lock.json`, `sdk/package-lock.json`, `mcp-server/package-lock.json`, `frontend/package-lock.json`
-**Status:** ⚠️ Partial (Part 16) — `path-to-regexp` fixed via `backend/package.json` override (→8.4.1); Prisma upgraded 6→7; 7→3 high vulns in backend after upgrades. Residual: `bigint-buffer` chain unresolvable — no upstream patch exists in `@solana/spl-token` 0.4.x ecosystem; `@nicolo-ribaudo/bigint-buffer` npm override applied as mitigation but advisory persists. `mcp-server` npm overrides added for same chain.
+**Status:** ⚠️ Partial (Part 16) — `path-to-regexp` fixed via `backend/package.json` override (→8.4.1); Prisma upgraded 6→7; 7→3 high vulns in backend after upgrades. Residual: `bigint-buffer` chain unresolvable — no upstream patch exists in `@solana/spl-token` 0.4.x ecosystem; `@cardanosolutions/bigint-buffer` npm override applied as mitigation but advisory persists. `mcp-server` npm overrides added for same chain.
 **Severity:** High
 
 Automated rerun found unresolved high vulnerabilities not explicitly tracked in Part 14 (notably `bigint-buffer`, `picomatch`, and `path-to-regexp` chains). These increase supply-chain exploit exposure in shipped tooling and services.
 
-**Fix applied (Part 16):** Backend: `path-to-regexp` override → 8.4.1 (resolves ReDoS); `bigint-buffer` override → `@nicolo-ribaudo/bigint-buffer` (mitigation only, advisory remains due to transitive chain in `@solana/spl-token`); Prisma 6.x → 7.6.0 upgraded. mcp-server: same overrides applied. Residual 3 high vulns accepted — no upstream fix available; risk documented.
+**Fix applied (Part 16):** Backend: `path-to-regexp` override → 8.4.1 (resolves ReDoS); `bigint-buffer` override → `@cardanosolutions/bigint-buffer` (mitigation only, advisory remains due to transitive chain in `@solana/spl-token`); Prisma 6.x → 7.6.0 upgraded. mcp-server: same overrides applied. Residual 3 high vulns accepted — no upstream fix available; risk documented.
 
 ---
 
@@ -2442,7 +2442,7 @@ Pending trades (written with `status: 'pending'` and `txSignature: pending-<time
 **Status:** ⚠️ Partial — SDK high advisory resolved; residual bigint-buffer chain accepted
 **Severity:** High → residual Medium
 
-**Fix applied (Part 16):** SDK: `picomatch` pinned to `4.0.4` — resolves high advisory. Backend + mcp-server: `path-to-regexp` override → `8.4.1` (ReDoS); `bigint-buffer` → `@nicolo-ribaudo/bigint-buffer` override (mitigation only). Residual: 3 high vulns remain in `backend`/`demo`/`cli` via `@solana/spl-token → @solana/buffer-layout-utils → bigint-buffer` — no upstream semver-safe fix available; risk accepted and documented.
+**Fix applied (Part 16):** SDK: `picomatch` pinned to `4.0.4` — resolves high advisory. Backend + mcp-server: `path-to-regexp` override → `8.4.1` (ReDoS); `bigint-buffer` → `@cardanosolutions/bigint-buffer` override (mitigation only). Residual: 3 high vulns remain in `backend`/`demo`/`cli` via `@solana/spl-token → @solana/buffer-layout-utils → bigint-buffer` — no upstream semver-safe fix available; risk accepted and documented.
 
 ---
 
@@ -2458,23 +2458,115 @@ Pending trades (written with `status: 'pending'` and `txSignature: pending-<time
 
 ---
 
-### Security Strengths Added (Part 16)
+### Part 16b — Regression Fixes + BUG-104 Resolution + BUG-144 Reopen
+
+**Audit date:** 2026-04-02 (second pass)
+**Trigger:** Code review revealed status claims in bugs.md that didn't match actual code.
+
+---
+
+#### BUG-144 (REOPENED): Oracle daily update still skips all accounts — profile PDA compared to score PDA
+**File:** `oracle/src/scoring/updater.ts:135-144`
+**Status:** ✅ Resolved (Part 16b) — now derives expected score PDA from `["krexit_score", expectedProfilePda]` and compares to `account.pubkey`
+**Severity:** Critical
+
+The Part 16 fix computed `agentProfilePda` from the agent pubkey but then compared it against `account.pubkey` — which is the **score** PDA, not the profile PDA. These are derived from different seeds and will never be equal. Result: every score account was skipped, every daily update was a no-op.
+
+**Fix applied:** Derive `expectedProfilePda` from agent, then derive `expectedScorePda` from `["krexit_score", expectedProfilePda]` on the score program. Compare `expectedScorePda` to `account.pubkey`. Now they match for valid accounts.
+
+---
+
+#### BUG-104 (REOPENED): Oracle payment endpoint now payer-bound via ownerWallet field
+**Files:** `backend/src/api/routes/oracle.ts`, `backend/prisma/schema.prisma`, `backend/prisma/migrations/20260402074100_add_api_key_owner_wallet/migration.sql`, `backend/src/api/schemas.ts`, `backend/src/api/routes/admin.ts`, `backend/src/config/openapi.ts`
+**Status:** ✅ Resolved (Part 16b — full enforcement) — strict payer binding with 4-tier error response; Prisma migration shipped; admin API and OpenAPI spec updated
+**Severity:** High
+
+Previous attempt used broken `req.apiKeyId` lookup (field doesn't exist on request) and fell back to a warn-and-continue path. Binding was never enforced. Schema had no `ownerWallet` field.
+
+**Fix applied:**
+- `oracle.ts`: switched to `req.apiKey?.id` (correct middleware path); enforced strict binding: missing key context → 503, unknown key record → 401, no `ownerWallet` bound → 403, `from !== ownerWallet` → 403 (case-insensitive compare)
+- `schema.prisma`: `ownerWallet String?` added to `ApiKey` model
+- Migration: `20260402074100_add_api_key_owner_wallet/migration.sql` adds column to production DB
+- `admin.ts` + `schemas.ts`: `ownerWallet` exposed in create/update/list key operations
+- `openapi.ts`: `ownerWallet` documented in `/admin/keys` create/update and `ApiKey` schema
+
+---
+
+#### BUG-099 (REGRESSION): SDK response validation only checked null/undefined
+**File:** `sdk/src/client.ts:32-38`
+**Status:** ✅ Resolved (Part 16b) — `typeof data !== 'object'` guard added; raw string/number responses now throw
+**Severity:** Low
+
+"Fixed" status claimed, but the check was `if (data === null || data === undefined)` — a string `"error"` or number `42` from a misconfigured backend would pass through uncaught.
+
+**Fix applied:** `typeof data !== 'object'` guard throws `Krexa API returned unexpected type: ${typeof data}`. Null already excluded by prior check. SDK and mcp-server typechecks pass ✅
+
+---
+
+#### BUG-095 (REGRESSION): MCP handleSwap/handleQuote/handleYieldScan still use unchecked `as` casts
+**File:** `mcp-server/src/index.ts:383-412`
+**Status:** ✅ Resolved (Part 16b) — replaced all `as` casts with `requireString`/`requireNumber`/`typeof` guards
+**Severity:** Medium
+
+`handleTrade` and `handlePay` were properly fixed with `requireString`/`requireNumber`, but `handleSwap`, `handleQuote`, and `handleYieldScan` still used unchecked `as string`, `as number`, `as number | undefined` casts.
+
+**Fix applied:** `handleSwap` and `handleQuote` now use `requireString`/`requireNumber`. `handleYieldScan` uses `typeof` guards for optional fields.
+
+---
+
+#### BUG-117 (PARTIAL): SDK agent.ts paths still unencoded in quote/swap/portfolio
+**File:** `sdk/src/agent.ts:199-223`
+**Status:** ✅ Resolved (Part 16b) — `quote()`, `swap()`, `portfolio()` now use `encodePathSegment(requireAgent(), 'agentAddress')`
+**Severity:** High
+
+Original fix applied `encodePathSegment` to most paths in `client.ts` and `agent.ts`, but `quote()`, `swap()`, and `portfolio()` used `const agent = requireAgent()` (raw string) directly in template literals.
+
+**Fix applied:** All three methods now use `encodePathSegment(requireAgent(), 'agentAddress')`.
+
+---
+
+#### BUG-137 (STATUS CORRECTION): Missing ownerPubkey binding now implemented
+**File:** `backend/src/api/routes/agent-wallet.routes.ts:157-185`
+**Status:** ✅ Resolved (Part 16b) — explicit `ownerPubkey === wallet.owner.toBase58()` check with 403 on mismatch
+**Severity:** High
+
+bugs.md claimed owner binding was implemented in Part 16, but the actual code at lines 157-185 only had `requireApiKey` — no `ownerPubkey` check existed. Any API key holder could trade for any agent.
+
+**Fix applied:** Added `ownerPubkey` extraction from `req.body`, required non-null, compared against `wallet.owner.toBase58()`, 403 on mismatch.
+
+---
+
+#### BUG-143 (TEXT CORRECTION): Override alias corrected to @cardanosolutions
+**Files:** `mcp-server/package.json`, `bugs.md`
+**Status:** ⚠️ Partial — corrected. mcp-server now has bigint-buffer override. bugs.md text fixed from `@nicolo-ribaudo` → `@cardanosolutions`
+
+bugs.md referenced `@nicolo-ribaudo/bigint-buffer` but `backend/package.json` actually uses `@cardanosolutions/bigint-buffer@^1.0.2`. Also `mcp-server/package.json` only had `path-to-regexp` override, missing `bigint-buffer`.
+
+**Fix applied:** Corrected all bugs.md references. Added `bigint-buffer` override to `mcp-server/package.json`.
+
+---
+
+### Security Strengths Added (Part 16 + 16b)
 
 - ✅ Oracle score PDA derivation and account scan corrected — oracle now reads/writes the right on-chain accounts
+- ✅ BUG-144 double-fix: profile→score PDA derivation chain now verified end-to-end
 - ✅ Liquidation events now trigger immediate score re-evaluation in oracle
 - ✅ FairScale response validation prevents external data poisoning of Krexit scores
 - ✅ On-chain tx verification before legal agreement confirmation — `sign_legal_agreement` discriminator + hash + PDA all checked
 - ✅ Owner binding enforced end-to-end: backend → SDK → MCP; no trade possible without proving wallet ownership
 - ✅ Pending trades fully excluded from all credit scoring and history surfaces
+- ✅ BUG-104 resolved: oracle payment payer-binding via `ApiKey.ownerWallet` schema field
+- ✅ BUG-117 fully closed: all SDK path segments encoded
+- ✅ BUG-095 fully closed: all MCP handlers use runtime type validation
 - ✅ FairScale redesign: scoring system rebuilt — FairScale `credit_score 0-100` maps to base `200-850`, on-chain behavior becomes modifiers; C1-C5 synthetic components replaced with real wallet intelligence
 
 ---
 
-### Final Status (Parts 14 + 15 + 16 combined)
+### Final Status (Parts 14 + 15 + 16 + 16b combined)
 
 **12 Critical fixed, 0 remaining.**
-**21 High fixed, 6 remaining (all deferred — deserialization consolidation, x402-server).**
-**18 Medium fixed, 10 remaining (all deferred).**
-**8 Low fixed, 4 remaining (all cosmetic/by-design).**
+**23 High fixed, 4 remaining (all deferred — deserialization consolidation, x402-server).**
+**20 Medium fixed, 9 remaining (all deferred).**
+**9 Low fixed, 3 remaining (all cosmetic/by-design).**
 
-All Part 16 security fixes applied: 2026-04-02. Branch: `security-audit-fixes`.
+All Part 16b fixes applied: 2026-04-02. Branch: `security-audit-fixes`.

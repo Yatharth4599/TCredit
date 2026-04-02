@@ -103,13 +103,14 @@ model Pool {
 }
 
 model ApiKey {
-  id        String   @id @default(uuid())
-  key       String   @unique
-  name      String
-  tier      String   @default("free") // "free" | "paid"
-  rateLimit Int      @default(100)
-  createdAt DateTime @default(now())
-  active    Boolean  @default(true)
+  id          String   @id @default(uuid())
+  key         String   @unique
+  name        String
+  tier        String   @default("free") // "free" | "paid"
+  rateLimit   Int      @default(100)
+  ownerWallet String?  // BUG-104: optional wallet binding — when set, payment `from` must match
+  createdAt   DateTime @default(now())
+  active      Boolean  @default(true)
 }
 
 model WebhookEndpoint {

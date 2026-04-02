@@ -36,16 +36,35 @@ router.get('/keys', async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     const [keys, total] = await Promise.all([
-      prisma.apiKey.findMany({
-        orderBy: { createdAt: 'desc' },
-        select: { id: true, name: true, key: true, tier: true, rateLimit: true, active: true, createdAt: true },
-        skip,
-        take: limit,
-      }),
+      prisma.$queryRaw<Array<{
+        id: string;
+        name: string;
+        key: string;
+        tier: string;
+        rateLimit: number;
+        active: boolean;
+        ownerWallet: string | null;
+        createdAt: Date;
+      }>>`
+        SELECT "id", "name", "key", "tier", "rateLimit", "active", "ownerWallet", "createdAt"
+        FROM "ApiKey"
+        ORDER BY "createdAt" DESC
+        LIMIT ${limit}
+        OFFSET ${skip}
+      `,
       prisma.apiKey.count(),
     ]);
     res.json({
-      keys: keys.map((k) => ({
+      keys: keys.map((k: {
+        id: string;
+        name: string;
+        key: string;
+        tier: string;
+        rateLimit: number;
+        active: boolean;
+        ownerWallet: string | null;
+        createdAt: Date;
+      }) => ({
         ...k,
         key: k.key.slice(0, 4) + '…' + k.key.slice(-4),
       })),
@@ -61,7 +80,7 @@ router.get('/keys', async (req, res, next) => {
 // POST /api/v1/admin/keys -- create a new API key
 router.post('/keys', validate(AdminCreateKeySchema), async (req, res, next) => {
   try {
-    const { name, rateLimit: rl } = req.body;
+    const { name, rateLimit: rl, ownerWallet } = req.body;
 
     const key = `tck_${randomBytes(24).toString('hex')}`;
     const apiKey = await prisma.apiKey.create({
@@ -71,12 +90,23 @@ router.post('/keys', validate(AdminCreateKeySchema), async (req, res, next) => {
         rateLimit: rl ? Number(rl) : 100,
       },
     });
+    if (ownerWallet) {
+      await prisma.$executeRaw`
+        UPDATE "ApiKey"
+        SET "ownerWallet" = ${String(ownerWallet).toLowerCase()}
+        WHERE "id" = ${apiKey.id}
+      `;
+    }
+    const ownerWalletRow = await prisma.$queryRaw<Array<{ ownerWallet: string | null }>>`
+      SELECT "ownerWallet" FROM "ApiKey" WHERE "id" = ${apiKey.id} LIMIT 1
+    `;
 
     res.status(201).json({
       id: apiKey.id,
       key: apiKey.key,
       name: apiKey.name,
       rateLimit: apiKey.rateLimit,
+      ownerWallet: ownerWalletRow[0]?.ownerWallet ?? null,
       createdAt: apiKey.createdAt.toISOString(),
     });
   } catch (err) {
@@ -87,7 +117,7 @@ router.post('/keys', validate(AdminCreateKeySchema), async (req, res, next) => {
 // PATCH /api/v1/admin/keys/:id -- update key (name, rateLimit, active)
 router.patch('/keys/:id', validate(AdminUpdateKeySchema), async (req, res, next) => {
   try {
-    const { name, rateLimit: rl, active } = req.body;
+    const { name, rateLimit: rl, active, ownerWallet } = req.body;
     const data: Record<string, unknown> = {};
     if (name !== undefined) data.name = name;
     if (rl !== undefined) data.rateLimit = Number(rl);
@@ -97,11 +127,22 @@ router.patch('/keys/:id', validate(AdminUpdateKeySchema), async (req, res, next)
       where: { id: req.params.id as string },
       data,
     });
+    if (ownerWallet !== undefined) {
+      await prisma.$executeRaw`
+        UPDATE "ApiKey"
+        SET "ownerWallet" = ${ownerWallet === null ? null : String(ownerWallet).toLowerCase()}
+        WHERE "id" = ${apiKey.id}
+      `;
+    }
+    const ownerWalletRow = await prisma.$queryRaw<Array<{ ownerWallet: string | null }>>`
+      SELECT "ownerWallet" FROM "ApiKey" WHERE "id" = ${apiKey.id} LIMIT 1
+    `;
 
     res.json({
       id: apiKey.id,
       name: apiKey.name,
       rateLimit: apiKey.rateLimit,
+      ownerWallet: ownerWalletRow[0]?.ownerWallet ?? null,
       active: apiKey.active,
     });
   } catch (err) {
@@ -146,7 +187,14 @@ router.get('/webhooks', async (req, res, next) => {
       prisma.webhookEndpoint.count(),
     ]);
     res.json({
-      endpoints: endpoints.map((ep) => ({
+      endpoints: endpoints.map((ep: {
+        id: string;
+        url: string;
+        events: string[];
+        active: boolean;
+        createdAt: Date;
+        _count: { deliveries: number };
+      }) => ({
         ...ep,
         deliveryCount: ep._count.deliveries,
         _count: undefined,
@@ -296,7 +344,12 @@ router.get('/waitlist', async (req, res, next) => {
       prisma.waitlistEntry.count(),
     ]);
     res.json({
-      entries: entries.map((e) => ({
+      entries: entries.map((e: {
+        id: string;
+        email: string;
+        walletAddress: string | null;
+        createdAt: Date;
+      }) => ({
         id: e.id,
         email: e.email,
         walletAddress: e.walletAddress,
@@ -319,7 +372,12 @@ router.get('/waitlist/export', async (_req, res, next) => {
     });
     const rows = [
       'id,email,walletAddress,joinedAt',
-      ...entries.map((e) =>
+      ...entries.map((e: {
+        id: string;
+        email: string;
+        walletAddress: string | null;
+        createdAt: Date;
+      }) =>
         [e.id, sanitizeCsvField(e.email), sanitizeCsvField(e.walletAddress ?? ''), e.createdAt.toISOString()].join(',')
       ),
     ];

@@ -846,7 +846,7 @@ export const openApiSpec = {
       },
       post: {
         tags: ['Admin'], summary: 'Create API key', security: [{ ApiKeyAuth: [] }],
-        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['name'], properties: { name: { type: 'string' }, rateLimit: { type: 'integer', default: 100 } } } } } },
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['name'], properties: { name: { type: 'string' }, rateLimit: { type: 'integer', default: 100 }, ownerWallet: { type: 'string', pattern: '^0x[a-fA-F0-9]{40}$', nullable: true, description: 'Optional payer-binding wallet for oracle/payment' } } } } } },
         responses: { 201: { description: 'Created API key (includes secret)', content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiKey' } } } } },
       },
     },
@@ -854,7 +854,7 @@ export const openApiSpec = {
       patch: {
         tags: ['Admin'], summary: 'Update API key', security: [{ ApiKeyAuth: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
-        requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { name: { type: 'string' }, rateLimit: { type: 'integer' }, active: { type: 'boolean' } } } } } },
+        requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { name: { type: 'string' }, rateLimit: { type: 'integer' }, ownerWallet: { type: 'string', pattern: '^0x[a-fA-F0-9]{40}$', nullable: true }, active: { type: 'boolean' } } } } } },
         responses: { 200: { description: 'Updated key' } },
       },
       delete: {
@@ -1243,6 +1243,7 @@ export const openApiSpec = {
           name: { type: 'string' },
           tier: { type: 'string', enum: ['free', 'paid'], description: 'API key tier — free: score lookup (100/day), paid: full reports (10K/day)' },
           rateLimit: { type: 'integer' },
+          ownerWallet: { type: 'string', nullable: true, description: 'Optional payer-binding wallet for oracle/payment' },
           active: { type: 'boolean' },
           createdAt: { type: 'string', format: 'date-time' },
         },

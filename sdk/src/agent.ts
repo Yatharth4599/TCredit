@@ -196,7 +196,7 @@ export function createAgentNamespace(
 
     /** Get a swap quote without executing. */
     async quote(params: SwapQuoteParams): Promise<SwapQuoteResult> {
-      const agent = requireAgent();
+      const agent = encodePathSegment(requireAgent(), 'agentAddress');
       return post<SwapQuoteResult>(b, `/solana/trading/${agent}/quote`, apiKey, {
         from: params.from,
         to: params.to,
@@ -207,7 +207,7 @@ export function createAgentNamespace(
 
     /** Execute a swap and get unsigned transaction. */
     async swap(params: SwapQuoteParams & { ownerAddress: string }): Promise<OperationResult> {
-      const agent = requireAgent();
+      const agent = encodePathSegment(requireAgent(), 'agentAddress');
       return post<OperationResult>(b, `/solana/trading/${agent}/swap`, apiKey, {
         from: params.from,
         to: params.to,
@@ -219,7 +219,7 @@ export function createAgentNamespace(
 
     /** Get token portfolio with USD values. */
     async portfolio(): Promise<PortfolioResult> {
-      const agent = requireAgent();
+      const agent = encodePathSegment(requireAgent(), 'agentAddress');
       return get<PortfolioResult>(b, `/solana/trading/${agent}/portfolio`, apiKey);
     },
 

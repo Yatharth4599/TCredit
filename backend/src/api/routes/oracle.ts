@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import type { Address } from 'viem';
 import { processPayment, getOracleHealth } from '../../services/oracle.service.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -32,9 +33,8 @@ function decodePaymentToken(token: string): { jti?: string; sub?: string; amt?: 
   }
 }
 
-// POST /api/v1/oracle/payment — webhook receiver (requires API key)
-// TODO [BUG-104]: API keys need an `ownerWallet` field in the schema so we can
-// enforce `from === apiKey.ownerWallet`. Until then, log mismatches as security events.
+// POST /api/v1/oracle/payment — webhook receiver (requires admin API key)
+// BUG-104 fix: enforce strict payer binding to API key ownerWallet
 router.post('/payment', requireAdmin, async (req, res, next) => {
   try {
     const parsed = paymentSchema.safeParse(req.body);
@@ -42,15 +42,31 @@ router.post('/payment', requireAdmin, async (req, res, next) => {
       throw new AppError(400, `Invalid request: ${parsed.error.issues.map((i) => i.message).join(', ')}`);
     }
 
-    // BUG-104: Log security event — `from` address is not bound to the API key.
-    // API keys currently lack wallet binding, so any valid key can submit payments
-    // for any `from` address (on-chain allowance still required).
-    const apiKeyId = (req as unknown as { apiKeyId?: string }).apiKeyId ?? 'unknown';
-    console.warn(
-      `[security] oracle/payment: from=${parsed.data.from} submitted by apiKey=${apiKeyId}. ` +
-      'API key is not wallet-bound — payer identity is NOT verified. ' +
-      'TODO: add ownerWallet to ApiKey schema and enforce match.',
-    );
+    const apiKeyId = (req as unknown as { apiKey?: { id?: string } }).apiKey?.id;
+    if (!apiKeyId) {
+      throw new AppError(503, 'Authenticated API key context missing');
+    }
+
+    const rows = await prisma.$queryRaw<Array<{ ownerWallet: string | null }>>`
+      SELECT "ownerWallet"
+      FROM "ApiKey"
+      WHERE "id" = ${apiKeyId}
+      LIMIT 1
+    `;
+    const ownerWallet = rows[0]?.ownerWallet ?? null;
+    if (rows.length === 0) {
+      throw new AppError(401, 'Invalid API key context');
+    }
+    if (!ownerWallet) {
+      throw new AppError(403, 'API key is not bound to an owner wallet');
+    }
+    if (parsed.data.from.toLowerCase() !== ownerWallet.toLowerCase()) {
+      throw new AppError(
+        403,
+        `Payment 'from' address does not match API key wallet binding. ` +
+        `Expected: ${ownerWallet}, got: ${parsed.data.from}`,
+      );
+    }
 
     const result = await processPayment({
       from: req.body.from as Address,
@@ -135,7 +151,18 @@ router.get('/payments', requireApiKey, async (req, res, next) => {
     });
 
     res.json({
-      payments: payments.map((p) => ({
+      payments: payments.map((p: {
+        id: string;
+        from: string;
+        to: string;
+        amount: bigint;
+        nonce: bigint;
+        paymentId: string | null;
+        txHash: string | null;
+        status: string;
+        deadline: bigint;
+        createdAt: Date;
+      }) => ({
         ...p,
         amount: p.amount.toString(),
         nonce: p.nonce.toString(),

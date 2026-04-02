@@ -29,9 +29,12 @@ async function request<T>(baseUrl: string, path: string, apiKey?: string, init?:
     throw new Error(`Krexa API error ${res.status}: ${body}`);
   }
 
-  // BUG-099 fix: basic runtime type check on response body
+  // BUG-099 fix: runtime type check on response body
   const data = await res.json();
   if (data === null || data === undefined) throw new Error('Krexa API returned empty response');
+  if (typeof data !== 'object') {
+    throw new Error(`Krexa API returned unexpected type: ${typeof data}`);
+  }
   return data as T;
 }
 

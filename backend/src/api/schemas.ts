@@ -55,11 +55,13 @@ export const WaitlistJoinSchema = z.object({
 export const AdminCreateKeySchema = z.object({
   name: z.string().min(1, 'name is required').max(100),
   rateLimit: z.coerce.number().int().min(1).max(10000).optional(),
+  ownerWallet: evmAddress.optional(),
 });
 
 export const AdminUpdateKeySchema = z.object({
   name: z.string().min(1).max(100).optional(),
   rateLimit: z.coerce.number().int().min(1).max(10000).optional(),
+  ownerWallet: evmAddress.nullable().optional(),
   active: z.boolean().optional(),
 }).refine((d) => Object.keys(d).length > 0, 'At least one field required');
 

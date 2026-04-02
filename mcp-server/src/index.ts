@@ -382,20 +382,20 @@ async function handleTrade(args: Args) {
 
 async function handleSwap(args: Args) {
   return sdk.agent.swap({
-    from:         args.from         as string,
-    to:           args.to           as string,
-    amount:       args.amount       as number,
-    slippageBps:  args.slippageBps  as number | undefined,
-    ownerAddress: args.ownerAddress as string,
+    from:         requireString(args.from, 'from'),
+    to:           requireString(args.to, 'to'),
+    amount:       requireNumber(args.amount, 'amount'),
+    slippageBps:  typeof args.slippageBps === 'number' ? args.slippageBps : undefined,
+    ownerAddress: requireString(args.ownerAddress, 'ownerAddress'),
   });
 }
 
 async function handleQuote(args: Args) {
   return sdk.agent.quote({
-    from:        args.from        as string,
-    to:          args.to          as string,
-    amount:      args.amount      as number,
-    slippageBps: args.slippageBps as number | undefined,
+    from:        requireString(args.from, 'from'),
+    to:          requireString(args.to, 'to'),
+    amount:      requireNumber(args.amount, 'amount'),
+    slippageBps: typeof args.slippageBps === 'number' ? args.slippageBps : undefined,
   });
 }
 
@@ -405,9 +405,9 @@ async function handlePortfolio() {
 
 async function handleYieldScan(args: Args) {
   return sdk.agent.yieldScan({
-    limit:  args.limit  as number | undefined,
-    minTvl: args.minTvl as number | undefined,
-    token:  args.token  as string | undefined,
+    limit:  typeof args.limit === 'number' ? args.limit : undefined,
+    minTvl: typeof args.minTvl === 'number' ? args.minTvl : undefined,
+    token:  typeof args.token === 'string' ? args.token : undefined,
   });
 }
 

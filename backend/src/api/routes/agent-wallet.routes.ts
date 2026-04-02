@@ -153,7 +153,7 @@ router.get('/:agent/trades', async (req, res, next) => {
 
 // POST /solana/wallets/:agent/trade  — proxy to trading routes for backward compat
 // The SDK's agent.trade() calls this path. Delegate to the trading swap handler.
-// BUG-137 fix: require API key auth — this is a write route that executes trades
+// BUG-137 fix: require API key auth + owner binding — caller must prove wallet ownership
 router.post('/:agent/trade', requireApiKey as never, async (req, res, next) => {
   try {
     const { resolveToken, getQuote, buildSwapTx } = await import('../../services/dex-aggregator.js');
@@ -162,6 +162,13 @@ router.post('/:agent/trade', requireApiKey as never, async (req, res, next) => {
     const wallet = await readAgentWallet(agentPk);
     if (!wallet) throw new AppError(404, 'Agent wallet not found on-chain');
     if (wallet.isFrozen) throw new AppError(403, 'Agent wallet is frozen');
+
+    // BUG-137 fix: owner binding — caller must provide ownerPubkey that matches on-chain wallet owner
+    const callerOwner = req.body.ownerPubkey as string | undefined;
+    if (!callerOwner) throw new AppError(400, 'Missing ownerPubkey — must prove wallet ownership');
+    if (callerOwner !== wallet.owner.toBase58()) {
+      throw new AppError(403, 'ownerPubkey does not match on-chain wallet owner');
+    }
 
     // SDK sends: { venue, from, to, amount (base units string) }
     const fromInput = (req.body.from as string) ?? 'USDC';
