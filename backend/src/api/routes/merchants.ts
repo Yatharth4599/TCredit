@@ -12,6 +12,8 @@ import { getSettlement } from '../../chain/paymentRouter.js';
 import { processPayment } from '../../services/oracle.service.js';
 import { env } from '../../config/env.js';
 import { prisma } from '../../config/prisma.js';
+import { validate } from '../middleware/validate.js';
+import { MerchantRegisterSchema } from '../schemas.js';
 
 const router = Router();
 

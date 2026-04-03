@@ -8,6 +8,8 @@ use anchor_spl::token::{Mint, Token, TokenAccount};
 use krexa_agent_registry::{AgentProfile, RegistryConfig};
 use krexa_credit_vault::{VaultConfig, DepositPosition, CreditLine};
 use krexa_venue_whitelist::WhitelistedVenue;
+use krexa_agent_registry::program::KrexaAgentRegistry;
+use krexa_credit_vault::program::KrexaCreditVault;
 
 pub mod state;
 pub mod events;
@@ -101,7 +103,7 @@ pub struct CreateWallet<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
 
-    pub registry_program: Program<'info, krexa_agent_registry::program::KrexaAgentRegistry>,
+    pub registry_program: Program<'info, KrexaAgentRegistry>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
@@ -154,7 +156,7 @@ pub struct Deposit<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
 
-    pub vault_program: Program<'info, krexa_credit_vault::program::KrexaCreditVault>,
+    pub vault_program: Program<'info, KrexaCreditVault>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
@@ -227,7 +229,7 @@ pub struct RequestCredit<'info> {
     )]
     pub agent_or_owner: Signer<'info>,
 
-    pub vault_program: Program<'info, krexa_credit_vault::program::KrexaCreditVault>,
+    pub vault_program: Program<'info, KrexaCreditVault>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
@@ -467,8 +469,8 @@ pub struct Repay<'info> {
     )]
     pub caller: Signer<'info>,
 
-    pub vault_program: Program<'info, krexa_credit_vault::program::KrexaCreditVault>,
-    pub registry_program: Program<'info, krexa_agent_registry::program::KrexaAgentRegistry>,
+    pub vault_program: Program<'info, KrexaCreditVault>,
+    pub registry_program: Program<'info, KrexaAgentRegistry>,
     pub token_program: Program<'info, Token>,
 }
 
@@ -610,8 +612,8 @@ pub struct Liquidate<'info> {
     /// PERMISSIONLESS: any signer can trigger liquidation if health condition is met
     pub liquidator: Signer<'info>,
 
-    pub vault_program: Program<'info, krexa_credit_vault::program::KrexaCreditVault>,
-    pub registry_program: Program<'info, krexa_agent_registry::program::KrexaAgentRegistry>,
+    pub vault_program: Program<'info, KrexaCreditVault>,
+    pub registry_program: Program<'info, KrexaAgentRegistry>,
     pub token_program: Program<'info, Token>,
 }
 

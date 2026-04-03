@@ -14,19 +14,12 @@ import * as anchor from "@coral-xyz/anchor";
 import {
   Keypair,
   PublicKey,
-  Connection,
-  Transaction,
-  sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import {
   createMint,
-  createAssociatedTokenAccount,
   getOrCreateAssociatedTokenAccount,
   mintTo,
   TOKEN_PROGRAM_ID,
-  ASSOCIATED_TOKEN_PROGRAM_ID,
-  getAssociatedTokenAddress,
-  Account as TokenAccount,
 } from "@solana/spl-token";
 
 // ─────────────────────────────────────────────────────────────────────────────

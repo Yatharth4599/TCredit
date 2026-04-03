@@ -221,7 +221,9 @@ pub const MAX_REVENUE_SOURCES: usize = 30;
 /// Max associated wallets (owner-linked, auto-rejected)
 pub const MAX_ASSOCIATED_WALLETS: usize = 10;
 /// Payment history ring buffer size
-pub const PAYMENT_HISTORY_SIZE: usize = 50;
+pub const PAYMENT_HISTORY_SIZE: usize = 16;
+/// Outflow history ring buffer size
+pub const OUTFLOW_HISTORY_SIZE: usize = 8;
 /// Revenue integrity violations before auto-Orange health
 pub const REVENUE_VIOLATION_CAP: u8 = 5;
 /// Oracle review window: 24 hours

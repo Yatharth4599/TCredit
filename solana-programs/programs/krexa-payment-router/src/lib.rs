@@ -26,6 +26,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 use krexa_common::constants::*;
+use krexa_credit_vault::program::KrexaCreditVault;
 
 declare_id!("2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8");
 
@@ -172,21 +173,24 @@ impl RevenueValidator {
 #[account]
 pub struct PaymentHistory {
     pub merchant: Pubkey,
-    /// Ring buffer of last 50 incoming payments
-    pub payments: [PaymentRecord; 50],  // PAYMENT_HISTORY_SIZE
+    /// Ring buffer of recent incoming payments
+    pub payments: [PaymentRecord; PAYMENT_HISTORY_SIZE],
     pub payment_head: u8,              // next write position
-    pub payment_count: u8,             // entries filled (max 50)
-    /// Ring buffer of last 20 outflows (for round-trip detection)
-    pub outflows: [OutflowRecord; 20],
+    pub payment_count: u8,             // entries filled (max PAYMENT_HISTORY_SIZE)
+    /// Ring buffer of recent outflows (for round-trip detection)
+    pub outflows: [OutflowRecord; OUTFLOW_HISTORY_SIZE],
     pub outflow_head: u8,
     pub outflow_count: u8,
     pub bump: u8,
 }
 
 impl PaymentHistory {
-    // 8 disc + 32 merchant + 50*52 payments + 1 + 1 + 20*48 outflows + 1 + 1 + 1
-    // = 8 + 32 + 2600 + 2 + 960 + 3 = 3605
-    pub const LEN: usize = 8 + 32 + (50 * PaymentRecord::LEN) + 2 + (20 * OutflowRecord::LEN) + 3;
+    pub const LEN: usize = 8
+        + 32
+        + (PAYMENT_HISTORY_SIZE * PaymentRecord::LEN)
+        + 2
+        + (OUTFLOW_HISTORY_SIZE * OutflowRecord::LEN)
+        + 3;
     pub const SEED: &'static [u8] = b"payment_history";
 }
 
@@ -859,10 +863,10 @@ pub mod krexa_payment_router {
 
         let h = &mut ctx.accounts.history;
         h.merchant = merchant;
-        h.payments = [PaymentRecord::default(); 50];
+        h.payments = [PaymentRecord::default(); PAYMENT_HISTORY_SIZE];
         h.payment_head = 0;
         h.payment_count = 0;
-        h.outflows = [OutflowRecord::default(); 20];
+        h.outflows = [OutflowRecord::default(); OUTFLOW_HISTORY_SIZE];
         h.outflow_head = 0;
         h.outflow_count = 0;
         h.bump = ctx.bumps.history;
@@ -1103,8 +1107,8 @@ pub mod krexa_payment_router {
             amount,
             timestamp: now,
         };
-        history.outflow_head = ((head + 1) % 20) as u8;
-        if history.outflow_count < 20 {
+        history.outflow_head = ((head + 1) % OUTFLOW_HISTORY_SIZE) as u8;
+        if (history.outflow_count as usize) < OUTFLOW_HISTORY_SIZE {
             history.outflow_count += 1;
         }
 
@@ -1406,7 +1410,7 @@ pub struct ExecutePayment<'info> {
     #[account(mut)]
     pub oracle: Signer<'info>,
 
-    pub vault_program: Program<'info, krexa_credit_vault::program::KrexaCreditVault>,
+    pub vault_program: Program<'info, KrexaCreditVault>,
     pub token_program: Program<'info, Token>,
 }
 
@@ -1475,7 +1479,7 @@ pub struct CreateRevenueValidator<'info> {
         bump = config.bump,
         has_one = oracle @ RouterError::NotOracle,
     )]
-    pub config: Account<'info, RouterConfig>,
+    pub config: Box<Account<'info, RouterConfig>>,
 
     #[account(
         init,
@@ -1484,7 +1488,7 @@ pub struct CreateRevenueValidator<'info> {
         seeds = [RevenueValidator::SEED, merchant.as_ref()],
         bump,
     )]
-    pub validator: Account<'info, RevenueValidator>,
+    pub validator: Box<Account<'info, RevenueValidator>>,
 
     #[account(mut)]
     pub oracle: Signer<'info>,
@@ -1500,7 +1504,7 @@ pub struct CreatePaymentHistory<'info> {
         bump = config.bump,
         has_one = oracle @ RouterError::NotOracle,
     )]
-    pub config: Account<'info, RouterConfig>,
+    pub config: Box<Account<'info, RouterConfig>>,
 
     #[account(
         init,
@@ -1509,7 +1513,7 @@ pub struct CreatePaymentHistory<'info> {
         seeds = [PaymentHistory::SEED, merchant.as_ref()],
         bump,
     )]
-    pub history: Account<'info, PaymentHistory>,
+    pub history: Box<Account<'info, PaymentHistory>>,
 
     #[account(mut)]
     pub oracle: Signer<'info>,
@@ -1524,7 +1528,7 @@ pub struct InitBlocklist<'info> {
         bump = config.bump,
         has_one = admin @ RouterError::NotAdmin,
     )]
-    pub config: Account<'info, RouterConfig>,
+    pub config: Box<Account<'info, RouterConfig>>,
 
     #[account(
         init,
@@ -1533,7 +1537,7 @@ pub struct InitBlocklist<'info> {
         seeds = [GlobalBlocklist::SEED],
         bump,
     )]
-    pub blocklist: Account<'info, GlobalBlocklist>,
+    pub blocklist: Box<Account<'info, GlobalBlocklist>>,
 
     #[account(mut)]
     pub admin: Signer<'info>,
@@ -1572,14 +1576,14 @@ pub struct AdminBlocklist<'info> {
         bump = config.bump,
         has_one = admin @ RouterError::NotAdmin,
     )]
-    pub config: Account<'info, RouterConfig>,
+    pub config: Box<Account<'info, RouterConfig>>,
 
     #[account(
         mut,
         seeds = [GlobalBlocklist::SEED],
         bump = blocklist.bump,
     )]
-    pub blocklist: Account<'info, GlobalBlocklist>,
+    pub blocklist: Box<Account<'info, GlobalBlocklist>>,
 
     pub admin: Signer<'info>,
 }
@@ -1591,14 +1595,14 @@ pub struct AdminPlatformWhitelist<'info> {
         bump = config.bump,
         has_one = admin @ RouterError::NotAdmin,
     )]
-    pub config: Account<'info, RouterConfig>,
+    pub config: Box<Account<'info, RouterConfig>>,
 
     #[account(
         mut,
         seeds = [PlatformWhitelist::SEED],
         bump = whitelist.bump,
     )]
-    pub whitelist: Account<'info, PlatformWhitelist>,
+    pub whitelist: Box<Account<'info, PlatformWhitelist>>,
 
     pub admin: Signer<'info>,
 }
@@ -1611,14 +1615,14 @@ pub struct ManageRevenueSource<'info> {
         bump = config.bump,
         has_one = oracle @ RouterError::NotOracle,
     )]
-    pub config: Account<'info, RouterConfig>,
+    pub config: Box<Account<'info, RouterConfig>>,
 
     #[account(
         mut,
         seeds = [RevenueValidator::SEED, merchant.as_ref()],
         bump = validator.bump,
     )]
-    pub validator: Account<'info, RevenueValidator>,
+    pub validator: Box<Account<'info, RevenueValidator>>,
 
     pub oracle: Signer<'info>,
 }
@@ -1631,33 +1635,33 @@ pub struct ValidateRevenue<'info> {
         bump = config.bump,
         has_one = oracle @ RouterError::NotOracle,
     )]
-    pub config: Account<'info, RouterConfig>,
+    pub config: Box<Account<'info, RouterConfig>>,
 
     #[account(
         mut,
         seeds = [RevenueValidator::SEED, merchant.as_ref()],
         bump = validator.bump,
     )]
-    pub validator: Account<'info, RevenueValidator>,
+    pub validator: Box<Account<'info, RevenueValidator>>,
 
     #[account(
         mut,
         seeds = [PaymentHistory::SEED, merchant.as_ref()],
         bump = history.bump,
     )]
-    pub history: Account<'info, PaymentHistory>,
+    pub history: Box<Account<'info, PaymentHistory>>,
 
     #[account(
         seeds = [GlobalBlocklist::SEED],
         bump = blocklist.bump,
     )]
-    pub blocklist: Account<'info, GlobalBlocklist>,
+    pub blocklist: Box<Account<'info, GlobalBlocklist>>,
 
     #[account(
         seeds = [PlatformWhitelist::SEED],
         bump = platform_whitelist.bump,
     )]
-    pub platform_whitelist: Account<'info, PlatformWhitelist>,
+    pub platform_whitelist: Box<Account<'info, PlatformWhitelist>>,
 
     pub oracle: Signer<'info>,
 }
@@ -1670,14 +1674,14 @@ pub struct RecordOutflow<'info> {
         bump = config.bump,
         has_one = oracle @ RouterError::NotOracle,
     )]
-    pub config: Account<'info, RouterConfig>,
+    pub config: Box<Account<'info, RouterConfig>>,
 
     #[account(
         mut,
         seeds = [PaymentHistory::SEED, merchant.as_ref()],
         bump = history.bump,
     )]
-    pub history: Account<'info, PaymentHistory>,
+    pub history: Box<Account<'info, PaymentHistory>>,
 
     pub oracle: Signer<'info>,
 }
@@ -1690,28 +1694,28 @@ pub struct ReviewQuarantined<'info> {
         bump = config.bump,
         has_one = oracle @ RouterError::NotOracle,
     )]
-    pub config: Account<'info, RouterConfig>,
+    pub config: Box<Account<'info, RouterConfig>>,
 
     #[account(
         mut,
         seeds = [RevenueValidator::SEED, merchant.as_ref()],
         bump = validator.bump,
     )]
-    pub validator: Account<'info, RevenueValidator>,
+    pub validator: Box<Account<'info, RevenueValidator>>,
 
     #[account(
         mut,
         seeds = [PaymentHistory::SEED, merchant.as_ref()],
         bump = history.bump,
     )]
-    pub history: Account<'info, PaymentHistory>,
+    pub history: Box<Account<'info, PaymentHistory>>,
 
     #[account(
         mut,
         seeds = [GlobalBlocklist::SEED],
         bump = blocklist.bump,
     )]
-    pub blocklist: Account<'info, GlobalBlocklist>,
+    pub blocklist: Box<Account<'info, GlobalBlocklist>>,
 
     pub oracle: Signer<'info>,
 }
@@ -1724,21 +1728,21 @@ pub struct RetroactiveReject<'info> {
         bump = config.bump,
         has_one = oracle @ RouterError::NotOracle,
     )]
-    pub config: Account<'info, RouterConfig>,
+    pub config: Box<Account<'info, RouterConfig>>,
 
     #[account(
         mut,
         seeds = [RevenueValidator::SEED, merchant.as_ref()],
         bump = validator.bump,
     )]
-    pub validator: Account<'info, RevenueValidator>,
+    pub validator: Box<Account<'info, RevenueValidator>>,
 
     #[account(
         mut,
         seeds = [PaymentHistory::SEED, merchant.as_ref()],
         bump = history.bump,
     )]
-    pub history: Account<'info, PaymentHistory>,
+    pub history: Box<Account<'info, PaymentHistory>>,
 
     pub oracle: Signer<'info>,
 }

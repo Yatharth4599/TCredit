@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@noble/ed25519": "^2.2.3",
-    "@prisma/client": "^7.6.0",
+    "@prisma/client": "^6.0.0",
     "@solana/spl-token": "^0.4.9",
     "@solana/web3.js": "^1.98.0",
     "bs58": "^6.0.0",
@@ -37,7 +37,7 @@
     "@types/express": "^5.0.6",
     "@types/morgan": "^1.9.10",
     "@types/node": "^25.3.3",
-    "prisma": "^7.6.0",
+    "prisma": "^6.0.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },

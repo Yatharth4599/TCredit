@@ -166,7 +166,7 @@ export async function submitPayment(params: SubmitPaymentParams): Promise<Submit
   }
 
   // BUG-115 fix: enforce exact next nonce — no gaps, no caller-controlled skips
-  const expectedNonce = Number(settlement.nonce) + 1;
+  const expectedNonce = BigInt(settlement.nonce) + 1n;
   if (params.nonce !== expectedNonce) {
     throw new AppError(400, `Invalid nonce ${params.nonce} — expected ${expectedNonce}`);
   }
