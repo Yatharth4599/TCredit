@@ -481,7 +481,7 @@ export const openApiSpec = {
         tags: ['Agent Credit'],
         summary: 'Initiate legal agreement for L3-L4 credit',
         parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' } }],
-        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['creditLevel'], properties: { creditLevel: { type: 'integer', enum: [3, 4] } } } } } },
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['ownerPubkey', 'ownerSignature', 'creditLevel'], properties: { ownerPubkey: { type: 'string', description: 'On-chain owner wallet pubkey' }, ownerSignature: { type: 'string', description: 'Base64-encoded signature of raw agent pubkey bytes by owner' }, creditLevel: { type: 'integer', enum: [3, 4] } } } } } },
         responses: { 200: { description: 'Agreement initiated with hash for on-chain signing' } },
       },
     },
@@ -489,7 +489,11 @@ export const openApiSpec = {
       get: {
         tags: ['Agent Credit'],
         summary: 'Check legal agreement signing status',
-        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' } }],
+        parameters: [
+          { name: 'agent', in: 'path', required: true, schema: { type: 'string' } },
+          { name: 'x-owner-pubkey', in: 'header', required: true, schema: { type: 'string' }, description: 'On-chain owner wallet pubkey' },
+          { name: 'x-owner-signature', in: 'header', required: true, schema: { type: 'string' }, description: 'Base64 signature of raw agent pubkey bytes by owner' },
+        ],
         responses: { 200: { description: 'Agreement status' } },
       },
     },
@@ -541,7 +545,7 @@ export const openApiSpec = {
         parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' } }],
         requestBody: {
           required: true,
-          content: { 'application/json': { schema: { type: 'object', required: ['ownerPubkey', 'amount'], properties: { ownerPubkey: { type: 'string', description: 'Owner wallet public key' }, amount: { type: 'string', description: 'USDC amount in base units (6 decimals)' } } } } },
+          content: { 'application/json': { schema: { type: 'object', required: ['ownerPubkey', 'ownerSignature', 'amount'], properties: { ownerPubkey: { type: 'string', description: 'On-chain owner wallet pubkey' }, ownerSignature: { type: 'string', description: 'Base64-encoded signature of raw agent pubkey bytes by owner' }, amount: { type: 'string', description: 'USDC amount in base units (6 decimals)' } } } } },
         },
         responses: { 200: { description: 'Unsigned Solana transaction (base64)', content: { 'application/json': { schema: { $ref: '#/components/schemas/SolanaUnsignedTx' } } } } },
       },
@@ -562,10 +566,14 @@ export const openApiSpec = {
       post: {
         tags: ['Agent Credit'],
         summary: 'Confirm legal agreement after on-chain signing',
-        parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' } }],
+        parameters: [
+          { name: 'agent', in: 'path', required: true, schema: { type: 'string' } },
+          { name: 'x-owner-pubkey', in: 'header', required: true, schema: { type: 'string' }, description: 'On-chain owner wallet pubkey' },
+          { name: 'x-owner-signature', in: 'header', required: true, schema: { type: 'string' }, description: 'Base64 signature of raw agent pubkey bytes by owner' },
+        ],
         requestBody: {
           required: true,
-          content: { 'application/json': { schema: { type: 'object', required: ['txSignature'], properties: { txSignature: { type: 'string', description: 'On-chain transaction signature' } } } } },
+          content: { 'application/json': { schema: { type: 'object', required: ['agreementId', 'txSignature', 'onChainHash'], properties: { agreementId: { type: 'string', format: 'uuid' }, txSignature: { type: 'string', description: 'On-chain transaction signature' }, onChainHash: { type: 'string', description: '64-char hex agreement hash' } } } } },
         },
         responses: { 200: { description: 'Agreement confirmed' } },
       },
@@ -747,7 +755,7 @@ export const openApiSpec = {
         parameters: [{ name: 'agent', in: 'path', required: true, schema: { type: 'string' } }],
         requestBody: {
           required: true,
-          content: { 'application/json': { schema: { type: 'object', required: ['ownerPubkey'], properties: { ownerPubkey: { type: 'string' } } } } },
+          content: { 'application/json': { schema: { type: 'object', required: ['ownerPubkey', 'ownerSignature', 'sumsubApplicantId'], properties: { ownerPubkey: { type: 'string' }, ownerSignature: { type: 'string', description: 'Base64-encoded signature of raw agent pubkey bytes by owner' }, sumsubApplicantId: { type: 'string' } } } } },
         },
         responses: { 200: { description: 'Verification URL', content: { 'application/json': { schema: { type: 'object', properties: { verificationUrl: { type: 'string', format: 'uri' }, status: { type: 'string' } } } } } } },
       },

@@ -159,6 +159,7 @@ model OraclePayment {
   processedAt DateTime?
 
   @@index([status])
+  @@unique([paymentId])
   @@unique([from, nonce])
 }
 

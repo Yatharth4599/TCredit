@@ -391,6 +391,165 @@ pub enum RouterError {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Revenue validation helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CLASSIFICATION_VERIFIED: u8 = 0;
+const CLASSIFICATION_REJECTED: u8 = 1;
+const CLASSIFICATION_QUARANTINED: u8 = 2;
+const CLASSIFICATION_PENDING_KEEPER: u8 = 3;
+
+const REASON_NONE: u8 = 0;
+const REASON_SELF: u8 = 1;
+const REASON_OWNER: u8 = 2;
+const REASON_ASSOCIATED: u8 = 3;
+const REASON_BLOCKLIST: u8 = 5;
+const REASON_PATTERN: u8 = 6;
+const REASON_ECONOMIC: u8 = 7;
+
+pub const DECISION_APPROVE: u8 = 0;
+pub const DECISION_REJECT: u8 = 1;
+pub const DECISION_APPROVE_AND_WHITELIST: u8 = 2;
+pub const DECISION_REJECT_AND_BLOCKLIST: u8 = 3;
+
+fn list_contains(entries: &[Pubkey], count: u8, target: &Pubkey) -> bool {
+    let capped = (count as usize).min(entries.len());
+    entries[..capped].iter().any(|k| k == target)
+}
+
+fn is_round_trip_suspicious(
+    source: &Pubkey,
+    amount: u64,
+    now: i64,
+    history: &PaymentHistory,
+) -> bool {
+    let capped = (history.outflow_count as usize).min(history.outflows.len());
+    for outflow in history.outflows[..capped].iter() {
+        if outflow.destination != *source {
+            continue;
+        }
+        if outflow.timestamp > now {
+            continue;
+        }
+        if now.saturating_sub(outflow.timestamp) > ROUND_TRIP_WINDOW_SECONDS {
+            continue;
+        }
+
+        let smaller = amount.min(outflow.amount) as u128;
+        let larger = amount.max(outflow.amount) as u128;
+        let lhs = smaller.saturating_mul(BPS_DENOMINATOR as u128);
+        let rhs = larger.saturating_mul(ROUND_TRIP_SIMILARITY_BPS as u128);
+        if lhs >= rhs {
+            return true;
+        }
+    }
+    false
+}
+
+fn validate_revenue_on_chain(
+    source: &Pubkey,
+    amount: u64,
+    now: i64,
+    is_x402: bool,
+    validator: &RevenueValidator,
+    history: &PaymentHistory,
+    blocklist: &GlobalBlocklist,
+    platform_whitelist: &PlatformWhitelist,
+) -> (u8, u8, u16) {
+    // Layer 1 — source classification (hard rejects)
+    if *source == validator.agent_wallet_pda {
+        return (CLASSIFICATION_REJECTED, REASON_SELF, 0);
+    }
+    if *source == validator.agent_owner {
+        return (CLASSIFICATION_REJECTED, REASON_OWNER, 0);
+    }
+    if list_contains(
+        &validator.associated_wallets,
+        validator.num_associated_wallets,
+        source,
+    ) {
+        return (CLASSIFICATION_REJECTED, REASON_ASSOCIATED, 0);
+    }
+    if list_contains(&blocklist.entries, blocklist.count, source) {
+        return (CLASSIFICATION_REJECTED, REASON_BLOCKLIST, 0);
+    }
+
+    // Fast-path verifications
+    if is_x402 {
+        return (CLASSIFICATION_VERIFIED, REASON_NONE, 0);
+    }
+    if list_contains(
+        &platform_whitelist.entries,
+        platform_whitelist.count,
+        source,
+    ) {
+        return (CLASSIFICATION_VERIFIED, REASON_NONE, 0);
+    }
+    if list_contains(
+        &validator.registered_sources,
+        validator.num_registered_sources,
+        source,
+    ) {
+        return (CLASSIFICATION_VERIFIED, REASON_NONE, 0);
+    }
+
+    // Layer 2 + Layer 3 — pattern + economic risk scoring
+    let mut pattern_score: u16 = 0;
+    let mut economic_flag = false;
+
+    if is_round_trip_suspicious(source, amount, now, history) {
+        pattern_score = pattern_score.saturating_add(45);
+    }
+
+    let amount_u128 = amount as u128;
+    let expected_daily = validator.expected_daily_revenue as u128;
+    if expected_daily > 0 {
+        if amount_u128 >= expected_daily.saturating_mul(AMOUNT_ANOMALY_MULTIPLIER as u128) {
+            pattern_score = pattern_score.saturating_add(40);
+        }
+        if amount_u128 >= expected_daily.saturating_mul(MODERATE_OVERSHOOT_MULTIPLIER as u128) {
+            economic_flag = true;
+            pattern_score = pattern_score.saturating_add(25);
+        }
+        if amount_u128 >= expected_daily.saturating_mul(EXTREME_OVERSHOOT_MULTIPLIER as u128) {
+            return (
+                CLASSIFICATION_REJECTED,
+                REASON_ECONOMIC,
+                pattern_score.max(PATTERN_REJECT_THRESHOLD),
+            );
+        }
+    }
+
+    if validator.total_credit > 0 {
+        let lhs = amount_u128.saturating_mul(BPS_DENOMINATOR as u128);
+        let rhs = (validator.total_credit as u128)
+            .saturating_mul(LARGE_PAYMENT_THRESHOLD_BPS as u128);
+        if lhs > rhs {
+            economic_flag = true;
+            pattern_score = pattern_score.saturating_add(30);
+        }
+    }
+
+    if pattern_score >= PATTERN_REJECT_THRESHOLD {
+        return (
+            CLASSIFICATION_REJECTED,
+            if economic_flag { REASON_ECONOMIC } else { REASON_PATTERN },
+            pattern_score,
+        );
+    }
+    if pattern_score >= PATTERN_QUARANTINE_THRESHOLD {
+        return (
+            CLASSIFICATION_QUARANTINED,
+            if economic_flag { REASON_ECONOMIC } else { REASON_PATTERN },
+            pattern_score,
+        );
+    }
+
+    // Unknown but not suspicious: let keeper review while tentatively counting revenue.
+    (CLASSIFICATION_PENDING_KEEPER, REASON_NONE, pattern_score)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Program
 // ─────────────────────────────────────────────────────────────────────────────
 

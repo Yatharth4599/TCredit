@@ -168,7 +168,8 @@ describe("krexa-full-test", () => {
   let lp1Usdc: PublicKey, lp2Usdc: PublicKey;
   let owner1Usdc: PublicKey, ownerDelevUsdc: PublicKey, ownerLiqUsdc: PublicKey;
   let ownerE2EUsdc: PublicKey;
-  let adminUsdc: PublicKey; // treasury + venue token sink
+  let adminUsdc: PublicKey; // treasury token sink
+  let venueUsdc: PublicKey; // venue/facilitator token account (owner = venueId)
   let strangerUsdc: PublicKey;
 
   // ── Program config PDAs ────────────────────────────────────────────────────
@@ -252,6 +253,7 @@ describe("krexa-full-test", () => {
     ownerDelevUsdc = await mintUsdc(provider, mock, ownerDelev.publicKey, 1_000_000);
     ownerLiqUsdc = await mintUsdc(provider, mock, ownerLiq.publicKey, 1_000_000);
     ownerE2EUsdc = await mintUsdc(provider, mock, ownerE2E.publicKey, 1_000_000);
+    venueUsdc = await ata(provider, mock, venueId);
     strangerUsdc = await ata(provider, mock, stranger.publicKey);
 
     // 5. Derive all PDAs
@@ -352,6 +354,7 @@ describe("krexa-full-test", () => {
       .accounts({
         config: walletConfigPda,
         usdcMint: mock.mint,
+        platformTreasury: adminUsdc,
         admin: admin.publicKey,
         systemProgram: SystemProgram.programId,
       })
@@ -1255,7 +1258,7 @@ describe("krexa-full-test", () => {
 
       const PAYMENT = 100 * U;
       const walletBefore = await usdcBalance(conn, agent1WalletUsdc);
-      const adminBefore = await usdcBalance(conn, adminUsdc);
+      const venueBefore = await usdcBalance(conn, venueUsdc);
 
       await wallet.methods
         .payX402(
@@ -1268,7 +1271,8 @@ describe("krexa-full-test", () => {
           config: walletConfigPda,
           agentWallet: agent1WalletPda,
           walletUsdc: agent1WalletUsdc,
-          facilitatorToken: adminUsdc, // venue's token account
+          facilitatorToken: venueUsdc,
+          platformTreasuryToken: adminUsdc,
           venueEntry: venuePda,
           venueExposure: deriveVenueExposure(agentKey1.publicKey, venueId, wallet.programId),
           vaultConfig: vaultConfigPda,
@@ -1280,9 +1284,9 @@ describe("krexa-full-test", () => {
         .rpc();
 
       const walletAfter = await usdcBalance(conn, agent1WalletUsdc);
-      const adminAfter = await usdcBalance(conn, adminUsdc);
+      const venueAfter = await usdcBalance(conn, venueUsdc);
       expect(Number(walletBefore - walletAfter)).to.equal(PAYMENT);
-      expect(Number(adminAfter - adminBefore)).to.equal(PAYMENT);
+      expect(Number(venueAfter - venueBefore)).to.equal(PAYMENT);
     });
 
     it("4-7 withdraw $500 (within 120% buffer) → succeeds", async () => {
@@ -2010,7 +2014,7 @@ describe("krexa-full-test", () => {
           venueId, stranger.publicKey, new BN(20 * U), Array(32).fill(0) as number[]
         ).accounts({
           config: walletConfigPda, agentWallet: agentE2EWalletPda,
-          walletUsdc: agentE2EWalletUsdc, facilitatorToken: adminUsdc,
+          walletUsdc: agentE2EWalletUsdc, facilitatorToken: venueUsdc,
           platformTreasuryToken: adminUsdc,
           venueEntry: venuePda,
           vaultConfig: vaultConfigPda,

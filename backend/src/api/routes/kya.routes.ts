@@ -34,11 +34,12 @@ router.post('/:agent/basic', validate(KyaBasicSchema), async (req, res, next) =>
 // POST /solana/kya/:agent/enhanced
 router.post('/:agent/enhanced', validate(KyaEnhancedSchema), async (req, res, next) => {
   try {
-    const { ownerPubkey, sumsubApplicantId } = req.body;
+    const { ownerPubkey, ownerSignature, sumsubApplicantId } = req.body;
 
     const result = await submitEnhancedKya({
       agentPubkey: req.params.agent as string,
       ownerPubkey,
+      ownerSignature,
       sumsubApplicantId,
     });
 

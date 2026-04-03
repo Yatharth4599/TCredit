@@ -952,7 +952,7 @@ pub mod krexa_credit_vault {
         emit!(BadDebtWrittenOff {
             agent: cl.agent,
             loss: total_loss,
-            insurance_covered,
+            insurance_covered: insurance_absorbed,
             lp_absorbed,
         });
         Ok(())

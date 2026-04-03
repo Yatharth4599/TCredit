@@ -22,7 +22,7 @@ import { env } from '../config/env.js';
 export interface KyaSubmitBasicParams {
   agentPubkey: string;
   ownerPubkey: string;
-  /** Base64-encoded signature of sha256(agentPubkey) by owner keypair */
+  /** Base64-encoded signature of raw agent pubkey bytes by owner keypair */
   ownerSignature: string;
   /** Agent code repository URL for automated scan */
   codeRepoUrl?: string;
@@ -31,6 +31,8 @@ export interface KyaSubmitBasicParams {
 export interface KyaSubmitEnhancedParams {
   agentPubkey: string;
   ownerPubkey: string;
+  /** Base64-encoded signature of raw agent pubkey bytes by owner keypair */
+  ownerSignature: string;
   /** Sumsub applicant reference (obtained from frontend SDK) */
   sumsubApplicantId: string;
 }
@@ -161,7 +163,7 @@ export async function submitBasicKya(params: KyaSubmitBasicBasicParams): Promise
  */
 export async function submitEnhancedKya(params: KyaSubmitEnhancedParams): Promise<KyaResult> {
   ensureOracleReady();
-  const { agentPubkey: agentPubkeyStr, ownerPubkey, sumsubApplicantId } = params;
+  const { agentPubkey: agentPubkeyStr, ownerPubkey, ownerSignature, sumsubApplicantId } = params;
 
   let agentPubkey: PublicKey;
   try { agentPubkey = new PublicKey(agentPubkeyStr); }
@@ -177,6 +179,26 @@ export async function submitEnhancedKya(params: KyaSubmitEnhancedParams): Promis
       `Claimed owner: ${ownerPubkey}, on-chain owner: ${onChainOwner}`
     );
     throw new AppError(403, 'Owner pubkey does not match on-chain agent owner');
+  }
+
+  // Enhanced path must also prove owner key control cryptographically.
+  const { verify } = await import('@noble/ed25519');
+  const sigBytes = Buffer.from(ownerSignature, 'base64');
+  const msgBytes = agentPubkey.toBytes();
+  const ownerPk = new PublicKey(ownerPubkey);
+  let signatureValid = false;
+  try { signatureValid = await verify(sigBytes, msgBytes, ownerPk.toBytes()); } catch { /* invalid signature */ }
+  if (!signatureValid) {
+    await prisma.kyaVerification.create({
+      data: {
+        agentPubkey: agentPubkeyStr,
+        tier: 2,
+        method: 'sumsub',
+        status: 'rejected',
+        reason: 'Signature verification failed',
+      },
+    }).catch((e: unknown) => { console.warn('[kya] failed to record enhanced rejection audit log:', e) });
+    return { status: 'rejected', tier: 0, verificationId: 'enhanced-sig-fail', reason: 'Invalid owner signature' };
   }
 
   // Create pending record first

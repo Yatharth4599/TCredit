@@ -307,6 +307,7 @@ async function main() {
         keys: [
           { pubkey: configPda,              isSigner: false, isWritable: true },
           { pubkey: usdcMint,               isSigner: false, isWritable: false },
+          { pubkey: treasuryAta,            isSigner: false, isWritable: false },
           { pubkey: admin.publicKey,         isSigner: true,  isWritable: true },
           { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
         ],

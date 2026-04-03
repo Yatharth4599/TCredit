@@ -22,7 +22,6 @@ import {
 } from '../schemas.js';
 import { env } from '../../config/env.js';
 import { prisma } from '../../config/prisma.js';
-import { requireApiKey } from '../middleware/apiKeyAuth.js';
 import { initiateAgreement, getAgreementStatus, confirmAgreementSigned } from '../../services/legal-agreement.js';
 
 const router = Router();
@@ -31,6 +30,26 @@ const USDC_MINT = new PublicKey(env.SOLANA_USDC_MINT);
 function parsePubkey(raw: string): PublicKey {
   try { return new PublicKey(raw); }
   catch { throw new AppError(400, `Invalid Solana public key: ${raw}`); }
+}
+
+async function requireCreditOwnerProof(agentPk: PublicKey, ownerPubkey: string, ownerSignature: string) {
+  const wallet = await readAgentWallet(agentPk);
+  if (!wallet) throw new AppError(404, 'Agent wallet not found');
+
+  const ownerPk = parsePubkey(ownerPubkey);
+  if (!ownerPk.equals(wallet.owner)) {
+    throw new AppError(403, 'ownerPubkey does not match on-chain wallet owner');
+  }
+
+  const { verify } = await import('@noble/ed25519');
+  const sigBytes = Buffer.from(ownerSignature, 'base64');
+  const msgBytes = agentPk.toBytes();
+  let valid = false;
+  try { valid = await verify(sigBytes, msgBytes, ownerPk.toBytes()); } catch { /* invalid signature */ }
+  if (!valid) {
+    throw new AppError(403, 'Invalid owner signature');
+  }
+  return wallet;
 }
 
 // GET /solana/credit/protocol-params — static protocol configuration (credit levels + tranche APRs)
@@ -101,7 +120,8 @@ router.get('/:agent/line', async (req, res, next) => {
 router.post('/:agent/request', validate(SolanaCreditRequestSchema), async (req, res, next) => {
   try {
     const agentPk = parsePubkey(req.params.agent as string);
-    const { amount, rateBps, creditLevel, collateralValueUsdc } = req.body;
+    const { ownerPubkey, ownerSignature, amount, rateBps, creditLevel, collateralValueUsdc } = req.body;
+    const wallet = await requireCreditOwnerProof(agentPk, ownerPubkey, ownerSignature);
 
     // Evaluate eligibility first
     const eligibility = await evaluateCredit(req.params.agent as string);
@@ -109,8 +129,6 @@ router.post('/:agent/request', validate(SolanaCreditRequestSchema), async (req, 
       throw new AppError(400, `Credit not eligible: ${eligibility.reason}`);
     }
 
-    const wallet = await readAgentWallet(agentPk);
-    if (!wallet) throw new AppError(404, 'Agent wallet not found');
     if (wallet.isFrozen) throw new AppError(400, 'Wallet is frozen');
     if (wallet.creditDrawn > 0n) throw new AppError(400, 'Existing credit must be repaid first');
 
@@ -315,8 +333,9 @@ router.get('/:agent/activity', async (req, res, next) => {
 // POST /solana/credit/:agent/sign-agreement — initiate legal e-signing
 router.post('/:agent/sign-agreement', validate(SolanaSignAgreementSchema), async (req, res, next) => {
   try {
-    parsePubkey(req.params.agent as string);
-    const { creditLevel } = req.body;
+    const agentPk = parsePubkey(req.params.agent as string);
+    const { ownerPubkey, ownerSignature, creditLevel } = req.body;
+    await requireCreditOwnerProof(agentPk, ownerPubkey, ownerSignature);
 
     const result = await initiateAgreement(req.params.agent as string, creditLevel);
     res.json(result);
@@ -325,8 +344,13 @@ router.post('/:agent/sign-agreement', validate(SolanaSignAgreementSchema), async
 
 // POST /solana/credit/:agent/confirm-agreement — confirm after on-chain tx
 // BUG-140 fix: require API key auth + validate txSignature format
-router.post('/:agent/confirm-agreement', requireApiKey as never, validate(SolanaConfirmAgreementSchema), async (req, res, next) => {
+router.post('/:agent/confirm-agreement', validate(SolanaConfirmAgreementSchema), async (req, res, next) => {
   try {
+    const ownerPubkey = req.headers['x-owner-pubkey'];
+    const ownerSignature = req.headers['x-owner-signature'];
+    if (typeof ownerPubkey !== 'string') throw new AppError(400, 'Missing x-owner-pubkey header');
+    if (typeof ownerSignature !== 'string') throw new AppError(400, 'Missing x-owner-signature header');
+
     const { agreementId, txSignature, onChainHash } = req.body;
 
     // BUG-140 fix: validate txSignature is a valid base58 string (Solana tx sigs are 64-88 chars)
@@ -339,7 +363,8 @@ router.post('/:agent/confirm-agreement', requireApiKey as never, validate(Solana
 
     // BUG-140 fix: pass agent pubkey for ownership binding
     const agentPubkey = req.params.agent as string;
-    parsePubkey(agentPubkey); // validate it's a real pubkey
+    const agentPk = parsePubkey(agentPubkey); // validate it's a real pubkey
+    await requireCreditOwnerProof(agentPk, ownerPubkey, ownerSignature);
     await confirmAgreementSigned(agreementId, txSignature, onChainHash, agentPubkey);
     res.json({ success: true, message: 'Agreement confirmed' });
   } catch (err) { next(err); }
@@ -348,7 +373,13 @@ router.post('/:agent/confirm-agreement', requireApiKey as never, validate(Solana
 // GET /solana/credit/:agent/agreement-status — check signing status
 router.get('/:agent/agreement-status', async (req, res, next) => {
   try {
-    parsePubkey(req.params.agent);
+    const agentPk = parsePubkey(req.params.agent);
+    const ownerPubkey = req.headers['x-owner-pubkey'];
+    const ownerSignature = req.headers['x-owner-signature'];
+    if (typeof ownerPubkey !== 'string') throw new AppError(400, 'Missing x-owner-pubkey header');
+    if (typeof ownerSignature !== 'string') throw new AppError(400, 'Missing x-owner-signature header');
+    await requireCreditOwnerProof(agentPk, ownerPubkey, ownerSignature);
+
     const status = await getAgreementStatus(req.params.agent);
     res.json(status);
   } catch (err) { next(err); }

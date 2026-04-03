@@ -50,14 +50,42 @@ export const creditApi = {
   getEligibility: (address: string) => solanaApi.get(`/solana/credit/${address}/eligibility`),
   getScoreBreakdown: (address: string) => solanaApi.get(`/solana/credit/${address}/score-breakdown`),
   getProtocolParams: () => solanaApi.get('/solana/credit/protocol-params'),
-  requestCredit: (agent: string, amount: number, creditLevel: number) =>
-    solanaApi.post(`/solana/credit/${agent}/request`, { amount, creditLevel }),
+  requestCredit: (agent: string, payload: {
+    ownerPubkey: string
+    ownerSignature: string
+    amount: number | string
+    creditLevel?: number
+    rateBps?: number
+    collateralValueUsdc?: number | string
+  }) => solanaApi.post(`/solana/credit/${agent}/request`, payload),
   repay: (agent: string, amount: number | string, callerPubkey: string) =>
     solanaApi.post(`/solana/credit/${agent}/repay`, { amount: String(amount), callerPubkey }),
   getActivity: (agent: string) => solanaApi.get(`/solana/credit/${agent}/activity`),
   getRequests: (agent: string) => solanaApi.get(`/solana/credit/${agent}/requests`),
-  signAgreement: (agent: string, creditLevel: number) =>
-    solanaApi.post(`/solana/credit/${agent}/sign-agreement`, { creditLevel }),
+  signAgreement: (agent: string, payload: {
+    ownerPubkey: string
+    ownerSignature: string
+    creditLevel: number
+  }) => solanaApi.post(`/solana/credit/${agent}/sign-agreement`, payload),
+  confirmAgreement: (
+    agent: string,
+    payload: { agreementId: string; txSignature: string; onChainHash: string },
+    ownerProof: { ownerPubkey: string; ownerSignature: string },
+  ) => solanaApi.post(`/solana/credit/${agent}/confirm-agreement`, payload, {
+    headers: {
+      'x-owner-pubkey': ownerProof.ownerPubkey,
+      'x-owner-signature': ownerProof.ownerSignature,
+    },
+  }),
+  getAgreementStatus: (
+    agent: string,
+    ownerProof: { ownerPubkey: string; ownerSignature: string },
+  ) => solanaApi.get(`/solana/credit/${agent}/agreement-status`, {
+    headers: {
+      'x-owner-pubkey': ownerProof.ownerPubkey,
+      'x-owner-signature': ownerProof.ownerSignature,
+    },
+  }),
 }
 
 // === Vault (mounted at /solana/vault) ===

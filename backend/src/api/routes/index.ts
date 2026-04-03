@@ -29,48 +29,69 @@ import solanaTradingRoutes from './trading.routes.js';
 import creditBureauRoutes from './credit-bureau.routes.js';
 import mainnetActivityRoutes from './mainnet-activity.routes.js';
 import idleCapitalRoutes from './idle-capital.routes.js';
+import { env } from '../../config/env.js';
 const router = Router();
 
 // Health
 router.use('/', healthRoutes);
 
 // Core API
-router.use('/vaults', vaultRoutes);
-router.use('/merchants', merchantRoutes);
-router.use('/pools', poolRoutes);
-router.use('/platform', platformRoutes);
-router.use('/payments', paymentRoutes);
-router.use('/oracle', oracleRoutes);
+if (!env.SOLANA_ONLY_MODE) {
+  router.use('/vaults', vaultRoutes);
+  router.use('/merchants', merchantRoutes);
+  router.use('/pools', poolRoutes);
+  router.use('/platform', platformRoutes);
+  router.use('/payments', paymentRoutes);
+  router.use('/oracle', oracleRoutes);
+}
 
 // Balance
-router.use('/balance', balanceRoutes);
+if (!env.SOLANA_ONLY_MODE) {
+  router.use('/balance', balanceRoutes);
+}
 
 // x402 Facilitator
-router.use('/x402', x402Routes);
+if (!env.SOLANA_ONLY_MODE) {
+  router.use('/x402', x402Routes);
+}
 
 // Agent Wallets
-router.use('/wallets', walletRoutes);
+if (!env.SOLANA_ONLY_MODE) {
+  router.use('/wallets', walletRoutes);
+}
 
 // Gateway
-router.use('/gateway', gatewayRoutes);
+if (!env.SOLANA_ONLY_MODE) {
+  router.use('/gateway', gatewayRoutes);
+}
 
 // Credit Lines
-router.use('/credit', creditRoutes);
+if (!env.SOLANA_ONLY_MODE) {
+  router.use('/credit', creditRoutes);
+}
 
 // Agent Identity
-router.use('/identity', identityRoutes);
+if (!env.SOLANA_ONLY_MODE) {
+  router.use('/identity', identityRoutes);
+}
 
 // Kickstart (EasyA) — token launches with credit
-router.use('/kickstart', kickstartRoutes);
+if (!env.SOLANA_ONLY_MODE) {
+  router.use('/kickstart', kickstartRoutes);
+}
 
 // Polymarket Traders — credit lines based on trading history
-router.use('/traders', traderRoutes);
+if (!env.SOLANA_ONLY_MODE) {
+  router.use('/traders', traderRoutes);
+}
 
 // Waitlist
 router.use('/waitlist', waitlistRoutes);
 
 // Demo endpoints (admin auth required)
-router.use('/demo', demoRoutes);
+if (!env.SOLANA_ONLY_MODE) {
+  router.use('/demo', demoRoutes);
+}
 
 // ── Solana Agent Credit System ─────────────────────────────────────────────
 router.use('/solana/wallets', solanaWalletRoutes);
@@ -80,23 +101,31 @@ router.use('/solana/vault',   solanaVaultRoutes);
 router.use('/solana/vault',   idleCapitalRoutes);
 router.use('/solana/oracle',  solanaOracleRoutes);
 router.use('/solana/score',   solanaScoreRoutes);
-router.use('/solana/faucet',  solanaFaucetRoutes);
+if (env.NODE_ENV !== 'production' || env.SOLANA_ENABLE_FAUCET) {
+  router.use('/solana/faucet',  solanaFaucetRoutes);
+}
 router.use('/solana/trading', solanaTradingRoutes);
 
 // ── Mainnet RPC proxy (score preview) ─────────────────────────────────────
 router.use('/mainnet/activity', mainnetActivityRoutes);
 
 // ── Credit Bureau (Phase 2 — CIBIL moat) ─────────────────────────────────
-router.use('/credit-bureau', creditBureauRoutes);
+if (!env.SOLANA_ONLY_MODE) {
+  router.use('/credit-bureau', creditBureauRoutes);
+}
 
 // Admin (API key protected)
 router.use('/admin', adminRoutes);
 
 // Investment endpoints
-router.use('/', investmentRoutes);
+if (!env.SOLANA_ONLY_MODE) {
+  router.use('/', investmentRoutes);
+}
 
 // Backward-compat: frontend client.ts calls /merchant/:id/stats (singular, no /v1)
 // Mirror /merchants under /merchant so both paths work
-router.use('/merchant', merchantRoutes);
+if (!env.SOLANA_ONLY_MODE) {
+  router.use('/merchant', merchantRoutes);
+}
 
 export default router;

@@ -1,6 +1,16 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
+const boolFromEnv = z.preprocess((v) => {
+  if (typeof v === 'boolean') return v;
+  if (typeof v === 'string') {
+    const s = v.trim().toLowerCase();
+    if (s === 'true' || s === '1' || s === 'yes') return true;
+    if (s === 'false' || s === '0' || s === 'no' || s === '') return false;
+  }
+  return v;
+}, z.boolean());
+
 const envSchema = z.object({
   DATABASE_URL: z.string(),
 
@@ -52,6 +62,10 @@ const envSchema = z.object({
   // Mainnet RPC (for score previews — recommend Helius free tier)
   SOLANA_MAINNET_RPC_URL: z.string().default('https://api.mainnet-beta.solana.com'),
 
+  // Solana-only production mode gates non-Solana routes and enforces strict startup checks.
+  SOLANA_ONLY_MODE: boolFromEnv.optional().default(false),
+  SOLANA_ENABLE_FAUCET: boolFromEnv.optional().default(false),
+
   // Score program ID
   SOLANA_SCORE_PROGRAM_ID: z.string().optional().default('2GwtAXnjY5LehfZfT77ZH3XSshwbni8LP9zXeA84WUqh'),
 
@@ -98,5 +112,49 @@ if (env.NODE_ENV === 'production') {
   if (!env.SOLANA_KEEPER_PRIVATE_KEY) missing.push('SOLANA_KEEPER_PRIVATE_KEY');
   if (missing.length > 0) {
     console.warn(`[WARN] Missing Solana signing keys — oracle/keeper operations will be disabled: ${missing.join(', ')}`);
+  }
+
+  if (env.SOLANA_ONLY_MODE) {
+    const fatal: string[] = [];
+    const devnetUsdc = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU';
+    const placeholderProgramIds = [
+      'ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG',
+      '26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N',
+      '35t8yWLsUZNTLT71ej7DF59P81HrtZTx2uZeMhwuhhf6',
+      'HyWQrHG14Sw6KpKYSMiBDmVj5u7PXfLWvim6FHbBLmua',
+      '2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8',
+    ];
+
+    if (!env.SOLANA_RPC_URL.includes('mainnet')) {
+      fatal.push('SOLANA_RPC_URL must target Solana mainnet in SOLANA_ONLY_MODE');
+    }
+    if (env.SOLANA_USDC_MINT === devnetUsdc) {
+      fatal.push('SOLANA_USDC_MINT cannot be the devnet mint in SOLANA_ONLY_MODE');
+    }
+    if (placeholderProgramIds.includes(env.SOLANA_REGISTRY_PROGRAM_ID)) {
+      fatal.push('SOLANA_REGISTRY_PROGRAM_ID must be set to deployed mainnet program');
+    }
+    if (placeholderProgramIds.includes(env.SOLANA_VAULT_PROGRAM_ID)) {
+      fatal.push('SOLANA_VAULT_PROGRAM_ID must be set to deployed mainnet program');
+    }
+    if (placeholderProgramIds.includes(env.SOLANA_WALLET_PROGRAM_ID)) {
+      fatal.push('SOLANA_WALLET_PROGRAM_ID must be set to deployed mainnet program');
+    }
+    if (placeholderProgramIds.includes(env.SOLANA_VENUE_PROGRAM_ID)) {
+      fatal.push('SOLANA_VENUE_PROGRAM_ID must be set to deployed mainnet program');
+    }
+    if (placeholderProgramIds.includes(env.SOLANA_ROUTER_PROGRAM_ID)) {
+      fatal.push('SOLANA_ROUTER_PROGRAM_ID must be set to deployed mainnet program');
+    }
+    if (!env.SOLANA_ORACLE_PRIVATE_KEY) {
+      fatal.push('SOLANA_ORACLE_PRIVATE_KEY is required in SOLANA_ONLY_MODE');
+    }
+    if (!env.SOLANA_KEEPER_PRIVATE_KEY) {
+      fatal.push('SOLANA_KEEPER_PRIVATE_KEY is required in SOLANA_ONLY_MODE');
+    }
+
+    if (fatal.length > 0) {
+      throw new Error(`[FATAL] Solana-only production configuration invalid: ${fatal.join('; ')}`);
+    }
   }
 }

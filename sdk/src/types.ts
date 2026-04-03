@@ -185,6 +185,10 @@ export interface DepositParams {
 
 export interface RequestCreditParams {
   amount: number;      // in USDC
+  // Solana only: owner wallet pubkey for authorization proof
+  ownerPubkey?: string;
+  // Solana only: base64 signature of raw agent pubkey bytes
+  ownerSignature?: string;
   rateBps?: number;
   creditLevel?: number;
   collateralValueUsdc?: number;

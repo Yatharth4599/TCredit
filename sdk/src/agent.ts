@@ -165,7 +165,14 @@ export function createAgentNamespace(
       validateAmount(params.amount, 'requestCredit');
       const agent = encodePathSegment(requireAgent(), 'agentAddress');
       if (chain === 'solana') {
+        const ownerPubkey = params.ownerPubkey;
+        const ownerSignature = params.ownerSignature;
+        if (!ownerPubkey) throw new KrexaError(400, 'ownerPubkey is required for Solana credit requests');
+        if (!ownerSignature) throw new KrexaError(400, 'ownerSignature is required for Solana credit requests');
+        validateAddress(ownerPubkey, 'solana', 'ownerPubkey');
         return post<OperationResult>(b, `/solana/credit/${agent}/request`, apiKey, {
+          ownerPubkey,
+          ownerSignature,
           amount: toBase(params.amount),
           rateBps: params.rateBps,
           creditLevel: params.creditLevel,
@@ -517,6 +524,7 @@ export function createKyaNamespace(
      */
     async submitEnhanced(params: {
       ownerPubkey: string;
+      ownerSignature: string;
       sumsubApplicantId: string;
     }): Promise<KyaSubmitResult> {
       const agent = encodePathSegment(requireAgent(), 'agentAddress');

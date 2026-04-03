@@ -102,6 +102,7 @@ export interface WalletConfig {
   paymentRouterProgram: PublicKey;
   usdcMint: PublicKey;
   keeper: PublicKey;
+  platformTreasury: PublicKey;
   totalWallets: bigint;
   isPaused: boolean;
   bump: number;
@@ -356,12 +357,13 @@ function decodeWalletConfig(data: Buffer): WalletConfig {
   let paymentRouterProgram: PublicKey;   [paymentRouterProgram, o] = readPubkey(data, o);
   let usdcMint: PublicKey;             [usdcMint, o] = readPubkey(data, o);
   let keeper: PublicKey;               [keeper, o] = readPubkey(data, o);
+  let platformTreasury: PublicKey;     [platformTreasury, o] = readPubkey(data, o);
   let totalWallets: bigint;            [totalWallets, o] = readU64(data, o);
   let isPaused: boolean;               [isPaused, o] = readBool(data, o);
   let bump: number;                    [bump, o] = readU8(data, o);
   return {
     admin, creditVaultProgram, agentRegistryProgram, venueWhitelistProgram,
-    paymentRouterProgram, usdcMint, keeper, totalWallets, isPaused, bump,
+    paymentRouterProgram, usdcMint, keeper, platformTreasury, totalWallets, isPaused, bump,
   };
 }
 

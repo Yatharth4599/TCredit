@@ -136,6 +136,9 @@ export async function confirmAgreementSigned(
   if (!tx) {
     throw new AppError(400, 'Transaction not found on-chain');
   }
+  if (tx.meta?.err) {
+    throw new AppError(400, 'Transaction failed on-chain');
+  }
 
   const maybeAccountKeys =
     'getAccountKeys' in tx.transaction.message

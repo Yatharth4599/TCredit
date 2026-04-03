@@ -214,6 +214,7 @@ describe("krexa-agent-wallet", () => {
   let agentACreditLine:  PublicKey;
   let agentAOwnerUsdc:   PublicKey;
   let venueTokenAccount: PublicKey; // receives trade funds
+  let platformTreasuryToken: PublicKey;
 
   // agentB accounts
   let agentBWalletPda:  PublicKey;
@@ -297,8 +298,23 @@ describe("krexa-agent-wallet", () => {
     agentCOwnerUsdc = await mintUsdc(provider, mock, agentCOwner.publicKey, 5_000);
     keeperUsdc      = await mintUsdc(provider, mock, keeper.publicKey, 0);
 
-    // venue_token: admin's ATA as a mock venue receiver
-    venueTokenAccount = await mintUsdc(provider, mock, admin.publicKey, 0);
+    // venue_token: dedicated facilitator ATA (must be owned by venueId for pay_x402)
+    venueTokenAccount = (
+      await getOrCreateAssociatedTokenAccount(
+        conn,
+        // @ts-ignore
+        provider.wallet.payer,
+        mock.mint,
+        venueId,
+        true,
+        undefined,
+        undefined,
+        TOKEN_PROGRAM_ID
+      )
+    ).address;
+
+    // platform treasury token account
+    platformTreasuryToken = await mintUsdc(provider, mock, admin.publicKey, 0);
 
     // ── 1. Init krexa-credit-vault ───────────────────────────────────────────
     //    wallet_program = walletConfigPda (the agent-wallet's config PDA)
@@ -429,6 +445,7 @@ describe("krexa-agent-wallet", () => {
       .accounts({
         config: walletConfigPda,
         usdcMint: mock.mint,
+        platformTreasury: platformTreasuryToken,
         admin: admin.publicKey,
         systemProgram: SystemProgram.programId,
       })
@@ -960,6 +977,7 @@ describe("krexa-agent-wallet", () => {
         agentWallet: agentAWalletPda,
         walletUsdc: agentAWalletUsdc,
         facilitatorToken: venueTokenAccount,
+        platformTreasuryToken,
         venueEntry: venuePda,
         vaultConfig: vaultConfigPda,
         agent: agentA.publicKey,

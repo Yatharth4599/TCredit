@@ -5,6 +5,7 @@ import { PaymentRouterABI, addresses } from '../config/contracts.js';
 import { getSettlement, isNonceUsed } from '../chain/paymentRouter.js';
 import { AppError } from '../api/middleware/errorHandler.js';
 import { prisma } from '../config/prisma.js';
+import { Prisma } from '@prisma/client';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -28,7 +29,7 @@ export interface WebhookPaymentRequest {
 
 export interface OraclePaymentResult {
   id: string;
-  status: 'confirmed' | 'submitted' | 'failed';
+  status: 'confirmed' | 'submitted' | 'failed' | 'pending' | 'expired';
   txHash: string | null;
   nonce: string;
   error: string | null;
@@ -194,28 +195,18 @@ export async function processPayment(params: WebhookPaymentRequest): Promise<Ora
   const block = await publicClient.getBlock();
   const deadline = block.timestamp + 300n;
 
-  // BUG-039: enforce idempotency on user-provided paymentId
-  if (params.paymentId) {
-    const existing = await prisma.oraclePayment.findFirst({
-      where: { paymentId: params.paymentId, status: { in: ['pending', 'submitted', 'confirmed'] } },
-    });
-    if (existing) {
-      return {
-        id: existing.id,
-        status: existing.status as 'confirmed' | 'submitted' | 'failed',
-        txHash: existing.txHash,
-        nonce: existing.nonce.toString(),
-        error: null,
-      };
-    }
+  // BUG-039/BUG-mainnet: canonicalize user-provided paymentId and reject malformed IDs.
+  const providedPaymentId = params.paymentId?.toLowerCase();
+  if (providedPaymentId && !/^0x[a-f0-9]{64}$/.test(providedPaymentId)) {
+    throw new AppError(400, 'paymentId must be a 32-byte hex string');
   }
 
   // 5. Atomically reserve a nonce — retry on unique constraint conflict (concurrent requests)
   let record;
   let nonce = await getNextNonce(params.from);
   for (let attempt = 0; attempt < 10; attempt++) {
-    const paymentId = (params.paymentId
-      ? params.paymentId as Hex
+    const paymentId = (providedPaymentId
+      ? providedPaymentId as Hex
       : keccak256(toHex(`${params.from}-${params.to}-${amount}-${nonce}-${Date.now()}`))
     );
     try {
@@ -234,11 +225,34 @@ export async function processPayment(params: WebhookPaymentRequest): Promise<Ora
       });
       break;
     } catch (err: unknown) {
-      // Unique constraint violation on (from, nonce) — increment and retry
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes('Unique constraint') || msg.includes('unique constraint')) {
-        nonce += 1n;
-        continue;
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        const targetRaw = (err.meta as { target?: unknown } | undefined)?.target;
+        const target = Array.isArray(targetRaw)
+          ? targetRaw.map((v) => String(v))
+          : typeof targetRaw === 'string'
+            ? [targetRaw]
+            : [];
+
+        if (target.includes('from') && target.includes('nonce')) {
+          nonce += 1n;
+          continue;
+        }
+
+        if (target.includes('paymentId')) {
+          const existing = await prisma.oraclePayment.findFirst({
+            where: { paymentId },
+            orderBy: { createdAt: 'desc' },
+          });
+          if (existing) {
+            return {
+              id: existing.id,
+              status: existing.status as OraclePaymentResult['status'],
+              txHash: existing.txHash,
+              nonce: existing.nonce.toString(),
+              error: existing.error,
+            };
+          }
+        }
       }
       throw err;
     }

@@ -66,6 +66,8 @@ pub enum WalletError {
     ExceedsVenueLimit,
     #[msg("Invalid platform treasury account")]
     InvalidTreasury,
+    #[msg("Facilitator token account owner must match facilitator pubkey")]
+    InvalidFacilitatorToken,
     #[msg("Address cannot be the zero/default pubkey")]
     InvalidAddress,
 }

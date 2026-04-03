@@ -377,6 +377,8 @@ export const SolanaWalletCancelTransferSchema = z.object({
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const SolanaCreditRequestSchema = z.object({
+  ownerPubkey: solanaPubkey,
+  ownerSignature: z.string().min(1, 'ownerSignature required'),
   amount: bigintString,
   rateBps: bps.optional(),
   creditLevel: z.coerce.number().int().min(1).max(4).optional(),
@@ -389,6 +391,8 @@ export const SolanaCreditRepaySchema = z.object({
 });
 
 export const SolanaSignAgreementSchema = z.object({
+  ownerPubkey: solanaPubkey,
+  ownerSignature: z.string().min(1, 'ownerSignature required'),
   creditLevel: z.coerce.number().int().min(3).max(4),
 });
 
@@ -435,6 +439,7 @@ export const KyaBasicSchema = z.object({
 
 export const KyaEnhancedSchema = z.object({
   ownerPubkey: solanaPubkey,
+  ownerSignature: z.string().min(1, 'ownerSignature required'),
   sumsubApplicantId: z.string().min(1, 'sumsubApplicantId required'),
 });
 

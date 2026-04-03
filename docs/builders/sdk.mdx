@@ -31,11 +31,19 @@ const tx = await krexa.agent.register(wallet.publicKey, AgentType.Service, {
 ## Borrow
 
 ```typescript
-import { usdcToLamports } from "@krexa/sdk";
+import { PublicKey } from "@solana/web3.js";
 
-const tx = await krexa.agent.requestCredit(wallet.publicKey, {
-  amount: usdcToLamports(500),
-  agentType: AgentType.Service,
+const ownerPubkey = wallet.publicKey.toBase58();
+const agent = krexa.agentAddress!;
+const ownerSignature = Buffer.from(
+  await wallet.signMessage(new PublicKey(agent).toBytes())
+).toString("base64");
+
+const tx = await krexa.agent.requestCredit({
+  ownerPubkey,
+  ownerSignature,
+  amount: 500,
+  creditLevel: 1,
 });
 ```
 

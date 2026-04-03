@@ -17,6 +17,7 @@ pub fn handle(
     cfg.payment_router_program = payment_router_program;
     cfg.usdc_mint = ctx.accounts.usdc_mint.key();
     cfg.keeper = keeper;
+    cfg.platform_treasury = ctx.accounts.platform_treasury.key();
     cfg.total_wallets = 0;
     cfg.is_paused = false;
     cfg.bump = ctx.bumps.config;

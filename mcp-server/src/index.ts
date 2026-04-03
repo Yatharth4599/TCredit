@@ -172,6 +172,14 @@ const TOOLS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        ownerPubkey: {
+          type: 'string',
+          description: 'Owner wallet public key (must match on-chain agent wallet owner).',
+        },
+        ownerSignature: {
+          type: 'string',
+          description: 'Base64 signature of raw agent pubkey bytes by owner wallet.',
+        },
         amount: {
           type: 'number',
           description: 'Amount of USDC to draw from the credit line.',
@@ -185,7 +193,7 @@ const TOOLS: Tool[] = [
           maximum: 10000,
         },
       },
-      required: ['amount'],
+      required: ['ownerPubkey', 'ownerSignature', 'amount'],
     },
   },
 
@@ -414,6 +422,8 @@ async function handleYieldScan(args: Args) {
 async function handleDrawCredit(args: Args) {
   const rateBps = args.rateBps != null ? requireNumber(args.rateBps, 'rateBps') : undefined;
   return sdk.agent.requestCredit({
+    ownerPubkey: requireString(args.ownerPubkey, 'ownerPubkey'),
+    ownerSignature: requireString(args.ownerSignature, 'ownerSignature'),
     amount:  requireNumber(args.amount, 'amount'),
     rateBps,
   });

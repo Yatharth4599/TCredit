@@ -40,6 +40,10 @@ pub struct Initialize<'info> {
     /// SOL-009 fix: Validate usdc_mint is a real SPL Mint account
     pub usdc_mint: Account<'info, Mint>,
 
+    /// Platform treasury token account for x402 fee capture.
+    #[account(token::mint = usdc_mint)]
+    pub platform_treasury: Account<'info, TokenAccount>,
+
     #[account(mut)]
     pub admin: Signer<'info>,
 
@@ -318,6 +322,7 @@ pub struct PayX402<'info> {
     #[account(
         mut,
         token::mint = config.usdc_mint,
+        constraint = facilitator_token.owner == facilitator @ WalletError::InvalidFacilitatorToken,
     )]
     pub facilitator_token: Account<'info, TokenAccount>,
 

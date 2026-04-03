@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useWalletModal } from '@solana/wallet-adapter-react-ui'
+import { PublicKey } from '@solana/web3.js'
 import { motion, AnimatePresence } from 'motion/react'
 import toast from 'react-hot-toast'
 import '../../styles/landing.css'
@@ -294,10 +295,19 @@ export default function LaunchpadPage() {
   }, [addr, state.faucetAmount, update])
 
   const handleCredit = useCallback(async () => {
-    if (!addr) return
+    if (!addr || !state.agentPubkey || !signMessage) return
     update({ creditStatus: 'loading', creditError: null })
     try {
-      const res = await creditApi.requestCredit(addr, state.borrowAmount, state.creditLevel)
+      const message = new PublicKey(state.agentPubkey).toBytes()
+      const signature = await signMessage(message)
+      const ownerSignature = Buffer.from(signature).toString('base64')
+
+      const res = await creditApi.requestCredit(state.agentPubkey, {
+        ownerPubkey: addr,
+        ownerSignature,
+        amount: String(Math.round(state.borrowAmount * 1_000_000)),
+        creditLevel: state.creditLevel,
+      })
       const data = res.data
       if (data.transaction) {
         const sig = await executeTx(data.transaction)
@@ -311,7 +321,7 @@ export default function LaunchpadPage() {
       update({ creditStatus: 'error', creditError: msg })
       toast.error(msg)
     }
-  }, [addr, state.borrowAmount, state.creditLevel, executeTx, update])
+  }, [addr, signMessage, state.agentPubkey, state.borrowAmount, state.creditLevel, executeTx, update])
 
   const canAdvanceStep3 = state.agentType !== null && state.agentName.length > 0
   const allDeployed = state.registerStatus === 'done' && state.kyaStatus === 'done' && state.faucetStatus === 'done'

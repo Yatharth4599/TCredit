@@ -18,7 +18,7 @@ if (env.NODE_ENV === 'production') {
   const missingKeys: string[] = [];
   if (!env.SOLANA_ORACLE_PRIVATE_KEY)  missingKeys.push('SOLANA_ORACLE_PRIVATE_KEY');
   if (!env.SOLANA_KEEPER_PRIVATE_KEY)  missingKeys.push('SOLANA_KEEPER_PRIVATE_KEY');
-  if (!env.ORACLE_PRIVATE_KEY)         missingKeys.push('ORACLE_PRIVATE_KEY');
+  if (!env.SOLANA_ONLY_MODE && !env.ORACLE_PRIVATE_KEY) missingKeys.push('ORACLE_PRIVATE_KEY');
   if (missingKeys.length > 0) {
     log.warn(`Signing keys not set — oracle and keeper operations will fail`, { missingKeys });
   }
@@ -44,10 +44,12 @@ const server = app.listen(env.PORT, () => {
   log.info('Server started', { port: env.PORT, env: env.NODE_ENV });
 
   // Base chain services
-  startRetryProcessor();
-  startEventIndexer();
-  startKeeper();
-  startWebhookProcessor();
+  if (!env.SOLANA_ONLY_MODE) {
+    startRetryProcessor();
+    startEventIndexer();
+    startKeeper();
+    startWebhookProcessor();
+  }
 
   // Solana services (can be disabled via SOLANA_WORKERS_ENABLED=false to save RPC quota)
   if (process.env.SOLANA_WORKERS_ENABLED !== 'false') {
@@ -78,10 +80,12 @@ function shutdown() {
   log.info('Shutting down...');
 
   // Stop all background services
-  stopRetryProcessor();
-  stopEventIndexer();
-  stopKeeper();
-  stopWebhookProcessor();
+  if (!env.SOLANA_ONLY_MODE) {
+    stopRetryProcessor();
+    stopEventIndexer();
+    stopKeeper();
+    stopWebhookProcessor();
+  }
   stopSolanaKeeper();
   stopSolanaIndexer();
   stopCreditScoreJob();
