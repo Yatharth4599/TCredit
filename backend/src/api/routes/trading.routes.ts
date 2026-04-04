@@ -211,6 +211,43 @@ router.get('/:agent/portfolio', async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
+// GET /solana/trading/price/:token — get token price in USD
+// ---------------------------------------------------------------------------
+
+router.get('/price/:token', async (req, res, next) => {
+  try {
+    const token = req.params.token as string;
+    // resolve to mint using resolveToken from dex-aggregator
+    const resolved = resolveToken(token);
+    // get price from Jupiter Price API
+    const prices = await getTokenPrices([resolved.mint]);
+    const price = prices[resolved.mint];
+    res.json({
+      token: resolved.symbol,
+      mint: resolved.mint,
+      price: price?.price ?? null,
+      source: 'jupiter',
+    });
+  } catch (err) { next(err); }
+});
+
+// ---------------------------------------------------------------------------
+// GET /solana/trading/pools — list available LP pools with APY data
+// ---------------------------------------------------------------------------
+
+router.get('/pools', async (req, res, next) => {
+  try {
+    const token = req.query.token as string | undefined;
+    const limit = req.query.limit ? Number(req.query.limit) : 20;
+    const minApy = req.query.minApy ? Number(req.query.minApy) : undefined;
+    const results = await scanYields({ token, limit, minTvl: undefined });
+    let pools = results;
+    if (minApy) pools = pools.filter((p: any) => p.apy >= minApy);
+    res.json({ pools, count: pools.length });
+  } catch (err) { next(err); }
+});
+
+// ---------------------------------------------------------------------------
 // GET /solana/trading/yield — top yield opportunities
 // ---------------------------------------------------------------------------
 

@@ -17,6 +17,9 @@ import { settleCommand } from "./commands/settle.js";
 import { swapCommand } from "./commands/swap.js";
 import { portfolioCommand } from "./commands/portfolio.js";
 import { yieldCommand } from "./commands/yield.js";
+import { priceCommand } from "./commands/price.js";
+import { poolsCommand } from "./commands/pools.js";
+import { historyCommand } from "./commands/history.js";
 
 const program = new Command();
 
@@ -41,5 +44,8 @@ program.addCommand(settleCommand);
 program.addCommand(swapCommand);
 program.addCommand(portfolioCommand);
 program.addCommand(yieldCommand);
+program.addCommand(priceCommand);
+program.addCommand(poolsCommand);
+program.addCommand(historyCommand);
 
 program.parse();

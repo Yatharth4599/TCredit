@@ -19,13 +19,16 @@ npx @krexa/cli repay 50      # Manual repay (auto-repay via Revenue Router)
 npx @krexa/cli swap USDC SOL 50  # Trade via Jupiter
 npx @krexa/cli portfolio     # View token balances
 npx @krexa/cli yield         # Scan yield opportunities
+npx @krexa/cli price SOL         # Get SOL price
+npx @krexa/cli pools --token USDC # List LP pools
+npx @krexa/cli history            # Transaction history
 ```
 
 ### MCP (for Claude Code / Cursor)
 ```bash
 claude mcp add krexa --scope user -- npx -y @krexa/cli mcp
 ```
-Then ask: "Register me as a service agent on Krexa and borrow 100 USDC"
+Then ask anything: "Swap 50 USDC to SOL", "What's my portfolio?", "Find best USDC yield", "Show SOL price"
 
 ### SDK (programmatic)
 ```typescript
@@ -149,6 +152,21 @@ curl -X POST https://tcredit-backend.onrender.com/api/v1/solana/trading/AGENT/qu
 # Portfolio
 curl https://tcredit-backend.onrender.com/api/v1/solana/trading/AGENT/portfolio
 ```
+
+## MCP Tools (22 total)
+
+One connection. Everything your agent needs.
+
+| Category | Tools |
+|----------|-------|
+| Credit | krexa_register_agent, krexa_check_balance, krexa_draw_credit, krexa_repay, krexa_get_score |
+| Payments | krexa_pay |
+| Trading | krexa_swap, krexa_quote, krexa_trade, krexa_limit_order, krexa_cancel_order, krexa_positions |
+| Liquidity | krexa_lp_add, krexa_lp_remove, krexa_lp_positions, krexa_lp_pools |
+| Data | krexa_price, krexa_portfolio, krexa_yield_scan, krexa_history |
+| Vault | krexa_vault_deposit, krexa_vault_stats |
+
+Every transaction flows through your PDA wallet. Revenue Router auto-repays on every trade.
 
 ## Building an x402 Service Agent
 
