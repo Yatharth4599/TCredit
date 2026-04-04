@@ -30,7 +30,7 @@ const steps = [
   {
     num: 3,
     label: 'Execute',
-    desc: '1inch/OKX routes trades across 500+ DEXs',
+    desc: 'Krexa MCP: swap, LP, yield — 22 tools, one connection',
     color: '#f97316',
     isNew: true,
     icon: (

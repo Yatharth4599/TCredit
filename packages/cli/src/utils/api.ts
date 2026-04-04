@@ -119,3 +119,23 @@ export async function scanYields(params?: {
   const query = qs.toString();
   return fetchJson(`/solana/trading/yield${query ? `?${query}` : ""}`);
 }
+
+export async function getTokenPrice(token: string): Promise<any> {
+  return fetchJson(`/solana/trading/price/${encodeURIComponent(token)}`);
+}
+
+export async function getLpPools(params?: { token?: string; limit?: number }): Promise<any> {
+  const qs = new URLSearchParams();
+  if (params?.token) qs.set("token", params.token);
+  if (params?.limit) qs.set("limit", String(params.limit));
+  const query = qs.toString();
+  return fetchJson(`/solana/trading/pools${query ? `?${query}` : ""}`);
+}
+
+export async function getHistory(agent: string, params?: { limit?: number; type?: string }): Promise<any> {
+  const qs = new URLSearchParams();
+  if (params?.limit) qs.set("limit", String(params.limit));
+  if (params?.type && params.type !== "all") qs.set("type", params.type);
+  const query = qs.toString();
+  return fetchJson(`/solana/wallets/${agent}/history${query ? `?${query}` : ""}`);
+}

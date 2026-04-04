@@ -15,6 +15,7 @@ import { CreditLadder } from '../../components/launchpad/CreditLadder'
 import { WizardTransition } from '../../components/launchpad/WizardTransition'
 import { WorkflowVisualization } from '../../components/launchpad/WorkflowVisualization'
 import { EcosystemSection } from '../../components/launchpad/EcosystemSection'
+import { SolanaSkills } from '../../components/launchpad/SolanaSkills'
 import { agentApi, kyaApi, faucetApi, creditApi, healthApi } from '../../api/solanaClient'
 import { useSolanaTx } from '../../hooks/useSolanaTx'
 import { txUrl } from '../../config/solana'
@@ -349,6 +350,7 @@ export default function LaunchpadPage() {
       <WorkflowVisualization />
       <CreditLadder />
       <EcosystemSection />
+      <SolanaSkills />
       <WizardTransition />
 
       {/* ── Wizard ── */}
@@ -991,6 +993,80 @@ function StepLive({ state, shortAddr }: {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Supercharge with Skills card */}
+      <div style={cardStyle}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.3), rgba(52, 211, 153, 0.3), transparent)' }} />
+
+        <h3 style={{ fontSize: '20px', fontWeight: 600, color: colors.textPrimary, margin: '0 0 8px', letterSpacing: '-0.02em', fontFamily: font }}>
+          Add skills to your agent
+        </h3>
+        <p style={{ fontSize: '14px', color: colors.textSecondary, lineHeight: 1.6, margin: '0 0 20px', fontFamily: font }}>
+          Skills teach your agent new protocols. Stack them to unlock DeFi strategies, real-time data, and security checks.
+        </p>
+
+        {/* Terminal-style code block */}
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: `1px solid ${colors.borderSubtle}`,
+          borderRadius: '8px',
+          overflow: 'hidden',
+          marginBottom: '20px',
+        }}>
+          <div style={{
+            padding: '8px 14px',
+            borderBottom: `1px solid ${colors.borderSubtle}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: colors.textMuted }} />
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: colors.textMuted }} />
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: colors.textMuted }} />
+            <span style={{ fontSize: '10px', color: colors.textTertiary, fontFamily: mono, marginLeft: '6px' }}>skills</span>
+          </div>
+          <div style={{ padding: '16px 18px', fontFamily: mono, fontSize: '12px', lineHeight: 2 }}>
+            <div><span style={{ color: colors.accentGreen }}>$</span> <span style={{ color: colors.textPrimary }}>npx skills add https://github.com/Yatharth4599/Krexa --skill krexa</span></div>
+            {state.agentType === 0 && (
+              <>
+                <div><span style={{ color: colors.accentGreen }}>$</span> <span style={{ color: colors.textPrimary }}>npx skills add jup-ag/jupiter-swap-skill --skill jupiter</span></div>
+                <div><span style={{ color: colors.accentGreen }}>$</span> <span style={{ color: colors.textPrimary }}>npx skills add meteora-ag/meteora-skill --skill meteora</span></div>
+              </>
+            )}
+            {state.agentType === 1 && (
+              <>
+                <div><span style={{ color: colors.accentGreen }}>$</span> <span style={{ color: colors.textPrimary }}>npx skills add pyth-network/pyth-skill --skill pyth</span></div>
+                <div><span style={{ color: colors.accentGreen }}>$</span> <span style={{ color: colors.textPrimary }}>npx skills add helius-labs/helius-skill --skill helius</span></div>
+              </>
+            )}
+            {state.agentType === 2 && (
+              <>
+                <div><span style={{ color: colors.accentGreen }}>$</span> <span style={{ color: colors.textPrimary }}>npx skills add jup-ag/jupiter-swap-skill --skill jupiter</span></div>
+                <div><span style={{ color: colors.accentGreen }}>$</span> <span style={{ color: colors.textPrimary }}>npx skills add pyth-network/pyth-skill --skill pyth</span></div>
+              </>
+            )}
+          </div>
+        </div>
+
+        <a
+          href="https://solana.com/skills"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '13px',
+            fontWeight: 500,
+            color: colors.accentCyan,
+            textDecoration: 'none',
+            fontFamily: font,
+          }}
+        >
+          Browse all skills
+          <span>&rarr;</span>
+        </a>
       </div>
 
       {/* Build Guide card */}

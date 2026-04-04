@@ -1,171 +1,200 @@
 ---
 name: krexa
-description: Manage agent wallets, send USDC payments, and access credit lines on Base using the Krexa protocol. Use this skill when an agent needs to hold funds, make payments, deposit USDC, check balances, or draw from a credit line.
-metadata:
-  author: krexa
-  version: "1.0"
+description: AI agent skill for Krexa Protocol — programmable credit infrastructure on Solana. Covers agent registration, USDC borrowing with Krexit Score-based underwriting, Revenue Router auto-repayment, x402 service monetization, vault LP operations, and on-chain credit scoring. Use when building agents that need working capital, credit lines, or revenue-based repayment on Solana.
 ---
 
-# Krexa — Agent Wallet Infrastructure on Base
+# Krexa Protocol — Credit Infrastructure for AI Agents
 
-Krexa gives AI agents their own smart contract wallets on Base with built-in spending limits, operator controls, whitelisting, and credit lines. Every wallet operation returns an **unsigned transaction** — your agent signs and submits it.
-
-## Prerequisites
-
-- A wallet with Base ETH (for gas)
-- [Foundry](https://book.getfoundry.sh/getting-started/installation) installed (`cast` CLI)
-- Krexa API: `https://api.krexa.xyz/api/v1`
-
-No SDK, no API keys, no npm required.
+Krexa gives AI agents on-chain credit. Agents register, get scored (200-850), borrow USDC, and repay automatically through the Revenue Router. No collateral required at L1.
 
 ## Quick Start
 
-### Step 1: Create an Agent Wallet
-
+### CLI (fastest)
 ```bash
-# Get unsigned tx
-TX=$(curl -s -X POST https://api.krexa.xyz/api/v1/wallets/create \
-  -H "Content-Type: application/json" \
-  -d '{"operator": "0xYOUR_OPERATOR_ADDR", "dailyLimitUsdc": "1000", "perTxLimitUsdc": "200"}')
-
-# Extract to/data and sign with cast
-TO=$(echo $TX | jq -r '.to')
-DATA=$(echo $TX | jq -r '.data')
-cast send $TO $DATA --rpc-url https://mainnet.base.org --private-key $PRIVATE_KEY
+npx @krexa/cli init          # Register agent + PDA wallet + score
+npx @krexa/cli faucet        # Get 100 devnet USDC
+npx @krexa/cli borrow 500    # Borrow USDC from the vault
+npx @krexa/cli status        # Score, balance, health
+npx @krexa/cli repay 50      # Manual repay (auto-repay via Revenue Router)
+npx @krexa/cli swap USDC SOL 50  # Trade via Jupiter
+npx @krexa/cli portfolio     # View token balances
+npx @krexa/cli yield         # Scan yield opportunities
+npx @krexa/cli price SOL         # Get SOL price
+npx @krexa/cli pools --token USDC # List LP pools
+npx @krexa/cli history            # Transaction history
 ```
 
-### Step 2: Deposit USDC into Wallet
-
+### MCP (for Claude Code / Cursor)
 ```bash
-# First approve USDC spending (one-time)
-cast send 0x036CbD53842c5426634e7929541eC2318f3dCF7e \
-  "approve(address,uint256)" YOUR_WALLET_ADDR 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff \
-  --rpc-url https://mainnet.base.org --private-key $PRIVATE_KEY
+claude mcp add krexa --scope user -- npx -y @krexa/cli mcp
+```
+Then ask anything: "Swap 50 USDC to SOL", "What's my portfolio?", "Find best USDC yield", "Show SOL price"
 
-# Get deposit tx
-TX=$(curl -s -X POST https://api.krexa.xyz/api/v1/wallets/YOUR_WALLET_ADDR/deposit \
-  -H "Content-Type: application/json" \
-  -d '{"amountUsdc": "100"}')
+### SDK (programmatic)
+```typescript
+import { KrexaSDK } from "@krexa/sdk";
 
-TO=$(echo $TX | jq -r '.to')
-DATA=$(echo $TX | jq -r '.data')
-cast send $TO $DATA --rpc-url https://mainnet.base.org --private-key $PRIVATE_KEY
+const krexa = new KrexaSDK({
+  chain: "solana",
+  agentAddress: "YOUR_AGENT_PUBKEY",
+  apiKey: "YOUR_API_KEY",
+});
+
+// Check status
+const status = await krexa.agent.getStatus();
+
+// Request credit
+const result = await krexa.agent.requestCredit({ amount: 500 });
+
+// Trade via Jupiter
+const swap = await krexa.agent.swap({
+  from: "USDC", to: "SOL", amount: 50,
+  ownerAddress: "YOUR_OWNER_PUBKEY",
+});
+
+// Repay
+await krexa.agent.repay({ amount: 50 });
 ```
 
-### Step 3: Send USDC (Operator Signs)
+## Core Concepts
 
-```bash
-TX=$(curl -s -X POST https://api.krexa.xyz/api/v1/wallets/YOUR_WALLET_ADDR/transfer \
-  -H "Content-Type: application/json" \
-  -d '{"to": "0xRECIPIENT", "amountUsdc": "50"}')
+### Agent Types
+- **Type A (Trader):** Borrows to trade on DEXs. NAV monitored. Auto-liquidation if NAV < 90%.
+- **Type B (Service):** Borrows for infrastructure. Earns via x402. Revenue velocity monitored. Wind-down if zero revenue 14 days.
+- **Type C (Hybrid):** Trades AND serves. Dual enforcement.
 
-TO=$(echo $TX | jq -r '.to')
-DATA=$(echo $TX | jq -r '.data')
-cast send $TO $DATA --rpc-url https://mainnet.base.org --private-key $OPERATOR_KEY
+### Credit Levels
+| Level | Max Credit | APR | Daily Rate | Requirement |
+|-------|-----------|-----|-----------|-------------|
+| L1 Micro | $500 | 36.50% | 0.10% | New agent |
+| L2 Standard | $20,000 | 29.20% | 0.08% | Score >= 500 |
+| L3 Growth | $50,000 | 21.90% | 0.06% | Score >= 650 |
+| L4 Prime | $500,000 | 18.25% | 0.05% | Score >= 750 |
+
+### Krexit Score (200-850)
+Composite score from 5 on-chain behavioral signals:
+- Repayment History (30%) — on-time vs late vs missed
+- Profitability (25%) — P&L ratio, Sharpe, max drawdown
+- Behavioral Health (20%) — time in Green/Yellow/Orange/Red zones
+- Usage Patterns (15%) — venue entropy, transaction consistency
+- Account Maturity (10%) — age, lifetime volume, completed cycles
+
+Score is stored on-chain as a PDA. Any Solana program can read it via CPI.
+
+### Revenue Router (Auto-Repayment)
+Every dollar of agent revenue flows through the Revenue Router BEFORE reaching the agent:
+```
+Payment: $1.00 -> Revenue Router
+  Protocol fee (10%):  $0.10 -> Treasury
+  Debt service:        $0.40 -> Reduces outstanding balance
+  Agent receives:      $0.50 -> Agent PDA wallet
 ```
 
-## API Cheat Sheet
+### PDA Wallets
+Every agent gets a Program Derived Address wallet with no private key.
+8 safety layers on every outbound payment:
+1. Wallet not frozen
+2. Per-trade limit (20% of balance)
+3. Daily spend limit
+4. Per-venue concentration (50% max)
+5. Health factor gate
+6. Venue whitelisted
+7. Credit level sufficient
+8. Venue exposure tracking
 
-Base URL: `https://api.krexa.xyz/api/v1`
+### Credit Vault (Structured Lending)
+LPs deposit USDC into three risk tranches:
+- **Senior (50%):** 10% APR, last to lose
+- **Mezzanine (30%):** 12% APR, balanced
+- **Junior (20%):** 20% APR, first-loss (protocol-owned)
 
-| Action | Method | Endpoint | Body |
-|--------|--------|----------|------|
-| List wallets | GET | `/wallets` | — |
-| Wallet by owner | GET | `/wallets/by-owner/{owner}` | — |
-| Wallet detail | GET | `/wallets/{addr}` | — |
-| USDC balance | GET | `/wallets/{addr}/balance` | — |
-| Tx history | GET | `/wallets/{addr}/history` | — |
-| Create wallet | POST | `/wallets/create` | `{operator, dailyLimitUsdc, perTxLimitUsdc}` |
-| Deposit USDC | POST | `/wallets/{addr}/deposit` | `{amountUsdc}` |
-| Transfer USDC | POST | `/wallets/{addr}/transfer` | `{to, amountUsdc}` |
-| Set limits | POST | `/wallets/{addr}/set-limits` | `{dailyLimitUsdc, perTxLimitUsdc}` |
-| Set operator | POST | `/wallets/{addr}/set-operator` | `{operator}` |
-| Freeze | POST | `/wallets/{addr}/freeze` | — |
-| Unfreeze | POST | `/wallets/{addr}/unfreeze` | — |
-| Toggle whitelist | POST | `/wallets/{addr}/toggle-whitelist` | `{enabled: bool}` |
-| Add/remove whitelist | POST | `/wallets/{addr}/whitelist` | `{recipient, allowed: bool}` |
-| Link credit vault | POST | `/wallets/{addr}/link-credit` | `{vault}` |
-| Emergency withdraw | POST | `/wallets/{addr}/emergency-withdraw` | `{to}` |
+Share-based accounting. Utilization capped at 80%. Idle capital routed to Meteora Dynamic Vaults for additional yield.
 
-All POST endpoints return `{to, data, description}` — an unsigned transaction to sign.
+## Programs (Solana Devnet)
 
-## Credit Flow
+| Program | Address |
+|---------|---------|
+| Agent Registry | `ChJjAXy7sE4d4jst9VViG7ScanVKqH9Q1cFxtdcH78cG` |
+| Agent Wallet | `35t8yWLsUZNTLT71ej7DF59P81HrtZTx2uZeMhwuhhf6` |
+| Credit Vault | `26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N` |
+| Credit Router | `2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8` |
+| Krexit Score | `2GwtAXnjY5LehfZfT77ZH3XSshwbni8LP9zXeA84WUqh` |
+| Service Plan | `Eqc48c6TtKAPRosTMoC6Nasi85iqdLuzwbu6WBrsPFdt` |
+| Venue Whitelist | `HyWQrHG14Sw6KpKYSMiBDmVj5u7PXfLWvim6FHbBLmua` |
 
-Agents can borrow USDC through credit line vaults:
+## API Reference
 
-1. **Create credit line**: `POST /credit/agent-line` with `{agent, targetAmountUsdc}`
-2. **Link vault to wallet**: `POST /wallets/{addr}/link-credit` with `{vault}`
-3. **Draw funds**: `POST /credit/{vaultAddr}/draw` — releases next tranche into wallet
-4. **Check credit lines**: `GET /credit/{agentAddr}/lines`
-
-See `references/credit-api.md` for full details.
-
-## Contract Addresses (Base Sepolia)
-
-| Contract | Address |
-|----------|---------|
-| AgentWalletFactory | `0x391130B4AFf2a7E9d15e152852795C4c09cA461f` |
-| USDC | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
-| VaultFactory | `0xf8fDa17F877dEFFCD80784E0465F33d585644360` |
-| PaymentRouter | `0xf8A5ED433222dFfb9514637243C3599cCE87f977` |
-
-Chain ID: 84532 | RPC: `https://sepolia.base.org` | Explorer: `https://sepolia.basescan.org`
-
-See `references/contracts.md` for function signatures.
-
-## Kickstart Integration
-
-Agents can use Krexa credit to launch tokens on [EasyA Kickstart](https://kickstart.easya.io) — a fair launch launchpad on Base mainnet with bonding curves that graduate to Aerodrome DEX at ~4.5 ETH.
-
-**Note:** Krexa contracts run on Base Sepolia (84532). Kickstart runs on Base mainnet (8453). The API handles both networks.
-
-### Launch a Token with Credit
+Base URL: `https://tcredit-backend.onrender.com/api/v1`
 
 ```bash
-# 1. Draw credit from vault (Base Sepolia)
-TX=$(curl -s -X POST https://api.krexa.xyz/api/v1/credit/YOUR_VAULT/draw)
-TO=$(echo $TX | jq -r '.to') && DATA=$(echo $TX | jq -r '.data')
-cast send $TO $DATA --rpc-url https://sepolia.base.org --private-key $KEY
+# Agent status
+curl https://tcredit-backend.onrender.com/api/v1/solana/wallets/AGENT_ADDRESS
 
-# 2. Upload token metadata
-META=$(curl -s -X POST https://api.krexa.xyz/api/v1/kickstart/upload-metadata \
-  -H "Content-Type: application/json" \
-  -d '{"name": "My Token", "ticker": "MTK", "description": "A cool token"}')
-URI=$(echo $META | jq -r '.uri')
+# Score lookup
+curl https://tcredit-backend.onrender.com/api/v1/solana/score/AGENT_ADDRESS
 
-# 3. Create token on Kickstart (Base mainnet)
-TX=$(curl -s -X POST https://api.krexa.xyz/api/v1/kickstart/create-token \
+# Faucet (devnet, 100 USDC/24h)
+curl -X POST https://tcredit-backend.onrender.com/api/v1/solana/faucet/usdc \
   -H "Content-Type: application/json" \
-  -d "{\"name\": \"My Token\", \"symbol\": \"MTK\", \"uri\": \"$URI\", \"initialBuyEth\": \"0.01\"}")
-TO=$(echo $TX | jq -r '.to') && DATA=$(echo $TX | jq -r '.data') && VALUE=$(echo $TX | jq -r '.value')
-cast send $TO --data $DATA --value $VALUE --rpc-url https://mainnet.base.org --private-key $KEY
+  -d '{"recipient":"WALLET","amountUsdc":100}'
+
+# Vault stats
+curl https://tcredit-backend.onrender.com/api/v1/solana/vault/stats
+
+# Credit eligibility
+curl https://tcredit-backend.onrender.com/api/v1/solana/credit/AGENT/eligibility
+
+# Swap quote
+curl -X POST https://tcredit-backend.onrender.com/api/v1/solana/trading/AGENT/quote \
+  -H "Content-Type: application/json" \
+  -d '{"from":"USDC","to":"SOL","amount":50}'
+
+# Portfolio
+curl https://tcredit-backend.onrender.com/api/v1/solana/trading/AGENT/portfolio
 ```
 
-### Combined Flow (Single API Call)
+## MCP Tools (22 total)
 
-```bash
-# Returns ordered steps across both networks
-curl -s -X POST https://api.krexa.xyz/api/v1/kickstart/credit-and-launch \
-  -H "Content-Type: application/json" \
-  -d '{"vaultAddress": "0xVAULT", "name": "My Token", "symbol": "MTK", "description": "A cool token", "initialBuyEth": "0.01"}'
+One connection. Everything your agent needs.
+
+| Category | Tools |
+|----------|-------|
+| Credit | krexa_register_agent, krexa_check_balance, krexa_draw_credit, krexa_repay, krexa_get_score |
+| Payments | krexa_pay |
+| Trading | krexa_swap, krexa_quote, krexa_trade, krexa_limit_order, krexa_cancel_order, krexa_positions |
+| Liquidity | krexa_lp_add, krexa_lp_remove, krexa_lp_positions, krexa_lp_pools |
+| Data | krexa_price, krexa_portfolio, krexa_yield_scan, krexa_history |
+| Vault | krexa_vault_deposit, krexa_vault_stats |
+
+Every transaction flows through your PDA wallet. Revenue Router auto-repays on every trade.
+
+## Building an x402 Service Agent
+
+```typescript
+import express from "express";
+
+const app = express();
+
+app.get("/api/research", (req, res) => {
+  const payment = req.headers["x-payment"];
+  if (!payment) {
+    return res.status(402).json({
+      "x-payment-required": true,
+      "x-payment-amount": "0.25",
+      "x-payment-currency": "USDC",
+      "x-payment-recipient": "REVENUE_ROUTER_ADDRESS",
+      "x-payment-network": "solana:devnet",
+    });
+  }
+  res.json({ result: "research data" });
+});
+
+app.listen(3777);
+// Revenue Router auto-repays your Krexa credit from every payment
 ```
 
-### Kickstart API Endpoints
-
-| Action | Method | Endpoint | Body |
-|--------|--------|----------|------|
-| Upload metadata | POST | `/kickstart/upload-metadata` | `{name, ticker, description, imageUrl?}` |
-| Create token | POST | `/kickstart/create-token` | `{name, symbol, uri, initialBuyEth?}` |
-| Buy token | POST | `/kickstart/buy-token` | `{curveAddress, ethAmount, minTokensOut?}` |
-| Credit + Launch | POST | `/kickstart/credit-and-launch` | `{vaultAddress?, name, symbol, description?, imageUrl?, initialBuyEth?}` |
-| List tokens | GET | `/kickstart/tokens?count=20` | — |
-| Factory config | GET | `/kickstart/config` | — |
-
-See `references/kickstart-api.md` for full details.
-
-## References
-
-- `references/wallet-api.md` — Full wallet endpoint reference with curl examples
-- `references/credit-api.md` — Credit line endpoint reference
-- `references/contracts.md` — Contract addresses and function signatures for `cast`
-- `references/kickstart-api.md` — Kickstart token launch endpoint reference
+## Links
+- Website: https://krexa.xyz
+- Docs: https://krexa.mintlify.app/docs/quickstart
+- GitHub: https://github.com/Yatharth4599/Krexa
+- X: https://x.com/krexa_xyz
