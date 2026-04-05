@@ -29,12 +29,15 @@ interface DefiLlamaPool {
 }
 
 // ---------------------------------------------------------------------------
-// In-memory cache (5 minutes)
+// Cache (Redis primary, in-memory fallback — 5 minutes)
 // ---------------------------------------------------------------------------
 
-let cache: YieldOpportunity[] | null = null;
-let cacheTime = 0;
+import { cacheGet, cacheSet } from '../config/redis.js';
+
+let memCache: YieldOpportunity[] | null = null;
+let memCacheTime = 0;
 const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_TTL_SEC = 5 * 60;
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -48,12 +51,23 @@ export interface YieldFilters {
 
 export async function scanYields(filters?: YieldFilters): Promise<YieldOpportunity[]> {
   const now = Date.now();
-  if (!cache || now - cacheTime > CACHE_TTL_MS) {
-    cache = await fetchFromDefiLlama();
-    cacheTime = now;
+
+  // Try Redis first
+  let data = await cacheGet<YieldOpportunity[]>('yield:scan');
+
+  if (!data) {
+    // Fall back to in-memory cache
+    if (memCache && now - memCacheTime < CACHE_TTL_MS) {
+      data = memCache;
+    } else {
+      data = await fetchFromDefiLlama();
+      memCache = data;
+      memCacheTime = now;
+      await cacheSet('yield:scan', data, CACHE_TTL_SEC);
+    }
   }
 
-  let results = cache;
+  let results = data;
 
   if (filters?.minTvl) {
     results = results.filter(y => y.tvlUsd >= filters.minTvl!);

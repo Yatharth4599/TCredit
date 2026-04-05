@@ -10,6 +10,7 @@
 import { Router } from 'express';
 import { PublicKey } from '@solana/web3.js';
 import { resolveToken, getQuote, buildSwapTx, getTokenPrices } from '../../services/dex-aggregator.js';
+import { cacheGet, cacheSet } from '../../config/redis.js';
 import { scanYields } from '../../services/yield-scanner.js';
 import { readAgentWallet } from '../../chain/solana/reader.js';
 import { agentWalletPda, walletUsdcPda } from '../../chain/solana/programs.js';
@@ -119,6 +120,9 @@ router.get('/:agent/portfolio', async (req, res, next) => {
   try {
     const agentPk = parsePubkey(req.params.agent as string);
 
+    const cached = await cacheGet(`portfolio:${agentPk.toBase58()}`);
+    if (cached) return res.json(cached);
+
     const wallet = await readAgentWallet(agentPk);
     if (!wallet) throw new AppError(404, 'Agent wallet not found on-chain');
 
@@ -187,12 +191,14 @@ router.get('/:agent/portfolio', async (req, res, next) => {
 
     const totalValueUsd = enriched.reduce((sum, t) => sum + Number(t.balanceUsd), 0);
 
-    res.json({
+    const data = {
       agentPubkey: agentPk.toBase58(),
       tokens: enriched,
       totalValueUsd: totalValueUsd.toFixed(2),
       lastUpdated: new Date().toISOString(),
-    });
+    };
+    await cacheSet(`portfolio:${agentPk.toBase58()}`, data, 30);
+    res.json(data);
   } catch (err) { next(err); }
 });
 

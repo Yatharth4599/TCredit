@@ -1,11 +1,53 @@
 import type { Request, Response, NextFunction } from 'express';
-import { timingSafeEqual } from 'crypto';
+import { timingSafeEqual, createHash } from 'crypto';
 import { prisma } from '../../config/prisma.js';
+import { cacheGet, cacheSet } from '../../config/redis.js';
+
+const API_KEY_CACHE_TTL = 300; // 5 minutes
 
 // BUG-097 fix: constant-time key comparison to prevent timing attacks
 function safeCompare(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
+
+interface CachedApiKey {
+  id: string;
+  name: string;
+  key: string;
+  rateLimit: number;
+  tier: string;
+  active: boolean;
+}
+
+function cacheKey(rawKey: string): string {
+  // Never store the raw key — hash it for the Redis key
+  return `apikey:${createHash('sha256').update(rawKey).digest('hex').slice(0, 32)}`;
+}
+
+async function lookupApiKey(headerKey: string): Promise<CachedApiKey | null> {
+  const ck = cacheKey(headerKey);
+
+  // Try Redis cache first
+  const cached = await cacheGet<CachedApiKey>(ck);
+  if (cached) return cached;
+
+  // DB lookup
+  const apiKey = await prisma.apiKey.findUnique({ where: { key: headerKey } });
+  if (!apiKey) return null;
+
+  const entry: CachedApiKey = {
+    id: apiKey.id,
+    name: apiKey.name,
+    key: apiKey.key,
+    rateLimit: apiKey.rateLimit,
+    tier: apiKey.tier,
+    active: apiKey.active,
+  };
+
+  // Cache result (even inactive keys — TTL short enough it's fine)
+  await cacheSet(ck, entry, API_KEY_CACHE_TTL);
+  return entry;
 }
 
 export interface AuthenticatedRequest extends Request {
@@ -25,7 +67,7 @@ export async function apiKeyAuth(req: AuthenticatedRequest, res: Response, next:
   }
 
   try {
-    const apiKey = await prisma.apiKey.findUnique({ where: { key: headerKey } });
+    const apiKey = await lookupApiKey(headerKey);
 
     // BUG-097 fix: constant-time comparison; dummy compare on miss to normalize timing
     if (!apiKey) { safeCompare(headerKey, headerKey); res.status(401).json({ error: 'Invalid or deactivated API key' }); return; }
@@ -38,8 +80,6 @@ export async function apiKeyAuth(req: AuthenticatedRequest, res: Response, next:
     next();
   } catch {
     // EXPLOIT-2 fix: fail closed — don't call next() on DB error when a key WAS provided.
-    // If no key was provided, the early return at line 23-25 already called next().
-    // If a key WAS provided but DB failed, we must reject — not silently proceed as anonymous.
     res.status(503).json({ error: 'Auth service temporarily unavailable' });
   }
 }
@@ -55,7 +95,7 @@ export async function requireApiKey(req: AuthenticatedRequest, res: Response, ne
   }
 
   try {
-    const apiKey = await prisma.apiKey.findUnique({ where: { key: headerKey } });
+    const apiKey = await lookupApiKey(headerKey);
 
     if (!apiKey) { safeCompare(headerKey, headerKey); res.status(401).json({ error: 'Invalid or deactivated API key' }); return; }
     if (!safeCompare(headerKey, apiKey.key) || !apiKey.active) {
@@ -82,7 +122,7 @@ export async function requireAdmin(req: AuthenticatedRequest, res: Response, nex
   }
 
   try {
-    const apiKey = await prisma.apiKey.findUnique({ where: { key: headerKey } });
+    const apiKey = await lookupApiKey(headerKey);
 
     if (!apiKey) { safeCompare(headerKey, headerKey); res.status(401).json({ error: 'Invalid or deactivated API key' }); return; }
     if (!safeCompare(headerKey, apiKey.key) || !apiKey.active) {

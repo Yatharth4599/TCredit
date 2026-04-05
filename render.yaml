@@ -1,4 +1,10 @@
 services:
+  - type: redis
+    name: krexa-redis
+    ipAllowList: []
+    plan: free
+
+
   - type: worker
     name: krexa-oracle
     runtime: node
@@ -105,3 +111,8 @@ services:
         sync: false
       - key: CORS_ORIGIN
         sync: false
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: krexa-redis
+          property: connectionString

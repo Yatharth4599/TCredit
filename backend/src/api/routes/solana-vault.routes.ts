@@ -10,6 +10,7 @@
 import { Router } from 'express';
 import { PublicKey } from '@solana/web3.js';
 import { readVaultConfig, readDepositPosition, readCollateralPosition } from '../../chain/solana/reader.js';
+import { cacheGet, cacheSet } from '../../config/redis.js';
 import { getSolanaKeeperHealth } from '../../services/solana-keeper.js';
 import { getSolanaIndexerHealth } from '../../indexer/solana-indexer.js';
 import { getSolanaOracleHealth } from '../../services/solana-oracle.js';
@@ -52,6 +53,9 @@ function parsePubkey(raw: string): PublicKey {
 // GET /solana/vault/stats
 router.get('/stats', async (req, res, next) => {
   try {
+    const cached = await cacheGet('vault:stats');
+    if (cached) return res.json(cached);
+
     const vault = await readVaultConfig();
     if (!vault) {
       return res.json({ initialized: false });
@@ -63,7 +67,7 @@ router.get('/stats', async (req, res, next) => {
 
     const availableLiquidity = vault.totalDeposits - vault.totalDeployed;
 
-    res.json({
+    const data = {
       initialized: true,
       totalDeposits:        vault.totalDeposits.toString(),
       totalDepositsUsdc:    (Number(vault.totalDeposits) / 1_000_000).toFixed(2),
@@ -82,7 +86,9 @@ router.get('/stats', async (req, res, next) => {
       insuranceBalanceUsdc: (Number(vault.insuranceBalance) / 1_000_000).toFixed(2),
       isPaused:             vault.isPaused,
       lockupSeconds:        vault.lockupSeconds.toString(),
-    });
+    };
+    await cacheSet('vault:stats', data, 60);
+    res.json(data);
   } catch (err) { next(err); }
 });
 

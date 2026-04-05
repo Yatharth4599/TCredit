@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { cacheGet, cacheSet } from '../../config/redis.js';
 import type { Address } from 'viem';
 import { getTotalDeposits, getAvailableBalance, getAllocation } from '../../chain/liquidityPool.js';
 import { addresses } from '../../config/contracts.js';
@@ -38,11 +39,14 @@ async function getPoolData(pool: typeof POOLS[number]) {
 // GET /api/v1/pools
 router.get('/', async (_req, res, next) => {
   try {
+    const cached = await cacheGet('pools:all');
+    if (cached) return res.json(cached);
+
     const pools = await Promise.all(POOLS.map(getPoolData));
     const totalDeposits = pools.reduce((s, p) => s + BigInt(p.totalDeposits), 0n);
     const totalAllocated = pools.reduce((s, p) => s + BigInt(p.totalAllocated), 0n);
 
-    res.json({
+    const data = {
       pools,
       total: pools.length,
       summary: {
@@ -50,7 +54,9 @@ router.get('/', async (_req, res, next) => {
         totalAllocated: totalAllocated.toString(),
         totalAvailable: (totalDeposits - totalAllocated).toString(),
       },
-    });
+    };
+    await cacheSet('pools:all', data, 30);
+    res.json(data);
   } catch (err) {
     next(err);
   }
@@ -60,9 +66,13 @@ router.get('/', async (_req, res, next) => {
 router.get('/:address', async (req, res, next) => {
   try {
     const poolAddr = req.params.address as Address;
+    const cached = await cacheGet(`pools:${poolAddr.toLowerCase()}`);
+    if (cached) return res.json(cached);
+
     const pool = POOLS.find((p) => p.address.toLowerCase() === poolAddr.toLowerCase());
     if (!pool) throw new AppError(404, 'Pool not found');
     const data = await getPoolData(pool);
+    await cacheSet(`pools:${poolAddr.toLowerCase()}`, data, 30);
     res.json(data);
   } catch (err) {
     next(err);

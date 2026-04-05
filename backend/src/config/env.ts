@@ -98,6 +98,8 @@ const envSchema = z.object({
   // Structured logging level
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).optional().default('info'),
 
+  REDIS_URL: z.string().optional().default(''),
+
   PORT: z.coerce.number().default(3001),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 });
