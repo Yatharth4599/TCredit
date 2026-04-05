@@ -581,9 +581,12 @@ const TOOLS: Tool[] = [
 type Args = Record<string, unknown>;
 
 async function handleRegisterAgent(args: Args) {
-  const ownerAddress = args.ownerAddress as string;
-  const agentType = (args.agentType as number | undefined) ?? 0;
-  const dailySpendLimitUsdc = args.dailySpendLimitUsdc as number | undefined;
+  const ownerAddress = requireString(args.ownerAddress, 'ownerAddress');
+  const agentType = typeof args.agentType === 'number' ? requireNumber(args.agentType, 'agentType') : 0;
+  const dailySpendLimitUsdc =
+    typeof args.dailySpendLimitUsdc === 'number'
+      ? requireNumber(args.dailySpendLimitUsdc, 'dailySpendLimitUsdc')
+      : undefined;
   return sdk.agent.createWallet({ ownerAddress, agentType, dailySpendLimitUsdc });
 }
 
@@ -690,7 +693,7 @@ async function handleGetScore(args: Args) {
 // --- New handlers (v2.0) ---
 
 async function handlePrice(args: Args) {
-  const token = args.token as string;
+  const token = requireString(args.token, 'token');
   return apiGet(`/solana/trading/price/${encodeURIComponent(token)}`);
 }
 
@@ -700,33 +703,33 @@ async function handlePositions() {
 
 async function handleLimitOrder(args: Args) {
   return apiPost(`/solana/trading/${agentAddr}/limit-order`, {
-    fromToken: args.fromToken as string,
-    toToken: args.toToken as string,
-    amount: args.amount as number,
-    targetPrice: args.targetPrice as number,
-    expiry: (args.expiry as string) ?? '24h',
+    fromToken: requireString(args.fromToken, 'fromToken'),
+    toToken: requireString(args.toToken, 'toToken'),
+    amount: requireNumber(args.amount, 'amount'),
+    targetPrice: requireNumber(args.targetPrice, 'targetPrice'),
+    expiry: typeof args.expiry === 'string' ? args.expiry : '24h',
   });
 }
 
 async function handleCancelOrder(args: Args) {
   return apiPost(`/solana/trading/${agentAddr}/cancel-order`, {
-    orderId: args.orderId as string,
+    orderId: requireString(args.orderId, 'orderId'),
   });
 }
 
 async function handleLpAdd(args: Args) {
   return apiPost(`/solana/trading/${agentAddr}/lp/add`, {
-    pool: args.pool as string,
-    amount: args.amount as number,
-    protocol: (args.protocol as string) ?? 'auto',
-    rangePercent: (args.rangePercent as number) ?? 10,
+    pool: requireString(args.pool, 'pool'),
+    amount: requireNumber(args.amount, 'amount'),
+    protocol: typeof args.protocol === 'string' ? args.protocol : 'auto',
+    rangePercent: typeof args.rangePercent === 'number' ? requireNumber(args.rangePercent, 'rangePercent') : 10,
   });
 }
 
 async function handleLpRemove(args: Args) {
   return apiPost(`/solana/trading/${agentAddr}/lp/remove`, {
-    positionId: args.positionId as string,
-    percentage: (args.percentage as number) ?? 100,
+    positionId: requireString(args.positionId, 'positionId'),
+    percentage: typeof args.percentage === 'number' ? requireNumber(args.percentage, 'percentage') : 100,
   });
 }
 
@@ -736,25 +739,25 @@ async function handleLpPositions() {
 
 async function handleLpPools(args: Args) {
   const params = new URLSearchParams();
-  if (args.token) params.set('token', args.token as string);
-  if (args.protocol) params.set('protocol', args.protocol as string);
-  if (args.minApy) params.set('minApy', String(args.minApy));
-  if (args.limit) params.set('limit', String(args.limit));
+  if (typeof args.token === 'string') params.set('token', args.token);
+  if (typeof args.protocol === 'string') params.set('protocol', args.protocol);
+  if (typeof args.minApy === 'number') params.set('minApy', String(requireNumber(args.minApy, 'minApy')));
+  if (typeof args.limit === 'number') params.set('limit', String(requireNumber(args.limit, 'limit')));
   const qs = params.toString();
   return apiGet(`/solana/trading/pools${qs ? `?${qs}` : ''}`);
 }
 
 async function handleHistory(args: Args) {
   const params = new URLSearchParams();
-  if (args.limit) params.set('limit', String(args.limit));
-  if (args.type && args.type !== 'all') params.set('type', args.type as string);
+  if (typeof args.limit === 'number') params.set('limit', String(requireNumber(args.limit, 'limit')));
+  if (typeof args.type === 'string' && args.type !== 'all') params.set('type', args.type);
   const qs = params.toString();
-  return apiGet(`/solana/wallets/${agentAddr}/history${qs ? `?${qs}` : ''}`);
+  return apiGet(`/solana/wallets/${agentAddr}/trades${qs ? `?${qs}` : ''}`);
 }
 
 async function handleVaultDeposit(args: Args) {
   return sdk.agent.deposit({
-    amount: args.amount as number,
+    amount: requireNumber(args.amount, 'amount'),
     ownerAddress: agentAddr,
   });
 }

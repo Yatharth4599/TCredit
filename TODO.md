@@ -470,4 +470,24 @@
 
 ---
 
+## Post-Mainnet: Missing MCP Backend Routes (v2.1)
+
+5 MCP tools (mcp-server/src/index.ts:704-747) call backend routes that don't exist. Handlers are ready — need backend route + service integration.
+
+### Limit Orders (Jupiter Limit Order Program)
+- [ ] `POST /solana/trading/:agent/limit-order` — MCP handler: index.ts:704. Params: fromToken, toToken, amount, targetPrice, expiry. Integrate Jupiter Limit Order API.
+- [ ] `POST /solana/trading/:agent/cancel-order` — MCP handler: index.ts:714. Params: orderId.
+- Backend file: `backend/src/api/routes/trading.routes.ts`
+
+### LP Operations (Meteora / Orca / Raydium)
+- [ ] `POST /solana/trading/:agent/lp/add` — MCP handler: index.ts:720. Params: pool, amount, protocol, rangePercent. Start with Meteora SDK.
+- [ ] `POST /solana/trading/:agent/lp/remove` — MCP handler: index.ts:729. Params: positionId, percentage.
+- [ ] `GET /solana/trading/:agent/lp/positions` — MCP handler: index.ts:736. Read positions across all supported DEXs.
+- Backend file: `backend/src/api/routes/trading.routes.ts`
+
+### Fixed (2026-04-05)
+- [x] `krexa_history` — MCP path corrected from `/history` to `/trades` (index.ts:755)
+
+---
+
 *Version 4.0 — Rewritten for Base MVP with Solana feature ports (Feb 2026)*
