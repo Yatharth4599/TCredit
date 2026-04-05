@@ -39,6 +39,7 @@ async function req<T>(
   const res = await fetch(`${baseUrl}${path}`, {
     ...init,
     headers: { ...headers, ...init?.headers },
+    signal: init?.signal ?? AbortSignal.timeout(10_000),
   });
 
   if (!res.ok) {
@@ -247,11 +248,10 @@ export function createAgentNamespace(
       const rawAgent = requireAgent();
       const agent = encodePathSegment(rawAgent, 'agentAddress');
       if (chain === 'solana') {
-        return post<OperationResult>(b, `/solana/wallets/${agent}/pay`, apiKey, {
-          recipient: params.recipient,
-          amount: toBase(params.amount),
-          paymentId: params.paymentId,
-        });
+        throw new KrexaError(
+          501,
+          'payX402 is not exposed by the current Solana REST API. Use the dedicated on-chain pay_x402 flow.'
+        );
       }
       return post<OperationResult>(b, '/oracle/payment', apiKey, {
         from: rawAgent,
@@ -266,10 +266,10 @@ export function createAgentNamespace(
       validateAmount(params.amount, 'withdraw');
       const agent = encodePathSegment(requireAgent(), 'agentAddress');
       if (chain === 'solana') {
-        return post<OperationResult>(b, `/solana/wallets/${agent}/withdraw`, apiKey, {
-          amount: toBase(params.amount),
-          toAddress: params.toAddress,
-        });
+        throw new KrexaError(
+          501,
+          'withdraw is not exposed by the current Solana REST API. Use the dedicated on-chain withdraw flow.'
+        );
       }
       return post<OperationResult>(b, `/wallets/${agent}/transfer`, apiKey, {
         to: params.toAddress,

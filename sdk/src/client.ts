@@ -22,7 +22,11 @@ async function request<T>(baseUrl: string, path: string, apiKey?: string, init?:
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (apiKey) headers['X-API-Key'] = apiKey;
 
-  const res = await fetch(`${baseUrl}${path}`, { ...init, headers: { ...headers, ...init?.headers } });
+  const res = await fetch(`${baseUrl}${path}`, {
+    ...init,
+    headers: { ...headers, ...init?.headers },
+    signal: init?.signal ?? AbortSignal.timeout(10_000),
+  });
 
   if (!res.ok) {
     const body = await res.text();
