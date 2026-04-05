@@ -99,7 +99,6 @@ export function Footer() {
             <div style={columnTitleStyle}>Community</div>
             {[
               { label: 'Twitter', href: 'https://x.com/krexa_xyz' },
-              { label: 'Telegram', href: 'https://t.me/krexa_xyz' },
               { label: 'Discord', href: '#' },
             ].map((l) => (
               <a
