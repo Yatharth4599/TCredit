@@ -992,6 +992,9 @@ pub mod krexa_credit_vault {
         if let Some(wp) = new_wallet_program {
             cfg.wallet_program = wp;
         }
+        if let Some(rp) = new_router_program {
+            cfg.router_program = rp;
+        }
         // SOL-079 fix: validate parameter bounds
         if let Some(cap) = new_utilization_cap_bps {
             require!(cap <= 10_000, VaultError::InvalidParam);

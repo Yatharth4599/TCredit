@@ -33,6 +33,8 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program, BN } from "@coral-xyz/anchor";
 import { KrexaPaymentRouter } from "../target/types/krexa_payment_router";
 import { KrexaCreditVault } from "../target/types/krexa_credit_vault";
+import routerIdl from "../target/idl/krexa_payment_router.json";
+import vaultIdl from "../target/idl/krexa_credit_vault.json";
 import {
   Keypair,
   PublicKey,
@@ -43,15 +45,12 @@ import {
   TOKEN_PROGRAM_ID,
   getAccount,
   getOrCreateAssociatedTokenAccount,
-  mintTo,
-  approve,
 } from "@solana/spl-token";
 import { expect } from "chai";
 import {
   createMockUsdc,
   mintUsdc,
   MockUsdc,
-  usdcAmount,
 } from "./helpers/create-mock-usdc";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -61,6 +60,12 @@ import {
 const USDC_ONE = 1_000_000; // 1 USDC base unit
 const PLATFORM_FEE_BPS = 250; // 2.5 %
 const SPLIT_BPS_MERCHANT2 = 2000; // 20 % to vault
+const ROUTER_PROGRAM_ID = new PublicKey(
+  "2Zy3d7C28Z9dfazdysKVBQUXnvvWNshxtDEFKftG83u8"
+);
+const VAULT_PROGRAM_ID = new PublicKey(
+  "26SQx3rAyujWCupxvPAMf9N3ok4cw1awyTWAVWDQfr9N"
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PDA helpers
@@ -132,9 +137,14 @@ describe("krexa-payment-router", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-  const router = anchor.workspace
-    .KrexaPaymentRouter as Program<KrexaPaymentRouter>;
-  const vault = anchor.workspace.KrexaCreditVault as Program<KrexaCreditVault>;
+  const router = new Program<KrexaPaymentRouter>(
+    { ...routerIdl, address: ROUTER_PROGRAM_ID.toBase58() } as KrexaPaymentRouter,
+    provider
+  );
+  const vault = new Program<KrexaCreditVault>(
+    { ...vaultIdl, address: VAULT_PROGRAM_ID.toBase58() } as KrexaCreditVault,
+    provider
+  );
 
   const conn = provider.connection;
   const admin = provider.wallet as anchor.Wallet;
@@ -175,13 +185,7 @@ describe("krexa-payment-router", () => {
     merchant2 = Keypair.generate();
     stranger = Keypair.generate();
 
-    // Airdrop SOL to all keypairs
-    await Promise.all(
-      [oracle, merchant1, merchant2, stranger].map(async (kp) => {
-        const sig = await conn.requestAirdrop(kp.publicKey, 3_000_000_000);
-        await conn.confirmTransaction(sig);
-      })
-    );
+    // No per-keypair airdrops: provider wallet pays tx fees on both localnet/devnet.
 
     // Create mock USDC
     mock = await createMockUsdc(provider);
@@ -228,12 +232,35 @@ describe("krexa-payment-router", () => {
         routerConfigPda,        // wallet_program = router config PDA
         8_500,                  // utilization_cap_bps = 85%
         500,                    // base_interest_rate_bps = 5%
-        0                       // lockup_seconds = 0
+        new BN(0),              // lockup_seconds = 0
+        treasuryUsdc            // treasury_account
       )
       .accounts({
         config: vaultConfigPda,
         usdcMint: mock.mint,
+        admin: admin.publicKey,
+        systemProgram: SystemProgram.programId
+      })
+      .rpc();
+
+    await vault.methods
+      .createVaultToken()
+      .accounts({
+        config: vaultConfigPda,
+        usdcMint: mock.mint,
         vaultToken: vaultTokenPda,
+        admin: admin.publicKey,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        rent: SYSVAR_RENT_PUBKEY,
+      })
+      .rpc();
+
+    await vault.methods
+      .createInsuranceToken()
+      .accounts({
+        config: vaultConfigPda,
+        usdcMint: mock.mint,
         insuranceToken: insuranceTokenPda,
         admin: admin.publicKey,
         tokenProgram: TOKEN_PROGRAM_ID,
@@ -242,9 +269,26 @@ describe("krexa-payment-router", () => {
       })
       .rpc();
 
+    await vault.methods
+      .updateConfig(
+        null,                       // new_admin
+        null,                       // new_oracle
+        null,                       // new_wallet_program
+        router.programId,           // new_router_program
+        null,                       // new_utilization_cap_bps
+        null,                       // new_base_interest_rate_bps
+        null,                       // new_lockup_seconds
+        null                        // new_service_plan_program
+      )
+      .accounts({
+        config: vaultConfigPda,
+        admin: admin.publicKey,
+      })
+      .rpc();
+
     // ── LP deposits $50k into vault for liquidity ──────────────────────────
     await vault.methods
-      .depositLiquidity(new BN(50_000 * USDC_ONE))
+      .depositLiquidity(new BN(50_000 * USDC_ONE), 0)
       .accounts({
         config: vaultConfigPda,
         vaultToken: vaultTokenPda,
@@ -277,7 +321,7 @@ describe("krexa-payment-router", () => {
         new BN(100 * USDC_ONE), // amount $100
         500,                    // rate_bps = 5%
         1,                      // credit_level = 1
-        0                       // collateral_value (level 1 uses flat cap)
+        new BN(0)               // collateral_value (level 1 uses flat cap)
       )
       .accounts({
         config: vaultConfigPda,
