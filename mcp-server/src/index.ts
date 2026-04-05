@@ -58,7 +58,7 @@ const sdk = new KrexaSDK({
 // ---------------------------------------------------------------------------
 
 const API_URL = process.env.KREXA_BASE_URL ?? 'https://tcredit-backend.onrender.com/api/v1';
-const agentAddress = process.env.KREXA_AGENT_ADDRESS ?? '';
+const agentAddr = agentAddress ?? '';
 
 async function apiGet(path: string) {
   const res = await fetch(`${API_URL}${path}`);
@@ -699,7 +699,7 @@ async function handlePositions() {
 }
 
 async function handleLimitOrder(args: Args) {
-  return apiPost(`/solana/trading/${agentAddress}/limit-order`, {
+  return apiPost(`/solana/trading/${agentAddr}/limit-order`, {
     fromToken: args.fromToken as string,
     toToken: args.toToken as string,
     amount: args.amount as number,
@@ -709,13 +709,13 @@ async function handleLimitOrder(args: Args) {
 }
 
 async function handleCancelOrder(args: Args) {
-  return apiPost(`/solana/trading/${agentAddress}/cancel-order`, {
+  return apiPost(`/solana/trading/${agentAddr}/cancel-order`, {
     orderId: args.orderId as string,
   });
 }
 
 async function handleLpAdd(args: Args) {
-  return apiPost(`/solana/trading/${agentAddress}/lp/add`, {
+  return apiPost(`/solana/trading/${agentAddr}/lp/add`, {
     pool: args.pool as string,
     amount: args.amount as number,
     protocol: (args.protocol as string) ?? 'auto',
@@ -724,14 +724,14 @@ async function handleLpAdd(args: Args) {
 }
 
 async function handleLpRemove(args: Args) {
-  return apiPost(`/solana/trading/${agentAddress}/lp/remove`, {
+  return apiPost(`/solana/trading/${agentAddr}/lp/remove`, {
     positionId: args.positionId as string,
     percentage: (args.percentage as number) ?? 100,
   });
 }
 
 async function handleLpPositions() {
-  return apiGet(`/solana/trading/${agentAddress}/lp/positions`);
+  return apiGet(`/solana/trading/${agentAddr}/lp/positions`);
 }
 
 async function handleLpPools(args: Args) {
@@ -749,13 +749,13 @@ async function handleHistory(args: Args) {
   if (args.limit) params.set('limit', String(args.limit));
   if (args.type && args.type !== 'all') params.set('type', args.type as string);
   const qs = params.toString();
-  return apiGet(`/solana/wallets/${agentAddress}/history${qs ? `?${qs}` : ''}`);
+  return apiGet(`/solana/wallets/${agentAddr}/history${qs ? `?${qs}` : ''}`);
 }
 
 async function handleVaultDeposit(args: Args) {
   return sdk.agent.deposit({
     amount: args.amount as number,
-    ownerAddress: agentAddress,
+    ownerAddress: agentAddr,
   });
 }
 
